@@ -69,3 +69,12 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+
+# IDE / Editor specific files (exemplo, .vscode/ já estava no seu exemplo original, o que é bom)
+.vscode/ 
+
+# Secrets and local configuration - NÃO ENVIAR PARA O GIT
+.env
+
+# Python virtual environment
+venv/
