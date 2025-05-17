@@ -6,8 +6,8 @@ from app import db
 from app.services.report_service import ReportService
 from app.forms import RegistrationForm, LoginForm
 from app.models import User, LoginHistory
-from flask_login import login_user, current_user, logout_user, login_required
-from urllib.parse import urlsplit # Importação correta
+from flask_login import login_user, current_user, logout_user, login_required # Importação já existe
+from urllib.parse import urlsplit
 import logging
 from datetime import datetime, timezone
 
@@ -23,8 +23,10 @@ except (ValueError, RuntimeError) as e:
 
 
 @main_bp.route('/')
+@login_required  # <<< --- ESTA É A LINHA ADICIONADA/CORRIGIDA
 def index():
-    current_app.logger.debug(f"Acessando rota /. Usuário autenticado: {current_user.is_authenticated}")
+    # Se chegou aqui, o usuário está autenticado devido ao @login_required
+    current_app.logger.debug(f"Acessando rota /. Usuário autenticado: {current_user.is_authenticated} ({current_user.username})")
     return render_template('index.html', title='Processador de Relatórios')
 
 @main_bp.route('/register', methods=['GET', 'POST'])
@@ -69,9 +71,9 @@ def login():
         current_app.logger.debug(f"Tentativa de login para email: {form.email.data}. Usuário encontrado: {'Sim' if user else 'Não'}")
 
         if user and user.check_password(form.password.data):
-            current_app.logger.info(f"Verificação de senha para {user.username} bem-sucedida.") # NOVO LOG
+            current_app.logger.info(f"Verificação de senha para {user.username} bem-sucedida.")
             login_user(user, remember=form.remember.data)
-            current_app.logger.info(f"Usuário {user.username} AGORA autenticado: {current_user.is_authenticated}") # NOVO LOG
+            current_app.logger.info(f"Usuário {user.username} AGORA autenticado: {current_user.is_authenticated}")
             login_success = True
             user_id_for_log = user.id
             flash(f'Login bem-sucedido, {user.username}!', 'success')
@@ -83,16 +85,14 @@ def login():
             current_app.logger.info(f"Redirecionando usuário {user.username} para: {next_page}")
             return redirect(next_page)
         else:
-            # NOVO LOG DETALHADO
-            if user: # Usuário existe, mas senha errada
+            if user: 
                 current_app.logger.warning(f"Tentativa de login falhou para o usuário {user.username} (email: {form.email.data}). Senha incorreta. IP: {request.remote_addr}")
                 user_id_for_log = user.id
-            else: # Usuário não encontrado
+            else: 
                 current_app.logger.warning(f"Tentativa de login falhou. Email não encontrado: {form.email.data}. IP: {request.remote_addr}")
             
             flash('Login falhou. Verifique seu email e senha.', 'danger')
         
-        # --- Registro de Auditoria de Login ---
         try:
             log_entry = LoginHistory(
                 user_id=user_id_for_log,
@@ -127,7 +127,6 @@ def logout():
 @main_bp.route('/processar_relatorio', methods=['POST'])
 @login_required 
 def processar_relatorio_route():
-    # NOVO LOG NO INÍCIO DA FUNÇÃO PROTEGIDA
     current_app.logger.info(f"Iniciando /processar_relatorio. Autenticado: {current_user.is_authenticated}, Usuário: {current_user.username if current_user.is_authenticated else 'N/A'}. IP: {request.remote_addr}")
     
     if report_service_instance is None: 
