@@ -6,97 +6,139 @@ body {
     color: #333;
     display: flex;
     justify-content: center;
+    align-items: flex-start; /* Alinha o container no topo */
+    min-height: 100vh;
 }
 
 .container {
     background-color: #ffffff;
-    padding: 25px 30px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 25px 35px; /* Aumentei um pouco o padding lateral */
+    border-radius: 10px; /* Bordas um pouco mais arredondadas */
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1); /* Sombra um pouco mais pronunciada */
     width: 100%;
-    max-width: 700px; /* Define uma largura máxima */
+    max-width: 750px; 
+    margin-top: 20px; /* Margem no topo */
+    margin-bottom: 20px; /* Margem no final */
 }
 
 h1 {
     color: #2c3e50;
     text-align: center;
-    margin-bottom: 25px;
-    font-size: 1.8em;
+    margin-bottom: 30px; /* Aumentei margem */
+    font-size: 2em; /* Aumentei um pouco */
 }
 
 h2 {
     color: #34495e;
-    margin-top: 30px;
-    margin-bottom: 10px;
-    font-size: 1.3em;
-    border-bottom: 1px solid #ecf0f1;
-    padding-bottom: 5px;
+    margin-top: 35px; /* Aumentei margem */
+    margin-bottom: 15px; /* Aumentei margem */
+    font-size: 1.4em; /* Aumentei um pouco */
+    border-bottom: 2px solid #ecf0f1; /* Borda um pouco mais grossa */
+    padding-bottom: 8px; /* Aumentei padding */
 }
 
 textarea {
-    width: 100%; /* O padding será interno à largura */
-    min-height: 150px;
+    width: 100%; 
+    min-height: 180px; /* Aumentei altura mínima */
     margin-bottom: 15px;
-    padding: 12px;
-    border: 1px solid #bdc3c7;
-    border-radius: 4px;
-    box-sizing: border-box; /* Importante para o width 100% funcionar bem com padding */
-    font-size: 0.95em;
-    line-height: 1.5;
+    padding: 14px; /* Aumentei padding */
+    border: 1px solid #ced4da; /* Cor de borda mais suave */
+    border-radius: 6px; /* Bordas mais arredondadas */
+    box-sizing: border-box; 
+    font-size: 1em; /* Tamanho de fonte um pouco maior */
+    line-height: 1.6;
+    resize: vertical; /* Permite redimensionamento vertical */
 }
 
 textarea:focus {
     border-color: #3498db;
     outline: none;
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.25); /* Sombra de foco mais pronunciada */
 }
 
 button {
-    display: block; /* Para ocupar a largura e permitir margem auto */
+    display: block; 
     width: auto;
-    min-width: 150px;
-    padding: 12px 20px;
+    min-width: 180px; /* Aumentei largura mínima */
+    padding: 12px 25px; /* Aumentei padding */
     background-color: #3498db;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px; /* Bordas mais arredondadas */
     cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.2s ease;
-    margin: 0 auto 20px auto; /* Centraliza o botão */
+    font-size: 1.05em; /* Fonte um pouco maior */
+    font-weight: 500; /* Fonte um pouco mais forte */
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    margin: 20px auto; /* Centraliza e adiciona margem vertical */
 }
 
 button:hover {
     background-color: #2980b9;
 }
+button:active {
+    transform: translateY(1px); /* Efeito de clique */
+}
+button:disabled {
+    background-color: #a5c9e0; /* Cor para botão desabilitado */
+    cursor: not-allowed;
+}
+
+#btnCopiar { /* Estilo específico para o botão de copiar */
+    background-color: #2ecc71; /* Verde */
+    margin-top: 15px;
+}
+#btnCopiar:hover {
+    background-color: #27ae60;
+}
+
 
 #output {
     margin-top: 10px;
     padding: 15px;
-    background-color: #ecf0f1;
-    border: 1px solid #bdc3c7;
-    border-radius: 4px;
-    white-space: pre-wrap; /* Para manter a formatação de quebras de linha */
-    min-height: 100px;
-    font-size: 0.95em;
+    background-color: #f8f9fa; /* Fundo um pouco mais claro */
+    border: 1px solid #dee2e6; /* Borda mais suave */
+    border-radius: 6px;
+    white-space: pre-wrap; 
+    min-height: 120px; /* Aumentei altura mínima */
+    font-size: 1em;
     line-height: 1.6;
+    word-wrap: break-word;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 #spinner {
     text-align: center;
-    padding: 15px;
+    padding: 20px; /* Aumentei padding */
     font-style: italic;
-    color: #7f8c8d;
-    display: none; /* Escondido por padrão */
+    color: #546e7a; /* Cor um pouco mais escura */
+    display: none; 
+    font-size: 1.1em;
+}
+#spinner::before { 
+    content: '⏳'; 
+    display: inline-block;
+    margin-right: 10px;
+    font-size: 1.3em;
+    /* Descomente para animação se desejar, mas o emoji já é bom
+    animation: spin 1.5s linear infinite; 
+    */
 }
 
 .error {
-    color: #c0392b;
-    font-weight: bold;
-    margin-top: 10px;
-    padding: 10px;
-    background-color: #fadbd8;
-    border: 1px solid #f1aeb5;
-    border-radius: 4px;
+    color: #d9534f; /* Vermelho para erro */
+    font-weight: 500; /* Fonte um pouco mais forte */
+    margin-top: 15px;
+    padding: 12px 15px;
+    background-color: #f2dede;
+    border: 1px solid #ebccd1;
+    border-radius: 6px;
     text-align: center;
+    display: none; /* Escondido por padrão, JS controla */
+}
+.error:not(:empty) { /* Mostra se tiver conteúdo */
+    display: block;
 }

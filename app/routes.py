@@ -1,17 +1,15 @@
 from flask import render_template, request, jsonify
-from app import app  # Importa a instância 'app' de __init__.py
+from app import app # Importa a instância 'app' de app/__init__.py
 from app.services.report_service import ReportService
 
-# Instancia o serviço UMA VEZ quando o módulo é carregado.
-# Isso é geralmente bom para serviços que não mantêm estado específico da requisição
-# ou que são caros para instanciar repetidamente.
+report_service_instance = None
 try:
-    report_service = ReportService()
-except ValueError as e: # Captura erro se a API Key não for encontrada na inicialização do serviço
-    print(f"ERRO CRÍTICO ao inicializar ReportService: {e}")
-    # Em um app real, você poderia desabilitar funcionalidades ou mostrar um erro global.
-    # Por agora, vamos permitir que o app continue, mas as chamadas ao serviço falharão.
-    report_service = None 
+    report_service_instance = ReportService()
+except (ValueError, RuntimeError) as e:
+    # Log já acontece no __init__ do ReportService ou no app/__init__
+    # Aqui apenas registramos que o serviço não está disponível para as rotas.
+    app.logger.critical(f"Falha catastrófica na inicialização do ReportService. O serviço estará indisponível. Erro: {e}", exc_info=True)
+    # Deixar report_service_instance como None será tratado nas rotas.
 
 @app.route('/')
 def index():
@@ -21,35 +19,48 @@ def index():
 @app.route('/processar_relatorio', methods=['POST'])
 def processar_relatorio_route():
     """Recebe dados do relatório, processa usando o serviço e retorna JSON."""
-    if report_service is None:
-        print("ERRO: Tentativa de usar ReportService, mas ele não foi inicializado corretamente (provavelmente API key faltando).")
-        return jsonify({"erro": "Serviço de processamento indisponível devido a erro de configuração."}), 503 # Service Unavailable
+    if report_service_instance is None:
+        app.logger.error(f"Tentativa de acesso a /processar_relatorio enquanto ReportService está indisponível. IP: {request.remote_addr}")
+        return jsonify({"erro": "Serviço de processamento indisponível devido a erro de configuração interna. Contate o administrador."}), 503
 
     if not request.is_json:
+        app.logger.warning(f"Requisição não JSON para /processar_relatorio. IP: {request.remote_addr}")
         return jsonify({"erro": "Requisição inválida: corpo deve ser JSON."}), 400
 
     data = request.get_json()
-    if not data: # Checa se o JSON é nulo ou vazio
+    if not data:
+         app.logger.warning(f"Corpo JSON vazio recebido em /processar_relatorio. IP: {request.remote_addr}")
          return jsonify({"erro": "Requisição inválida: corpo JSON vazio."}), 400
 
     relatorio_bruto = data.get('relatorio_bruto')
 
-    if relatorio_bruto is None: # Checa se a chave 'relatorio_bruto' existe
+    if relatorio_bruto is None:
+         app.logger.warning(f"Campo 'relatorio_bruto' não encontrado no JSON. IP: {request.remote_addr}")
          return jsonify({"erro": "Campo 'relatorio_bruto' não encontrado no corpo JSON."}), 400
-    if not isinstance(relatorio_bruto, str): # Checa se é uma string
+    if not isinstance(relatorio_bruto, str):
+         app.logger.warning(f"Campo 'relatorio_bruto' não é uma string. IP: {request.remote_addr}")
          return jsonify({"erro": "Campo 'relatorio_bruto' deve ser uma string."}), 400
-    if not relatorio_bruto.strip(): # Checa se a string (após remover espaços) está vazia
-         return jsonify({"erro": "Campo 'relatorio_bruto' não pode estar vazio."}), 400
-
+    
+    # Validação de tamanho (Refinamento 4)
+    MAX_INPUT_LENGTH_SERVER = 12000 
+    if not relatorio_bruto.strip():
+        app.logger.warning(f"Tentativa de processar relatório bruto vazio. IP: {request.remote_addr}")
+        return jsonify({"erro": "Campo 'relatorio_bruto' não pode estar vazio."}), 400
+    
+    if len(relatorio_bruto) > MAX_INPUT_LENGTH_SERVER:
+        app.logger.warning(f"Tentativa de processar relatório muito longo. IP: {request.remote_addr}. Tamanho: {len(relatorio_bruto)}")
+        return jsonify({"erro": f"Relatório muito longo. O tamanho máximo permitido é de {MAX_INPUT_LENGTH_SERVER} caracteres."}), 413
 
     try:
-        # Chama o método (ainda simulado) do nosso serviço
-        relatorio_processado = report_service.processar_relatorio_com_ia(relatorio_bruto)
+        relatorio_processado = report_service_instance.processar_relatorio_com_ia(relatorio_bruto)
+        app.logger.info(f"Relatório processado com sucesso. IP: {request.remote_addr}. Tamanho entrada: {len(relatorio_bruto)}, Tamanho saída: {len(relatorio_processado)}")
         return jsonify({'relatorio_processado': relatorio_processado})
-    except ValueError as ve: # Erros de validação específicos do nosso serviço
-        print(f"DEBUG: Erro de valor no processamento: {ve}")
+    except ValueError as ve: # Erros de validação do nosso serviço (ex: input vazio para IA)
+        app.logger.warning(f"Erro de valor (ValueError) no processamento do relatório: {ve}. IP: {request.remote_addr}")
         return jsonify({'erro': str(ve)}), 400 # Bad Request
-    except Exception as e:
-        # Em produção, logar 'e' de forma detalhada e segura
-        print(f"ERRO: Exceção não tratada em processar_relatorio_route: {e.__class__.__name__}: {e}")
-        return jsonify({'erro': 'Ocorreu um erro interno inesperado ao processar o relatório.'}), 500 # Internal Server Error
+    except RuntimeError as rte: # Erros levantados pelo nosso ReportService (ex: API errors, prompt bloqueado)
+        app.logger.error(f"Erro de execução (RuntimeError) no processamento: {rte}. IP: {request.remote_addr}", exc_info=False) # exc_info=False pois o ReportService já logou com exc_info
+        return jsonify({'erro': str(rte)}), 500 # Internal Server Error ou um código mais específico se rte tiver essa info
+    except Exception as e: # Outras exceções inesperadas
+        app.logger.error(f"Exceção genérica não tratada em processar_relatorio_route: {e.__class__.__name__}: {e}. IP: {request.remote_addr}", exc_info=True)
+        return jsonify({'erro': 'Ocorreu um erro interno inesperado no servidor. Por favor, tente novamente mais tarde.'}), 500
