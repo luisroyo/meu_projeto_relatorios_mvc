@@ -3,10 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - Meu Processador de Relatórios</title>
+    <title>Processador de Relatórios</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <h1>Bem-vindo ao Processador de Relatórios!</h1>
-    <p>Estrutura básica funcionando.</p>
+    <div class="container">
+        <h1>Processador de Relatórios com IA</h1>
+
+        <h2>Entrada do Relatório Bruto:</h2>
+        <textarea id="relatorioBruto" placeholder="Cole aqui o relatório bruto..." rows="10"></textarea>
+        <button id="btnProcessar">Processar Relatório</button>
+
+        <div id="spinner">Processando, por favor aguarde...</div>
+
+        <h2>Relatório Corrigido e Melhorado:</h2>
+        <div id="output"></div>
+
+        <div id="errorDisplay" class="error" style="display: none;"></div> 
+        </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
