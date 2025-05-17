@@ -1,108 +1,129 @@
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Nova fonte */
     margin: 0;
     padding: 20px;
-    background-color: #f4f7f6;
-    color: #333;
+    background-color: #eef1f5; /* Fundo um pouco mais azulado/cinza claro */
+    color: #333a40; /* Cor de texto principal um pouco mais suave */
     display: flex;
-    justify-content: center;
-    align-items: flex-start; /* Alinha o container no topo */
+    flex-direction: column; /* Para alinhar o footer embaixo */
+    align-items: center; 
     min-height: 100vh;
+    font-weight: 400; /* Peso de fonte padrão */
+    line-height: 1.6; /* Espaçamento entre linhas padrão */
 }
 
 .container {
     background-color: #ffffff;
-    padding: 25px 35px; /* Aumentei um pouco o padding lateral */
-    border-radius: 10px; /* Bordas um pouco mais arredondadas */
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1); /* Sombra um pouco mais pronunciada */
+    padding: 30px 40px; 
+    border-radius: 12px; 
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); /* Sombra mais suave e difusa */
     width: 100%;
-    max-width: 750px; 
-    margin-top: 20px; /* Margem no topo */
-    margin-bottom: 20px; /* Margem no final */
+    max-width: 800px; /* Aumentei um pouco a largura máxima */
+    margin-top: 30px; 
+    margin-bottom: 30px; 
+    flex-grow: 1; /* Faz o container crescer para empurrar o footer */
 }
 
 h1 {
-    color: #2c3e50;
+    color: #1a2530; /* Azul escuro mais moderno */
     text-align: center;
-    margin-bottom: 30px; /* Aumentei margem */
-    font-size: 2em; /* Aumentei um pouco */
+    margin-bottom: 35px; 
+    font-size: 2.2em; 
+    font-weight: 700; /* Mais forte para o título principal */
 }
 
 h2 {
-    color: #34495e;
-    margin-top: 35px; /* Aumentei margem */
-    margin-bottom: 15px; /* Aumentei margem */
-    font-size: 1.4em; /* Aumentei um pouco */
-    border-bottom: 2px solid #ecf0f1; /* Borda um pouco mais grossa */
-    padding-bottom: 8px; /* Aumentei padding */
+    color: #2c3e50; /* Mantido, mas com mais peso */
+    margin-top: 40px; 
+    margin-bottom: 18px; 
+    font-size: 1.5em; 
+    border-bottom: 2px solid #dfe6ec; /* Cor da borda mais sutil */
+    padding-bottom: 10px; 
+    font-weight: 500; /* Peso médio */
 }
 
 textarea {
     width: 100%; 
-    min-height: 180px; /* Aumentei altura mínima */
-    margin-bottom: 15px;
-    padding: 14px; /* Aumentei padding */
-    border: 1px solid #ced4da; /* Cor de borda mais suave */
-    border-radius: 6px; /* Bordas mais arredondadas */
+    min-height: 200px; 
+    margin-bottom: 20px; /* Mais espaço abaixo */
+    padding: 15px; 
+    border: 1px solid #ccd1d9; /* Borda um pouco mais escura e definida */
+    border-radius: 8px; 
     box-sizing: border-box; 
-    font-size: 1em; /* Tamanho de fonte um pouco maior */
+    font-size: 1em; 
     line-height: 1.6;
-    resize: vertical; /* Permite redimensionamento vertical */
+    resize: vertical; 
+    background-color: #fdfdfd; /* Fundo levemente off-white para o textarea */
 }
 
 textarea:focus {
-    border-color: #3498db;
+    border-color: #007bff; /* Cor primária no foco */
     outline: none;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.25); /* Sombra de foco mais pronunciada */
+    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.15); 
 }
 
 button {
     display: block; 
     width: auto;
-    min-width: 180px; /* Aumentei largura mínima */
-    padding: 12px 25px; /* Aumentei padding */
-    background-color: #3498db;
+    min-width: 200px; 
+    padding: 14px 28px; 
+    background-color: #007bff; /* Azul primário */
     color: white;
     border: none;
-    border-radius: 6px; /* Bordas mais arredondadas */
+    border-radius: 8px; 
     cursor: pointer;
-    font-size: 1.05em; /* Fonte um pouco maior */
-    font-weight: 500; /* Fonte um pouco mais forte */
-    transition: background-color 0.2s ease, transform 0.1s ease;
-    margin: 20px auto; /* Centraliza e adiciona margem vertical */
+    font-size: 1.05em; 
+    font-weight: 500; 
+    text-transform: uppercase; /* Letras maiúsculas para dar destaque */
+    letter-spacing: 0.5px; /* Pequeno espaçamento entre letras */
+    transition: background-color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
+    margin: 25px auto; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.07);
 }
 
 button:hover {
-    background-color: #2980b9;
+    background-color: #0069d9; /* Azul um pouco mais escuro no hover */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
 }
 button:active {
-    transform: translateY(1px); /* Efeito de clique */
+    background-color: #0056b3;
+    transform: translateY(0px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.07);
 }
 button:disabled {
-    background-color: #a5c9e0; /* Cor para botão desabilitado */
+    background-color: #b0c8e0; /* Cinza azulado para desabilitado */
+    box-shadow: none;
+    transform: none;
     cursor: not-allowed;
 }
 
-#btnCopiar { /* Estilo específico para o botão de copiar */
-    background-color: #2ecc71; /* Verde */
-    margin-top: 15px;
+#btnCopiar { 
+    background-color: #28a745; /* Verde para copiar */
+    margin-top: 20px;
+    min-width: 220px; /* Um pouco maior */
 }
 #btnCopiar:hover {
-    background-color: #27ae60;
+    background-color: #218838; /* Verde mais escuro no hover */
+}
+ #btnCopiar:disabled { /* Para quando o texto for "Copiado!" */
+    background-color: #6fbf7f;
+    cursor: default;
 }
 
 
 #output {
     margin-top: 10px;
-    padding: 15px;
-    background-color: #f8f9fa; /* Fundo um pouco mais claro */
-    border: 1px solid #dee2e6; /* Borda mais suave */
-    border-radius: 6px;
+    padding: 18px; /* Mais padding interno */
+    background-color: #f9fafb; 
+    border: 1px solid #dfe3e8; 
+    border-radius: 8px;
     white-space: pre-wrap; 
-    min-height: 120px; /* Aumentei altura mínima */
+    min-height: 150px; 
     font-size: 1em;
-    line-height: 1.6;
+    line-height: 1.7; /* Mais espaçamento entre linhas para leitura */
     word-wrap: break-word;
+    color: #212529; /* Cor de texto um pouco mais escura para contraste */
 }
 
 @keyframes spin {
@@ -112,33 +133,43 @@ button:disabled {
 
 #spinner {
     text-align: center;
-    padding: 20px; /* Aumentei padding */
-    font-style: italic;
-    color: #546e7a; /* Cor um pouco mais escura */
+    padding: 25px; 
+    font-style: normal; /* Tirei itálico */
+    color: #526675; 
     display: none; 
-    font-size: 1.1em;
+    font-size: 1.15em;
+    font-weight: 500;
 }
 #spinner::before { 
-    content: '⏳'; 
+    content: '⚙️'; /* Novo emoji, ou pode usar um loader SVG/CSS */
     display: inline-block;
-    margin-right: 10px;
-    font-size: 1.3em;
-    /* Descomente para animação se desejar, mas o emoji já é bom
-    animation: spin 1.5s linear infinite; 
-    */
+    margin-right: 12px;
+    font-size: 1.4em;
+    /* animation: spin 1.2s linear infinite; */ /* Descomentado para efeito */
 }
 
 .error {
-    color: #d9534f; /* Vermelho para erro */
-    font-weight: 500; /* Fonte um pouco mais forte */
-    margin-top: 15px;
-    padding: 12px 15px;
-    background-color: #f2dede;
-    border: 1px solid #ebccd1;
-    border-radius: 6px;
+    color: #c82333; /* Vermelho mais forte */
+    font-weight: 500; 
+    margin-top: 20px; /* Mais espaço */
+    margin-bottom: 10px; /* Espaço abaixo */
+    padding: 15px 20px;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
     text-align: center;
-    display: none; /* Escondido por padrão, JS controla */
+    display: none; 
 }
-.error:not(:empty) { /* Mostra se tiver conteúdo */
+.error:not(:empty) { 
     display: block;
+}
+
+/* Estilos para o rodapé (Parte 2) */
+.footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: auto; /* Empurra o rodapé para baixo se o conteúdo for pouco */
+    font-size: 0.9em;
+    color: #6c757d; /* Cinza suave */
+    width: 100%;
 }
