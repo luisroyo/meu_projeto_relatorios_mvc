@@ -1,90 +1,110 @@
-/* Estilos para a Página de Login (login.html) */
+/* Estilos Específicos para a Página de Login (login.html) */
 
 .auth-container {
     background-color: #ffffff;
     padding: 30px 40px;
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
     width: 100%;
-    max-width: 450px; /* Login pode ser um pouco mais estreito que registro */
+    max-width: 420px; /* Login pode ser um pouco mais estreito */
     margin: 40px 20px;
     box-sizing: border-box;
 }
 
 .auth-container h1 {
-    color: #1a2530;
+    color: #212529;
     text-align: center;
     margin-bottom: 25px;
-    font-size: 2em;
-    font-weight: 700;
+    font-size: 1.8em;
+    font-weight: 600;
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 18px;
 }
 
-.form-group label { /* Para o label do "Lembrar-me", se não for o .form-check-label */
+.form-group label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     font-weight: 500;
-    color: #3e4c59;
-    font-size: 0.95em;
+    color: #495057;
+    font-size: 0.9em;
 }
 
 .form-control {
     width: 100%;
-    padding: 13px 16px;
-    font-size: 1em;
-    border: 1px solid #d1d9e0;
-    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.95em;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
     box-sizing: border-box;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    background-color: #fdfdfd;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 .form-control:focus {
     border-color: #007bff;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
-.form-check-group { /* Grupo para o checkbox "Lembrar-me" */
+/* Para o checkbox "Lembrar-me" e seu label */
+.form-check-group {
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Para alinhar com "Esqueceu a senha?" se existir */
-    margin-bottom: 20px;
+    margin-bottom: 18px; /* Mesmo espaçamento de form-group */
 }
-
 .form-check-input { 
     margin-right: 8px;
+    margin-top: -2px; /* Ajuste vertical fino */
     vertical-align: middle;
-    width: auto; /* Tamanho automático para checkbox */
-    height: auto; /* Tamanho automático para checkbox */
+    width: auto; 
+    height: auto; 
     cursor: pointer;
 }
 .form-check-label { 
-    font-size: 0.95em;
-    color: #4a5568;
+    font-size: 0.9em;
+    color: #495057;
     vertical-align: middle;
     cursor: pointer;
+    font-weight: normal; /* Label de checkbox geralmente não é bold */
 }
 
 
 .form-error { 
-    color: #d9534f; 
-    font-size: 0.85em;
-    margin-top: 6px;
+    color: #dc3545; 
+    font-size: 0.8em;
+    margin-top: 4px;
     display: block;
+}
+
+/* Botão de submit do formulário */
+.auth-container form .button {
+    width: 100%; 
+    padding: 12px 20px;
+    margin-top: 25px; 
+    font-size: 1em;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.auth-container form .button:hover {
+    background-color: #0069d9;
 }
 
 /* Alertas (mensagens flash) */
 .alert { 
-    padding: 15px 20px;
-    margin-bottom: 25px;
+    padding: 12px 18px;
+    margin-bottom: 20px;
     border: 1px solid transparent;
-    border-radius: 8px;
-    font-size: 1em;
-    text-align: center;
+    border-radius: 6px;
+    font-size: 0.9em;
+    text-align: left;
 }
 .alert-success {
     color: #0f5132;
@@ -107,47 +127,10 @@
     border-color: #b6effb;
 }
 
-/* Botão de submit do formulário de login */
-.auth-container form .button {
-    display: block; 
-    width: 100%; 
-    max-width: none; 
-    min-width: auto; 
-    margin-top: 30px; 
-    padding: 14px 25px; 
-    background-color: #007bff; 
-    color: white;
-    border: none;
-    border-radius: 8px; 
-    cursor: pointer;
-    font-size: 1.05em; 
-    font-weight: 500; 
-    text-transform: uppercase; 
-    letter-spacing: 0.5px; 
-    transition: background-color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.07);
-}
-.auth-container form .button:hover {
-    background-color: #0069d9; 
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    transform: translateY(-1px);
-}
-.auth-container form .button:active {
-    background-color: #0056b3;
-    transform: translateY(0px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.07);
-}
-.auth-container form .button:disabled {
-    background-color: #b0c8e0; 
-    box-shadow: none;
-    transform: none;
-    cursor: not-allowed;
-}
-
 .auth-links { 
-    margin-top: 25px;
+    margin-top: 20px;
     text-align: center;
-    font-size: 0.95em;
+    font-size: 0.9em;
 }
 .auth-links a {
     color: #007bff;
@@ -157,4 +140,14 @@
 .auth-links a:hover {
     text-decoration: underline;
     color: #0056b3;
+}
+
+@media (max-width: 480px) {
+    .auth-container {
+        margin: 20px 10px;
+        padding: 20px 25px;
+    }
+    .auth-container h1 {
+        font-size: 1.6em;
+    }
 }

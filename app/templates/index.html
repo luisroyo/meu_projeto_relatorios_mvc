@@ -2,24 +2,32 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - Processador Inteligente</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>{{ title }} - Processador Inteligente</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
+    </head>
 <body>
-    <div class="container">
-        <h1>Processador Inteligente de Relatórios</h1>
+    <div class="container"> 
+
+        <div class="navigation-links">
+            {% if current_user.is_authenticated %}
+                <span>Olá, {{ current_user.username }}!</span> | 
+                <a href="{{ url_for('main.logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('main.login') }}">Login</a> | 
+                <a href="{{ url_for('main.register') }}">Registrar</a>
+            {% endif %}
+        </div>
+        <h1>{{ title }}</h1>
 
         <h2>Entrada do Relatório Bruto:</h2>
         <textarea id="relatorioBruto" placeholder="Cole aqui o relatório bruto..." rows="12"></textarea>
         <button id="btnProcessar">Processar Relatório</button>
 
         <div id="spinner">Processando, por favor aguarde...</div>
-         
+        
         <div id="errorDisplay" class="error"></div> 
 
         <h2>Relatório Corrigido e Melhorado:</h2>
@@ -29,9 +37,8 @@
     </div>
 
     <footer class="footer">
-        <p>&copy; {{2025}} | Desenvolvido por Luis Eduardo Rodrigues Royo</p>
+        <p>&copy; {{ SCRIPT_CURRENT_YEAR }} | Desenvolvido por Luis Eduardo Rodrigues Royo</p>
     </footer>
-
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

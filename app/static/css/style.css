@@ -1,9 +1,11 @@
+/* Estilos Globais e da Página Principal (index.html) */
+
 body {
     font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     margin: 0;
-    padding: 0; /* Removido padding global, será por container */
-    background-color: #eef1f5; 
-    color: #333a40; 
+    padding: 0; 
+    background-color: #f0f2f5; /* Um cinza um pouco diferente para o fundo */
+    color: #333740; 
     display: flex;
     flex-direction: column; 
     align-items: center; 
@@ -15,165 +17,205 @@ body {
 /* Container principal para a página de relatório (index.html) */
 .container { 
     background-color: #ffffff;
-    padding: 30px 40px; 
-    border-radius: 12px; 
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); 
+    padding: 25px 30px; 
+    border-radius: 10px; 
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07); 
     width: 100%;
     max-width: 800px; 
-    margin: 30px 20px; /* Adicionado margin lateral */
+    margin: 25px 20px; 
+    box-sizing: border-box;
     flex-grow: 1; 
 }
 
-/* Estilos para H1 e H2 da página principal (index.html) */
-.container h1 {
-    color: #1a2530;
-    text-align: center;
-    margin-bottom: 35px; 
-    font-size: 2.2em; 
-    font-weight: 700;
+/* Links de navegação/logout no topo da página de relatório */
+.navigation-links {
+    text-align: right;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 0.9em;
 }
-.container h2 {
-    color: #2c3e50;
-    margin-top: 40px; 
-    margin-bottom: 18px; 
-    font-size: 1.5em; 
-    border-bottom: 2px solid #dfe6ec; 
-    padding-bottom: 10px; 
+.navigation-links a {
+    color: #007bff;
+    text-decoration: none;
+    margin-left: 12px;
+    font-weight: 500;
+}
+.navigation-links a:hover {
+    text-decoration: underline;
+    color: #0056b3;
+}
+.navigation-links span { 
+    color: #495057;
     font-weight: 500;
 }
 
-/* Textarea específico da página principal (index.html) */
+/* Títulos na página de relatório (index.html) */
+.container > h1 { /* '>' para ser mais específico ao h1 direto do .container */
+    color: #212529;
+    text-align: center;
+    margin-top: 0; 
+    margin-bottom: 30px; 
+    font-size: 2em; 
+    font-weight: 700;
+}
+.container > h2 { /* '>' para ser mais específico ao h2 direto do .container */
+    color: #343a40;
+    margin-top: 30px; 
+    margin-bottom: 15px; 
+    font-size: 1.4em; 
+    border-bottom: 1px solid #e9ecef; 
+    padding-bottom: 8px; 
+    font-weight: 500;
+}
+
+/* Textarea da página de relatório */
 textarea#relatorioBruto {
     width: 100%; 
-    min-height: 200px; 
+    min-height: 180px; 
     margin-bottom: 20px;
-    padding: 15px; 
-    border: 1px solid #d1d9e0; 
-    border-radius: 8px; 
+    padding: 12px 15px; 
+    border: 1px solid #ced4da; 
+    border-radius: 6px; 
     box-sizing: border-box; 
-    font-size: 1em; 
+    font-size: 0.95em; 
     line-height: 1.6;
     resize: vertical; 
-    background-color: #fdfdfd;
+    background-color: #fff;
 }
 textarea#relatorioBruto:focus {
     border-color: #007bff; 
     outline: none;
-    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.15); 
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); 
 }
 
-/* Botões específicos da página principal (index.html) */
-#btnProcessar {
+/* Botões específicos da página de relatório */
+#btnProcessar, #btnCopiar {
     display: block; 
-    width: auto;
-    min-width: 200px; 
-    padding: 14px 28px; 
-    background-color: #007bff; 
+    width: auto; 
+    min-width: 180px; 
+    padding: 10px 20px; 
     color: white;
     border: none;
-    border-radius: 8px; 
+    border-radius: 6px; 
     cursor: pointer;
-    font-size: 1.05em; 
+    font-size: 0.95em; 
     font-weight: 500; 
     text-transform: uppercase; 
     letter-spacing: 0.5px; 
-    transition: background-color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
-    margin: 25px auto; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.07);
+    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.1s ease;
+    margin: 20px auto; 
+    box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+}
+#btnProcessar {
+    background-color: #007bff; 
 }
 #btnProcessar:hover {
     background-color: #0069d9; 
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 3px 5px rgba(0,0,0,0.15);
     transform: translateY(-1px);
 }
-#btnProcessar:active {
-    background-color: #0056b3;
-    transform: translateY(0px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.07);
-}
 #btnProcessar:disabled {
-    background-color: #b0c8e0; 
+    background-color: #6c757d; 
+    cursor: not-allowed;
     box-shadow: none;
     transform: none;
-    cursor: not-allowed;
 }
 
 #btnCopiar { 
-    display: block;
-    width: auto;
     background-color: #28a745; 
-    margin: 20px auto; /* Centralizado */
-    min-width: 220px;
-    padding: 14px 28px; 
-    color: white;
-    border: none;
-    border-radius: 8px; 
-    cursor: pointer;
-    font-size: 1.05em; 
-    font-weight: 500; 
-    text-transform: uppercase; 
-    letter-spacing: 0.5px; 
-    transition: background-color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.07);
 }
 #btnCopiar:hover {
     background-color: #218838; 
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 3px 5px rgba(0,0,0,0.15);
     transform: translateY(-1px);
 }
 #btnCopiar:disabled { 
-    background-color: #6fbf7f;
+    background-color: #5cb85c; /* Cor mais clara quando 'Copiado!' */
     cursor: default;
     box-shadow: none;
     transform: none;
 }
 
-/* Estilos para a área de output da página principal */
+/* Área de output na página de relatório */
 #output {
     margin-top: 10px;
-    padding: 18px; 
-    background-color: #f9fafb; 
-    border: 1px solid #dfe3e8; 
-    border-radius: 8px;
+    padding: 15px; 
+    background-color: #f8f9fa; 
+    border: 1px solid #dee2e6; 
+    border-radius: 6px;
     white-space: pre-wrap; 
-    min-height: 150px; 
-    font-size: 1em;
+    min-height: 120px; 
+    font-size: 0.9em; 
     line-height: 1.7; 
     word-wrap: break-word;
     color: #212529; 
 }
 
-/* Spinner (usado na página principal) */
+/* Spinner (usado na página de relatório) */
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
 #spinner {
     text-align: center;
-    padding: 25px; 
-    font-style: normal; 
-    color: #526675; 
+    padding: 20px; 
+    color: #5a6873; 
     display: none; 
-    font-size: 1.15em;
+    font-size: 1.1em;
     font-weight: 500;
 }
 #spinner::before { 
     content: '⚙️'; 
     display: inline-block;
-    margin-right: 12px;
-    font-size: 1.4em;
+    margin-right: 10px;
+    font-size: 1.3em;
+    /* Se quiser animação de rotação, descomente: */
     /* animation: spin 1.2s linear infinite; */ 
 }
 
 /* Rodapé (estilo global) */
 .footer {
     text-align: center;
-    padding: 25px 20px; 
-    margin-top: auto; /* Empurra o rodapé para baixo */
-    font-size: 0.9em;
-    color: #5a6873; 
-    width: 100%; /* Ocupa toda a largura da viewport */
-    background-color: #dfe6ec; 
-    border-top: 1px solid #ced4da;
-    box-sizing: border-box; /* Garante que padding não aumente a largura */
+    padding: 20px; 
+    margin-top: auto; 
+    font-size: 0.85em; /* Um pouco menor */
+    color: #6c757d; 
+    width: 100%; 
+    background-color: #e9ecef; /* Fundo sutil */
+    border-top: 1px solid #dee2e6;
+    box-sizing: border-box; 
+}
+
+/* --- MEDIA QUERIES PARA RESPONSIVIDADE DA PÁGINA PRINCIPAL --- */
+@media (max-width: 768px) {
+    .container {
+        margin: 20px 15px; 
+        padding: 20px;    
+    }
+    .navigation-links {
+        text-align: center; 
+    }
+    .navigation-links span,
+    .navigation-links a {
+        display: block; 
+        margin: 5px 0; 
+    }
+    .container > h1 { font-size: 1.8em; }
+    .container > h2 { font-size: 1.3em; }
+    textarea#relatorioBruto { min-height: 150px; font-size: 0.95em; }
+    #btnProcessar, #btnCopiar { width: 90%; min-width: 0; font-size: 0.95em; }
+    #output { font-size: 0.9em; }
+}
+
+@media (max-width: 480px) {
+    body { padding: 10px 0 0 0; }
+    .container { margin: 10px; padding: 15px; border-radius: 8px; }
+    .navigation-links { font-size: 0.9em; }
+    .container > h1 { font-size: 1.6em; }
+    .container > h2 { font-size: 1.2em; }
+    textarea#relatorioBruto { min-height: 120px; font-size: 0.9em; }
+    #btnProcessar, #btnCopiar { width: 100%; font-size: 0.9em; }
+    #output { font-size: 0.85em; }
+    .footer { font-size: 0.8em; padding: 15px 10px; }
 }
