@@ -43,60 +43,113 @@ class ReportService:
             logger.critical(f"Erro crítico ao inicializar o modelo Gemini: {e}", exc_info=True)
             raise RuntimeError(f"Erro ao inicializar o modelo Gemini: {e}")
 
+    # Dentro da classe ReportService em app/services/report_service.py
+
+    # Dentro da classe ReportService em app/services/report_service.py
+
+    # Dentro da classe ReportService em app/services/report_service.py
+
+    # Dentro da classe ReportService em app/services/report_service.py
+
+    # Dentro da classe ReportService em app/services/report_service.py
+
     def _construir_prompt(self, dados_brutos: str) -> str:
-        # ESTE É O PROMPT DETALHADO QUE VOCÊ CRIOU ANTERIORMENTE.
-        # Revise e ajuste conforme necessário para otimizar os resultados da IA.
+        # Logger já deve estar definido no __init__ do serviço ou no topo do arquivo
+        # logger.debug(f"Construindo prompt para dados brutos: {dados_brutos[:100]}...")
+
         prompt_completo = f"""
-        Objetivo: Transformar um relatório bruto em um relatório estruturado, corrigido e profissional.
+        **Tarefa Principal:**
+        Você é um assistente de IA altamente competente, especializado em processar e reestruturar relatórios de ocorrências de segurança patrimonial. Sua função é transformar o "Relatório Bruto" fornecido, que muitas vezes pode conter erros de português e não ter uma estrutura definida, em um "Relatório Processado" formal, claro, conciso, gramaticalmente correto e bem organizado.
 
-        Instruções Detalhadas:
-        1.  Analise o "Relatório Bruto" fornecido.
-        2.  Extraia todas as informações relevantes.
-        3.  Corrija erros gramaticais e ortográficos.
-        4.  Formate a data para DD/MM/AAAA. Se o ano for fornecido com dois dígitos (ex: 25), interprete-o como 2025.
-        5.  Apresente o resultado final estritamente no formato especificado em "Formato de Saída". Não inclua nenhuma frase ou texto introdutório ou conclusivo fora deste formato. Não use markdown de bloco de código (```text ... ```) na saída final.
-        6.  Se alguma informação não estiver presente no relatório bruto, omita o campo correspondente ou deixe o valor do campo em branco no formato de saída, a menos que possa ser inferida com alta certeza (ex: "Acionamentos: (x) Central" se o texto disser "central acionou").
-        7.  Para a seção "Relato", crie uma narrativa coesa e formal, em terceira pessoa, descrevendo os eventos. Integre informações como agente, viatura, e a relação entre empresas (ex: NorteSul como contratada da Sanasa) de forma fluida.
-        8.  Na seção "Acionamentos", marque com "(x)" apenas o que foi explicitamente mencionado ou fortemente implícito. Deixe os outros com "( )". Se nada for mencionado sobre acionamentos específicos, deixe todos como "( )".
+        **Contexto Operacional (Muito Importante):**
+        Os relatórios são gerados para um grande complexo que inclui múltiplas áreas comuns externas e 18 residenciais/condomínios internos.
+        As ocorrências são geralmente identificadas pela "Central de Monitoramento" através de câmeras de segurança.
+        A Central de Monitoramento aciona as equipes de "VTR" (Veículo Tático de Rondas) para averiguações e ações.
+        Quando uma situação aparenta risco excessivo que demande uma equipe armada interna, a "Apoio 90" pode ser acionada. A "Apoio 90" NÃO é a Polícia Militar; é uma equipe de suporte armado interno do próprio complexo.
+        O relatório bruto é o registro feito pela equipe da VTR, pelo operador da central ou pela equipe do Apoio 90.
 
-        Formato de Saída Esperado:
+        **Instruções Detalhadas para Processamento:**
+
+        1.  **Análise e Extração:** Leia atentamente o "Relatório Bruto" para extrair todas as informações pertinentes.
+        2.  **Correção de Português:** Corrija TODOS os erros de gramática, ortografia, pontuação e concordância.
+        3.  **Melhoria da Redação:** Reescreva frases de forma clara, objetiva e profissional. Se o texto bruto for muito telegráfico ou informal, elabore-o para garantir clareza e um tom formal, mas SEM inventar informações que não estejam implícitas no texto original. O objetivo é melhorar a apresentação dos fatos, não alterá-los.
+        4.  **Interpretação de "Pernoite de Veículo" (REGRA IMPORTANTE):** Se o relatório bruto indicar que um veículo está com problemas e, como consequência, "irá pernoitar no complexo" (ou expressão similar), interprete que é o **VEÍCULO** que permanecerá no local, e não necessariamente a pessoa (condutor/proprietário), a menos que o texto afirme explicitamente que a PESSOA irá pernoitar. No "Relato" e/ou "Ações Realizadas", deixe claro que o veículo ficará no local. Exemplo: "O veículo Ford Fiesta permanecerá no local para reparo/remoção posterior."
+        5.  **Adaptabilidade:** O relatório bruto pode ser desestruturado. Sua tarefa é identificar as informações e encaixá-las nos campos corretos do "Formato de Saída Esperado".
+        6.  **Formato de Data e Hora:** Padronize a data para DD/MM/AAAA (se o ano for fornecido com dois dígitos, como "25", interprete-o como "2025") e a hora para HH:MM.
+        7.  **Nomenclatura de VTRs (REGRA IMPORTANTE):** Se o relatório bruto mencionar uma VTR seguida de um número (ex: "VTR 03", "vtr 10", "Viatura 03", "vtr03", "AGUIA 07"), na saída formatada, SEMPRE substitua "VTR", "Viatura" ou "AGUIA" (e variações de caixa) por "Águia-" seguido do número formatado com dois dígitos se for menor que 10 (ex: "VTR 3" ou "vtr03" ou "AGUIA 07" se torna "Águia-07", "vtr 10" se torna "Águia-10"). Aplique esta substituição em todos os campos do relatório processado onde a VTR for mencionada.
+        8.  **Artigo para "Águia-XX" (REGRA DE ESTILO IMPORTANTE):** Ao se referir textualmente às unidades "Águia-XX" (ex: Águia-03, Águia-10), sempre utilize o artigo masculino ("o", "os", "um", "uns"). Por exemplo, escreva "o Águia-03 chegou ao local" ou "um chamado para o Águia-10", e NUNCA "a Águia-03" ou "uma Águia-10". Trate a designação "Águia-XX" como uma referência a uma entidade masculina no contexto operacional (como "o veículo" ou "o time").
+        9.  **Estrutura de Saída:** Siga RIGOROSAMENTE o "Formato de Saída Esperado" abaixo. Não adicione seções não solicitadas nem omita as seções pedidas (se houver informação para elas). Se uma informação específica para um campo não estiver presente no relatório bruto, deixe o valor do campo em branco. Não inclua markdown de bloco de código (```text ... ```) na saída final.
+
+        **Instruções Específicas para Cada Campo do "Formato de Saída Esperado":**
+
+        * **Data:** Data da ocorrência.
+        * **Hora:** Hora aproximada do evento principal ou do acionamento.
+        * **Local (REGRA DE ENDEREÇO IMPORTANTE):**
+            1.  Se o relatório bruto contiver uma indicação explícita de endereço sob um cabeçalho como "Local:" (ex: "Local: Rua X, nº 123"), use este endereço como a informação principal e transcreva-o fielmente.
+            2.  Se a descrição da ocorrência mencionar um ponto de referência ou local mais específico onde o evento ocorreu (ex: "no estacionamento do mercado Y", "portaria do condomínio Z", "fundos do bloco C"), essa informação deve ser usada para complementar o endereço principal, se este existir, ou como o local principal se nenhum outro endereço for fornecido. Exemplo de combinação: "Rua X, nº 123, no estacionamento do mercado Y".
+            3.  **NÃO** altere um endereço principal explicitamente fornecido para "próximo a..." apenas porque um ponto de referência foi mencionado na descrição. Se o relatório diz "Local: Rua X, 123" e a descrição diz "verificação no mercado em frente", o Local deve ser "Rua X, nº 123 (em frente ao mercado)". Mantenha a fidelidade ao endereço principal reportado como o local da averiguação ou do evento principal.
+            4.  Se o guarda esquecer de mencionar "Avenida", "Rua", etc., adicione se for óbvio pelo contexto (ex: "AV.FRANCISCO ALFREDO JUNIOR" vira "Avenida Francisco Alfredo Junior"), mas priorize a transcrição fiel do nome e número fornecidos.
+        * **Ocorrência:** Um título curto e objetivo que resuma o motivo do acionamento ou o principal evento.
+        * **Relato:** Descrição detalhada, formal e cronológica. Inclua como a equipe foi acionada, o que foi encontrado, contatos, informações coletadas, e o desfecho (incluindo se o VEÍCULO pernoitará, conforme regra de interpretação).
+        * **Ações Realizadas:** Liste em tópicos as principais ações tomadas.
+        * **Acionamentos:**
+            * `( ) Central`: **REGRA IMPORTANTE:** Marque com (x) se a Central de Monitoramento recebeu a informação inicial, despachou uma equipe (VTR/Águia, Apoio 90), ou se comunicou com a equipe durante a ocorrência. Se o relato indicar que a "Central de Monitoramento foi contatada" ou "acionou a equipe", este item DEVE ser marcado com (x).
+            * `( ) Apoio 90 `: Marque com (x) se a equipe Apoio 90 foi acionada ou envolvida.
+            * `( ) Polícia Militar (190)`: Marque com (x) se a PM foi acionada. Detalhes se houver.
+            * `( ) Supervisor`: Marque com (x) se um supervisor foi contatado. Nome se mencionado.
+            * `( ) Coordenador`: Marque com (x) se um coordenador foi contatado.
+            * `( ) Outro`: [especificar]
+        * **Envolvidos/Testemunhas:** Liste pessoas relevantes.
+        * **Veículo (envolvido na ocorrência):** Detalhes de veículos CIVIS. Se a ocorrência for sobre um veículo com problemas, liste-o aqui.
+        * **Responsável pelo registro (REGRA DE FORMATAÇÃO IMPORTANTE):**
+            1.  Procure por um nome de guarda individual, geralmente associado a "Ronda:", "Guarda:", "Agente:" (ex: "Agente: KAUÃ").
+            2.  Se um nome de guarda individual for encontrado, o formato deve ser "Guarda Patrimonial [Nome do Guarda]" (ex: "Guarda Patrimonial Kauã").
+            3.  Se apenas a designação da VTR/Águia for clara e nenhum nome individual (ex: "Seguranças: AGUIA 07" e não houver campo "Agente:"), use "Equipe Águia-XX" (ex: "Equipe Águia-07").
+            4.  Dê prioridade ao nome do guarda individual se disponível.
+
+        **Formato de Saída Esperado:**
         Data: [DD/MM/AAAA]
         Hora: [HH:MM]
-        Local: [Endereço completo e detalhado, com correções se necessário, ex: "Avenida" em vez de "Av"]
-        Ocorrência: [Título curto e formal da ocorrência, ex: "Verificação de caminhão parado"]
+        Local: [Descrição detalhada conforme instruções, priorizando endereço explícito]
+        Ocorrência: [Título objetivo conforme instruções]
 
         Relato:
-        [Narrativa detalhada e formal dos fatos, incluindo nomes, agente, viatura, e o que foi constatado.
-        Exemplo: "A central de monitoramento acionou a VTR [Número da VTR], conduzida pelo agente [Nome do Agente], para averiguar um caminhão estacionado em [Local Referência]. Ao chegar ao local, foi feito contato com o condutor, identificado como [Nome do Condutor]. Ele informou que, juntamente com [Outros Envolvidos, se houver], presta serviços à empresa [Nome da Empresa Prestadora], responsável por manutenções na rede de esgoto contratadas pela [Nome da Empresa Contratante, se houver]."]
+        [Narrativa detalhada, formal e cronológica, conforme instruções, usando a nomenclatura e artigos corretos como "o Águia-XX" para VTRs, e esclarecendo se o VEÍCULO pernoitará]
 
         Ações Realizadas:
-        - Verificação da situação e contato com os envolvidos.
-        (Adicione outras ações se mencionadas ou inferíveis, cada uma em uma nova linha iniciada por "- ")
+        - [Ação 1]
+        - [Ação 2]
+        - ...
 
         Acionamentos:
-        ( ) Central ( ) Apoio 90 ( ) Polícia Militar ( ) Supervisor ( ) Coordenador
+        ( ) Central
+        ( ) Apoio 90
+        ( ) Polícia Militar (190) - Detalhes: [se houver]
+        ( ) Supervisor - Nome: [se houver]
+        ( ) Coordenador
+        ( ) Outro: [especificar, se houver]
 
         Envolvidos/Testemunhas:
-        - [Nome do Envolvido 1] ([Função/Detalhe, ex: motorista]) – [Empresa, se aplicável]
-        - [Nome do Envolvido 2] ([Função/Detalhe]) – [Empresa, se aplicável]
-        (Liste cada envolvido em uma nova linha iniciada por "- ")
+        - [Nome/Identificação], [Função/Observação]
+        - ...
 
-        Veículo:
-        [Tipo do Veículo] [Marca], placa [Placa]
+        Veículo (envolvido na ocorrência):
+        [Tipo] [Marca], placa [Placa], cor [Cor], [Outros detalhes relevantes]
 
         Responsável pelo registro:
-        [Nome do Agente]
+        [Formato: "Guarda Patrimonial [Nome]" ou "Equipe Águia-XX", conforme instruções]
+       
 
         Relatório Bruto para processar:
         ---
         {dados_brutos}
-        ---
+      
 
         Relatório Processado:
         """
-        # logger.debug(f"Prompt construído:\n{prompt_completo[:500]}...") # Use DEBUG para prompts longos
+        logger.info("Prompt (versão guarda patrimonial v5 - pernoite veículo, acionamento central) construído com sucesso.")
         return prompt_completo
-
+    
     def processar_relatorio_com_ia(self, dados_brutos: str) -> str:
         if not dados_brutos or not dados_brutos.strip():
             logger.warning("Tentativa de processar relatório bruto vazio ou apenas com espaços.")
