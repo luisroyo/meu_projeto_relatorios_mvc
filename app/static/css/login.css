@@ -1,0 +1,160 @@
+/* Estilos para a Página de Login (login.html) */
+
+.auth-container {
+    background-color: #ffffff;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    max-width: 450px; /* Login pode ser um pouco mais estreito que registro */
+    margin: 40px 20px;
+    box-sizing: border-box;
+}
+
+.auth-container h1 {
+    color: #1a2530;
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 2em;
+    font-weight: 700;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label { /* Para o label do "Lembrar-me", se não for o .form-check-label */
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #3e4c59;
+    font-size: 0.95em;
+}
+
+.form-control {
+    width: 100%;
+    padding: 13px 16px;
+    font-size: 1em;
+    border: 1px solid #d1d9e0;
+    border-radius: 8px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background-color: #fdfdfd;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+}
+
+.form-check-group { /* Grupo para o checkbox "Lembrar-me" */
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Para alinhar com "Esqueceu a senha?" se existir */
+    margin-bottom: 20px;
+}
+
+.form-check-input { 
+    margin-right: 8px;
+    vertical-align: middle;
+    width: auto; /* Tamanho automático para checkbox */
+    height: auto; /* Tamanho automático para checkbox */
+    cursor: pointer;
+}
+.form-check-label { 
+    font-size: 0.95em;
+    color: #4a5568;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+
+.form-error { 
+    color: #d9534f; 
+    font-size: 0.85em;
+    margin-top: 6px;
+    display: block;
+}
+
+/* Alertas (mensagens flash) */
+.alert { 
+    padding: 15px 20px;
+    margin-bottom: 25px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 1em;
+    text-align: center;
+}
+.alert-success {
+    color: #0f5132;
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+}
+.alert-danger {
+    color: #842029;
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+}
+.alert-warning {
+    color: #664d03;
+    background-color: #fff3cd;
+    border-color: #ffecb5;
+}
+.alert-info {
+    color: #055160;
+    background-color: #cff4fc;
+    border-color: #b6effb;
+}
+
+/* Botão de submit do formulário de login */
+.auth-container form .button {
+    display: block; 
+    width: 100%; 
+    max-width: none; 
+    min-width: auto; 
+    margin-top: 30px; 
+    padding: 14px 25px; 
+    background-color: #007bff; 
+    color: white;
+    border: none;
+    border-radius: 8px; 
+    cursor: pointer;
+    font-size: 1.05em; 
+    font-weight: 500; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+    transition: background-color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.07);
+}
+.auth-container form .button:hover {
+    background-color: #0069d9; 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+.auth-container form .button:active {
+    background-color: #0056b3;
+    transform: translateY(0px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.07);
+}
+.auth-container form .button:disabled {
+    background-color: #b0c8e0; 
+    box-shadow: none;
+    transform: none;
+    cursor: not-allowed;
+}
+
+.auth-links { 
+    margin-top: 25px;
+    text-align: center;
+    font-size: 0.95em;
+}
+.auth-links a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+}
+.auth-links a:hover {
+    text-decoration: underline;
+    color: #0056b3;
+}

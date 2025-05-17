@@ -1,0 +1,145 @@
+/* Estilos para a Página de Registro (register.html) */
+
+.auth-container {
+    background-color: #ffffff;
+    padding: 30px 40px; /* Padding interno */
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    max-width: 480px; /* Largura para formulários de autenticação */
+    margin: 40px 20px; /* Margens superior/inferior e laterais */
+    box-sizing: border-box;
+}
+
+.auth-container h1 {
+    color: #1a2530;
+    text-align: center;
+    margin-bottom: 25px; /* Menos margem que o h1 principal */
+    font-size: 2em;
+    font-weight: 700;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #3e4c59;
+    font-size: 0.95em;
+}
+
+.form-control {
+    width: 100%;
+    padding: 13px 16px; /* Padding ajustado */
+    font-size: 1em;
+    border: 1px solid #d1d9e0;
+    border-radius: 8px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background-color: #fdfdfd;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+}
+
+.form-error { 
+    color: #d9534f; 
+    font-size: 0.85em;
+    margin-top: 6px;
+    display: block;
+}
+
+/* Alertas (mensagens flash) - Comum para auth, então definimos aqui */
+.alert { 
+    padding: 15px 20px;
+    margin-bottom: 25px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 1em;
+    text-align: center;
+}
+.alert-success {
+    color: #0f5132;
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+}
+.alert-danger {
+    color: #842029;
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+}
+.alert-warning { /* Usado para falha de validação de formulário se o flash for mantido */
+    color: #664d03;
+    background-color: #fff3cd;
+    border-color: #ffecb5;
+}
+.alert-info { /* Usado para logout e outras mensagens informativas */
+    color: #055160;
+    background-color: #cff4fc;
+    border-color: #b6effb;
+}
+
+
+/* Botão de submit do formulário de registro */
+.auth-container form .button { /* Mais específico para botões dentro de forms no auth-container */
+    display: block; 
+    width: 100%; /* Ocupa a largura total do container do form */
+    max-width: none; /* Remove max-width para ocupar 100% */
+    min-width: auto; /* Remove min-width */
+    margin-top: 30px; /* Mais espaço antes do botão */
+    /* Herda outros estilos de botão do style.css se button/ .button forem globais,
+       ou defina todos os estilos de botão aqui se style.css não os tiver de forma genérica.
+       Para este exemplo, assumimos que style.css tem estilos base para 'button' e '.button'
+       mas podemos sobrescrever/adicionar aqui. Vamos garantir que tenham aparência similar.
+    */
+    padding: 14px 25px; 
+    background-color: #007bff; 
+    color: white;
+    border: none;
+    border-radius: 8px; 
+    cursor: pointer;
+    font-size: 1.05em; 
+    font-weight: 500; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+    transition: background-color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.07);
+}
+.auth-container form .button:hover {
+    background-color: #0069d9; 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+.auth-container form .button:active {
+    background-color: #0056b3;
+    transform: translateY(0px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.07);
+}
+.auth-container form .button:disabled {
+    background-color: #b0c8e0; 
+    box-shadow: none;
+    transform: none;
+    cursor: not-allowed;
+}
+
+
+.auth-links { /* Links abaixo dos formulários de auth */
+    margin-top: 25px;
+    text-align: center;
+    font-size: 0.95em;
+}
+.auth-links a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+}
+.auth-links a:hover {
+    text-decoration: underline;
+    color: #0056b3;
+}

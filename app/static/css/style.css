@@ -1,175 +1,179 @@
 body {
-    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Nova fonte */
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     margin: 0;
-    padding: 20px;
-    background-color: #eef1f5; /* Fundo um pouco mais azulado/cinza claro */
-    color: #333a40; /* Cor de texto principal um pouco mais suave */
+    padding: 0; /* Removido padding global, será por container */
+    background-color: #eef1f5; 
+    color: #333a40; 
     display: flex;
-    flex-direction: column; /* Para alinhar o footer embaixo */
+    flex-direction: column; 
     align-items: center; 
     min-height: 100vh;
-    font-weight: 400; /* Peso de fonte padrão */
-    line-height: 1.6; /* Espaçamento entre linhas padrão */
+    font-weight: 400; 
+    line-height: 1.6; 
 }
 
-.container {
+/* Container principal para a página de relatório (index.html) */
+.container { 
     background-color: #ffffff;
     padding: 30px 40px; 
     border-radius: 12px; 
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); /* Sombra mais suave e difusa */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); 
     width: 100%;
-    max-width: 800px; /* Aumentei um pouco a largura máxima */
-    margin-top: 30px; 
-    margin-bottom: 30px; 
-    flex-grow: 1; /* Faz o container crescer para empurrar o footer */
+    max-width: 800px; 
+    margin: 30px 20px; /* Adicionado margin lateral */
+    flex-grow: 1; 
 }
 
-h1 {
-    color: #1a2530; /* Azul escuro mais moderno */
+/* Estilos para H1 e H2 da página principal (index.html) */
+.container h1 {
+    color: #1a2530;
     text-align: center;
     margin-bottom: 35px; 
     font-size: 2.2em; 
-    font-weight: 700; /* Mais forte para o título principal */
+    font-weight: 700;
 }
-
-h2 {
-    color: #2c3e50; /* Mantido, mas com mais peso */
+.container h2 {
+    color: #2c3e50;
     margin-top: 40px; 
     margin-bottom: 18px; 
     font-size: 1.5em; 
-    border-bottom: 2px solid #dfe6ec; /* Cor da borda mais sutil */
+    border-bottom: 2px solid #dfe6ec; 
     padding-bottom: 10px; 
-    font-weight: 500; /* Peso médio */
+    font-weight: 500;
 }
 
-textarea {
+/* Textarea específico da página principal (index.html) */
+textarea#relatorioBruto {
     width: 100%; 
     min-height: 200px; 
-    margin-bottom: 20px; /* Mais espaço abaixo */
+    margin-bottom: 20px;
     padding: 15px; 
-    border: 1px solid #ccd1d9; /* Borda um pouco mais escura e definida */
+    border: 1px solid #d1d9e0; 
     border-radius: 8px; 
     box-sizing: border-box; 
     font-size: 1em; 
     line-height: 1.6;
     resize: vertical; 
-    background-color: #fdfdfd; /* Fundo levemente off-white para o textarea */
+    background-color: #fdfdfd;
 }
-
-textarea:focus {
-    border-color: #007bff; /* Cor primária no foco */
+textarea#relatorioBruto:focus {
+    border-color: #007bff; 
     outline: none;
     box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.15); 
 }
 
-button {
+/* Botões específicos da página principal (index.html) */
+#btnProcessar {
     display: block; 
     width: auto;
     min-width: 200px; 
     padding: 14px 28px; 
-    background-color: #007bff; /* Azul primário */
+    background-color: #007bff; 
     color: white;
     border: none;
     border-radius: 8px; 
     cursor: pointer;
     font-size: 1.05em; 
     font-weight: 500; 
-    text-transform: uppercase; /* Letras maiúsculas para dar destaque */
-    letter-spacing: 0.5px; /* Pequeno espaçamento entre letras */
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
     transition: background-color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
     margin: 25px auto; 
     box-shadow: 0 2px 4px rgba(0,0,0,0.07);
 }
-
-button:hover {
-    background-color: #0069d9; /* Azul um pouco mais escuro no hover */
+#btnProcessar:hover {
+    background-color: #0069d9; 
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     transform: translateY(-1px);
 }
-button:active {
+#btnProcessar:active {
     background-color: #0056b3;
     transform: translateY(0px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.07);
 }
-button:disabled {
-    background-color: #b0c8e0; /* Cinza azulado para desabilitado */
+#btnProcessar:disabled {
+    background-color: #b0c8e0; 
     box-shadow: none;
     transform: none;
     cursor: not-allowed;
 }
 
 #btnCopiar { 
-    background-color: #28a745; /* Verde para copiar */
-    margin-top: 20px;
-    min-width: 220px; /* Um pouco maior */
+    display: block;
+    width: auto;
+    background-color: #28a745; 
+    margin: 20px auto; /* Centralizado */
+    min-width: 220px;
+    padding: 14px 28px; 
+    color: white;
+    border: none;
+    border-radius: 8px; 
+    cursor: pointer;
+    font-size: 1.05em; 
+    font-weight: 500; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+    transition: background-color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.07);
 }
 #btnCopiar:hover {
-    background-color: #218838; /* Verde mais escuro no hover */
+    background-color: #218838; 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
 }
- #btnCopiar:disabled { /* Para quando o texto for "Copiado!" */
+#btnCopiar:disabled { 
     background-color: #6fbf7f;
     cursor: default;
+    box-shadow: none;
+    transform: none;
 }
 
-
+/* Estilos para a área de output da página principal */
 #output {
     margin-top: 10px;
-    padding: 18px; /* Mais padding interno */
+    padding: 18px; 
     background-color: #f9fafb; 
     border: 1px solid #dfe3e8; 
     border-radius: 8px;
     white-space: pre-wrap; 
     min-height: 150px; 
     font-size: 1em;
-    line-height: 1.7; /* Mais espaçamento entre linhas para leitura */
+    line-height: 1.7; 
     word-wrap: break-word;
-    color: #212529; /* Cor de texto um pouco mais escura para contraste */
+    color: #212529; 
 }
 
+/* Spinner (usado na página principal) */
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
-
 #spinner {
     text-align: center;
     padding: 25px; 
-    font-style: normal; /* Tirei itálico */
+    font-style: normal; 
     color: #526675; 
     display: none; 
     font-size: 1.15em;
     font-weight: 500;
 }
 #spinner::before { 
-    content: '⚙️'; /* Novo emoji, ou pode usar um loader SVG/CSS */
+    content: '⚙️'; 
     display: inline-block;
     margin-right: 12px;
     font-size: 1.4em;
-    /* animation: spin 1.2s linear infinite; */ /* Descomentado para efeito */
+    /* animation: spin 1.2s linear infinite; */ 
 }
 
-.error {
-    color: #c82333; /* Vermelho mais forte */
-    font-weight: 500; 
-    margin-top: 20px; /* Mais espaço */
-    margin-bottom: 10px; /* Espaço abaixo */
-    padding: 15px 20px;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: 8px;
-    text-align: center;
-    display: none; 
-}
-.error:not(:empty) { 
-    display: block;
-}
-
-/* Estilos para o rodapé (Parte 2) */
+/* Rodapé (estilo global) */
 .footer {
     text-align: center;
-    padding: 20px;
-    margin-top: auto; /* Empurra o rodapé para baixo se o conteúdo for pouco */
+    padding: 25px 20px; 
+    margin-top: auto; /* Empurra o rodapé para baixo */
     font-size: 0.9em;
-    color: #6c757d; /* Cinza suave */
-    width: 100%;
+    color: #5a6873; 
+    width: 100%; /* Ocupa toda a largura da viewport */
+    background-color: #dfe6ec; 
+    border-top: 1px solid #ced4da;
+    box-sizing: border-box; /* Garante que padding não aumente a largura */
 }
