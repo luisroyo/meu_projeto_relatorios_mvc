@@ -1,112 +1,136 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }} - Meu App{% endblock %}
+{% block title %}{{ title }} - Assistente de Relatórios IA{% endblock %}
 
 {% block content %}
-    <div class="card">
-        <div class="card-header">
-            <h1>{{ title }}</h1>
-        </div>
-        <div class="card-body">
-            <form method="POST" action="{{ url_for('main.relatorio_ronda_route') }}">
-                {{ form.hidden_tag() }}
-                
-                <div class="form-group mb-3">
-                    {{ form.nome_condominio.label(class="form-label") }}
-                    {{ form.nome_condominio(class="form-select", id="nome_condominio_select") }}
-                    {% if form.nome_condominio.errors %}
-                        <div class="invalid-feedback d-block">
-                            {% for error in form.nome_condominio.errors %}<span>{{ error }}</span><br>{% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="form-group mb-3" id="outro_condominio_div" {% if form.nome_condominio.data != 'Outro' %}style="display: none;"{% endif %}>
-                    {{ form.nome_condominio_outro.label(class="form-label") }}
-                    {{ form.nome_condominio_outro(class="form-control", placeholder="Digite o nome do condomínio") }}
-                    {% if form.nome_condominio_outro.errors %}
-                         <div class="invalid-feedback d-block">
-                            {% for error in form.nome_condominio_outro.errors %}<span>{{ error }}</span><br>{% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="form-group mb-3">
-                    {{ form.data_plantao.label(class="form-label") }}
-                    {{ form.data_plantao(class="form-control") }}
-                    {% if form.data_plantao.errors %}
-                        <div class="invalid-feedback d-block">
-                            {% for error in form.data_plantao.errors %}<span>{{ error }}</span><br>{% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="form-group mb-3">
-                    {{ form.escala_plantao.label(class="form-label") }}
-                    {{ form.escala_plantao(class="form-select") }}
-                    {% if form.escala_plantao.errors %}
-                        <div class="invalid-feedback d-block">
-                            {% for error in form.escala_plantao.errors %}<span>{{ error }}</span><br>{% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="form-group mb-3">
-                    {{ form.log_bruto_rondas.label(class="form-label") }}
-                    {{ form.log_bruto_rondas(class="form-control", rows="10") }}
-                    {% if form.log_bruto_rondas.errors %}
-                        <div class="invalid-feedback d-block">
-                            {% for error in form.log_bruto_rondas.errors %}<span>{{ error }}</span><br>{% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-                
-                <div class="form-group mt-4">
-                    {{ form.submit(class="btn btn-primary") }}
-                </div>
-            </form>
-        </div>
+<div class="container-fluid mt-lg-3">
+    <div class="text-center mb-4">
+        <h1>{{ title }}</h1>
+        <p class="lead">Insira os dados do plantão e o log bruto das rondas para gerar o relatório formatado.</p>
     </div>
 
-    {% if resultado %}
-        <div class="card mt-4">
-            <div class="card-header">
-                <h2>Resultado do Processamento:</h2>
-            </div>
-            <div class="card-body">
-                {% if resultado is string and resultado.startswith("Erro:") %}
-                     <pre class="alert alert-danger">{{ resultado }}</pre>
-                {% elif resultado is string %}
-                    <div class="report-output">
-                        <pre>{{ resultado }}</pre>
-                    </div>
-                {% else %}
-                     <p class="alert alert-warning">Resultado em formato não reconhecido (esperava-se uma string): {{ resultado }}</p>
-                {% endif %}
+    {# Nova linha (row) para colocar o formulário e os resultados lado a lado #}
+    <div class="row">
+        {# Coluna para o formulário de entrada #}
+        <div class="col-lg-6 mb-4"> {# Em telas grandes (lg), ocupa metade da largura #}
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Dados do Plantão e Log de Rondas</h5>
+                </div>
+                <div class="card-body p-4 d-flex flex-column">
+                    <form method="POST" action="{{ url_for('main.relatorio_ronda_route') }}" novalidate class="flex-grow-1">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.nome_condominio.label(class="form-label") }}
+                            {{ form.nome_condominio(class="form-select" + (" is-invalid" if form.nome_condominio.errors else ""), id="nome_condominio_select") }}
+                            {% if form.nome_condominio.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.nome_condominio.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3" id="outro_condominio_div" {% if form.nome_condominio.data != 'Outro' or not form.nome_condominio_outro.data %}style="display: none;"{% endif %}>
+                            {{ form.nome_condominio_outro.label(class="form-label") }}
+                            {{ form.nome_condominio_outro(class="form-control" + (" is-invalid" if form.nome_condominio_outro.errors else ""), placeholder="Digite o nome do condomínio") }}
+                            {% if form.nome_condominio_outro.errors %}
+                                 <div class="invalid-feedback d-block">
+                                    {% for error in form.nome_condominio_outro.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.data_plantao.label(class="form-label") }}
+                            {{ form.data_plantao(class="form-control" + (" is-invalid" if form.data_plantao.errors else "")) }}
+                            {% if form.data_plantao.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.data_plantao.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.escala_plantao.label(class="form-label") }}
+                            {{ form.escala_plantao(class="form-select" + (" is-invalid" if form.escala_plantao.errors else "")) }}
+                            {% if form.escala_plantao.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.escala_plantao.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.log_bruto_rondas.label(class="form-label") }}
+                            {{ form.log_bruto_rondas(class="form-control" + (" is-invalid" if form.log_bruto_rondas.errors else ""), rows="10") }}
+                            {% if form.log_bruto_rondas.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.log_bruto_rondas.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-grid mt-auto"> 
+                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-    {% elif log_enviado and request.method == 'POST' and not form.errors %} 
-        <p class="alert alert-info mt-3">O log foi submetido, mas o serviço não retornou um resultado para exibir.</p>
-    {% endif %}
 
+        {# Coluna para a exibição dos resultados #}
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Relatório Gerado</h5>
+                </div>
+                <div class="card-body p-4"> {# Removido d-flex flex-column daqui, ou ajustar se necessário #}
+                    <div class="report-output-container"> {# Removido flex-grow-1 daqui #}
+                        {% if resultado %}
+                            {% if resultado is string and resultado.startswith("Erro:") %}
+                                 <pre id="rondaResultadoTexto" class="alert alert-danger p-3">{{ resultado }}</pre>
+                            {% elif resultado is string and ("Nenhum evento de ronda válido" in resultado or "Nenhum log de ronda fornecido" in resultado or "Eventos de ronda identificados, mas insuficientes" in resultado) %}
+                                 <div id="rondaResultadoTexto" class="alert alert-warning p-3">{{ resultado }}</div>
+                            {% elif resultado is string %}
+                                <div class="report-output">
+                                    <pre id="rondaResultadoTexto">{{ resultado }}</pre>
+                                </div>
+                            {% else %}
+                                 <p id="rondaResultadoTexto" class="alert alert-warning">Resultado em formato não reconhecido: {{ resultado }}</p>
+                            {% endif %}
+                        {% elif log_enviado and request.method == 'POST' and not form.errors %} 
+                            <div id="rondaResultadoTexto" class="alert alert-info">O log foi submetido, mas o serviço não retornou um resultado para exibir ou não havia dados válidos.</div>
+                        {% else %}
+                            <div id="rondaResultadoTexto" class="alert alert-secondary">O relatório processado aparecerá aqui.</div>
+                        {% endif %}
+                    </div>
+                    {# Botão Copiar posicionado logo após o container do resultado #}
+                    <div class="mt-3"> {# Removido mt-auto, pt-3 pode ser ajustado para mt-3 ou conforme necessidade #}
+                        <button type="button" class="btn btn-info" id="copiarRelatorioRonda" style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top" title="Copiar para a área de transferência">
+                            Copiar Relatório de Ronda
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Lógica para mostrar/esconder campo "Outro Condomínio"
             const selectCondominio = document.getElementById('nome_condominio_select');
             const outroCondominioDiv = document.getElementById('outro_condominio_div');
-            const outroCondominioInput = outroCondominioDiv.querySelector('input'); // Pega o input dentro da div
-
+            
             function toggleOutroCondominio() {
-                if (selectCondominio && outroCondominioDiv) { // Verifica se os elementos existem
+                if (selectCondominio && outroCondominioDiv) {
                     if (selectCondominio.value === 'Outro') {
                         outroCondominioDiv.style.display = 'block';
                     } else {
                         outroCondominioDiv.style.display = 'none';
-                        // if (outroCondominioInput) {
-                        //     outroCondominioInput.value = ''; // Descomente para limpar ao esconder
-                        // }
                     }
                 }
             }
@@ -115,6 +139,92 @@
                 selectCondominio.addEventListener('change', toggleOutroCondominio);
                 toggleOutroCondominio(); // Estado inicial
             }
+
+            // Lógica para o botão Copiar Relatório de Ronda
+            const btnCopiarRonda = document.getElementById('copiarRelatorioRonda');
+            const resultadoTextoEl = document.getElementById('rondaResultadoTexto');
+
+            // Mostra o botão de copiar se houver resultado válido para copiar
+            if (resultadoTextoEl && btnCopiarRonda) {
+                const textoResultado = resultadoTextoEl.textContent || resultadoTextoEl.innerText;
+                // Verifica se o resultado não é uma mensagem placeholder ou de erro simples
+                // A condição para exibir o botão foi simplificada: se o elemento resultadoTextoEl tem conteúdo visível
+                // e não é o placeholder inicial, mostra o botão.
+                const isPlaceholder = resultadoTextoEl.classList.contains('alert-secondary') && 
+                                      (resultadoTextoEl.textContent || resultadoTextoEl.innerText).includes("O relatório processado aparecerá aqui.");
+                const isErrorMessage = resultadoTextoEl.classList.contains('alert-danger');
+                const isWarningNoData = resultadoTextoEl.classList.contains('alert-warning') && 
+                                        (textoResultado.includes("Nenhum evento de ronda válido") || textoResultado.includes("Nenhum log de ronda fornecido"));
+                const isInfoNoResult = resultadoTextoEl.classList.contains('alert-info');
+
+
+                if (textoResultado.trim() && !isPlaceholder && !isErrorMessage && !isWarningNoData && !isInfoNoResult) {
+                    btnCopiarRonda.style.display = 'inline-block';
+                } else {
+                    btnCopiarRonda.style.display = 'none';
+                }
+            }
+
+
+            if (btnCopiarRonda && resultadoTextoEl) {
+                btnCopiarRonda.addEventListener('click', function() {
+                    const textoParaCopiar = resultadoTextoEl.textContent || resultadoTextoEl.innerText;
+                    if (!textoParaCopiar.trim()) return;
+
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(textoParaCopiar)
+                            .then(() => {
+                                const originalText = btnCopiarRonda.textContent;
+                                btnCopiarRonda.innerHTML = 'Copiado!'; // Feedback visual
+                                btnCopiarRonda.disabled = true;
+                                setTimeout(() => {
+                                    btnCopiarRonda.textContent = originalText;
+                                    btnCopiarRonda.disabled = false;
+                                }, 2000);
+                            })
+                            .catch(err => {
+                                console.error('Falha ao copiar com navigator.clipboard: ', err);
+                                tryFallbackCopyRonda(textoParaCopiar);
+                            });
+                    } else {
+                        tryFallbackCopyRonda(textoParaCopiar);
+                    }
+                });
+            }
+
+            function tryFallbackCopyRonda(text) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed"; 
+                textArea.style.opacity = "0"; 
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful && btnCopiarRonda) {
+                        const originalText = "Copiar Relatório de Ronda";
+                        btnCopiarRonda.innerHTML = 'Copiado!';
+                        btnCopiarRonda.disabled = true;
+                        setTimeout(() => {
+                            btnCopiarRonda.textContent = originalText;
+                            btnCopiarRonda.disabled = false;
+                        }, 2000);
+                    } else if (!successful) {
+                         throw new Error('document.execCommand("copy") falhou.');
+                    }
+                } catch (err) {
+                    console.error('Falha ao copiar com fallback: ', err);
+                    alert('Não foi possível copiar o texto. Por favor, copie manualmente.');
+                }
+                document.body.removeChild(textArea);
+            }
+            
+            // Inicializa tooltips do Bootstrap (se houver algum na página)
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+              return new bootstrap.Tooltip(tooltipTriggerEl)
+            })
         });
     </script>
 {% endblock %}
