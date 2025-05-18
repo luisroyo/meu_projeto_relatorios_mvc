@@ -10,13 +10,15 @@
     </div>
 
     <div class="row">
-        <div class="col-lg-6 mb-4"> 
+        {# Coluna para o formulário de entrada #}
+        {# Adicionado col-12 para empilhar em telas pequenas e médias por padrão antes de lg #}
+        <div class="col-12 col-lg-6 mb-4"> 
             <div class="card shadow-sm h-100">
                 <div class="card-header">
                     <h5 class="mb-0">Dados do Plantão e Log de Rondas</h5>
                 </div>
                 <div class="card-body p-4 d-flex flex-column">
-                    <form method="POST" action="{{ url_for('main.relatorio_ronda_route') }}" novalidate class="flex-grow-1" id="formRelatorioRonda"> {# ID adicionado ao formulário #}
+                    <form method="POST" action="{{ url_for('main.relatorio_ronda_route') }}" novalidate class="flex-grow-1" id="formRelatorioRonda">
                         {{ form.hidden_tag() }}
                         
                         <div class="mb-3">
@@ -69,16 +71,18 @@
                             {% endif %}
                         </div>
                         
-                        <div class="mt-auto d-flex justify-content-start"> {# d-flex para alinhar botões #}
-                            {{ form.submit(class="btn btn-primary btn-lg me-2", id="submitRelatorioRonda") }} {# ID para o botão de submit #}
-                            <button type="button" class="btn btn-outline-secondary btn-lg" id="limparFormRonda">Limpar Log e Resultado</button> {# Texto do botão alterado #}
+                        <div class="mt-auto d-flex justify-content-start"> 
+                            {{ form.submit(class="btn btn-primary btn-lg me-2", id="submitRelatorioRonda") }} 
+                            <button type="button" class="btn btn-outline-secondary btn-lg" id="limparFormRonda">Limpar Log e Resultado</button> 
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-6 mb-4">
+        {# Coluna para a exibição dos resultados #}
+        {# Adicionado col-12 para empilhar em telas pequenas e médias por padrão antes de lg #}
+        <div class="col-12 col-lg-6 mb-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header">
                     <h5 class="mb-0">Relatório Gerado</h5>
@@ -122,14 +126,11 @@
             const selectCondominio = document.getElementById('nome_condominio_select');
             const outroCondominioDiv = document.getElementById('outro_condominio_div');
             const outroCondominioInput = document.getElementById('nome_condominio_outro_input');
-            // const dataPlantaoInput = document.getElementById('data_plantao_input'); // Não será limpo
-            // const escalaPlantaoSelect = document.getElementById('escala_plantao_select'); // Não será limpo
             const logBrutoTextarea = document.getElementById('log_bruto_rondas_textarea');
             const resultadoTextoEl = document.getElementById('rondaResultadoTexto');
             const btnCopiarRonda = document.getElementById('copiarRelatorioRonda');
             const btnLimparFormRonda = document.getElementById('limparFormRonda');
 
-            // Lógica para mostrar/esconder campo "Outro Condomínio"
             function toggleOutroCondominio() {
                 if (selectCondominio && outroCondominioDiv) {
                     if (selectCondominio.value === 'Outro') {
@@ -146,16 +147,10 @@
                 toggleOutroCondominio(); 
             }
 
-            // Lógica para o botão Limpar Log e Resultado
             if (btnLimparFormRonda) {
                 btnLimparFormRonda.addEventListener('click', function() {
-                    // Limpa APENAS o textarea do log bruto
                     if(logBrutoTextarea) logBrutoTextarea.value = ''; 
                     
-                    // Mantém os valores dos outros campos:
-                    // selectCondominio, outroCondominioInput (se visível), dataPlantaoInput, escalaPlantaoSelect
-
-                    // Limpa a área de resultado
                     if (resultadoTextoEl) {
                         if (resultadoTextoEl.tagName === 'PRE' && resultadoTextoEl.parentElement.classList.contains('report-output')) {
                             const reportOutputContainer = document.querySelector('.report-output-container');
@@ -173,7 +168,6 @@
                 });
             }
 
-            // Lógica para o botão Copiar Relatório de Ronda (mantida)
             if (resultadoTextoEl && btnCopiarRonda) {
                 function atualizarVisibilidadeBotaoCopiar() {
                     const textoResultado = resultadoTextoEl.textContent || resultadoTextoEl.innerText;
@@ -192,10 +186,8 @@
                 }
                 atualizarVisibilidadeBotaoCopiar(); 
                 
-                // Observador para atualizar visibilidade do botão copiar se o conteúdo do resultado mudar dinamicamente
                 const observer = new MutationObserver(atualizarVisibilidadeBotaoCopiar);
                 observer.observe(resultadoTextoEl, { childList: true, characterData: true, subtree: true });
-
 
                 btnCopiarRonda.addEventListener('click', function() {
                     const textoParaCopiar = resultadoTextoEl.textContent || resultadoTextoEl.innerText;
