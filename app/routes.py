@@ -4,15 +4,16 @@ from flask import (
 )
 from app import db
 from app.services.report_service import ReportService
+from app.services.ronda_service import processar_log_de_rondas
 from app.forms import RegistrationForm, LoginForm
 from app.models import User, LoginHistory
-from flask_login import login_user, current_user, logout_user, login_required # Importação já existe
+from flask_login import login_user, current_user, logout_user, login_required
 from urllib.parse import urlsplit
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone # Certifique-se que timezone está importado
 
 main_bp = Blueprint('main', __name__)
-logger = logging.getLogger(__name__) # Logger para este módulo/blueprint
+logger = logging.getLogger(__name__)
 
 report_service_instance = None
 try:
@@ -23,9 +24,8 @@ except (ValueError, RuntimeError) as e:
 
 
 @main_bp.route('/')
-@login_required  # <<< --- ESTA É A LINHA ADICIONADA/CORRIGIDA
+@login_required
 def index():
-    # Se chegou aqui, o usuário está autenticado devido ao @login_required
     current_app.logger.debug(f"Acessando rota /. Usuário autenticado: {current_user.is_authenticated} ({current_user.username})")
     return render_template('index.html', title='Processador de Relatórios')
 
@@ -79,10 +79,10 @@ def login():
             flash(f'Login bem-sucedido, {user.username}!', 'success')
             
             next_page = request.args.get('next')
-            current_app.logger.debug(f"Parâmetro next_page: {next_page}")
+            current_app.logger.debug(f"Parâmetro next_page do login: {next_page}") # Log para ver o next_page
             if not next_page or urlsplit(next_page).netloc != '':
                 next_page = url_for('main.index')
-            current_app.logger.info(f"Redirecionando usuário {user.username} para: {next_page}")
+            current_app.logger.info(f"Redirecionando usuário {user.username} para: {next_page} após login.")
             return redirect(next_page)
         else:
             if user: 
@@ -128,7 +128,7 @@ def logout():
 @login_required 
 def processar_relatorio_route():
     current_app.logger.info(f"Iniciando /processar_relatorio. Autenticado: {current_user.is_authenticated}, Usuário: {current_user.username if current_user.is_authenticated else 'N/A'}. IP: {request.remote_addr}")
-    
+    # ... (código da rota processar_relatorio continua igual ao da última versão que funcionava)
     if report_service_instance is None: 
         current_app.logger.error(f"ReportService indisponível para {current_user.username}. IP: {request.remote_addr}")
         return jsonify({"erro": "Serviço de processamento indisponível."}), 503
@@ -173,3 +173,59 @@ def processar_relatorio_route():
     except Exception as e: 
         current_app.logger.error(f"Exceção genérica para {current_user.username}: {e.__class__.__name__}: {e}. IP: {request.remote_addr}", exc_info=True)
         return jsonify({'erro': 'Erro interno inesperado. Tente novamente.'}), 500
+
+
+@main_bp.route('/testar_rondas', methods=['GET', 'POST'])
+@login_required
+def testar_rondas_route():
+    if request.method == 'POST':
+        log_bruto = request.form.get('log_bruto_rondas')
+        nome_condominio = request.form.get('nome_condominio', 'Condomínio Teste')
+        data_plantao = request.form.get('data_plantao', datetime.now(timezone.utc).strftime('%d/%m/%Y'))
+        escala_plantao = request.form.get('escala_plantao', '18-06')
+
+        if not log_bruto:
+            flash('Por favor, insira o log de rondas.', 'warning')
+            # Passar os valores padrão de volta para o template no caso de erro no POST também
+            return render_template('testar_rondas.html', 
+                                   title='Testar Processamento de Rondas', 
+                                   resultado=None,
+                                   condominio_enviado=nome_condominio, 
+                                   data_plantao_enviada=data_plantao, 
+                                   escala_enviada=escala_plantao)
+        try:
+            resultado_processado = processar_log_de_rondas(
+                log_bruto, 
+                nome_condominio,
+                data_plantao,
+                escala_plantao
+            )
+            current_app.logger.info(f"Teste de processamento de rondas executado por {current_user.username}.")
+            return render_template('testar_rondas.html', 
+                                   title='Testar Processamento de Rondas', 
+                                   resultado=resultado_processado, 
+                                   log_enviado=log_bruto, 
+                                   condominio_enviado=nome_condominio, 
+                                   data_plantao_enviada=data_plantao, 
+                                   escala_enviada=escala_plantao)
+        except Exception as e:
+            current_app.logger.error(f"Erro ao testar processamento de rondas: {e}", exc_info=True)
+            flash(f'Ocorreu um erro ao processar o log de rondas: {str(e)}', 'danger')
+            return render_template('testar_rondas.html', 
+                                   title='Testar Processamento de Rondas', 
+                                   resultado=f"Erro: {str(e)}", 
+                                   log_enviado=log_bruto, 
+                                   condominio_enviado=nome_condominio, 
+                                   data_plantao_enviada=data_plantao, 
+                                   escala_enviada=escala_plantao)
+    
+    # Para requisição GET, define os valores padrão para os campos do formulário
+    default_condominio = 'Condomínio Exemplo'
+    default_data_plantao = datetime.now(timezone.utc).strftime('%d/%m/%Y')
+    default_escala_plantao = '18-06'
+    
+    return render_template('testar_rondas.html', 
+                           title='Testar Processamento de Rondas',
+                           condominio_enviado=default_condominio,
+                           data_plantao_enviada=default_data_plantao,
+                           escala_enviada=default_escala_plantao)
