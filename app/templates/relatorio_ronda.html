@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Meu App{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h1>{{ title }}</h1>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('main.relatorio_ronda_route') }}">
+                {{ form.hidden_tag() }}
+                
+                <div class="form-group mb-3">
+                    {{ form.nome_condominio.label(class="form-label") }}
+                    {{ form.nome_condominio(class="form-select", id="nome_condominio_select") }}
+                    {% if form.nome_condominio.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.nome_condominio.errors %}<span>{{ error }}</span><br>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group mb-3" id="outro_condominio_div" {% if form.nome_condominio.data != 'Outro' %}style="display: none;"{% endif %}>
+                    {{ form.nome_condominio_outro.label(class="form-label") }}
+                    {{ form.nome_condominio_outro(class="form-control", placeholder="Digite o nome do condomínio") }}
+                    {% if form.nome_condominio_outro.errors %}
+                         <div class="invalid-feedback d-block">
+                            {% for error in form.nome_condominio_outro.errors %}<span>{{ error }}</span><br>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group mb-3">
+                    {{ form.data_plantao.label(class="form-label") }}
+                    {{ form.data_plantao(class="form-control") }}
+                    {% if form.data_plantao.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.data_plantao.errors %}<span>{{ error }}</span><br>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group mb-3">
+                    {{ form.escala_plantao.label(class="form-label") }}
+                    {{ form.escala_plantao(class="form-select") }}
+                    {% if form.escala_plantao.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.escala_plantao.errors %}<span>{{ error }}</span><br>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group mb-3">
+                    {{ form.log_bruto_rondas.label(class="form-label") }}
+                    {{ form.log_bruto_rondas(class="form-control", rows="10") }}
+                    {% if form.log_bruto_rondas.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.log_bruto_rondas.errors %}<span>{{ error }}</span><br>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group mt-4">
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if resultado %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h2>Resultado do Processamento:</h2>
+            </div>
+            <div class="card-body">
+                {% if resultado is string and resultado.startswith("Erro:") %}
+                     <pre class="alert alert-danger">{{ resultado }}</pre>
+                {% elif resultado is string %}
+                    <div class="report-output">
+                        <pre>{{ resultado }}</pre>
+                    </div>
+                {% else %}
+                     <p class="alert alert-warning">Resultado em formato não reconhecido (esperava-se uma string): {{ resultado }}</p>
+                {% endif %}
+            </div>
+        </div>
+    {% elif log_enviado and request.method == 'POST' and not form.errors %} 
+        <p class="alert alert-info mt-3">O log foi submetido, mas o serviço não retornou um resultado para exibir.</p>
+    {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectCondominio = document.getElementById('nome_condominio_select');
+            const outroCondominioDiv = document.getElementById('outro_condominio_div');
+            const outroCondominioInput = outroCondominioDiv.querySelector('input'); // Pega o input dentro da div
+
+            function toggleOutroCondominio() {
+                if (selectCondominio && outroCondominioDiv) { // Verifica se os elementos existem
+                    if (selectCondominio.value === 'Outro') {
+                        outroCondominioDiv.style.display = 'block';
+                    } else {
+                        outroCondominioDiv.style.display = 'none';
+                        // if (outroCondominioInput) {
+                        //     outroCondominioInput.value = ''; // Descomente para limpar ao esconder
+                        // }
+                    }
+                }
+            }
+
+            if (selectCondominio) {
+                selectCondominio.addEventListener('change', toggleOutroCondominio);
+                toggleOutroCondominio(); // Estado inicial
+            }
+        });
+    </script>
+{% endblock %}
