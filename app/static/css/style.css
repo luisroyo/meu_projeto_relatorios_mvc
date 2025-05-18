@@ -1,180 +1,310 @@
-/* Exemplo de adição/modificação em style.css */
+/* app/static/css/style.css - Tema "Surpresa" com títulos destacados */
+
+/* -------------------------------------------------------------------------- */
+/* FONTES E CORES BASE                                                        */
+/* -------------------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css");
+
+:root {
+    --primary-color: #0d6efd; 
+    --secondary-color: #6c757d; 
+    --body-bg: #eef2f5; 
+    --content-bg: #ffffff; 
+    --dark-bg: #212529; 
+    --text-dark: #212529;
+    --text-light: #f8f9fa;
+    --border-color: #dee2e6;
+    --card-bg: #ffffff; 
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+
+    /* Novas cores para cabeçalhos */
+    --header-bg-light: #e9ecef; /* Um cinza claro para fundos de cabeçalho de página */
+    --header-text-dark: #343a40;
+    --card-header-bg: var(--primary-color); /* Cor primária para cabeçalhos de card */
+    --card-header-text: #ffffff; /* Texto branco para cabeçalhos de card */
+
+
+    --default-font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --monospace-font: 'SFMono-Regular', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+    --border-radius-sm: 0.25rem;
+    --border-radius-md: 0.5rem;
+    --box-shadow-sm: 0 .125rem .25rem rgba(0,0,0,.075);
+    --box-shadow-md: 0 .5rem 1rem rgba(0,0,0,.1);
+}
+
+/* -------------------------------------------------------------------------- */
+/* ESTILOS GLOBAIS                                                            */
+/* -------------------------------------------------------------------------- */
 body {
-    font-family: 'Roboto', sans-serif; /* Exemplo usando Google Font */
-    margin: 0;
-    background-color: #f8f9fa; /* Um cinza bem claro */
-    color: #343a40; /* Um cinza escuro para texto */
-    line-height: 1.6;
+    font-family: var(--default-font);
+    background-color: var(--body-bg); 
+    color: var(--text-dark);
+    line-height: 1.7;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-size: 16px;
 }
 
-.container {
-    width: 90%; /* Um pouco mais largo */
-    max-width: 1140px; /* Limite máximo */
-    margin: auto;
-    overflow: hidden;
-    padding: 20px; /* Adiciona padding interno ao container principal */
+main.container {
+    flex-grow: 1;
+    padding-top: 1rem; /* Reduzido para acomodar page-header */
+    padding-bottom: 2.5rem;
 }
 
-/* Navbar */
-.navbar {
-    background: #343a40; /* Cinza escuro */
-    color: #fff;
-    padding: 15px 0; /* Aumenta padding vertical */
-    border-bottom: #007bff 4px solid; /* Azul como cor de destaque */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600; 
+    color: var(--text-dark);
+    margin-top: 0; 
+}
+.lead {
+    font-size: 1.15rem;
+    font-weight: 300;
+    color: #5a6268; /* Tom de cinza para o lead text */
 }
 
-.navbar-brand {
-    color: #fff;
+a {
+    color: var(--primary-color);
     text-decoration: none;
-    font-size: 1.8em; /* Maior */
-    font-weight: bold;
+    transition: color 0.2s ease-in-out;
+}
+a:hover {
+    color: darken(var(--primary-color), 10%);
+    text-decoration: none; 
 }
 
-.navbar-nav .nav-link {
-    color: #f8f9fa; /* Texto mais claro na navbar */
-    padding: 10px 15px; /* Ajusta padding dos links */
-    transition: background-color 0.3s ease; /* Transição suave */
+/* -------------------------------------------------------------------------- */
+/* CABEÇALHO DE PÁGINA (para títulos principais como H1)                      */
+/* -------------------------------------------------------------------------- */
+.page-header {
+    background-color: var(--card-bg); /* Fundo branco para destacar do body-bg */
+    padding: 2rem 1.5rem; /* Mais padding vertical */
+    margin-bottom: 2.5rem; /* Espaço abaixo do cabeçalho */
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--box-shadow-sm);
+    /* border-left: 5px solid var(--primary-color); Opcional: uma borda de destaque */
 }
 
-.navbar-nav .nav-link:hover,
-.navbar-nav .nav-link:focus {
-    background-color: #007bff; /* Azul no hover */
-    color: #fff;
-    border-radius: 4px;
+.page-header h1 {
+    color: var(--primary-color); /* Título principal da página com a cor primária */
+    font-size: 2.25rem; /* Tamanho maior para H1 da página */
+    margin-bottom: 0.5rem; /* Espaço entre H1 e o .lead */
 }
 
-/* Cards e Formulários (genérico, pode ser adaptado) */
-.card {
-    background-color: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 0.5rem; /* Cantos mais arredondados */
-    margin-bottom: 1.5rem;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+.page-header .lead {
+    font-size: 1.1rem; /* Ajuste no tamanho do lead dentro do page-header */
+    color: #6c757d; /* Cor mais suave para o lead */
+    margin-bottom: 0;
 }
 
-.card-header {
-    background-color: #e9ecef;
-    padding: 0.75rem 1.25rem;
-    border-bottom: 1px solid #dee2e6;
-    font-size: 1.2rem;
+
+/* -------------------------------------------------------------------------- */
+/* NAVBAR                                                                     */
+/* (Estilos da navbar permanecem os mesmos da versão anterior)                */
+/* -------------------------------------------------------------------------- */
+.navbar.bg-dark {
+    background-color: var(--dark-bg) !important;
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+    box-shadow: var(--box-shadow-md);
+}
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.6rem;
+    letter-spacing: -0.5px;
+}
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(255,255,255,.8);
     font-weight: 500;
+    padding: 0.6rem 1rem;
+    border-radius: var(--border-radius-sm);
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar-dark .navbar-nav .nav-link:focus {
+    color: #fff;
+    background-color: rgba(255,255,255,0.1);
+}
+.navbar-dark .navbar-nav .nav-link.active {
+    color: #fff;
+    background-color: var(--primary-color); 
+    font-weight: 600;
+}
+
+/* -------------------------------------------------------------------------- */
+/* CARDS                                                                      */
+/* -------------------------------------------------------------------------- */
+.card {
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow-sm);
+    border-radius: var(--border-radius-md);
+    margin-bottom: 2rem;
+    background-color: var(--card-bg); 
+}
+.card-header {
+    /* ESTILO DO CABEÇALHO DO CARD ATUALIZADO */
+    background-color: var(--card-header-bg); /* Cor primária como fundo */
+    color: var(--card-header-text); /* Texto branco */
+    padding: 0.9rem 1.25rem; /* Ajuste de padding */
+    border-bottom: 1px solid darken(var(--card-header-bg), 10%); /* Borda inferior um pouco mais escura */
+    font-weight: 500; /* Peso da fonte */
+    font-size: 1.05rem; /* Tamanho da fonte */
+    border-top-left-radius: var(--border-radius-md); /* Para casar com o card */
+    border-top-right-radius: var(--border-radius-md);
+}
+.card-header h5.mb-0 { /* Para o h5 dentro do card-header */
+    color: var(--card-header-text); /* Garante que o texto do h5 seja branco */
+    font-size: 1.1rem; /* Tamanho do título do card */
 }
 
 .card-body {
-    padding: 1.25rem;
+    padding: 1.5rem;
+}
+.card-title { /* Para títulos h2 dentro de .card-body (ex: login, register) */
+    font-size: 1.75rem; 
+    margin-bottom: 1.5rem;
+    color: var(--text-dark);
+    text-align: center;
 }
 
-.form-group {
-    margin-bottom: 1.5rem; /* Mais espaço entre grupos de formulário */
-}
 
-.form-label { /* Se você usar <label class="form-label"> */
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-    display: block;
+/* -------------------------------------------------------------------------- */
+/* FORMULÁRIOS                                                                */
+/* (Estilos de formulário permanecem os mesmos)                               */
+/* -------------------------------------------------------------------------- */
+.form-label {
+    font-weight: 600; 
+    margin-bottom: 0.6rem;
+    font-size: 0.95rem;
 }
-
-.form-control { /* Para inputs e textareas */
-    display: block;
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    font-size: 1rem;
-    line-height: 1.5;
-    color: #495057;
-    background-color: #fff;
-    background-clip: padding-box;
+.form-control, .form-select {
+    border-radius: var(--border-radius-sm);
     border: 1px solid #ced4da;
-    border-radius: 0.25rem;
+    padding: 0.75rem 1rem; 
+    font-size: 1rem;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
-
-.form-control:focus {
-    border-color: #80bdff;
-    outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25); 
 }
-
+.form-control-lg, .form-select-lg { 
+    padding: 0.9rem 1.2rem;
+    font-size: 1.1rem;
+}
 textarea.form-control {
-    min-height: 120px; /* Altura mínima para textareas */
-}
-
-/* Botões */
-.btn {
-    display: inline-block;
-    font-weight: 400;
-    text-align: center;
-    vertical-align: middle;
-    cursor: pointer;
-    user-select: none;
-    background-color: transparent;
-    border: 1px solid transparent;
-    padding: 0.5rem 1rem; /* Padding maior */
-    font-size: 1rem;
+    min-height: 120px;
     line-height: 1.5;
-    border-radius: 0.25rem;
-    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+.invalid-feedback, ul.errors {
+    font-size: 0.875em;
+    color: var(--danger-color);
+}
+ul.errors {
+    list-style-type: none;
+    padding-left: 0;
+    margin-top: 0.25rem;
 }
 
+/* -------------------------------------------------------------------------- */
+/* BOTÕES                                                                     */
+/* (Estilos de botões permanecem os mesmos)                                   */
+/* -------------------------------------------------------------------------- */
+.btn {
+    padding: 0.65rem 1.3rem; 
+    font-weight: 600; 
+    border-radius: var(--border-radius-sm);
+    letter-spacing: 0.5px; 
+    text-transform: uppercase; 
+    font-size: 0.9rem;
+    transition: all 0.2s ease-in-out;
+    display: inline-flex; 
+    align-items: center;
+    justify-content: center;
+}
+.btn i { 
+    margin-right: 0.5em;
+    font-size: 1.1em; 
+}
+.btn-lg {
+    padding: 0.8rem 1.6rem;
+    font-size: 1rem;
+}
 .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
     color: #fff;
-    background-color: #007bff;
-    border-color: #007bff;
 }
-
 .btn-primary:hover {
+    background-color: darken(var(--primary-color), 8%);
+    border-color: darken(var(--primary-color), 10%);
     color: #fff;
-    background-color: #0056b3;
-    border-color: #004085;
+}
+.btn-info {
+    background-color: var(--info-color);
+    border-color: var(--info-color);
+    color: #000; 
+}
+.btn-info:hover {
+    background-color: darken(var(--info-color), 8%);
+    border-color: darken(var(--info-color), 10%);
+    color: #000;
 }
 
-.btn-secondary {
-    color: #fff;
-    background-color: #6c757d;
-    border-color: #6c757d;
-}
-
-.btn-secondary:hover {
-    color: #fff;
-    background-color: #545b62;
-    border-color: #4e555b;
-}
-
-/* Alertas (mensagens flash) */
+/* -------------------------------------------------------------------------- */
+/* ALERTAS (Mensagens Flash)                                                  */
+/* (Estilos de alertas permanecem os mesmos)                                  */
+/* -------------------------------------------------------------------------- */
 .alert {
-    padding: 1rem; /* Mais padding */
-    margin-bottom: 1rem;
-    border: 1px solid transparent;
-    border-radius: 0.25rem;
+    border-radius: var(--border-radius-sm);
+    padding: 1rem 1.25rem;
+    border-width: 0px; 
+    box-shadow: var(--box-shadow-sm);
 }
-.alert-success {
-    color: #0f5132;
-    background-color: #d1e7dd;
-    border-color: #badbcc;
+.alert-heading {
+    font-weight: 600;
 }
-.alert-danger {
-    color: #842029;
-    background-color: #f8d7da;
-    border-color: #f5c2c7;
-}
-/* ... outros estilos de alerta ... */
 
-/* Estilo para a saída pré-formatada do relatório de rondas */
-.report-output pre {
-    background-color: #e9ecef; /* Fundo levemente diferente */
-    padding: 15px;
-    border-radius: 4px;
-    border: 1px solid #ced4da;
-    white-space: pre-wrap; /* Garante quebras de linha e espaços */
-    word-wrap: break-word; /* Quebra palavras longas */
-    font-family: 'Courier New', Courier, monospace; /* Fonte monoespaçada */
+/* -------------------------------------------------------------------------- */
+/* SAÍDA DE RELATÓRIOS                                                        */
+/* (Estilos de saída de relatórios permanecem os mesmos)                      */
+/* -------------------------------------------------------------------------- */
+.report-output pre,
+#resultadoProcessamento {
+    background-color: #e9f1f6; 
+    padding: 1rem;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid #c9d8e3;
+    font-family: var(--monospace-font);
     font-size: 0.95em;
+    color: var(--text-dark);
+    min-height: 200px; 
+}
+#resultadoProcessamento { 
+    width: 100%;
+}
+.report-output-container { 
+    margin-bottom: 1rem; 
 }
 
-footer {
-    text-align: center;
-    padding: 25px 20px; /* Mais padding */
-    background: #343a40;
-    color: #fff;
-    margin-top: 30px; /* Mais espaço antes do rodapé */
-    font-size: 0.9em;
+/* -------------------------------------------------------------------------- */
+/* RODAPÉ                                                                     */
+/* (Estilos do rodapé permanecem os mesmos)                                   */
+/* -------------------------------------------------------------------------- */
+footer.bg-dark {
+    background-color: var(--dark-bg) !important; 
+    padding: 2rem 0;
+    font-size: 0.9rem;
+    color: rgba(255,255,255,.7);
+}
+footer p {
+    margin-bottom: 0.25rem;
+}
+footer small {
+    font-size: 0.85em;
 }

@@ -4,21 +4,19 @@
 
 {% block content %}
 <div class="container-fluid mt-lg-3">
-    <div class="text-center mb-4">
+    <div class="page-header text-center">
         <h1>{{ title }}</h1>
         <p class="lead">Insira os dados do plantão e o log bruto das rondas para gerar o relatório formatado.</p>
     </div>
 
-    {# Nova linha (row) para colocar o formulário e os resultados lado a lado #}
     <div class="row">
-        {# Coluna para o formulário de entrada #}
-        <div class="col-lg-6 mb-4"> {# Em telas grandes (lg), ocupa metade da largura #}
+        <div class="col-lg-6 mb-4"> 
             <div class="card shadow-sm h-100">
                 <div class="card-header">
                     <h5 class="mb-0">Dados do Plantão e Log de Rondas</h5>
                 </div>
                 <div class="card-body p-4 d-flex flex-column">
-                    <form method="POST" action="{{ url_for('main.relatorio_ronda_route') }}" novalidate class="flex-grow-1">
+                    <form method="POST" action="{{ url_for('main.relatorio_ronda_route') }}" novalidate class="flex-grow-1" id="formRelatorioRonda"> {# ID adicionado ao formulário #}
                         {{ form.hidden_tag() }}
                         
                         <div class="mb-3">
@@ -33,7 +31,7 @@
 
                         <div class="mb-3" id="outro_condominio_div" {% if form.nome_condominio.data != 'Outro' or not form.nome_condominio_outro.data %}style="display: none;"{% endif %}>
                             {{ form.nome_condominio_outro.label(class="form-label") }}
-                            {{ form.nome_condominio_outro(class="form-control" + (" is-invalid" if form.nome_condominio_outro.errors else ""), placeholder="Digite o nome do condomínio") }}
+                            {{ form.nome_condominio_outro(class="form-control" + (" is-invalid" if form.nome_condominio_outro.errors else ""), placeholder="Digite o nome do condomínio", id="nome_condominio_outro_input") }}
                             {% if form.nome_condominio_outro.errors %}
                                  <div class="invalid-feedback d-block">
                                     {% for error in form.nome_condominio_outro.errors %}<span>{{ error }}</span><br>{% endfor %}
@@ -43,7 +41,7 @@
 
                         <div class="mb-3">
                             {{ form.data_plantao.label(class="form-label") }}
-                            {{ form.data_plantao(class="form-control" + (" is-invalid" if form.data_plantao.errors else "")) }}
+                            {{ form.data_plantao(class="form-control" + (" is-invalid" if form.data_plantao.errors else ""), id="data_plantao_input") }}
                             {% if form.data_plantao.errors %}
                                 <div class="invalid-feedback d-block">
                                     {% for error in form.data_plantao.errors %}<span>{{ error }}</span><br>{% endfor %}
@@ -53,7 +51,7 @@
 
                         <div class="mb-3">
                             {{ form.escala_plantao.label(class="form-label") }}
-                            {{ form.escala_plantao(class="form-select" + (" is-invalid" if form.escala_plantao.errors else "")) }}
+                            {{ form.escala_plantao(class="form-select" + (" is-invalid" if form.escala_plantao.errors else ""), id="escala_plantao_select") }}
                             {% if form.escala_plantao.errors %}
                                 <div class="invalid-feedback d-block">
                                     {% for error in form.escala_plantao.errors %}<span>{{ error }}</span><br>{% endfor %}
@@ -63,7 +61,7 @@
 
                         <div class="mb-3">
                             {{ form.log_bruto_rondas.label(class="form-label") }}
-                            {{ form.log_bruto_rondas(class="form-control" + (" is-invalid" if form.log_bruto_rondas.errors else ""), rows="10") }}
+                            {{ form.log_bruto_rondas(class="form-control" + (" is-invalid" if form.log_bruto_rondas.errors else ""), rows="10", id="log_bruto_rondas_textarea") }}
                             {% if form.log_bruto_rondas.errors %}
                                 <div class="invalid-feedback d-block">
                                     {% for error in form.log_bruto_rondas.errors %}<span>{{ error }}</span><br>{% endfor %}
@@ -71,22 +69,22 @@
                             {% endif %}
                         </div>
                         
-                        <div class="d-grid mt-auto"> 
-                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                        <div class="mt-auto d-flex justify-content-start"> {# d-flex para alinhar botões #}
+                            {{ form.submit(class="btn btn-primary btn-lg me-2", id="submitRelatorioRonda") }} {# ID para o botão de submit #}
+                            <button type="button" class="btn btn-outline-secondary btn-lg" id="limparFormRonda">Limpar Log e Resultado</button> {# Texto do botão alterado #}
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        {# Coluna para a exibição dos resultados #}
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header">
                     <h5 class="mb-0">Relatório Gerado</h5>
                 </div>
-                <div class="card-body p-4"> {# Removido d-flex flex-column daqui, ou ajustar se necessário #}
-                    <div class="report-output-container"> {# Removido flex-grow-1 daqui #}
+                <div class="card-body p-4">
+                    <div class="report-output-container"> 
                         {% if resultado %}
                             {% if resultado is string and resultado.startswith("Erro:") %}
                                  <pre id="rondaResultadoTexto" class="alert alert-danger p-3">{{ resultado }}</pre>
@@ -105,8 +103,7 @@
                             <div id="rondaResultadoTexto" class="alert alert-secondary">O relatório processado aparecerá aqui.</div>
                         {% endif %}
                     </div>
-                    {# Botão Copiar posicionado logo após o container do resultado #}
-                    <div class="mt-3"> {# Removido mt-auto, pt-3 pode ser ajustado para mt-3 ou conforme necessidade #}
+                    <div class="mt-3"> 
                         <button type="button" class="btn btn-info" id="copiarRelatorioRonda" style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top" title="Copiar para a área de transferência">
                             Copiar Relatório de Ronda
                         </button>
@@ -121,52 +118,85 @@
 {% block scripts %}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Lógica para mostrar/esconder campo "Outro Condomínio"
+            // Seletores para os campos do formulário e elementos de resultado
             const selectCondominio = document.getElementById('nome_condominio_select');
             const outroCondominioDiv = document.getElementById('outro_condominio_div');
-            
+            const outroCondominioInput = document.getElementById('nome_condominio_outro_input');
+            // const dataPlantaoInput = document.getElementById('data_plantao_input'); // Não será limpo
+            // const escalaPlantaoSelect = document.getElementById('escala_plantao_select'); // Não será limpo
+            const logBrutoTextarea = document.getElementById('log_bruto_rondas_textarea');
+            const resultadoTextoEl = document.getElementById('rondaResultadoTexto');
+            const btnCopiarRonda = document.getElementById('copiarRelatorioRonda');
+            const btnLimparFormRonda = document.getElementById('limparFormRonda');
+
+            // Lógica para mostrar/esconder campo "Outro Condomínio"
             function toggleOutroCondominio() {
                 if (selectCondominio && outroCondominioDiv) {
                     if (selectCondominio.value === 'Outro') {
                         outroCondominioDiv.style.display = 'block';
                     } else {
                         outroCondominioDiv.style.display = 'none';
+                        if(outroCondominioInput) outroCondominioInput.value = ''; 
                     }
                 }
             }
 
             if (selectCondominio) {
                 selectCondominio.addEventListener('change', toggleOutroCondominio);
-                toggleOutroCondominio(); // Estado inicial
+                toggleOutroCondominio(); 
             }
 
-            // Lógica para o botão Copiar Relatório de Ronda
-            const btnCopiarRonda = document.getElementById('copiarRelatorioRonda');
-            const resultadoTextoEl = document.getElementById('rondaResultadoTexto');
+            // Lógica para o botão Limpar Log e Resultado
+            if (btnLimparFormRonda) {
+                btnLimparFormRonda.addEventListener('click', function() {
+                    // Limpa APENAS o textarea do log bruto
+                    if(logBrutoTextarea) logBrutoTextarea.value = ''; 
+                    
+                    // Mantém os valores dos outros campos:
+                    // selectCondominio, outroCondominioInput (se visível), dataPlantaoInput, escalaPlantaoSelect
 
-            // Mostra o botão de copiar se houver resultado válido para copiar
+                    // Limpa a área de resultado
+                    if (resultadoTextoEl) {
+                        if (resultadoTextoEl.tagName === 'PRE' && resultadoTextoEl.parentElement.classList.contains('report-output')) {
+                            const reportOutputContainer = document.querySelector('.report-output-container');
+                            if(reportOutputContainer) {
+                                reportOutputContainer.innerHTML = '<div id="rondaResultadoTexto" class="alert alert-secondary">O relatório processado aparecerá aqui.</div>';
+                            }
+                        } else {
+                            resultadoTextoEl.className = 'alert alert-secondary';
+                            resultadoTextoEl.innerHTML = 'O relatório processado aparecerá aqui.';
+                        }
+                    }
+                    if (btnCopiarRonda) {
+                        btnCopiarRonda.style.display = 'none'; 
+                    }
+                });
+            }
+
+            // Lógica para o botão Copiar Relatório de Ronda (mantida)
             if (resultadoTextoEl && btnCopiarRonda) {
-                const textoResultado = resultadoTextoEl.textContent || resultadoTextoEl.innerText;
-                // Verifica se o resultado não é uma mensagem placeholder ou de erro simples
-                // A condição para exibir o botão foi simplificada: se o elemento resultadoTextoEl tem conteúdo visível
-                // e não é o placeholder inicial, mostra o botão.
-                const isPlaceholder = resultadoTextoEl.classList.contains('alert-secondary') && 
-                                      (resultadoTextoEl.textContent || resultadoTextoEl.innerText).includes("O relatório processado aparecerá aqui.");
-                const isErrorMessage = resultadoTextoEl.classList.contains('alert-danger');
-                const isWarningNoData = resultadoTextoEl.classList.contains('alert-warning') && 
-                                        (textoResultado.includes("Nenhum evento de ronda válido") || textoResultado.includes("Nenhum log de ronda fornecido"));
-                const isInfoNoResult = resultadoTextoEl.classList.contains('alert-info');
+                function atualizarVisibilidadeBotaoCopiar() {
+                    const textoResultado = resultadoTextoEl.textContent || resultadoTextoEl.innerText;
+                    const isPlaceholder = resultadoTextoEl.classList.contains('alert-secondary') && 
+                                          (textoResultado).includes("O relatório processado aparecerá aqui.");
+                    const isErrorMessage = resultadoTextoEl.classList.contains('alert-danger');
+                    const isWarningNoData = resultadoTextoEl.classList.contains('alert-warning') && 
+                                            (textoResultado.includes("Nenhum evento de ronda válido") || textoResultado.includes("Nenhum log de ronda fornecido"));
+                    const isInfoNoResult = resultadoTextoEl.classList.contains('alert-info');
 
-
-                if (textoResultado.trim() && !isPlaceholder && !isErrorMessage && !isWarningNoData && !isInfoNoResult) {
-                    btnCopiarRonda.style.display = 'inline-block';
-                } else {
-                    btnCopiarRonda.style.display = 'none';
+                    if (textoResultado.trim() && !isPlaceholder && !isErrorMessage && !isWarningNoData && !isInfoNoResult) {
+                        btnCopiarRonda.style.display = 'inline-block';
+                    } else {
+                        btnCopiarRonda.style.display = 'none';
+                    }
                 }
-            }
+                atualizarVisibilidadeBotaoCopiar(); 
+                
+                // Observador para atualizar visibilidade do botão copiar se o conteúdo do resultado mudar dinamicamente
+                const observer = new MutationObserver(atualizarVisibilidadeBotaoCopiar);
+                observer.observe(resultadoTextoEl, { childList: true, characterData: true, subtree: true });
 
 
-            if (btnCopiarRonda && resultadoTextoEl) {
                 btnCopiarRonda.addEventListener('click', function() {
                     const textoParaCopiar = resultadoTextoEl.textContent || resultadoTextoEl.innerText;
                     if (!textoParaCopiar.trim()) return;
@@ -175,7 +205,7 @@
                         navigator.clipboard.writeText(textoParaCopiar)
                             .then(() => {
                                 const originalText = btnCopiarRonda.textContent;
-                                btnCopiarRonda.innerHTML = 'Copiado!'; // Feedback visual
+                                btnCopiarRonda.innerHTML = 'Copiado!'; 
                                 btnCopiarRonda.disabled = true;
                                 setTimeout(() => {
                                     btnCopiarRonda.textContent = originalText;
@@ -220,7 +250,6 @@
                 document.body.removeChild(textArea);
             }
             
-            // Inicializa tooltips do Bootstrap (se houver algum na página)
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
               return new bootstrap.Tooltip(tooltipTriggerEl)
