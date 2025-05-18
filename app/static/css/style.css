@@ -1,221 +1,180 @@
-/* Estilos Globais e da Página Principal (index.html) */
-
+/* Exemplo de adição/modificação em style.css */
 body {
-    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    font-family: 'Roboto', sans-serif; /* Exemplo usando Google Font */
     margin: 0;
-    padding: 0; 
-    background-color: #f0f2f5; /* Um cinza um pouco diferente para o fundo */
-    color: #333740; 
-    display: flex;
-    flex-direction: column; 
-    align-items: center; 
-    min-height: 100vh;
-    font-weight: 400; 
-    line-height: 1.6; 
-}
-
-/* Container principal para a página de relatório (index.html) */
-.container { 
-    background-color: #ffffff;
-    padding: 25px 30px; 
-    border-radius: 10px; 
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07); 
-    width: 100%;
-    max-width: 800px; 
-    margin: 25px 20px; 
-    box-sizing: border-box;
-    flex-grow: 1; 
-}
-
-/* Links de navegação/logout no topo da página de relatório */
-.navigation-links {
-    text-align: right;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #e9ecef;
-    font-size: 0.9em;
-}
-.navigation-links a {
-    color: #007bff;
-    text-decoration: none;
-    margin-left: 12px;
-    font-weight: 500;
-}
-.navigation-links a:hover {
-    text-decoration: underline;
-    color: #0056b3;
-}
-.navigation-links span { 
-    color: #495057;
-    font-weight: 500;
-}
-
-/* Títulos na página de relatório (index.html) */
-.container > h1 { /* '>' para ser mais específico ao h1 direto do .container */
-    color: #212529;
-    text-align: center;
-    margin-top: 0; 
-    margin-bottom: 30px; 
-    font-size: 2em; 
-    font-weight: 700;
-}
-.container > h2 { /* '>' para ser mais específico ao h2 direto do .container */
-    color: #343a40;
-    margin-top: 30px; 
-    margin-bottom: 15px; 
-    font-size: 1.4em; 
-    border-bottom: 1px solid #e9ecef; 
-    padding-bottom: 8px; 
-    font-weight: 500;
-}
-
-/* Textarea da página de relatório */
-textarea#relatorioBruto {
-    width: 100%; 
-    min-height: 180px; 
-    margin-bottom: 20px;
-    padding: 12px 15px; 
-    border: 1px solid #ced4da; 
-    border-radius: 6px; 
-    box-sizing: border-box; 
-    font-size: 0.95em; 
+    background-color: #f8f9fa; /* Um cinza bem claro */
+    color: #343a40; /* Um cinza escuro para texto */
     line-height: 1.6;
-    resize: vertical; 
+}
+
+.container {
+    width: 90%; /* Um pouco mais largo */
+    max-width: 1140px; /* Limite máximo */
+    margin: auto;
+    overflow: hidden;
+    padding: 20px; /* Adiciona padding interno ao container principal */
+}
+
+/* Navbar */
+.navbar {
+    background: #343a40; /* Cinza escuro */
+    color: #fff;
+    padding: 15px 0; /* Aumenta padding vertical */
+    border-bottom: #007bff 4px solid; /* Azul como cor de destaque */
+}
+
+.navbar-brand {
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.8em; /* Maior */
+    font-weight: bold;
+}
+
+.navbar-nav .nav-link {
+    color: #f8f9fa; /* Texto mais claro na navbar */
+    padding: 10px 15px; /* Ajusta padding dos links */
+    transition: background-color 0.3s ease; /* Transição suave */
+}
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link:focus {
+    background-color: #007bff; /* Azul no hover */
+    color: #fff;
+    border-radius: 4px;
+}
+
+/* Cards e Formulários (genérico, pode ser adaptado) */
+.card {
     background-color: #fff;
-}
-textarea#relatorioBruto:focus {
-    border-color: #007bff; 
-    outline: none;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); 
-}
-
-/* Botões específicos da página de relatório */
-#btnProcessar, #btnCopiar {
-    display: block; 
-    width: auto; 
-    min-width: 180px; 
-    padding: 10px 20px; 
-    color: white;
-    border: none;
-    border-radius: 6px; 
-    cursor: pointer;
-    font-size: 0.95em; 
-    font-weight: 500; 
-    text-transform: uppercase; 
-    letter-spacing: 0.5px; 
-    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.1s ease;
-    margin: 20px auto; 
-    box-shadow: 0 2px 3px rgba(0,0,0,0.1);
-}
-#btnProcessar {
-    background-color: #007bff; 
-}
-#btnProcessar:hover {
-    background-color: #0069d9; 
-    box-shadow: 0 3px 5px rgba(0,0,0,0.15);
-    transform: translateY(-1px);
-}
-#btnProcessar:disabled {
-    background-color: #6c757d; 
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem; /* Cantos mais arredondados */
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
-#btnCopiar { 
-    background-color: #28a745; 
-}
-#btnCopiar:hover {
-    background-color: #218838; 
-    box-shadow: 0 3px 5px rgba(0,0,0,0.15);
-    transform: translateY(-1px);
-}
-#btnCopiar:disabled { 
-    background-color: #5cb85c; /* Cor mais clara quando 'Copiado!' */
-    cursor: default;
-    box-shadow: none;
-    transform: none;
-}
-
-/* Área de output na página de relatório */
-#output {
-    margin-top: 10px;
-    padding: 15px; 
-    background-color: #f8f9fa; 
-    border: 1px solid #dee2e6; 
-    border-radius: 6px;
-    white-space: pre-wrap; 
-    min-height: 120px; 
-    font-size: 0.9em; 
-    line-height: 1.7; 
-    word-wrap: break-word;
-    color: #212529; 
-}
-
-/* Spinner (usado na página de relatório) */
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-#spinner {
-    text-align: center;
-    padding: 20px; 
-    color: #5a6873; 
-    display: none; 
-    font-size: 1.1em;
+.card-header {
+    background-color: #e9ecef;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 1.2rem;
     font-weight: 500;
 }
-#spinner::before { 
-    content: '⚙️'; 
+
+.card-body {
+    padding: 1.25rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem; /* Mais espaço entre grupos de formulário */
+}
+
+.form-label { /* Se você usar <label class="form-label"> */
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.form-control { /* Para inputs e textareas */
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+textarea.form-control {
+    min-height: 120px; /* Altura mínima para textareas */
+}
+
+/* Botões */
+.btn {
     display: inline-block;
-    margin-right: 10px;
-    font-size: 1.3em;
-    /* Se quiser animação de rotação, descomente: */
-    /* animation: spin 1.2s linear infinite; */ 
-}
-
-/* Rodapé (estilo global) */
-.footer {
+    font-weight: 400;
     text-align: center;
-    padding: 20px; 
-    margin-top: auto; 
-    font-size: 0.85em; /* Um pouco menor */
-    color: #6c757d; 
-    width: 100%; 
-    background-color: #e9ecef; /* Fundo sutil */
-    border-top: 1px solid #dee2e6;
-    box-sizing: border-box; 
+    vertical-align: middle;
+    cursor: pointer;
+    user-select: none;
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: 0.5rem 1rem; /* Padding maior */
+    font-size: 1rem;
+    line-height: 1.5;
+    border-radius: 0.25rem;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-/* --- MEDIA QUERIES PARA RESPONSIVIDADE DA PÁGINA PRINCIPAL --- */
-@media (max-width: 768px) {
-    .container {
-        margin: 20px 15px; 
-        padding: 20px;    
-    }
-    .navigation-links {
-        text-align: center; 
-    }
-    .navigation-links span,
-    .navigation-links a {
-        display: block; 
-        margin: 5px 0; 
-    }
-    .container > h1 { font-size: 1.8em; }
-    .container > h2 { font-size: 1.3em; }
-    textarea#relatorioBruto { min-height: 150px; font-size: 0.95em; }
-    #btnProcessar, #btnCopiar { width: 90%; min-width: 0; font-size: 0.95em; }
-    #output { font-size: 0.9em; }
+.btn-primary {
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
 }
 
-@media (max-width: 480px) {
-    body { padding: 10px 0 0 0; }
-    .container { margin: 10px; padding: 15px; border-radius: 8px; }
-    .navigation-links { font-size: 0.9em; }
-    .container > h1 { font-size: 1.6em; }
-    .container > h2 { font-size: 1.2em; }
-    textarea#relatorioBruto { min-height: 120px; font-size: 0.9em; }
-    #btnProcessar, #btnCopiar { width: 100%; font-size: 0.9em; }
-    #output { font-size: 0.85em; }
-    .footer { font-size: 0.8em; padding: 15px 10px; }
+.btn-primary:hover {
+    color: #fff;
+    background-color: #0056b3;
+    border-color: #004085;
+}
+
+.btn-secondary {
+    color: #fff;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.btn-secondary:hover {
+    color: #fff;
+    background-color: #545b62;
+    border-color: #4e555b;
+}
+
+/* Alertas (mensagens flash) */
+.alert {
+    padding: 1rem; /* Mais padding */
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+}
+.alert-success {
+    color: #0f5132;
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+}
+.alert-danger {
+    color: #842029;
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+}
+/* ... outros estilos de alerta ... */
+
+/* Estilo para a saída pré-formatada do relatório de rondas */
+.report-output pre {
+    background-color: #e9ecef; /* Fundo levemente diferente */
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+    white-space: pre-wrap; /* Garante quebras de linha e espaços */
+    word-wrap: break-word; /* Quebra palavras longas */
+    font-family: 'Courier New', Courier, monospace; /* Fonte monoespaçada */
+    font-size: 0.95em;
+}
+
+footer {
+    text-align: center;
+    padding: 25px 20px; /* Mais padding */
+    background: #343a40;
+    color: #fff;
+    margin-top: 30px; /* Mais espaço antes do rodapé */
+    font-size: 0.9em;
 }

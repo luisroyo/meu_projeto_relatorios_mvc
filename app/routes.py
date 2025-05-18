@@ -5,13 +5,12 @@ from flask import (
 from app import db
 from app.services.report_service import ReportService
 from app.services.ronda_service import processar_log_de_rondas
-# A linha abaixo já inclui TestarRondasForm, o que é ótimo.
-from app.forms import RegistrationForm, LoginForm, TestarRondasForm 
+from app.forms import RegistrationForm, LoginForm, TestarRondasForm # TestarRondasForm é o nome da classe do formulário
 from app.models import User, LoginHistory
 from flask_login import login_user, current_user, logout_user, login_required
 from urllib.parse import urlsplit
 import logging
-from datetime import datetime, timezone # Certifique-se que timezone está importado
+from datetime import datetime, timezone, date # Adicionado date
 
 main_bp = Blueprint('main', __name__)
 logger = logging.getLogger(__name__)
@@ -28,7 +27,7 @@ except (ValueError, RuntimeError) as e:
 @login_required
 def index():
     current_app.logger.debug(f"Acessando rota /. Usuário autenticado: {current_user.is_authenticated} ({current_user.username})")
-    return render_template('index.html', title='Processador de Relatórios')
+    return render_template('index.html', title='Analisador de Relatórios IA')
 
 @main_bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -174,53 +173,51 @@ def processar_relatorio_route():
         current_app.logger.error(f"Exceção genérica para {current_user.username}: {e.__class__.__name__}: {e}. IP: {request.remote_addr}", exc_info=True)
         return jsonify({'erro': 'Erro interno inesperado. Tente novamente.'}), 500
 
-
-# MODIFIED SECTION - testar_rondas_route
-@main_bp.route('/testar_rondas', methods=['GET', 'POST'])
+# Rota para Relatório de Ronda (anteriormente testar_rondas_route)
+@main_bp.route('/relatorio_ronda', methods=['GET', 'POST'])
 @login_required
-def testar_rondas_route():
-    form = TestarRondasForm() # Instancia o novo formulário
+def relatorio_ronda_route():
+    form = TestarRondasForm() # Usa a classe de formulário existente com os campos atualizados
     resultado_processado = None
-    log_enviado = None # Para manter o log no textarea após o POST
+    log_enviado = None
 
-    # Se o método for GET e houver valores padrão que você queira definir dinamicamente
-    # (além dos defaults da classe do formulário), você pode fazer aqui.
-    # Ex: form.nome_condominio.data = "Valor Padrão GET"
-    # No entanto, os defaults definidos na classe TestarRondasForm já serão aplicados.
-
-    if form.validate_on_submit(): # Processa no POST se o formulário for válido
+    if form.validate_on_submit():
         log_bruto = form.log_bruto_rondas.data
-        nome_condominio = form.nome_condominio.data
-        data_plantao = form.data_plantao.data
-        escala_plantao = form.escala_plantao.data
-        log_enviado = log_bruto # Mantém o log no textarea
+        
+        nome_condominio_selecionado = form.nome_condominio.data
+        if nome_condominio_selecionado == 'Outro':
+            nome_condominio_final = form.nome_condominio_outro.data
+        else:
+            nome_condominio_final = nome_condominio_selecionado
+        
+        data_plantao_obj = form.data_plantao.data # Isso é um objeto date
+        data_plantao_str = data_plantao_obj.strftime('%d/%m/%Y') # Formata para string
+            
+        escala_plantao_final = form.escala_plantao.data
+        
+        log_enviado = log_bruto
 
         try:
             resultado_processado = processar_log_de_rondas(
                 log_bruto, 
-                nome_condominio,
-                data_plantao,
-                escala_plantao
+                nome_condominio_final,
+                data_plantao_str,
+                escala_plantao_final
             )
-            current_app.logger.info(f"Teste de processamento de rondas executado por {current_user.username}.")
-            flash('Log de rondas processado com sucesso!', 'success')
+            current_app.logger.info(f"Relatório de rondas processado por {current_user.username}.")
+            flash('Relatório de rondas processado com sucesso!', 'success')
         except Exception as e:
-            current_app.logger.error(f"Erro ao testar processamento de rondas para {current_user.username}: {e}", exc_info=True)
-            flash(f'Ocorreu um erro ao processar o log de rondas: {str(e)}', 'danger')
-            resultado_processado = f"Erro: {str(e)}" # Passa a mensagem de erro para o template
-            # Em caso de erro no processamento, os dados do formulário (form.data) já conterão o que o usuário enviou
-            # e serão repopulados no template.
+            current_app.logger.error(f"Erro ao processar relatório de rondas para {current_user.username}: {e}", exc_info=True)
+            flash(f'Ocorreu um erro ao processar o relatório de rondas: {str(e)}', 'danger')
+            resultado_processado = f"Erro: {str(e)}"
     
-    elif request.method == 'POST': # Se validate_on_submit() falhou
-        current_app.logger.warning(f"Falha na validação do formulário de Testar Rondas por {current_user.username}. Erros: {form.errors}")
-        log_enviado = form.log_bruto_rondas.data # Mantém o log no textarea mesmo com erro de validação
-        # Os erros de validação (form.errors) serão automaticamente exibidos no template se configurado corretamente.
+    elif request.method == 'POST':
+        current_app.logger.warning(f"Falha na validação do formulário de Relatório de Rondas por {current_user.username}. Erros: {form.errors}")
+        log_enviado = form.log_bruto_rondas.data 
 
-    # Para GET ou se a validação do POST falhar (ou após processamento bem-sucedido/com erro)
-    # Renderiza o template, passando o objeto form e quaisquer resultados/logs.
-    return render_template('testar_rondas.html', 
-                           title='Testar Processamento de Rondas', 
+    return render_template('relatorio_ronda.html', 
+                           title='Relatório de Ronda', 
                            form=form,
                            resultado=resultado_processado,
-                           log_enviado=log_enviado 
+                           log_enviado=log_enviado
                           )

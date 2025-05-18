@@ -1,153 +1,62 @@
-/* Estilos Específicos para a Página de Login (login.html) */
-
-.auth-container {
-    background-color: #ffffff;
-    padding: 30px 40px;
-    border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
-    width: 100%;
-    max-width: 420px; /* Login pode ser um pouco mais estreito */
-    margin: 40px 20px;
-    box-sizing: border-box;
+/* app/static/css/login.css */
+body {
+    /* Poderia ter um fundo específico para a página de login */
+    /* background-image: url('../images/login-background.jpg'); */
+    /* background-size: cover; */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 90vh; /* Considera a altura da navbar se ela estiver fora do body para esse flex */
 }
 
-.auth-container h1 {
-    color: #212529;
-    text-align: center;
+.login-container {
+    background-color: #ffffff;
+    padding: 30px 40px; /* Mais padding */
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    width: 100%;
+    max-width: 420px; /* Limita a largura do container de login */
+    text-align: center; /* Centraliza o título e o link de registro */
+}
+
+.login-container h2 {
     margin-bottom: 25px;
-    font-size: 1.8em;
+    color: #333;
     font-weight: 600;
 }
 
-.form-group {
-    margin-bottom: 18px;
+/* Ajustes específicos para campos de formulário na página de login, se necessário */
+.login-container .form-control {
+    /* Exemplo: talvez bordas um pouco diferentes ou altura */
+    /* padding: 12px 15px; */
 }
 
-.form-group label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 500;
-    color: #495057;
-    font-size: 0.9em;
+.login-container .btn-primary {
+    width: 100%; /* Botão de login ocupa toda a largura */
+    padding: 12px;
+    font-size: 1.1em;
 }
 
-.form-control {
-    width: 100%;
-    padding: 10px 14px;
-    font-size: 0.95em;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    box-sizing: border-box;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-.form-control:focus {
-    border-color: #007bff;
-    outline: none;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-
-/* Para o checkbox "Lembrar-me" e seu label */
-.form-check-group {
-    display: flex;
-    align-items: center;
-    margin-bottom: 18px; /* Mesmo espaçamento de form-group */
-}
-.form-check-input { 
-    margin-right: 8px;
-    margin-top: -2px; /* Ajuste vertical fino */
-    vertical-align: middle;
-    width: auto; 
-    height: auto; 
-    cursor: pointer;
-}
-.form-check-label { 
-    font-size: 0.9em;
-    color: #495057;
-    vertical-align: middle;
-    cursor: pointer;
-    font-weight: normal; /* Label de checkbox geralmente não é bold */
-}
-
-
-.form-error { 
-    color: #dc3545; 
-    font-size: 0.8em;
-    margin-top: 4px;
-    display: block;
-}
-
-/* Botão de submit do formulário */
-.auth-container form .button {
-    width: 100%; 
-    padding: 12px 20px;
-    margin-top: 25px; 
-    font-size: 1em;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-.auth-container form .button:hover {
-    background-color: #0069d9;
-}
-
-/* Alertas (mensagens flash) */
-.alert { 
-    padding: 12px 18px;
+.login-container .form-group {
+    text-align: left; /* Alinha labels e inputs à esquerda dentro do container centralizado */
     margin-bottom: 20px;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    font-size: 0.9em;
-    text-align: left;
-}
-.alert-success {
-    color: #0f5132;
-    background-color: #d1e7dd;
-    border-color: #badbcc;
-}
-.alert-danger {
-    color: #842029;
-    background-color: #f8d7da;
-    border-color: #f5c2c7;
-}
-.alert-warning {
-    color: #664d03;
-    background-color: #fff3cd;
-    border-color: #ffecb5;
-}
-.alert-info {
-    color: #055160;
-    background-color: #cff4fc;
-    border-color: #b6effb;
 }
 
-.auth-links { 
+.login-container .form-group label {
+    margin-bottom: 8px; /* Espaço entre label e input */
+}
+
+.login-container p {
     margin-top: 20px;
-    text-align: center;
     font-size: 0.9em;
 }
-.auth-links a {
+
+.login-container p a {
     color: #007bff;
     text-decoration: none;
     font-weight: 500;
 }
-.auth-links a:hover {
-    text-decoration: underline;
-    color: #0056b3;
-}
 
-@media (max-width: 480px) {
-    .auth-container {
-        margin: 20px 10px;
-        padding: 20px 25px;
-    }
-    .auth-container h1 {
-        font-size: 1.6em;
-    }
+.login-container p a:hover {
+    text-decoration: underline;
 }
