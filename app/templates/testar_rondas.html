@@ -1,62 +1,67 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - Processador Inteligente</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}"> 
-</head>
-<body>
-    <div class="auth-container"> 
-        <div class="navigation-links" style="text-align: left; margin-bottom: 15px;">
-            <a href="{{ url_for('main.index') }}">&laquo; Voltar para Home</a>
-        </div>
-        <h1>{{ title }}</h1>
+{% extends "base.html" %}
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
+{% block title %}Testar Processamento de Rondas - Meu App{% endblock %}
+
+{% block content %}
+    <h1>Testar Integração de Rondas</h1>
+
+    <form method="POST" action="{{ url_for('main.testar_rondas_route') }}">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-group">
+            {{ form.nome_condominio.label(class="form-label") }}<br>
+            {{ form.nome_condominio(class="form-control") }}<br>
+            {% if form.nome_condominio.errors %}
+                <ul class="errors">{% for error in form.nome_condominio.errors %}<li>{{ error }}</li>{% endfor %}</ul>
             {% endif %}
-        {% endwith %}
+        </div>
 
-        <form method="POST" action="{{ url_for('main.testar_rondas_route') }}">
-            <div class="form-group">
-                <label for="nome_condominio">Nome do Condomínio:</label>
-                <input type="text" id="nome_condominio" name="nome_condominio" class="form-control" value="{{ condominio_enviado or 'Condomínio Exemplo' }}" required>
-            </div>
-            <div class="form-group">
-                <label for="data_plantao">Data do Plantão (DD/MM/AAAA):</label>
-                <input type="text" id="data_plantao" name="data_plantao" class="form-control" value="{{ data_plantao_enviada or '' }}" placeholder="DD/MM/AAAA" required>
-            </div>
-            <div class="form-group">
-                <label for="escala_plantao">Escala do Plantão (ex: 18-06 ou 06-18):</label>
-                <input type="text" id="escala_plantao" name="escala_plantao" class="form-control" value="{{ escala_enviada or '18-06' }}" placeholder="HH-HH" required>
-            </div>
-            <div class="form-group">
-                <label for="log_bruto_rondas">Log Bruto das Rondas:</label>
-                <textarea id="log_bruto_rondas" name="log_bruto_rondas" class="form-control" rows="15" placeholder="Cole aqui o log bruto das rondas...">{{ log_enviado or '' }}</textarea>
-            </div>
-            <div class="form-group">
-                <button type="submit" class="button">Processar Log de Rondas</button>
-            </div>
-        </form>
+        <div class="form-group">
+            {{ form.data_plantao.label(class="form-label") }}<br>
+            {{ form.data_plantao(class="form-control") }}<br>
+            {% if form.data_plantao.errors %}
+                <ul class="errors">{% for error in form.data_plantao.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+            {% endif %}
+        </div>
 
-        {% if resultado %}
-            <h2>Resultado do Processamento:</h2>
-            <pre id="output-rondas" style="background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 6px; white-space: pre-wrap; word-wrap: break-word;">{{ resultado }}</pre>
+        <div class="form-group">
+            {{ form.escala_plantao.label(class="form-label") }}<br>
+            {{ form.escala_plantao(class="form-control") }}<br>
+            {% if form.escala_plantao.errors %}
+                <ul class="errors">{% for error in form.escala_plantao.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            {{ form.log_bruto_rondas.label(class="form-label") }}<br>
+            {{ form.log_bruto_rondas(class="form-control") }}<br>
+            {% if form.log_bruto_rondas.errors %}
+                <ul class="errors">{% for error in form.log_bruto_rondas.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.submit(class="btn btn-primary") }}
+        </div>
+    </form>
+
+    {# SEÇÃO DE EXIBIÇÃO DE RESULTADOS MODIFICADA PARA STRING PRÉ-FORMATADA #}
+    {% if resultado %}
+        <h2>Resultado do Processamento:</h2>
+        {# Verifica se é uma string e se começa com "Erro:" #}
+        {% if resultado is string and resultado.startswith("Erro:") %}
+             <pre style="color: red; border: 1px solid red; padding: 10px; background-color: #ffebee;">{{ resultado }}</pre>
+        {# Se não for um erro, e for uma string (que assumimos estar pré-formatada), exibe dentro de um <pre> para manter a formatação #}
+        {% elif resultado is string %}
+            <div class="report-output">
+                <pre>{{ resultado }}</pre> {# Exibe a string pré-formatada #}
+            </div>
+        {# Se não for string (caso inesperado agora, mas bom ter um fallback) #}
+        {% else %}
+             <p>Resultado em formato não reconhecido (esperava-se uma string): {{ resultado }}</p>
         {% endif %}
-    </div>
+    {% elif log_enviado and request.method == 'POST' and not form.errors %} 
+        <p>O log foi submetido, mas o serviço não retornou um resultado para exibir.</p>
+    {% endif %}
 
-    <footer class="footer">
-        <p>&copy; {{ SCRIPT_CURRENT_YEAR }} | Desenvolvido por Luis Eduardo Rodrigues Royo</p>
-    </footer>
-</body>
-</html>
+{% endblock %}

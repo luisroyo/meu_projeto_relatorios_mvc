@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Meu App de Relatórios{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head_links %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">Meu App</a>
+            <ul class="navbar-nav">
+                {% if current_user.is_authenticated %}
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('main.index') }}">Início</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('main.testar_rondas_route') }}">Testar Rondas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('main.logout') }}">Logout ({{ current_user.username }})</a></li>
+                {% else %}
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('main.login') }}">Login</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('main.register') }}">Registrar</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Meu Projeto de Relatórios</p>
+    </footer>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

@@ -1,74 +1,41 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - Processador Inteligente</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+{% extends "base.html" %}
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}"> </head>
-<body>
-    <div class="auth-container">
-        <h1>{{ title }}</h1>
+{% block title %}Login - Meu App{% endblock %}
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
+{% block head_links %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <h2>Login</h2>
+    <form method="POST" action="{{ url_for('main.login') }}">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.email.label }} {# <<< CORRIGIDO DE form.username.label #}
+            {{ form.email(class="form-control") }} {# <<< CORRIGIDO DE form.username #}
+            {% if form.email.errors %} {# <<< CORRIGIDO DE form.username.errors #}
+                <ul class="errors">
+                    {% for error in form.email.errors %}<li>{{ error }}</li>{% endfor %} {# <<< CORRIGIDO DE form.username.errors #}
+                </ul>
             {% endif %}
-        {% endwith %}
-
-        <form method="POST" action="{{ url_for('main.login') }}" novalidate>
-            {{ form.hidden_tag() }} 
-            
-            <div class="form-group">
-                {{ form.email.label }}
-                {{ form.email(class="form-control", placeholder="Seu email cadastrado") }}
-                {% if form.email.errors %}
-                    <div class="form-error">
-                        {% for error in form.email.errors %}
-                            <span>{{ error }}</span><br>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-
-            <div class="form-group">
-                {{ form.password.label }}
-                {{ form.password(class="form-control", placeholder="Sua senha") }}
-                {% if form.password.errors %}
-                    <div class="form-error">
-                        {% for error in form.password.errors %}
-                            <span>{{ error }}</span><br>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-
-            <div class="form-group form-check-group">
-                <div>
-                    {{ form.remember(class="form-check-input") }}
-                    {{ form.remember.label(class="form-check-label") }}
-                </div>
-            </div>
-
-            <div class="form-group">
-                {{ form.submit(class="button") }}
-            </div>
-        </form>
-
-        <div class="auth-links">
-            Não tem uma conta? <a href="{{ url_for('main.register') }}">Registre-se</a>
         </div>
-    </div>
-
-    <footer class="footer">
-        <p>&copy; {{ SCRIPT_CURRENT_YEAR }} | Desenvolvido por Luis Eduardo Rodrigues Royo</p>
-    </footer>
-</body>
-</html>
+        <div class="form-group">
+            {{ form.password.label }}
+            {{ form.password(class="form-control") }}
+            {% if form.password.errors %}
+                <ul class="errors">
+                    {% for error in form.password.errors %}<li>{{ error }}</li>{% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+        <div class="form-group">
+            {{ form.remember() }} {{ form.remember.label }} {# Em forms.py está 'remember', não 'remember_me' #}
+        </div>
+        <div class="form-group">
+            {{ form.submit(class="btn btn-primary") }}
+        </div>
+    </form>
+    <p>Não tem uma conta? <a href="{{ url_for('main.register') }}">Registre-se aqui</a></p>
+</div>
+{% endblock %}
