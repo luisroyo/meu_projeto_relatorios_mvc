@@ -5,7 +5,8 @@ from flask import (
 from app import db
 from app.services.report_service import ReportService
 from app.services.ronda_service import processar_log_de_rondas
-from app.forms import RegistrationForm, LoginForm
+# A linha abaixo já inclui TestarRondasForm, o que é ótimo.
+from app.forms import RegistrationForm, LoginForm, TestarRondasForm 
 from app.models import User, LoginHistory
 from flask_login import login_user, current_user, logout_user, login_required
 from urllib.parse import urlsplit
@@ -79,7 +80,7 @@ def login():
             flash(f'Login bem-sucedido, {user.username}!', 'success')
             
             next_page = request.args.get('next')
-            current_app.logger.debug(f"Parâmetro next_page do login: {next_page}") # Log para ver o next_page
+            current_app.logger.debug(f"Parâmetro next_page do login: {next_page}")
             if not next_page or urlsplit(next_page).netloc != '':
                 next_page = url_for('main.index')
             current_app.logger.info(f"Redirecionando usuário {user.username} para: {next_page} após login.")
@@ -128,7 +129,6 @@ def logout():
 @login_required 
 def processar_relatorio_route():
     current_app.logger.info(f"Iniciando /processar_relatorio. Autenticado: {current_user.is_authenticated}, Usuário: {current_user.username if current_user.is_authenticated else 'N/A'}. IP: {request.remote_addr}")
-    # ... (código da rota processar_relatorio continua igual ao da última versão que funcionava)
     if report_service_instance is None: 
         current_app.logger.error(f"ReportService indisponível para {current_user.username}. IP: {request.remote_addr}")
         return jsonify({"erro": "Serviço de processamento indisponível."}), 503
@@ -175,24 +175,26 @@ def processar_relatorio_route():
         return jsonify({'erro': 'Erro interno inesperado. Tente novamente.'}), 500
 
 
+# MODIFIED SECTION - testar_rondas_route
 @main_bp.route('/testar_rondas', methods=['GET', 'POST'])
 @login_required
 def testar_rondas_route():
-    if request.method == 'POST':
-        log_bruto = request.form.get('log_bruto_rondas')
-        nome_condominio = request.form.get('nome_condominio', 'Condomínio Teste')
-        data_plantao = request.form.get('data_plantao', datetime.now(timezone.utc).strftime('%d/%m/%Y'))
-        escala_plantao = request.form.get('escala_plantao', '18-06')
+    form = TestarRondasForm() # Instancia o novo formulário
+    resultado_processado = None
+    log_enviado = None # Para manter o log no textarea após o POST
 
-        if not log_bruto:
-            flash('Por favor, insira o log de rondas.', 'warning')
-            # Passar os valores padrão de volta para o template no caso de erro no POST também
-            return render_template('testar_rondas.html', 
-                                   title='Testar Processamento de Rondas', 
-                                   resultado=None,
-                                   condominio_enviado=nome_condominio, 
-                                   data_plantao_enviada=data_plantao, 
-                                   escala_enviada=escala_plantao)
+    # Se o método for GET e houver valores padrão que você queira definir dinamicamente
+    # (além dos defaults da classe do formulário), você pode fazer aqui.
+    # Ex: form.nome_condominio.data = "Valor Padrão GET"
+    # No entanto, os defaults definidos na classe TestarRondasForm já serão aplicados.
+
+    if form.validate_on_submit(): # Processa no POST se o formulário for válido
+        log_bruto = form.log_bruto_rondas.data
+        nome_condominio = form.nome_condominio.data
+        data_plantao = form.data_plantao.data
+        escala_plantao = form.escala_plantao.data
+        log_enviado = log_bruto # Mantém o log no textarea
+
         try:
             resultado_processado = processar_log_de_rondas(
                 log_bruto, 
@@ -201,31 +203,24 @@ def testar_rondas_route():
                 escala_plantao
             )
             current_app.logger.info(f"Teste de processamento de rondas executado por {current_user.username}.")
-            return render_template('testar_rondas.html', 
-                                   title='Testar Processamento de Rondas', 
-                                   resultado=resultado_processado, 
-                                   log_enviado=log_bruto, 
-                                   condominio_enviado=nome_condominio, 
-                                   data_plantao_enviada=data_plantao, 
-                                   escala_enviada=escala_plantao)
+            flash('Log de rondas processado com sucesso!', 'success')
         except Exception as e:
-            current_app.logger.error(f"Erro ao testar processamento de rondas: {e}", exc_info=True)
+            current_app.logger.error(f"Erro ao testar processamento de rondas para {current_user.username}: {e}", exc_info=True)
             flash(f'Ocorreu um erro ao processar o log de rondas: {str(e)}', 'danger')
-            return render_template('testar_rondas.html', 
-                                   title='Testar Processamento de Rondas', 
-                                   resultado=f"Erro: {str(e)}", 
-                                   log_enviado=log_bruto, 
-                                   condominio_enviado=nome_condominio, 
-                                   data_plantao_enviada=data_plantao, 
-                                   escala_enviada=escala_plantao)
+            resultado_processado = f"Erro: {str(e)}" # Passa a mensagem de erro para o template
+            # Em caso de erro no processamento, os dados do formulário (form.data) já conterão o que o usuário enviou
+            # e serão repopulados no template.
     
-    # Para requisição GET, define os valores padrão para os campos do formulário
-    default_condominio = 'Condomínio Exemplo'
-    default_data_plantao = datetime.now(timezone.utc).strftime('%d/%m/%Y')
-    default_escala_plantao = '18-06'
-    
+    elif request.method == 'POST': # Se validate_on_submit() falhou
+        current_app.logger.warning(f"Falha na validação do formulário de Testar Rondas por {current_user.username}. Erros: {form.errors}")
+        log_enviado = form.log_bruto_rondas.data # Mantém o log no textarea mesmo com erro de validação
+        # Os erros de validação (form.errors) serão automaticamente exibidos no template se configurado corretamente.
+
+    # Para GET ou se a validação do POST falhar (ou após processamento bem-sucedido/com erro)
+    # Renderiza o template, passando o objeto form e quaisquer resultados/logs.
     return render_template('testar_rondas.html', 
-                           title='Testar Processamento de Rondas',
-                           condominio_enviado=default_condominio,
-                           data_plantao_enviada=default_data_plantao,
-                           escala_enviada=default_escala_plantao)
+                           title='Testar Processamento de Rondas', 
+                           form=form,
+                           resultado=resultado_processado,
+                           log_enviado=log_enviado 
+                          )

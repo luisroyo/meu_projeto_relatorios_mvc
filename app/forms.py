@@ -1,8 +1,9 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, BooleanField # BooleanField não estamos usando ainda, mas é comum
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField # Adicionado TextAreaField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 from app.models import User # Para verificar se usuário/email já existem
 import logging
+from datetime import datetime, timezone # <<< LINHA ADICIONADA
 
 logger = logging.getLogger(__name__)
 
@@ -41,5 +42,20 @@ class LoginForm(FlaskForm):
                                     Email(message="Endereço de email inválido.")])
     password = PasswordField('Senha', 
                              validators=[DataRequired(message="Este campo é obrigatório.")])
-    remember = BooleanField('Lembrar-me') # Para funcionalidade "lembrar-me"
+    remember = BooleanField('Lembrar-me') 
     submit = SubmitField('Login')
+
+class TestarRondasForm(FlaskForm):
+    log_bruto_rondas = TextAreaField('Log Bruto das Rondas', 
+                                     validators=[DataRequired(message="O log de rondas é obrigatório.")],
+                                     render_kw={"rows": 10, "cols": 70})
+    nome_condominio = StringField('Nome do Condomínio', 
+                                  validators=[DataRequired(message="Este campo é obrigatório.")],
+                                  default='Condomínio Exemplo') # Valor padrão
+    data_plantao = StringField('Data do Plantão (dd/mm/aaaa)', 
+                               validators=[DataRequired(message="Este campo é obrigatório.")],
+                               default=datetime.now(timezone.utc).strftime('%d/%m/%Y')) # Usa datetime importado
+    escala_plantao = StringField('Escala do Plantão (Ex: 18-06)', 
+                                 validators=[DataRequired(message="Este campo é obrigatório.")],
+                                 default='18-06') # Valor padrão
+    submit = SubmitField('Processar Log de Rondas')
