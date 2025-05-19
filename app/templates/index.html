@@ -11,8 +11,6 @@
 
         {% if current_user.is_authenticated %}
             <div class="row">
-                {# Coluna para o card de Entrada do Relatório #}
-                {# Adicionado col-12 para empilhar em telas pequenas por padrão #}
                 <div class="col-12 col-md-6 mb-4">
                     <div class="card shadow-sm h-100"> 
                         <div class="card-header">
@@ -24,19 +22,22 @@
                                 <textarea class="form-control" id="relatorioBruto" name="relatorioBruto" rows="15" placeholder="Cole o relatório bruto aqui..."></textarea>
                                 <small id="charCount" class="form-text text-muted">Caracteres: 0 / 12000</small>
                             </div>
-                            <div class="mt-auto"> 
-                                <button type="button" class="btn btn-primary me-2" id="processarRelatorio">
-                                    <span id="processarSpinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
-                                    Processar Relatório
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary" id="limparCampos">Limpar Tudo</button>
+                            {# SEÇÃO DOS BOTÕES ATUALIZADA PARA RESPONSIVIDADE #}
+                            <div class="mt-auto">
+                                <div class="d-grid gap-2 d-sm-flex justify-content-sm-start"> {# Empilha em xs, flex em sm+ #}
+                                    <button type="button" class="btn btn-primary btn-lg mb-2 mb-sm-0 me-sm-2 flex-grow-1 flex-sm-grow-0" id="processarRelatorio"> {# btn-lg e flex-grow para preencher em mobile #}
+                                        <span id="processarSpinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                                        Processar Relatório
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-lg flex-grow-1 flex-sm-grow-0" id="limparCampos"> {# btn-lg e flex-grow para preencher em mobile #}
+                                        Limpar Tudo
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {# Coluna para o card de Relatório Processado #}
-                {# Adicionado col-12 para empilhar em telas pequenas por padrão #}
                 <div class="col-12 col-md-6 mb-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-header">
@@ -49,7 +50,7 @@
                                 <textarea class="form-control" id="resultadoProcessamento" rows="15" readonly placeholder="O relatório processado aparecerá aqui..."></textarea>
                             </div>
                             <div class="mt-auto">
-                                <button type="button" class="btn btn-info" id="copiarResultado" style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top" title="Copiar para a área de transferência">
+                                <button type="button" class="btn btn-info btn-lg" id="copiarResultado" style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top" title="Copiar para a área de transferência"> {# btn-lg adicionado #}
                                     Copiar Resultado
                                 </button>
                             </div>
