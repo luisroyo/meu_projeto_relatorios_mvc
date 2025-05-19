@@ -10,8 +10,6 @@
     </div>
 
     <div class="row">
-        {# Coluna para o formulário de entrada #}
-        {# Adicionado col-12 para empilhar em telas pequenas e médias por padrão antes de lg #}
         <div class="col-12 col-lg-6 mb-4"> 
             <div class="card shadow-sm h-100">
                 <div class="card-header">
@@ -71,17 +69,18 @@
                             {% endif %}
                         </div>
                         
-                        <div class="mt-auto d-flex justify-content-start"> 
-                            {{ form.submit(class="btn btn-primary btn-lg me-2", id="submitRelatorioRonda") }} 
-                            <button type="button" class="btn btn-outline-secondary btn-lg" id="limparFormRonda">Limpar Log e Resultado</button> 
+                        {# SEÇÃO DOS BOTÕES ATUALIZADA PARA RESPONSIVIDADE #}
+                        <div class="mt-auto">
+                            <div class="d-grid gap-2 d-sm-flex justify-content-sm-start"> {# Empilha em xs, flex em sm+ #}
+                                {{ form.submit(class="btn btn-primary btn-lg mb-2 mb-sm-0 me-sm-2 flex-grow-1 flex-sm-grow-0", id="submitRelatorioRonda") }} 
+                                <button type="button" class="btn btn-outline-secondary btn-lg flex-grow-1 flex-sm-grow-0" id="limparFormRonda">Limpar Log e Resultado</button> 
+                            </div>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        {# Coluna para a exibição dos resultados #}
-        {# Adicionado col-12 para empilhar em telas pequenas e médias por padrão antes de lg #}
         <div class="col-12 col-lg-6 mb-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header">
