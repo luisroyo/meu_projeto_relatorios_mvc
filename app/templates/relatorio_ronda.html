@@ -19,6 +19,7 @@
                     <form method="POST" action="{{ url_for('main.relatorio_ronda_route') }}" novalidate class="flex-grow-1" id="formRelatorioRonda">
                         {{ form.hidden_tag() }}
                         
+                        {# ... campos do formulário (nome_condominio, data_plantao, etc.) ... #}
                         <div class="mb-3">
                             {{ form.nome_condominio.label(class="form-label") }}
                             {{ form.nome_condominio(class="form-select" + (" is-invalid" if form.nome_condominio.errors else ""), id="nome_condominio_select") }}
@@ -71,9 +72,9 @@
                         
                         {# SEÇÃO DOS BOTÕES ATUALIZADA PARA RESPONSIVIDADE #}
                         <div class="mt-auto">
-                            <div class="d-grid gap-2 d-sm-flex justify-content-sm-start"> {# Empilha em xs, flex em sm+ #}
-                                {{ form.submit(class="btn btn-primary btn-lg mb-2 mb-sm-0 me-sm-2 flex-grow-1 flex-sm-grow-0", id="submitRelatorioRonda") }} 
-                                <button type="button" class="btn btn-outline-secondary btn-lg flex-grow-1 flex-sm-grow-0" id="limparFormRonda">Limpar Log e Resultado</button> 
+                            <div class="d-flex flex-column flex-sm-row">
+                                {{ form.submit(class="btn btn-primary btn-lg mb-2 mb-sm-0 me-sm-2 w-100 w-sm-auto", id="submitRelatorioRonda") }} 
+                                <button type="button" class="btn btn-outline-secondary btn-lg w-100 w-sm-auto" id="limparFormRonda">Limpar Log e Resultado</button> 
                             </div>
                         </div>
                     </form>
