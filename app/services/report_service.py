@@ -99,6 +99,7 @@ class ReportService:
             * `( ) Supervisor`: Marque com (x) se um supervisor foi contatado. Nome se mencionado.
             * `( ) Coordenador`: Marque com (x) se um coordenador foi contatado.
             * `( ) Outro`: [especificar]
+        
         * **Envolvidos/Testemunhas:** Liste pessoas relevantes.
         * **Veículo (envolvido na ocorrência):** Detalhes de veículos CIVIS. Se a ocorrência for sobre um veículo com problemas, liste-o aqui.
         * **Responsável pelo registro (REGRA DE FORMATAÇÃO IMPORTANTE):**
@@ -122,12 +123,7 @@ class ReportService:
         - ...
 
         Acionamentos:
-        ( ) Central
-        ( ) Apoio 90
-        ( ) Polícia Militar (190) - Detalhes: [se houver]
-        ( ) Supervisor - Nome: [se houver]
-        ( ) Coordenador
-        ( ) Outro: [especificar, se houver]
+        ( ) Central ( ) Apoio 90( ) Polícia Militar (190) - Detalhes: [se houver]( ) Supervisor - Nome: [se houver] ( ) Coordenador ( ) Outro: [especificar, se houver]
 
         Envolvidos/Testemunhas:
         - [Nome/Identificação], [Função/Observação]
