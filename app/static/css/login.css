@@ -1,13 +1,4 @@
 /* app/static/css/login.css */
-body {
-    /* Poderia ter um fundo específico para a página de login */
-    /* background-image: url('../images/login-background.jpg'); */
-    /* background-size: cover; */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 90vh; /* Considera a altura da navbar se ela estiver fora do body para esse flex */
-}
 
 .login-container {
     background-color: #ffffff;
@@ -25,11 +16,7 @@ body {
     font-weight: 600;
 }
 
-/* Ajustes específicos para campos de formulário na página de login, se necessário */
-.login-container .form-control {
-    /* Exemplo: talvez bordas um pouco diferentes ou altura */
-    /* padding: 12px 15px; */
-}
+
 
 .login-container .btn-primary {
     width: 100%; /* Botão de login ocupa toda a largura */

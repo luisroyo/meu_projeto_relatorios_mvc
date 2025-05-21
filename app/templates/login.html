@@ -1,57 +1,59 @@
 {% extends "base.html" %}
 
-{# Definição correta e única do bloco title para a página de Login #}
-{% block title %}Login - Meu App{% endblock %}
+{% block title %}Login - Assistente de Relatórios IA{% endblock %}
+
+{# Adiciona uma classe ao body se precisar de estilos muito específicos para a página de login via login.css #}
+{# Exemplo: {% block body_class %}login-page-body{% endblock %} #}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5 col-xl-4">
-        <div class="card shadow-sm">
-            <div class="card-body p-4 p-md-5"> {# Mais padding em telas maiores #}
-                <h2 class="card-title text-center mb-4">Login</h2>
-                <form method="POST" action="{{ url_for('main.login') }}" novalidate>
-                    {{ form.hidden_tag() }}
-                    
-                    <div class="mb-3">
-                        {{ form.email.label(class="form-label") }}
-                        {{ form.email(class="form-control form-control-lg" + (" is-invalid" if form.email.errors else ""), placeholder="seuemail@exemplo.com") }}
-                        {% if form.email.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.email.errors %}
-                                    <span>{{ error }}</span><br>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
+<div class="container py-5"> {# py-5 para padding vertical no container #}
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6 col-xl-5"> {# Ajuste de colunas para o card de login #}
+            <div class="card shadow-lg border-0"> {# Sombra mais pronunciada e sem borda para um look mais clean #}
+                <div class="card-body p-4 p-sm-5"> {# Padding responsivo #}
+                    <h2 class="card-title text-center fw-bold mb-4">Acessar Conta</h2>
+                    <form method="POST" action="{{ url_for('main.login') }}" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control form-control-lg" + (" is-invalid" if form.email.errors else ""), placeholder="seuemail@exemplo.com") }}
+                            {% if form.email.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.email.errors %}
+                                        <span>{{ error }}</span><br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            {{ form.password(class="form-control form-control-lg" + (" is-invalid" if form.password.errors else ""), placeholder="Senha") }}
+                            {% if form.password.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.password.errors %}
+                                        <span>{{ error }}</span><br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            {{ form.remember(class="form-check-input") }}
+                            {{ form.remember.label(class="form-check-label") }}
+                        </div>
+                        
+                        <div class="d-grid mb-4"> {# mb-4 para mais espaço abaixo do botão #}
+                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                        </div>
+                    </form>
+                    <div class="text-center">
+                        <p class="mb-0">Não tem uma conta? <a href="{{ url_for('main.register') }}" class="fw-bold">Registre-se aqui</a></p>
                     </div>
-                    
-                    <div class="mb-3">
-                        {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control form-control-lg" + (" is-invalid" if form.password.errors else ""), placeholder="Senha") }}
-                        {% if form.password.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.password.errors %}
-                                    <span>{{ error }}</span><br>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3 form-check">
-                        {{ form.remember(class="form-check-input") }}
-                        {{ form.remember.label(class="form-check-label") }}
-                    </div>
-                    
-                    <div class="d-grid mb-3"> {# d-grid para botão de largura total #}
-                        {{ form.submit(class="btn btn-primary btn-lg") }}
-                    </div>
-                </form>
-                <div class="text-center mt-4">
-                    <p class="mb-0">Não tem uma conta? <a href="{{ url_for('main.register') }}">Registre-se aqui</a></p>
-                    {# Adicionar link para "Esqueci minha senha" se aplicável no futuro #}
-                    {# <p><a href="#">Esqueceu sua senha?</a></p> #}
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %} {# Certifica-se de que o bloco 'content' está fechado #}
+{% endblock %}
