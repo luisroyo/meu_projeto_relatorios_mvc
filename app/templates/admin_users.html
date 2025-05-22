@@ -16,70 +16,89 @@
         {% endif %}
     {% endwith %}
 
-    <table class="table table-hover">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Usuário</th>
-                <th>Email</th>
-                <th>Registrado em</th>
-                <th>Último Login</th>
-                <th>Status</th>
-                <th>Admin</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user_item in users_pagination.items %}
-            <tr>
-                <td>{{ user_item.id }}</td>
-                <td>{{ user_item.username }}</td>
-                <td>{{ user_item.email }}</td>
-                <td>{{ user_item.date_registered.strftime('%d/%m/%Y %H:%M') if user_item.date_registered else 'N/A' }}</td>
-                <td>{{ user_item.last_login.strftime('%d/%m/%Y %H:%M') if user_item.last_login else 'Nunca' }}</td>
-                <td>
-                    {% if user_item.is_approved %}
-                        <span class="badge bg-success">Aprovado</span>
-                    {% else %}
-                        <span class="badge bg-warning text-dark">Pendente</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if user_item.is_admin %}
-                        <span class="badge bg-primary">Sim</span>
-                    {% else %}
-                        <span class="badge bg-secondary">Não</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if not user_item.is_approved %}
-                        <form method="POST" action="{{ url_for('main.approve_user', user_id=user_item.id) }}" style="display: inline-block; margin-bottom: 5px;">
-                            <button type="submit" class="btn btn-success btn-sm">Aprovar</button>
-                        </form>
-                    {% else %}
-                        <form method="POST" action="{{ url_for('main.revoke_user_approval', user_id=user_item.id) }}" style="display: inline-block; margin-bottom: 5px;">
-                            <button type="submit" class="btn btn-secondary btn-sm">Revogar</button>
-                        </form>
-                    {% endif %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuário</th>
+                    <th>Email</th>
+                    <th>Registrado em</th>
+                    <th>Último Login</th>
+                    <th>Status</th>
+                    <th>Admin</th>
+                    <th class="text-center">Ações</th> {# Centralizando o cabeçalho de Ações #}
+                </tr>
+            </thead>
+            <tbody>
+                {% for user_item in users_pagination.items %}
+                <tr>
+                    <td>{{ user_item.id }}</td>
+                    <td>{{ user_item.username }}</td>
+                    <td>{{ user_item.email }}</td>
+                    <td>{{ user_item.date_registered.strftime('%d/%m/%Y %H:%M') if user_item.date_registered else 'N/A' }}</td>
+                    <td>{{ user_item.last_login.strftime('%d/%m/%Y %H:%M') if user_item.last_login else 'Nunca' }}</td>
+                    <td>
+                        {% if user_item.is_approved %}
+                            <span class="badge bg-success">Aprovado</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Pendente</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user_item.is_admin %}
+                            <span class="badge bg-primary">Sim</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Não</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center"> {# Centralizando os botões de ação #}
+                        <div class="btn-group" role="group" aria-label="Ações do Usuário">
+                            {% if not user_item.is_approved %}
+                                <form method="POST" action="{{ url_for('main.approve_user', user_id=user_item.id) }}" style="display: inline-block;">
+                                    <button type="submit" class="btn btn-success btn-sm" title="Aprovar Usuário">
+                                        <i class="bi bi-check-circle"></i> Aprovar
+                                    </button>
+                                </form>
+                            {% else %}
+                                {% if user_item.id != current_user.id %}
+                                <form method="POST" action="{{ url_for('main.revoke_user_approval', user_id=user_item.id) }}" style="display: inline-block;">
+                                    <button type="submit" class="btn btn-secondary btn-sm" title="Revogar Aprovação">
+                                        <i class="bi bi-x-circle"></i> Revogar
+                                    </button>
+                                </form>
+                                {% else %}
+                                {% endif %}
+                            {% endif %}
+                            
+                            {% if user_item.id != current_user.id %}
+                            <form method="POST" action="{{ url_for('main.toggle_admin_status', user_id=user_item.id) }}" style="display: inline-block; margin-left: 5px;">
+                                <button type="submit" class="btn btn-info btn-sm" title="Alternar Status de Admin">
+                                    {% if user_item.is_admin %}<i class="bi bi-person-dash"></i> Rebaixar{% else %}<i class="bi bi-person-check"></i> Tornar Admin{% endif %}
+                                </button>
+                            </form>
+                            
+                            <form method="POST" action="{{ url_for('main.delete_user', user_id=user_item.id) }}" style="display: inline-block; margin-left: 5px;" onsubmit="return confirm('Tem certeza que deseja deletar este usuário? Esta ação não pode ser desfeita.');">
+                                <button type="submit" class="btn btn-danger btn-sm" title="Deletar Usuário">
+                                    <i class="bi bi-trash"></i> Deletar
+                                </button>
+                            </form>
+                            {% else %}
+                                <span class="badge bg-light text-dark ms-2">Você Mesmo</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center">Nenhum usuário encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-                    {% if user_item.id != current_user.id %} {# Não permitir alterar o próprio status de admin diretamente aqui #}
-                    <form method="POST" action="{{ url_for('main.toggle_admin_status', user_id=user_item.id) }}" style="display: inline-block;">
-                        <button type="submit" class="btn btn-info btn-sm">
-                            {% if user_item.is_admin %}Rebaixar Admin{% else %}Tornar Admin{% endif %}
-                        </button>
-                    </form>
-                    {% endif %}
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="8" class="text-center">Nenhum usuário encontrado.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <nav aria-label="Page navigation">
+    <nav aria-label="Page navigation example" class="mt-4">
         <ul class="pagination justify-content-center">
             {% if users_pagination.has_prev %}
                 <li class="page-item"><a class="page-link" href="{{ url_for('main.manage_users', page=users_pagination.prev_num) }}">Anterior</a></li>
@@ -95,7 +114,7 @@
                         <li class="page-item"><a class="page-link" href="{{ url_for('main.manage_users', page=page_num) }}">{{ page_num }}</a></li>
                     {% endif %}
                 {% else %}
-                    <li class="page-item disabled"><span class="page-link">…</span></li> {# reticências para blocos de páginas omitidos #}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
                 {% endif %}
             {% endfor %}
 
