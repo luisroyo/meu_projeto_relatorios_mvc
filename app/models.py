@@ -65,8 +65,11 @@ class LoginHistory(db.Model):
     attempted_username = db.Column(db.String(80), nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True) # Adicionado index
     success = db.Column(db.Boolean, nullable=False)
-    ip_address = db.Column(db.String(45), nullable=True) 
-    user_agent = db.Column(db.String(256), nullable=True)
+    ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.String(256))
+    failure_reason = db.Column(db.String(100), nullable=True) # << ADICIONE ESTA LINHA
+
+    user = db.relationship('User', backref=db.backref('login_history_entries', lazy='dynamic'))
 
     def __repr__(self):
         status = "Sucesso" if self.success else "Falha"

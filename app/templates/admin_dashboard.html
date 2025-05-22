@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Painel Administrativo</h2>
+    <p>Bem-vindo ao painel de administração, {{ current_user.username }}!</p>
+    <hr>
+    <ul class="list-group">
+        <li class="list-group-item">
+            <a href="{{ url_for('main.manage_users') }}">Gerenciar Usuários</a>
+        </li>
+        </ul>
+</div>
+{% endblock %}
