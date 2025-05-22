@@ -4,12 +4,13 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging # Adicione esta importação para o logger do módulo
 
+
 logger = logging.getLogger(__name__) # Logger para este módulo
 
 # Função user_loader para o Flask-Login: diz como carregar um usuário dado o ID.
 @login_manager.user_loader
 def load_user(user_id):
-    logger.debug(f"Tentando carregar usuário com ID: {user_id}")
+    return User.query.get(int(user_id))
     try:
         user = db.session.get(User, int(user_id))
         if user:
@@ -20,31 +21,41 @@ def load_user(user_id):
     except Exception as e:
         logger.error(f"Erro ao carregar usuário ID {user_id}: {e}", exc_info=True)
         return None
-
-
-class User(db.Model, UserMixin):
-    __tablename__ = 'user' 
-
+class Ronda(db.Model):
+    __tablename__ = 'ronda' # Boa prática
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False, index=True) # Adicionado index
-    email = db.Column(db.String(120), unique=True, nullable=False, index=True) # Adicionado index
-    password_hash = db.Column(db.String(256), nullable=False) 
-    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)) 
-    is_admin = db.Column(db.Boolean, nullable=False, default=False) 
+    data_hora = db.Column(db.DateTime, nullable=False, default=datetime.utcnow) # Exemplo de campo
+    log_ronda = db.Column(db.Text, nullable=False) # Exemplo de campo
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # Chave estrangeira para a tabela 'user'
 
-    login_history = db.relationship('LoginHistory', backref='user', lazy='dynamic', cascade="all, delete-orphan") # Alterado para lazy='dynamic'
+    def __repr__(self):
+        return f'<Ronda {self.id}>'
+    
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(64), index=True, unique=True, nullable=False)
+    email = db.Column(db.String(120), index=True, unique=True, nullable=False)
+    password_hash = db.Column(db.String(256))
+    rondas = db.relationship('Ronda', backref='author', lazy='dynamic')
+
+    # Campos adicionados anteriormente
+    is_approved = db.Column(db.Boolean, default=False, nullable=False)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    date_registered = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime, nullable=True)
+
+    # ADICIONE ESTA LINHA:
+    __table_args__ = {'extend_existing': True}
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
         return f'<User {self.username}>'
 
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-        logger.info(f"Hash de senha definido para o usuário: {self.username}")
-
-    def check_password(self, password):
-        result = check_password_hash(self.password_hash, password)
-        logger.debug(f"Verificação de senha para {self.username}: {'Sucesso' if result else 'Falha'}")
-        return result
 
 class LoginHistory(db.Model):
     __tablename__ = 'login_history'

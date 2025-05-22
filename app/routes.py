@@ -1,16 +1,17 @@
 from flask import (
     render_template, request, jsonify, redirect, url_for, flash,
-    Blueprint, current_app
+    Blueprint, current_app, abort # << ADICIONEI abort
 )
-from app import db
+from app import db # login_manager é carregado em app/__init__.py e associado lá
 from app.services.report_service import ReportService
 from app.services.rondaservice import processar_log_de_rondas
-from app.forms import RegistrationForm, LoginForm, TestarRondasForm # TestarRondasForm é o nome da classe do formulário
-from app.models import User, LoginHistory
+from app.forms import RegistrationForm, LoginForm, TestarRondasForm
+from app.models import User, LoginHistory, Ronda # << ADICIONEI Ronda (caso não estivesse)
 from flask_login import login_user, current_user, logout_user, login_required
 from urllib.parse import urlsplit
 import logging
-from datetime import datetime, timezone, date # Adicionado date
+from datetime import datetime, timezone
+from functools import wraps # << ADICIONEI wraps
 
 main_bp = Blueprint('main', __name__)
 logger = logging.getLogger(__name__)
@@ -21,6 +22,20 @@ try:
     logger.info("Instância de ReportService criada em routes.py (nível global do blueprint)")
 except (ValueError, RuntimeError) as e:
     logger.critical(f"Falha na inicialização do ReportService em routes.py: {e}", exc_info=True)
+
+# --- NOVO DECORADOR ADMIN_REQUIRED ---
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated: # Primeiro, precisa estar logado
+            return redirect(url_for('main.login', next=request.url))
+        if not current_user.is_admin:
+            current_app.logger.warning(f"Usuário não admin ({current_user.username}) tentou acessar uma rota protegida. IP: {request.remote_addr}")
+            flash('Acesso negado. Esta área é restrita a administradores.', 'danger')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
+# --- FIM DO DECORADOR ---
 
 
 @main_bp.route('/')
@@ -33,26 +48,28 @@ def index():
 def register():
     if current_user.is_authenticated:
         current_app.logger.info(f"Usuário já autenticado ({current_user.username}) tentou acessar /register. Redirecionando para index.")
-        return redirect(url_for('main.index')) 
+        return redirect(url_for('main.index'))
     
     form = RegistrationForm()
     if form.validate_on_submit():
         try:
             user = User(username=form.username.data, email=form.email.data)
             user.set_password(form.password.data) 
+            # is_approved e is_admin já têm default=False no modelo User
             
             db.session.add(user)
             db.session.commit()
             
-            current_app.logger.info(f"Novo usuário registrado: {form.username.data} ({form.email.data})")
-            flash(f'Conta criada com sucesso para {form.username.data}! Você já pode fazer login.', 'success')
+            current_app.logger.info(f"Novo usuário registrado: {form.username.data} ({form.email.data}). Aguardando aprovação.")
+            # MODIFICADO: Mensagem de aguardando aprovação
+            flash('Sua conta foi criada com sucesso e agora aguarda aprovação do administrador para acesso completo.', 'info')
             return redirect(url_for('main.login'))
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Erro ao registrar usuário {form.username.data}: {e}", exc_info=True)
             flash('Ocorreu um erro ao criar sua conta. Tente novamente.', 'danger')
     elif request.method == 'POST':
-         current_app.logger.warning(f"Falha na validação do formulário de registro para o usuário: {form.username.data}, Erros: {form.errors}")
+            current_app.logger.warning(f"Falha na validação do formulário de registro para o usuário: {form.username.data}, Erros: {form.errors}")
 
     return render_template('register.html', title='Registrar', form=form)
 
@@ -66,16 +83,48 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         login_success = False
-        user_id_for_log = None
+        user_id_for_log = user.id if user else None
 
         current_app.logger.debug(f"Tentativa de login para email: {form.email.data}. Usuário encontrado: {'Sim' if user else 'Não'}")
 
         if user and user.check_password(form.password.data):
             current_app.logger.info(f"Verificação de senha para {user.username} bem-sucedida.")
-            login_user(user, remember=form.remember.data)
-            current_app.logger.info(f"Usuário {user.username} AGORA autenticado: {current_user.is_authenticated}")
+            
+            # --- MODIFICADO: VERIFICAÇÃO DE APROVAÇÃO ---
+            if not user.is_approved:
+                current_app.logger.warning(f"Tentativa de login por usuário não aprovado: {user.username} ({user.email}). IP: {request.remote_addr}")
+                flash('Sua conta ainda não foi aprovada por um administrador. Tente novamente mais tarde.', 'warning')
+                try:
+                    log_entry_unapproved = LoginHistory(
+                        user_id=user.id,
+                        attempted_username=form.email.data,
+                        timestamp=datetime.now(timezone.utc),
+                        success=False,
+                        ip_address=request.remote_addr,
+                        user_agent=request.user_agent.string,
+                        failure_reason='Account not approved'
+                    )
+                    db.session.add(log_entry_unapproved)
+                    db.session.commit()
+                except Exception as e_log:
+                    db.session.rollback()
+                    current_app.logger.error(f"Erro ao salvar o registro de login (não aprovado) para '{form.email.data}': {e_log}", exc_info=True)
+                return redirect(url_for('main.login'))
+            # --- FIM DA VERIFICAÇÃO DE APROVAÇÃO ---
+
+            login_user(user, remember=form.remember.data) # form.remember_me.data no meu exemplo anterior, verifique seu forms.py para o nome correto
             login_success = True
-            user_id_for_log = user.id
+            
+            # --- MODIFICADO: ATUALIZAR LAST_LOGIN ---
+            try:
+                user.last_login = datetime.now(timezone.utc)
+                # Não fazer commit aqui ainda, faremos junto com LoginHistory ou se não houver LoginHistory
+            except Exception as e_last_login:
+                # db.session.rollback() # Rollback seria problemático se outras coisas já estiverem na session
+                current_app.logger.error(f"Erro ao definir last_login para {user.username} (antes do commit): {e_last_login}", exc_info=True)
+            # --- FIM DA ATUALIZAÇÃO DE LAST_LOGIN ---
+            
+            current_app.logger.info(f"Usuário {user.username} autenticado com sucesso: {current_user.is_authenticated}. Aprovado: {user.is_approved}")
             flash(f'Login bem-sucedido, {user.username}!', 'success')
             
             next_page = request.args.get('next')
@@ -83,32 +132,45 @@ def login():
             if not next_page or urlsplit(next_page).netloc != '':
                 next_page = url_for('main.index')
             current_app.logger.info(f"Redirecionando usuário {user.username} para: {next_page} após login.")
-            return redirect(next_page)
+            # O LoginHistory será registrado após o redirect ou falha
         else:
             if user: 
                 current_app.logger.warning(f"Tentativa de login falhou para o usuário {user.username} (email: {form.email.data}). Senha incorreta. IP: {request.remote_addr}")
-                user_id_for_log = user.id
             else: 
                 current_app.logger.warning(f"Tentativa de login falhou. Email não encontrado: {form.email.data}. IP: {request.remote_addr}")
-            
             flash('Login falhou. Verifique seu email e senha.', 'danger')
         
-        try:
-            log_entry = LoginHistory(
-                user_id=user_id_for_log,
-                attempted_username=form.email.data,
-                timestamp=datetime.now(timezone.utc),
-                success=login_success,
-                ip_address=request.remote_addr,
-                user_agent=request.user_agent.string
-            )
-            db.session.add(log_entry)
-            db.session.commit()
-            current_app.logger.info(f"Registro de login para '{form.email.data}' (Sucesso: {login_success}) adicionado ao histórico.")
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Erro ao salvar o registro de login para '{form.email.data}': {e}", exc_info=True)
+        # Registra no LoginHistory e commita last_login se sucesso
+        # Evita logar de novo se já logou falha de aprovação
+        if not (user and user.check_password(form.password.data) and not user.is_approved):
+            try:
+                log_entry = LoginHistory(
+                    user_id=user_id_for_log,
+                    attempted_username=form.email.data,
+                    timestamp=datetime.now(timezone.utc),
+                    success=login_success,
+                    ip_address=request.remote_addr,
+                    user_agent=request.user_agent.string,
+                    failure_reason='Incorrect password' if user and not login_success else ('Email not found' if not user else None)
+                )
+                db.session.add(log_entry)
+                if login_success and user: # Se o login foi sucesso, user.last_login foi setado
+                    pass # user.last_login já está na sessão do user, será commitado junto
+                
+                db.session.commit() # Commit para LoginHistory e user.last_login (se sucesso)
+                if login_success:
+                     current_app.logger.info(f"Último login de {user.username} e registro de LoginHistory commitados.")
+
+                current_app.logger.info(f"Registro de login para '{form.email.data}' (Sucesso: {login_success}) adicionado ao histórico.")
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f"Erro ao salvar o registro de login e/ou last_login para '{form.email.data}': {e}", exc_info=True)
         
+        if login_success:
+             return redirect(next_page)
+        else:
+            return render_template('login.html', title='Login', form=form)
+
     elif request.method == 'POST': 
         current_app.logger.warning(f"Falha na validação do formulário de login (validate_on_submit falhou). Email tentado: {form.email.data}, Erros: {form.errors}")
 
@@ -123,6 +185,29 @@ def logout():
     current_app.logger.info(f"Usuário {user_name_before_logout} deslogado. IP: {request.remote_addr}")
     return redirect(url_for('main.index'))
 
+
+# --- NOVAS ROTAS DE ADMINISTRAÇÃO ---
+@main_bp.route('/admin')
+@login_required
+@admin_required
+def admin_dashboard():
+    return render_template('admin_dashboard.html', title='Painel Admin')
+
+@main_bp.route('/admin/users')
+@login_required
+@admin_required
+def manage_users():
+    page = request.args.get('page', 1, type=int)
+    users_pagination = User.query.order_by(User.date_registered.desc()).paginate(page=page, per_page=10)
+    current_app.logger.info(f"Admin {current_user.username} acessou /admin/users. Página: {page}")
+    return render_template('admin_users.html', title='Gerenciar Usuários', users_pagination=users_pagination)
+
+# As rotas para aprovar/revogar/tornar admin virão depois
+
+
+# Suas outras rotas (@main_bp.route('/processar_relatorio', ...) e @main_bp.route('/relatorio_ronda', ...))
+# permanecem como estão. O @login_required agora implicitamente também
+# garante que o usuário está aprovado (porque ele não conseguiria logar sem estar).
 
 @main_bp.route('/processar_relatorio', methods=['POST'])
 @login_required 
@@ -173,11 +258,10 @@ def processar_relatorio_route():
         current_app.logger.error(f"Exceção genérica para {current_user.username}: {e.__class__.__name__}: {e}. IP: {request.remote_addr}", exc_info=True)
         return jsonify({'erro': 'Erro interno inesperado. Tente novamente.'}), 500
 
-# Rota para Relatório de Ronda (anteriormente testar_rondas_route)
 @main_bp.route('/relatorio_ronda', methods=['GET', 'POST'])
 @login_required
 def relatorio_ronda_route():
-    form = TestarRondasForm() # Usa a classe de formulário existente com os campos atualizados
+    form = TestarRondasForm() 
     resultado_processado = None
     log_enviado = None
 
@@ -190,8 +274,8 @@ def relatorio_ronda_route():
         else:
             nome_condominio_final = nome_condominio_selecionado
         
-        data_plantao_obj = form.data_plantao.data # Isso é um objeto date
-        data_plantao_str = data_plantao_obj.strftime('%d/%m/%Y') # Formata para string
+        data_plantao_obj = form.data_plantao.data 
+        data_plantao_str = data_plantao_obj.strftime('%d/%m/%Y') 
             
         escala_plantao_final = form.escala_plantao.data
         
