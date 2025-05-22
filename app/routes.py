@@ -4,7 +4,7 @@ from flask import (
 )
 from app import db
 from app.services.report_service import ReportService
-from app.services.ronda_service import processar_log_de_rondas
+from app.services.rondaservice import processar_log_de_rondas
 from app.forms import RegistrationForm, LoginForm, TestarRondasForm # TestarRondasForm é o nome da classe do formulário
 from app.models import User, LoginHistory
 from flask_login import login_user, current_user, logout_user, login_required

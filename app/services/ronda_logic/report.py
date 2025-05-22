@@ -1,13 +1,12 @@
 import logging
 from datetime import datetime
-from . import ronda_config # Ou 'import ronda_config'
+from . import config # Importa config.py do mesmo diretório (ronda_logic)
 
 logger = logging.getLogger(__name__)
 
 def formatar_relatorio_rondas(nome_condominio: str, data_plantao_manual: str, escala_plantao: str,
                                eventos_encontrados: list, rondas_pareadas: list, alertas_pareamento: list):
-    """Formata a string final do relatório de rondas."""
-    data_final_plantao_str = ronda_config.FALLBACK_DATA_INDEFINIDA # Usando constante
+    data_final_plantao_str = config.FALLBACK_DATA_INDEFINIDA
     if data_plantao_manual:
         try:
             dt_plantao_obj = datetime.strptime(data_plantao_manual.strip(), "%d/%m/%Y")
@@ -19,7 +18,7 @@ def formatar_relatorio_rondas(nome_condominio: str, data_plantao_manual: str, es
     elif eventos_encontrados:
         data_final_plantao_str = eventos_encontrados[0]["datetime_obj"].strftime("%d/%m/%Y")
 
-    escala_final_str = escala_plantao if escala_plantao else ronda_config.FALLBACK_ESCALA_NAO_INFORMADA # Usando constante
+    escala_final_str = escala_plantao if escala_plantao else config.FALLBACK_ESCALA_NAO_INFORMADA
     
     linhas_saida = [
         f"Plantão {data_final_plantao_str} ({escala_final_str})",

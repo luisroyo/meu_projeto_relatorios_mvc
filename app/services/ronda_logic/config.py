@@ -17,12 +17,12 @@ REGEX_VTR_MENSAGEM_ALTERNATIVA = re.compile(r"^(VTR\s*\d+):\s*(.*)$", re.IGNOREC
 RONDA_EVENT_REGEX_PATTERNS = [
     {"tipo": "inicio", "regex_str": r"(\d{1,2}\s*:\s*\d{2}).*?(?:in[ií]cio|inicio)(?:s\sde\s|\sde\s|\s)ronda"},
     {"tipo": "termino", "regex_str": r"(\d{1,2}\s*:\s*\d{2}).*?(?:t[ée]rmino|termino)(?:s\sde\s|\sde\s|\s)ronda"},
-    {"tipo": "inicio", "regex_str": r"(\d{1,2}\s*:\s*\d{2}).*?(?:in[ií]cio|inicio)"}, # Mais genérico
-    {"tipo": "termino", "regex_str": r"(\d{1,2}\s*:\s*\d{2}).*?(?:t[ée]rmino|termino)"}, # Mais genérico
+    {"tipo": "inicio", "regex_str": r"(\d{1,2}\s*:\s*\d{2}).*?(?:in[ií]cio|inicio)"},
+    {"tipo": "termino", "regex_str": r"(\d{1,2}\s*:\s*\d{2}).*?(?:t[ée]rmino|termino)"},
     {"tipo": "inicio", "regex_str": r"(?:in[ií]cio|inicio)(?:s\sde\s|\sde\s|\s)ronda.*?\s+(\d{1,2}\s*:\s*\d{2})"},
     {"tipo": "termino", "regex_str": r"(?:t[ée]rmino|termino)(?:s\sde\s|\sde\s|\s)ronda.*?\s+(\d{1,2}\s*:\s*\d{2})"},
-    {"tipo": "inicio", "regex_str": r"(?:in[ií]cio|inicio).*?\s+(\d{1,2}\s*:\s*\d{2})"}, # Mais genérico
-    {"tipo": "termino", "regex_str": r"(?:t[ée]rmino|termino).*?\s+(\d{1,2}\s*:\s*\d{2})"}, # Mais genérico
+    {"tipo": "inicio", "regex_str": r"(?:in[ií]cio|inicio).*?\s+(\d{1,2}\s*:\s*\d{2})"},
+    {"tipo": "termino", "regex_str": r"(?:t[ée]rmino|termino).*?\s+(\d{1,2}\s*:\s*\d{2})"},
 ]
 
 COMPILED_RONDA_EVENT_REGEXES = [
@@ -30,7 +30,6 @@ COMPILED_RONDA_EVENT_REGEXES = [
     for p in RONDA_EVENT_REGEX_PATTERNS
 ]
 
-# Constantes de fallback e default
 DEFAULT_VTR_ID = "VTR_DESCONHECIDA"
 FALLBACK_DATA_INDEFINIDA = "[Data Indefinida]"
 FALLBACK_ESCALA_NAO_INFORMADA = "[Escala não Informada]"
