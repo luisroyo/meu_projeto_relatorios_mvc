@@ -1,6 +1,6 @@
 import os
 import logging
-from datetime import datetime as dt, timezone # << ADICIONADO timezone AQUI
+from datetime import datetime as dt, timezone # Mantém timezone para inject_current_year
 from dotenv import load_dotenv
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -71,52 +71,15 @@ def create_app():
         from . import models 
         module_logger.info("Modelos importados no contexto da app.")
 
-        # --- CÓDIGO TEMPORÁRIO PARA CRIAR ADMIN NO RENDER ---
-        # (Mantido como estava, mas note que ele não criou 'du@du.com' devido ao admin existente)
+        # --- CÓDIGO TEMPORÁRIO PARA CRIAR ADMIN FOI REMOVIDO DAQUI ---
+        # A lógica de verificação de admin existente pode permanecer se você quiser
+        # logar essa informação, mas a criação automática foi removida.
         admin_exists = models.User.query.filter_by(is_admin=True).first()
-        if not admin_exists:
-            app_instance.logger.info("Nenhum administrador encontrado. Tentando criar admin padrão...")
-            try:
-                admin_email = "du@du.com"
-                admin_username = "du" 
-                admin_password = "123" 
-
-                existing_user_by_email = models.User.query.filter_by(email=admin_email).first()
-                existing_user_by_username = models.User.query.filter_by(username=admin_username).first()
-
-                if existing_user_by_email:
-                    app_instance.logger.info(f"Usuário com email {admin_email} já existe. Verificando se é admin...")
-                    if not existing_user_by_email.is_admin:
-                        existing_user_by_email.is_admin = True
-                        existing_user_by_email.is_approved = True
-                        db.session.commit()
-                        app_instance.logger.info(f"Usuário {existing_user_by_email.username} promovido a admin.")
-                    else:
-                        app_instance.logger.info(f"Usuário {existing_user_by_email.username} já é admin.")
-                elif existing_user_by_username:
-                    app_instance.logger.info(f"Usuário com username {admin_username} já existe (email diferente). Verificando se é admin...")
-                    if not existing_user_by_username.is_admin:
-                        existing_user_by_username.is_admin = True
-                        existing_user_by_username.is_approved = True
-                        db.session.commit()
-                        app_instance.logger.info(f"Usuário {existing_user_by_username.username} promovido a admin.")
-                    else:
-                        app_instance.logger.info(f"Usuário {existing_user_by_username.username} já é admin.")
-                else:
-                    default_admin = models.User(username=admin_username, email=admin_email)
-                    default_admin.set_password(admin_password)
-                    default_admin.is_admin = True
-                    default_admin.is_approved = True
-                    db.session.add(default_admin)
-                    db.session.commit()
-                    app_instance.logger.info(f"Administrador padrão '{default_admin.username}' criado com sucesso.")
-            except Exception as e:
-                app_instance.logger.error(f"Erro ao tentar criar administrador padrão: {e}", exc_info=True)
-                db.session.rollback()
+        if admin_exists:
+            app_instance.logger.info(f"Verificação de admin: Um administrador ('{admin_exists.username}') já existe.")
         else:
-            # Log modificado para ser mais claro
-            app_instance.logger.info(f"Verificação de admin: Um administrador ('{admin_exists.username}') já existe. Nenhum novo admin padrão foi criado.")
-        # --- FIM DO CÓDIGO TEMPORÁRIO ---
+            app_instance.logger.warning("Nenhum administrador encontrado no sistema. Crie um manualmente ou via um script de setup.")
+        # --- FIM DA SEÇÃO MODIFICADA ---
 
         from .routes import main_bp
         app_instance.register_blueprint(main_bp)
@@ -124,7 +87,6 @@ def create_app():
 
     @app_instance.context_processor
     def inject_current_year():
-        # CORRIGIDO: Usa timezone importado diretamente
         return {'SCRIPT_CURRENT_YEAR': dt.now(timezone.utc).year}
     
     module_logger.info("Aplicação Flask completamente configurada e pronta.")
