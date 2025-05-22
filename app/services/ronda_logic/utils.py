@@ -6,7 +6,7 @@ def normalizar_hora_capturada(hora_str_raw: str) -> str:
     """Normaliza uma string de hora capturada (ex: '18 : 48', '7:00') para HH:MM."""
     if hora_str_raw is None:
         return ""
-    hora_str_limpa = "".join(hora_str_raw.split()) # Remove todos os espaços
+    hora_str_limpa = "".join(hora_str_raw.split())
     if ":" not in hora_str_limpa:
         if len(hora_str_limpa) == 3 and hora_str_limpa.isdigit():
             hora_str_limpa = f"0{hora_str_limpa[0]}:{hora_str_limpa[1:]}"

@@ -1,12 +1,8 @@
 import logging
-# from datetime import datetime, timedelta, timezone # Não são mais usadas diretamente aqui
-
-# Importações dos módulos criados
-from . import ronda_config # Ou 'import ronda_config'
-from .ronda_parser import parse_linha_log, extrair_detalhes_evento
-from .ronda_processing import parear_eventos_ronda
-from .ronda_report import formatar_relatorio_rondas
-# A função normalizar_hora_capturada é usada internamente por ronda_parser
+from . import config
+from .parser import parse_linha_log, extrair_detalhes_evento
+from .processing import parear_eventos_ronda
+from .report import formatar_relatorio_rondas
 
 logger = logging.getLogger(__name__)
 
@@ -14,10 +10,7 @@ def processar_log_de_rondas(log_bruto_rondas_str: str,
                             nome_condominio_str: str, 
                             data_plantao_manual_str: str = None, 
                             escala_plantao_str: str = None):
-    """
-    Processa um bloco de texto de log de rondas e retorna um relatório formatado.
-    """
-    logger.info(f"Iniciando processamento de log de rondas para o condomínio: {nome_condominio_str}")
+    logger.info(f"Processando log de rondas para: {nome_condominio_str} (lógica interna)")
     if not log_bruto_rondas_str or not log_bruto_rondas_str.strip():
         logger.warning("Log de ronda bruto está vazio ou contém apenas espaços.")
         return "Nenhum log de ronda fornecido."
@@ -28,7 +21,7 @@ def processar_log_de_rondas(log_bruto_rondas_str: str,
     linhas = log_bruto_rondas_str.strip().split('\n')
     eventos_encontrados = []
     ultima_data_valida_extraida = None
-    ultima_vtr_identificada = ronda_config.DEFAULT_VTR_ID # Usando constante
+    ultima_vtr_identificada = config.DEFAULT_VTR_ID
 
     for i, linha_original in enumerate(linhas):
         linha_strip = linha_original.strip()
@@ -74,24 +67,3 @@ def processar_log_de_rondas(log_bruto_rondas_str: str,
     rondas_completas_count = sum(1 for r in rondas_pareadas if r.get("inicio_dt") and r.get("termino_dt"))
     logger.info(f"Relatório de rondas para {nome_condominio_str} formatado. {rondas_completas_count} rondas completas, {len(alertas_pareamento)} alertas.")
     return relatorio_final
-
-# Exemplo de como usar (pode estar em um arquivo separado ou aqui para teste)
-if __name__ == '__main__':
-    # Configuração básica do logger para ver as saídas
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-    log_exemplo = """
-    [10:30, 20/05/2024] VTR 01: Início ronda 10:30
-    [11:00, 20/05/2024] VTR 01: Término ronda 11 : 00
-    [12:00, 20/05/2024] VTR 02: inicio de ronda as 1200
-    [20/05/2024] VTR 02: termino de ronda as 12:30
-    [14:00 20/05/2024] VTR 01: Início 14:00
-    """
-    
-    nome_condominio = "Residencial Teste"
-    data_plantao = "20/05/2024"
-    escala = "Equipe Demo"
-    
-    relatorio = processar_log_de_rondas(log_exemplo, nome_condominio, data_plantao, escala)
-    print("\n--- RELATÓRIO GERADO ---")
-    print(relatorio)

@@ -1,16 +1,13 @@
 import logging
-# datetime não é usado diretamente, mas pode ser útil para type hints se desejar
-# from datetime import datetime 
 
 logger = logging.getLogger(__name__)
 
 def parear_eventos_ronda(eventos: list):
-    """Realiza o pareamento de eventos de início e término de rondas."""
     rondas_pareadas = []
     alertas_pareamento = []
     inicio_pendente = None
 
-    for evento in eventos: # eventos já devem estar ordenados por datetime_obj
+    for evento in eventos:
         if evento["tipo"] == "inicio":
             if inicio_pendente:
                 if inicio_pendente["vtr"] == evento["vtr"]:
