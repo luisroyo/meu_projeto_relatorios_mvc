@@ -1,7 +1,6 @@
 import os
 import logging
-# import datetime # datetime do módulo datetime é necessário para context_processor
-from datetime import datetime as dt # Renomeado para evitar conflito com módulo datetime
+from datetime import datetime as dt, timezone # << ADICIONADO timezone AQUI
 from dotenv import load_dotenv
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -33,17 +32,14 @@ def create_app():
     # Configurações da Aplicação
     app_instance.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
     
-    # Determina o diretório base do projeto (um nível acima de 'app')
     BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
     
-    # Configuração do Banco de Dados
     default_db_path = 'sqlite:///' + os.path.join(BASE_DIR, 'site.db')
-    app_instance.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL_FLASK', default_db_path) # Use DATABASE_URL_FLASK para Render
+    app_instance.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL_FLASK', default_db_path)
     app_instance.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     module_logger.info(f"Banco de dados URI: {app_instance.config['SQLALCHEMY_DATABASE_URI']}")
 
-    # Inicialização das Extensões
     db.init_app(app_instance)
     module_logger.info("SQLAlchemy inicializado com a app.")
     migrate.init_app(app_instance, db)
@@ -51,57 +47,39 @@ def create_app():
     login_manager.init_app(app_instance)
     module_logger.info("Flask-Login inicializado com a app.")
     
-    # Configuração de Logging
-    # A configuração de logging foi movida para ser mais robusta e evitar duplicação
-    # com o reloader do Werkzeug ou quando executado por Gunicorn/WSGI.
-    if not app_instance.logger.handlers or os.environ.get("FLASK_ENV") == "development": # Configura se não houver handlers ou em dev
-        # Define o nível do logger da app
+    if not app_instance.logger.handlers or os.environ.get("FLASK_ENV") == "development":
         log_level_str = os.getenv('LOG_LEVEL', 'INFO').upper()
         log_level = getattr(logging, log_level_str, logging.INFO)
         
-        # Formatter
         formatter = logging.Formatter(
             '%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
         
-        # Remove handlers existentes para evitar duplicação se a factory for chamada múltiplas vezes
-        # (embora com `if not app_instance.logger.handlers` isso seja menos provável)
-        # while app_instance.logger.handlers:
-        #     app_instance.logger.removeHandler(app_instance.logger.handlers[0])
-
-        # Handler para console (stdout)
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
         
-        # Adiciona o handler ao logger da app
         if not any(isinstance(h, logging.StreamHandler) for h in app_instance.logger.handlers):
              app_instance.logger.addHandler(stream_handler)
         
         app_instance.logger.setLevel(log_level)
         
-        # Configura o logger raiz também, se necessário, ou apenas o logger da app.
-        # logging.basicConfig(level=log_level, format='%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] %(message)s', datefmt='%Y-%m-%d %H:%M:%S', force=True)
-        
         module_logger.info(f"Configuração de logging aplicada. Nível: {log_level_str}")
         app_instance.logger.info("Logger da aplicação Flask configurado.")
 
-
-    # Importa modelos e registra blueprints dentro do contexto da aplicação
     with app_instance.app_context():
-        from . import models # Importa os modelos para que sejam conhecidos pelo SQLAlchemy
+        from . import models 
         module_logger.info("Modelos importados no contexto da app.")
 
         # --- CÓDIGO TEMPORÁRIO PARA CRIAR ADMIN NO RENDER ---
-        # Este bloco deve ser executado dentro do contexto da aplicação
-        # Verifique se já existe algum administrador
+        # (Mantido como estava, mas note que ele não criou 'du@du.com' devido ao admin existente)
         admin_exists = models.User.query.filter_by(is_admin=True).first()
         if not admin_exists:
             app_instance.logger.info("Nenhum administrador encontrado. Tentando criar admin padrão...")
             try:
                 admin_email = "du@du.com"
-                admin_username = "du" # Username baseado no email
-                admin_password = "123" # SENHA FORNECIDA PELO USUÁRIO
+                admin_username = "du" 
+                admin_password = "123" 
 
                 existing_user_by_email = models.User.query.filter_by(email=admin_email).first()
                 existing_user_by_username = models.User.query.filter_by(username=admin_username).first()
@@ -136,7 +114,8 @@ def create_app():
                 app_instance.logger.error(f"Erro ao tentar criar administrador padrão: {e}", exc_info=True)
                 db.session.rollback()
         else:
-            app_instance.logger.info(f"Administrador já existe: {admin_exists.username}")
+            # Log modificado para ser mais claro
+            app_instance.logger.info(f"Verificação de admin: Um administrador ('{admin_exists.username}') já existe. Nenhum novo admin padrão foi criado.")
         # --- FIM DO CÓDIGO TEMPORÁRIO ---
 
         from .routes import main_bp
@@ -145,8 +124,8 @@ def create_app():
 
     @app_instance.context_processor
     def inject_current_year():
-        # Use o dt importado para evitar conflito com o módulo datetime
-        return {'SCRIPT_CURRENT_YEAR': dt.now(dt.timezone.utc).year}
+        # CORRIGIDO: Usa timezone importado diretamente
+        return {'SCRIPT_CURRENT_YEAR': dt.now(timezone.utc).year}
     
     module_logger.info("Aplicação Flask completamente configurada e pronta.")
     return app_instance
