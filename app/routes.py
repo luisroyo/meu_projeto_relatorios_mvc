@@ -203,7 +203,71 @@ def manage_users():
     return render_template('admin_users.html', title='Gerenciar Usuários', users_pagination=users_pagination)
 
 # As rotas para aprovar/revogar/tornar admin virão depois
+# app/routes.py
+# ... (todos os seus imports existentes, incluindo abort, wraps, etc.)
+# ... (seu main_bp, logger, report_service_instance, @admin_required) ...
+# ... (suas rotas index, register, login, logout, admin_dashboard, manage_users) ...
 
+# --- ROTAS PARA AÇÕES DE ADMINISTRAÇÃO DE USUÁRIOS ---
+
+@main_bp.route('/admin/user/<int:user_id>/approve', methods=['POST'])
+@login_required
+@admin_required
+def approve_user(user_id):
+    user_to_approve = User.query.get_or_404(user_id)
+    if user_to_approve.is_approved:
+        flash(f'Usuário {user_to_approve.username} já está aprovado.', 'info')
+    else:
+        user_to_approve.is_approved = True
+        db.session.commit()
+        flash(f'Usuário {user_to_approve.username} aprovado com sucesso.', 'success')
+        current_app.logger.info(f"Admin {current_user.username} aprovou o usuário {user_to_approve.username} (ID: {user_id}).")
+    return redirect(url_for('main.manage_users'))
+
+@main_bp.route('/admin/user/<int:user_id>/revoke', methods=['POST'])
+@login_required
+@admin_required
+def revoke_user_approval(user_id):
+    user_to_revoke = User.query.get_or_404(user_id)
+    if user_to_revoke.id == current_user.id:
+        flash('Você não pode revogar sua própria aprovação.', 'danger')
+        current_app.logger.warning(f"Admin {current_user.username} tentou revogar a própria aprovação.")
+        return redirect(url_for('main.manage_users'))
+        
+    if not user_to_revoke.is_approved:
+        flash(f'Aprovação do usuário {user_to_revoke.username} já está revogada/pendente.', 'info')
+    else:
+        user_to_revoke.is_approved = False
+        # Opcional: deslogar o usuário se ele estiver logado? (mais complexo, envolve gerenciar sessões ativas)
+        db.session.commit()
+        flash(f'Aprovação do usuário {user_to_revoke.username} foi revogada.', 'success')
+        current_app.logger.info(f"Admin {current_user.username} revogou a aprovação do usuário {user_to_revoke.username} (ID: {user_id}).")
+    return redirect(url_for('main.manage_users'))
+
+@main_bp.route('/admin/user/<int:user_id>/toggle_admin', methods=['POST'])
+@login_required
+@admin_required
+def toggle_admin_status(user_id):
+    user_to_toggle = User.query.get_or_404(user_id)
+    
+    if user_to_toggle.id == current_user.id:
+        flash('Você não pode alterar seu próprio status de administrador desta forma.', 'warning')
+        current_app.logger.warning(f"Admin {current_user.username} tentou alterar o próprio status de admin via toggle.")
+        return redirect(url_for('main.manage_users'))
+
+    user_to_toggle.is_admin = not user_to_toggle.is_admin
+    # Se estiver promovendo a admin, também aprove automaticamente, se já não estiver.
+    if user_to_toggle.is_admin and not user_to_toggle.is_approved:
+        user_to_toggle.is_approved = True
+        flash(f'Usuário {user_to_toggle.username} também foi aprovado automaticamente ao se tornar admin.', 'info')
+
+    db.session.commit()
+    status_message = "promovido a administrador" if user_to_toggle.is_admin else "rebaixado de administrador"
+    flash(f'Usuário {user_to_toggle.username} foi {status_message}.', 'success')
+    current_app.logger.info(f"Admin {current_user.username} alterou o status de admin do usuário {user_to_toggle.username} (ID: {user_id}) para: {user_to_toggle.is_admin}.")
+    return redirect(url_for('main.manage_users'))
+
+# ... (suas rotas /processar_relatorio e /relatorio_ronda existentes) ...
 
 # Suas outras rotas (@main_bp.route('/processar_relatorio', ...) e @main_bp.route('/relatorio_ronda', ...))
 # permanecem como estão. O @login_required agora implicitamente também
