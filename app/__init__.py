@@ -106,11 +106,11 @@ def create_app():
         module_logger.info("Modelos importados no contexto da app.")
 
         # Verificação de administrador (opcional, como antes)
-        admin_exists = models.User.query.filter_by(is_admin=True).first()
-        if admin_exists:
-            app_instance.logger.info(f"Verificação de admin: Um administrador ('{admin_exists.username}') já existe.")
-        else:
-            app_instance.logger.warning("Nenhum administrador encontrado no sistema. Crie um manualmente ou via um script de setup.")
+        # admin_exists = models.User.query.filter_by(is_admin=True).first()
+        # if admin_exists:
+        #     app_instance.logger.info(f"Verificação de admin: Um administrador ('{admin_exists.username}') já existe.")
+        # else:
+        #     app_instance.logger.warning("Nenhum administrador encontrado no sistema. Crie um manualmente ou via um script de setup.")
 
         # --- Importe e Registre os Blueprints AQUI DENTRO ---
         from app.blueprints.main.routes import main_bp
