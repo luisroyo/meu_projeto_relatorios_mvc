@@ -16,10 +16,10 @@
                     <h5 class="mb-0">Dados do Plantão e Log de Rondas</h5>
                 </div>
                 <div class="card-body p-4 d-flex flex-column">
-                    <form method="POST" action="{{ url_for('main.relatorio_ronda_route') }}" novalidate class="flex-grow-1" id="formRelatorioRonda">
+                    {# CORRIGIDO: O action do formulário deve apontar para 'ronda.relatorio_ronda' #}
+                    <form method="POST" action="{{ url_for('ronda.relatorio_ronda') }}" novalidate class="flex-grow-1" id="formRelatorioRonda">
                         {{ form.hidden_tag() }}
                         
-                        {# ... campos do formulário (nome_condominio, data_plantao, etc.) ... #}
                         <div class="mb-3">
                             {{ form.nome_condominio.label(class="form-label") }}
                             {{ form.nome_condominio(class="form-select" + (" is-invalid" if form.nome_condominio.errors else ""), id="nome_condominio_select") }}
@@ -70,7 +70,6 @@
                             {% endif %}
                         </div>
                         
-                        {# SEÇÃO DOS BOTÕES ATUALIZADA PARA RESPONSIVIDADE #}
                         <div class="mt-auto">
                             <div class="d-flex flex-column flex-sm-row">
                                 {{ form.submit(class="btn btn-primary btn-lg mb-2 mb-sm-0 me-sm-2 w-100 w-sm-auto", id="submitRelatorioRonda") }} 
@@ -152,15 +151,13 @@
                     if(logBrutoTextarea) logBrutoTextarea.value = ''; 
                     
                     if (resultadoTextoEl) {
-                        if (resultadoTextoEl.tagName === 'PRE' && resultadoTextoEl.parentElement.classList.contains('report-output')) {
-                            const reportOutputContainer = document.querySelector('.report-output-container');
-                            if(reportOutputContainer) {
-                                reportOutputContainer.innerHTML = '<div id="rondaResultadoTexto" class="alert alert-secondary">O relatório processado aparecerá aqui.</div>';
-                            }
-                        } else {
-                            resultadoTextoEl.className = 'alert alert-secondary';
-                            resultadoTextoEl.innerHTML = 'O relatório processado aparecerá aqui.';
+                        // Reseta o conteúdo e a classe do elemento de resultado para o estado inicial
+                        const reportOutputContainer = document.querySelector('.report-output-container');
+                        if(reportOutputContainer) {
+                             reportOutputContainer.innerHTML = '<div id="rondaResultadoTexto" class="alert alert-secondary">O relatório processado aparecerá aqui.</div>';
                         }
+                        // É preciso reatribuir resultadoTextoEl pois o innerHTML o substituiu
+                        // No entanto, a lógica de 'atualizarVisibilidadeBotaoCopiar' será chamada por MutationObserver
                     }
                     if (btnCopiarRonda) {
                         btnCopiarRonda.style.display = 'none'; 
@@ -170,13 +167,16 @@
 
             if (resultadoTextoEl && btnCopiarRonda) {
                 function atualizarVisibilidadeBotaoCopiar() {
-                    const textoResultado = resultadoTextoEl.textContent || resultadoTextoEl.innerText;
-                    const isPlaceholder = resultadoTextoEl.classList.contains('alert-secondary') && 
-                                          (textoResultado).includes("O relatório processado aparecerá aqui.");
-                    const isErrorMessage = resultadoTextoEl.classList.contains('alert-danger');
-                    const isWarningNoData = resultadoTextoEl.classList.contains('alert-warning') && 
-                                            (textoResultado.includes("Nenhum evento de ronda válido") || textoResultado.includes("Nenhum log de ronda fornecido"));
-                    const isInfoNoResult = resultadoTextoEl.classList.contains('alert-info');
+                    const novoResultadoTextoEl = document.getElementById('rondaResultadoTexto'); // Re-seleciona caso tenha sido recriado
+                    if (!novoResultadoTextoEl) return;
+
+                    const textoResultado = novoResultadoTextoEl.textContent || novoResultadoTextoEl.innerText;
+                    const isPlaceholder = novoResultadoTextoEl.classList.contains('alert-secondary') && 
+                                        (textoResultado).includes("O relatório processado aparecerá aqui.");
+                    const isErrorMessage = novoResultadoTextoEl.classList.contains('alert-danger');
+                    const isWarningNoData = novoResultadoTextoEl.classList.contains('alert-warning') && 
+                                          (textoResultado.includes("Nenhum evento de ronda válido") || textoResultado.includes("Nenhum log de ronda fornecido"));
+                    const isInfoNoResult = novoResultadoTextoEl.classList.contains('alert-info');
 
                     if (textoResultado.trim() && !isPlaceholder && !isErrorMessage && !isWarningNoData && !isInfoNoResult) {
                         btnCopiarRonda.style.display = 'inline-block';
@@ -184,19 +184,37 @@
                         btnCopiarRonda.style.display = 'none';
                     }
                 }
+                
+                // Chama uma vez para o estado inicial
                 atualizarVisibilidadeBotaoCopiar(); 
                 
-                const observer = new MutationObserver(atualizarVisibilidadeBotaoCopiar);
-                observer.observe(resultadoTextoEl, { childList: true, characterData: true, subtree: true });
+                // Observa mudanças no container do resultado para atualizar o botão
+                const resultContainer = document.querySelector('.report-output-container');
+                if (resultContainer) {
+                    const observer = new MutationObserver(function(mutationsList, observer) {
+                        // Otimização: só chama se realmente houver mudança de conteúdo relevante
+                        for(let mutation of mutationsList) {
+                            if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                                atualizarVisibilidadeBotaoCopiar();
+                                break; 
+                            }
+                        }
+                    });
+                    observer.observe(resultContainer, { childList: true, characterData: true, subtree: true });
+                }
+
 
                 btnCopiarRonda.addEventListener('click', function() {
-                    const textoParaCopiar = resultadoTextoEl.textContent || resultadoTextoEl.innerText;
+                    const elementoResultadoAtual = document.getElementById('rondaResultadoTexto'); // Garante que está pegando o elemento atual
+                    if (!elementoResultadoAtual) return;
+
+                    const textoParaCopiar = elementoResultadoAtual.textContent || elementoResultadoAtual.innerText;
                     if (!textoParaCopiar.trim()) return;
 
                     if (navigator.clipboard) {
                         navigator.clipboard.writeText(textoParaCopiar)
                             .then(() => {
-                                const originalText = btnCopiarRonda.textContent;
+                                const originalText = btnCopiarRonda.textContent; // Salva o texto original do botão
                                 btnCopiarRonda.innerHTML = 'Copiado!'; 
                                 btnCopiarRonda.disabled = true;
                                 setTimeout(() => {
@@ -206,10 +224,10 @@
                             })
                             .catch(err => {
                                 console.error('Falha ao copiar com navigator.clipboard: ', err);
-                                tryFallbackCopyRonda(textoParaCopiar);
+                                tryFallbackCopyRonda(textoParaCopiar); // Tenta o fallback
                             });
                     } else {
-                        tryFallbackCopyRonda(textoParaCopiar);
+                        tryFallbackCopyRonda(textoParaCopiar); // Fallback para navegadores sem clipboard API
                     }
                 });
             }
@@ -224,8 +242,8 @@
                 textArea.select();
                 try {
                     const successful = document.execCommand('copy');
-                    if (successful && btnCopiarRonda) {
-                        const originalText = "Copiar Relatório de Ronda";
+                    if (successful && btnCopiarRonda) { // Verifica se btnCopiarRonda existe
+                        const originalText = "Copiar Relatório de Ronda"; // Define o texto original
                         btnCopiarRonda.innerHTML = 'Copiado!';
                         btnCopiarRonda.disabled = true;
                         setTimeout(() => {
@@ -242,9 +260,10 @@
                 document.body.removeChild(textArea);
             }
             
+            // Inicializa tooltips do Bootstrap (se houver algum na página)
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-              return new bootstrap.Tooltip(tooltipTriggerEl)
+                return new bootstrap.Tooltip(tooltipTriggerEl)
             })
         });
     </script>

@@ -60,7 +60,7 @@
             </div>
         {% else %}
             <div class="alert alert-warning text-center" role="alert">
-                Por favor, <a href="{{ url_for('main.login') }}" class="alert-link">faça login</a> ou <a href="{{ url_for('main.register') }}" class="alert-link">registre-se</a> para utilizar o analisador de relatórios.
+                Por favor, <a href="{{ url_for('auth.login') }}" class="alert-link">faça login</a> ou <a href="{{ url_for('auth.register') }}" class="alert-link">registre-se</a> para utilizar o analisador de relatórios.
             </div>
         {% endif %}
     </div>

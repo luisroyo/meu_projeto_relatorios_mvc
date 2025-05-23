@@ -12,7 +12,7 @@
             <div class="card shadow-lg border-0"> {# Sombra mais pronunciada e sem borda para um look mais clean #}
                 <div class="card-body p-4 p-sm-5"> {# Padding responsivo #}
                     <h2 class="card-title text-center fw-bold mb-4">Acessar Conta</h2>
-                    <form method="POST" action="{{ url_for('main.login') }}" novalidate>
+                    <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
                         {{ form.hidden_tag() }}
                         
                         <div class="mb-3">
@@ -49,7 +49,7 @@
                         </div>
                     </form>
                     <div class="text-center">
-                        <p class="mb-0">Não tem uma conta? <a href="{{ url_for('main.register') }}" class="fw-bold">Registre-se aqui</a></p>
+                        <p class="mb-0">Não tem uma conta? <a href="{{ url_for('auth.register') }}" class="fw-bold">Registre-se aqui</a></p>
                     </div>
                 </div>
             </div>
