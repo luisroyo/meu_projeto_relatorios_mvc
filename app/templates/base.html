@@ -31,26 +31,27 @@
       href="{{ url_for('static', filename='css/style.css') }}"
     />
 
-    {# Carrega CSS específico da página, se aplicável #} {% if request.endpoint
-    == 'main.login' and url_for('static', filename='css/login.css') %}
+    {# Carrega CSS específico da página, se aplicável #} 
+    {% if request.endpoint == 'auth.login' and url_for('static', filename='css/login.css') %}
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/login.css') }}"
     />
-    {% elif request.endpoint == 'main.register' and url_for('static',
-    filename='css/register.css') %}
+    {% elif request.endpoint == 'auth.register' and url_for('static', filename='css/register.css') %}
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/register.css') }}"
     />
-    {% elif request.endpoint == 'main.admin_users' %} {# Se você criar um
-    admin.css específico, descomente e ajuste o nome do arquivo se necessário #}
-    {#
+    {% elif request.endpoint == 'admin.manage_users' %} {# O endpoint para gerenciar usuários no admin_bp é 'admin.manage_users' #}
+    {# Se você criar um admin.css específico, descomente e ajuste o nome do arquivo se necessário #}
+    {# 
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/admin.css') }}"
     />
-    #} {% endif %} {% block head_links %}{% endblock %}
+     #}
+    {% endif %} 
+    {% block head_links %}{% endblock %}
   </head>
   <body
     class="d-flex flex-column min-vh-100 {% block body_class %}{% endblock %}"
@@ -75,11 +76,13 @@
           <ul class="navbar-nav ms-auto">
             {% if current_user.is_authenticated and current_user.is_admin %}
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('main.admin_dashboard') }}"
-                >Painel Admin</a
+              <a class="nav-link" href="{{ url_for('admin.dashboard') }}" 
+                >Painel Admin</a 
               >
             </li>
-            {% endif %} {% if current_user.is_authenticated %}
+            {% endif %} 
+            
+            {% if current_user.is_authenticated %}
             <li class="nav-item">
               <a
                 class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}"
@@ -90,8 +93,8 @@
             </li>
             <li class="nav-item">
               <a
-                class="nav-link {% if request.endpoint == 'main.relatorio_ronda_route' %}active{% endif %}"
-                href="{{ url_for('main.relatorio_ronda_route') }}"
+                class="nav-link {% if request.endpoint == 'ronda.relatorio_ronda' %}active{% endif %}"
+                href="{{ url_for('ronda.relatorio_ronda') }}" 
                 ><i class="bi bi-shield-check me-1"></i>Relatório de Ronda</a
               >
             </li>
@@ -99,8 +102,8 @@
             {% if current_user.is_admin %}
             <li class="nav-item">
               <a
-                class="nav-link {% if request.endpoint == 'main.manage_users' %}active{% endif %}"
-                href="{{ url_for('main.manage_users') }}"
+                class="nav-link {% if request.endpoint == 'admin.manage_users' %}active{% endif %}"
+                href="{{ url_for('admin.manage_users') }}"
               >
                 <i class="bi bi-people-fill me-1"></i>Admin Usuários
               </a>
@@ -124,24 +127,24 @@
                 aria-labelledby="navbarUserDropdown"
               >
                 <li>
-                  <a class="dropdown-item" href="{{ url_for('main.logout') }}"
-                    ><i class="bi bi-box-arrow-right me-2"></i>Logout</a
+                  <a class="dropdown-item" href="{{ url_for('auth.logout') }}" 
+                    ><i class="bi bi-box-arrow-right me-2"></i>Logout</a 
                   >
                 </li>
               </ul>
             </li>
-            {% else %}
+            {% else %} {# Usuário não autenticado #}
             <li class="nav-item">
               <a
-                class="nav-link {% if request.endpoint == 'main.login' %}active{% endif %}"
-                href="{{ url_for('main.login') }}"
+                class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}"
+                href="{{ url_for('auth.login') }}" 
                 ><i class="bi bi-box-arrow-in-right me-1"></i>Login</a
               >
             </li>
             <li class="nav-item">
               <a
-                class="nav-link {% if request.endpoint == 'main.register' %}active{% endif %}"
-                href="{{ url_for('main.register') }}"
+                class="nav-link {% if request.endpoint == 'auth.register' %}active{% endif %}"
+                href="{{ url_for('auth.register') }}" 
                 ><i class="bi bi-person-plus-fill me-1"></i>Registrar</a
               >
             </li>
