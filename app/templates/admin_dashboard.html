@@ -1,23 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}Painel Administrativo - Assistente IA{% endblock %} {# Adicionado título específico #}
+{% block title %}Painel Administrativo - Assistente IA{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <h2>Painel Administrativo</h2>
     <p>Bem-vindo ao painel de administração, {{ current_user.username }}!</p>
     <hr>
-    <div class="list-group"> {# Usar div com classe list-group em vez de ul para consistência Bootstrap se for uma lista de links de navegação #}
-        {# CORRIGIDO: O url_for deve apontar para 'admin.manage_users' #}
+    <div class="list-group">
         <a href="{{ url_for('admin.manage_users') }}" class="list-group-item list-group-item-action">
             <i class="bi bi-people-fill me-2"></i>Gerenciar Usuários
         </a>
-        {# Adicione outros links do painel administrativo aqui, se necessário #}
-        {# Exemplo:
-        <a href="{{ url_for('admin.alguma_outra_rota_admin') }}" class="list-group-item list-group-item-action">
-            <i class="bi bi-gear-fill me-2"></i>Outra Configuração Admin
+        {# NOVO LINK ADICIONADO ABAIXO #}
+        <a href="{{ url_for('admin.admin_tools') }}" class="list-group-item list-group-item-action">
+            <i class="bi bi-tools me-2"></i>Ferramentas Administrativas 
         </a>
-        #}
+        {# Adicione outros links do painel administrativo aqui, se necessário #}
     </div>
 </div>
 {% endblock %}

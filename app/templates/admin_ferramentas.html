@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Painel Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="page-header mb-4">
+        <h2 class="text-center">{{ title }}</h2>
+        <p class="lead text-center">Utilize as ferramentas abaixo para otimizar tarefas administrativas.</p>
+    </div>
+    <hr>
+
+    {# Placeholder para futuras funcionalidades #}
+    <div class="row">
+        <div class="col-md-12">
+            <p>Em breve, aqui você encontrará opções para:</p>
+            <ul>
+                <li>Formatar relatórios gerados para envio profissional por e-mail.</li>
+                <li>Gerar justificativas para o sistema iFractal (faltas, trabalho em folga, troca de plantão).</li>
+                <li>Outras ferramentas de assistência.</li>
+            </ul>
+        </div>
+    </div>
+
+    {# Você pode adicionar mais estrutura aqui conforme desenvolvemos as ferramentas #}
+    {# Exemplo de como poderíamos organizar as seções:
+    <div class="row mt-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    Formatação de Relatórios para E-mail
+                </div>
+                <div class="card-body">
+                    <p>Conteúdo da ferramenta de formatação de e-mail virá aqui...</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    Gerador de Justificativas (iFractal)
+                </div>
+                <div class="card-body">
+                    <p>Conteúdo da ferramenta de justificativas virá aqui...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    #}
+
+</div>
+{% endblock %}
