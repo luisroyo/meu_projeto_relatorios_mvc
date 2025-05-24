@@ -10,17 +10,15 @@ logger = logging.getLogger(__name__) # Logger para este módulo
 # Função user_loader para o Flask-Login: diz como carregar um usuário dado o ID.
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
-    try:
-        user = db.session.get(User, int(user_id))
-        if user:
-            logger.debug(f"Usuário {user.username} carregado com sucesso.")
-        else:
-            logger.warning(f"Nenhum usuário encontrado com ID: {user_id}")
-        return user
-    except Exception as e:
-        logger.error(f"Erro ao carregar usuário ID {user_id}: {e}", exc_info=True)
-        return None
+    # Adicione logs aqui para depuração
+    print(f"--- DEBUG: load_user chamado com user_id: {user_id} ---")
+    user = User.query.get(int(user_id))
+    if user:
+        print(f"--- DEBUG: Usuário encontrado: {user.username}, is_admin: {user.is_admin}, is_approved: {user.is_approved} ---")
+    else:
+        print(f"--- DEBUG: Usuário com id {user_id} não encontrado. ---")
+    return user
+
 class Ronda(db.Model):
     __tablename__ = 'ronda' # Boa prática
     id = db.Column(db.Integer, primary_key=True)
