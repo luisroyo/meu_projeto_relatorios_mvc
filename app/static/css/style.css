@@ -7,15 +7,15 @@
 @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css");
 
 :root {
-    --primary-color: #0d6efd; 
-    --secondary-color: #6c757d; 
-    --body-bg: #eef2f5; 
-    --content-bg: #ffffff; 
-    --dark-bg: #212529; 
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --body-bg: #eef2f5;
+    --content-bg: #ffffff;
+    --dark-bg: #212529;
     --text-dark: #212529;
     --text-light: #f8f9fa;
     --border-color: #dee2e6;
-    --card-bg: #ffffff; 
+    --card-bg: #ffffff;
     --success-color: #198754;
     --danger-color: #dc3545;
     --warning-color: #ffc107;
@@ -42,7 +42,7 @@
 /* -------------------------------------------------------------------------- */
 body {
     font-family: var(--default-font);
-    background-color: var(--body-bg); 
+    background-color: var(--body-bg);
     color: var(--text-dark);
     line-height: 1.7;
     display: flex;
@@ -58,9 +58,9 @@ main.container {
 }
 
 h1, h2, h3, h4, h5, h6 {
-    font-weight: 600; 
+    font-weight: 600;
     color: var(--text-dark);
-    margin-top: 0; 
+    margin-top: 0;
 }
 .lead {
     font-size: 1.15rem;
@@ -74,8 +74,9 @@ a {
     transition: color 0.2s ease-in-out;
 }
 a:hover {
-    color: darken(var(--primary-color), 10%);
-    text-decoration: none; 
+    color: var(--primary-color); /* Mantido como primary, mas poderia ser darken(var(--primary-color), 10%) se SASS estivesse ativo */
+    filter: brightness(85%); /* Exemplo de como escurecer o link no hover com CSS puro */
+    text-decoration: none;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -105,7 +106,6 @@ a:hover {
 
 /* -------------------------------------------------------------------------- */
 /* NAVBAR                                                                     */
-/* (Estilos da navbar permanecem os mesmos da versão anterior)                */
 /* -------------------------------------------------------------------------- */
 .navbar.bg-dark {
     background-color: var(--dark-bg) !important;
@@ -132,7 +132,7 @@ a:hover {
 }
 .navbar-dark .navbar-nav .nav-link.active {
     color: #fff;
-    background-color: var(--primary-color); 
+    background-color: var(--primary-color);
     font-weight: 600;
 }
 
@@ -144,29 +144,29 @@ a:hover {
     box-shadow: var(--box-shadow-sm);
     border-radius: var(--border-radius-md);
     margin-bottom: 2rem;
-    background-color: var(--card-bg); 
+    background-color: var(--card-bg);
 }
 .card-header {
-    /* ESTILO DO CABEÇALHO DO CARD ATUALIZADO */
-    background-color: var(--card-header-bg); /* Cor primária como fundo */
-    color: var(--card-header-text); /* Texto branco */
-    padding: 0.9rem 1.25rem; /* Ajuste de padding */
-    border-bottom: 1px solid darken(var(--card-header-bg), 10%); /* Borda inferior um pouco mais escura */
-    font-weight: 500; /* Peso da fonte */
-    font-size: 1.05rem; /* Tamanho da fonte */
-    border-top-left-radius: var(--border-radius-md); /* Para casar com o card */
+    background-color: var(--card-header-bg);
+    color: var(--card-header-text);
+    padding: 0.9rem 1.25rem;
+    border-bottom: 1px solid var(--primary-color); /* Usando a cor primária diretamente ou uma var escura se definida */
+    filter: brightness(90%); /* Escurecendo a cor primária da borda um pouco, similar ao darken(var(--card-header-bg), 10%) */
+    font-weight: 500;
+    font-size: 1.05rem;
+    border-top-left-radius: var(--border-radius-md);
     border-top-right-radius: var(--border-radius-md);
 }
-.card-header h5.mb-0 { /* Para o h5 dentro do card-header */
-    color: var(--card-header-text); /* Garante que o texto do h5 seja branco */
-    font-size: 1.1rem; /* Tamanho do título do card */
+.card-header h5.mb-0 {
+    color: var(--card-header-text);
+    font-size: 1.1rem;
 }
 
 .card-body {
     padding: 1.5rem;
 }
-.card-title { /* Para títulos h2 dentro de .card-body (ex: login, register) */
-    font-size: 1.75rem; 
+.card-title {
+    font-size: 1.75rem;
     margin-bottom: 1.5rem;
     color: var(--text-dark);
     text-align: center;
@@ -175,25 +175,24 @@ a:hover {
 
 /* -------------------------------------------------------------------------- */
 /* FORMULÁRIOS                                                                */
-/* (Estilos de formulário permanecem os mesmos)                               */
 /* -------------------------------------------------------------------------- */
 .form-label {
-    font-weight: 600; 
+    font-weight: 600;
     margin-bottom: 0.6rem;
     font-size: 0.95rem;
 }
 .form-control, .form-select {
     border-radius: var(--border-radius-sm);
     border: 1px solid #ced4da;
-    padding: 0.75rem 1rem; 
+    padding: 0.75rem 1rem;
     font-size: 1rem;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 .form-control:focus, .form-select:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25); 
+    box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
 }
-.form-control-lg, .form-select-lg { 
+.form-control-lg, .form-select-lg {
     padding: 0.9rem 1.2rem;
     font-size: 1.1rem;
 }
@@ -213,57 +212,75 @@ ul.errors {
 
 /* -------------------------------------------------------------------------- */
 /* BOTÕES                                                                     */
-/* (Estilos de botões permanecem os mesmos)                                   */
 /* -------------------------------------------------------------------------- */
 .btn {
-    padding: 0.65rem 1.3rem; 
-    font-weight: 600; 
+    padding: 0.65rem 1.3rem;
+    font-weight: 600;
     border-radius: var(--border-radius-sm);
-    letter-spacing: 0.5px; 
-    text-transform: uppercase; 
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
     font-size: 0.9rem;
     transition: all 0.2s ease-in-out;
-    display: inline-flex; 
+    display: inline-flex;
     align-items: center;
     justify-content: center;
 }
-.btn i { 
+.btn i {
     margin-right: 0.5em;
-    font-size: 1.1em; 
+    font-size: 1.1em;
 }
 .btn-lg {
     padding: 0.8rem 1.6rem;
     font-size: 1rem;
 }
+
 .btn-primary {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
     color: #fff;
 }
 .btn-primary:hover {
-    background-color: darken(var(--primary-color), 8%);
-    border-color: darken(var(--primary-color), 10%);
-    color: #fff;
+    background-color: var(--primary-color); /* Mantém a cor base para o filter funcionar sobre ela */
+    border-color: var(--primary-color);   /* Mantém a cor base para o filter funcionar sobre ela */
+    filter: brightness(90%);             /* Escurece o botão em 10% */
+    color: #fff;                         /* Mantém a cor do texto */
 }
+
 .btn-info {
     background-color: var(--info-color);
     border-color: var(--info-color);
-    color: #000; 
-}
-.btn-info:hover {
-    background-color: darken(var(--info-color), 8%);
-    border-color: darken(var(--info-color), 10%);
     color: #000;
 }
+.btn-info:hover {
+    background-color: var(--info-color); /* Mantém a cor base para o filter funcionar sobre ela */
+    border-color: var(--info-color);   /* Mantém a cor base para o filter funcionar sobre ela */
+    filter: brightness(90%);           /* Escurece o botão em 10% */
+    color: #000;                       /* Mantém a cor do texto */
+}
+
+/* Se quiser aplicar um efeito de hover genérico para outros tipos de botões .btn (ex: .btn-secondary, .btn-success)
+   que não seja o desaparecimento do fundo, você pode adicionar:
+*/
+.btn:hover {
+    /* Para botões genéricos, um leve escurecimento ou mudança de opacidade pode ser usado.
+       Se o botão já tiver uma cor de fundo definida (como .btn-secondary do Bootstrap),
+       o filter: brightness(90%) funcionaria bem.
+       Se for um botão com fundo transparente (como .btn-outline-*), você pode querer
+       um efeito diferente, como um leve preenchimento ou mudança na cor da borda/texto.
+    */
+    /* Exemplo para botões genéricos (não .btn-primary ou .btn-info que já têm :hover específico): */
+    /* filter: brightness(95%); */ /* Muito sutil, ou */
+    /* opacity: 0.9; */ /* Se um pouco de transparência for desejado */
+}
+
 
 /* -------------------------------------------------------------------------- */
 /* ALERTAS (Mensagens Flash)                                                  */
-/* (Estilos de alertas permanecem os mesmos)                                  */
 /* -------------------------------------------------------------------------- */
 .alert {
     border-radius: var(--border-radius-sm);
     padding: 1rem 1.25rem;
-    border-width: 0px; 
+    border-width: 0px;
     box-shadow: var(--box-shadow-sm);
 }
 .alert-heading {
@@ -272,32 +289,30 @@ ul.errors {
 
 /* -------------------------------------------------------------------------- */
 /* SAÍDA DE RELATÓRIOS                                                        */
-/* (Estilos de saída de relatórios permanecem os mesmos)                      */
 /* -------------------------------------------------------------------------- */
 .report-output pre,
 #resultadoProcessamento {
-    background-color: #e9f1f6; 
+    background-color: #e9f1f6;
     padding: 1rem;
     border-radius: var(--border-radius-sm);
     border: 1px solid #c9d8e3;
     font-family: var(--monospace-font);
     font-size: 0.95em;
     color: var(--text-dark);
-    min-height: 200px; 
+    min-height: 200px;
 }
-#resultadoProcessamento { 
+#resultadoProcessamento {
     width: 100%;
 }
-.report-output-container { 
-    margin-bottom: 1rem; 
+.report-output-container {
+    margin-bottom: 1rem;
 }
 
 /* -------------------------------------------------------------------------- */
 /* RODAPÉ                                                                     */
-/* (Estilos do rodapé permanecem os mesmos)                                   */
 /* -------------------------------------------------------------------------- */
 footer.bg-dark {
-    background-color: var(--dark-bg) !important; 
+    background-color: var(--dark-bg) !important;
     padding: 2rem 0;
     font-size: 0.9rem;
     color: rgba(255,255,255,.7);
