@@ -28,7 +28,7 @@ def formatar_relatorio_rondas(nome_condominio: str,
     linhas_saida = [
         f"Plantão {data_final_plantao_str} ({escala_final_str})",
         # REMOVER a linha "Projeto Mais com Menos"
-        f"📍 Condomínio: {nome_condominio}\n" # Alterado para "Condomínio" e sem espaços extras antes do emoji
+        f"Residencial: {nome_condominio}\n" # Alterado para "Condomínio" e sem espaços extras antes do emoji
     ]
 
     rondas_completas_count = 0
