@@ -5,6 +5,18 @@ from app import db
 from app.models import User, LoginHistory, Ronda # Certifique-se de que Ronda é usado ou remova se não for.
 from app.decorators.admin_required import admin_required # Verifique se este é o caminho correto
 import logging
+from flask import Blueprint, render_template, current_app, jsonify, request, flash, redirect, url_for
+from flask_login import login_required, current_user
+from app import db
+from app.models import User
+from app.services.report_service import ReportService # Certifique-se que está importado
+import os
+import logging
+
+main_bp = Blueprint('main', __name__)
+logger = logging.getLogger(__name__)
+report_service = ReportService() # Instanciar o serviço
+
 
 # Define o logger para este módulo
 logger = logging.getLogger(__name__)
@@ -115,3 +127,45 @@ def admin_tools():
     # Se o VSCode ainda reclamar, verifique as configurações do seu linter/Python interpreter.
     logger.info(f"Admin '{current_user.username}' acessou /admin/ferramentas. IP: {request.remote_addr if hasattr(request, 'remote_addr') else 'N/A'}")
     return render_template('admin_ferramentas.html', title='Ferramentas Administrativas')
+@main_bp.route('/')
+@login_required
+def index():
+    logger.debug(
+        f"Acessando rota /. Usuário autenticado: {current_user.is_authenticated} " #
+        f"({current_user.username if current_user.is_authenticated else 'N/A'}). " #
+        f"IP: {request.remote_addr if hasattr(request, 'remote_addr') else 'N/A'}" #
+    )
+    return render_template('index.html', title='Analisador de Relatórios IA')
+
+
+@main_bp.route('/processar_relatorio', methods=['POST'])
+@login_required
+def processar_relatorio():
+    if not request.is_json:
+        return jsonify({'erro': 'Formato inválido. Envie JSON.'}), 400
+
+    data = request.get_json()
+    bruto = data.get('relatorio_bruto')
+    format_for_email = data.get('format_for_email', False) # Novo parâmetro
+
+    if not isinstance(bruto, str) or not bruto.strip():
+        return jsonify({'erro': 'relatorio_bruto inválido.'}), 400
+
+    if len(bruto) > 12000: # Você pode ajustar este limite conforme o frontend em script.js
+        return jsonify({'erro': 'Relatório muito longo (máx 12000 caracteres).'}), 413
+
+    prompt_type_to_use = "email" if format_for_email else "standard"
+
+    try:
+        # Nota: ReportService já está instanciado como report_service globalmente no início do arquivo
+        resultado = report_service.processar_relatorio_com_ia(bruto, prompt_type=prompt_type_to_use)
+        return jsonify({'relatorio_processado': resultado})
+    except ValueError as ve:
+        current_app.logger.error(f"Erro de valor ao processar relatório (tipo: {prompt_type_to_use}): {ve}", exc_info=True)
+        return jsonify({'erro': str(ve)}), 400
+    except RuntimeError as rte:
+        current_app.logger.error(f"Erro de runtime ao processar relatório (tipo: {prompt_type_to_use}): {rte}", exc_info=True)
+        return jsonify({'erro': str(rte)}), 500
+    except Exception as e:
+        current_app.logger.error(f"Erro inesperado ao processar relatório (tipo: {prompt_type_to_use}): {e}", exc_info=True)
+        return jsonify({'erro': 'Erro interno. Tente novamente.'}), 500 
