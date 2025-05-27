@@ -1,85 +1,118 @@
+# app/forms.py
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField, SelectField
-from wtforms.fields import DateField 
-from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError, Optional
-from app.models import User
-import logging
-from datetime import date, datetime, timezone # Adicionado datetime e timezone para compatibilidade, date para DateField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, DateField
+from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 
-logger = logging.getLogger(__name__)
+# Se você tiver validações que precisam acessar o modelo User (ex: checar se email já existe),
+# você precisará importá-lo. Ajuste o caminho se necessário.
+# from .models import User # Se models.py está no mesmo nível (app/models.py)
+# Ou, se for mais seguro para evitar importações circulares, passe a app ou db para uma função
+# ou faça a query dentro da rota após a validação básica. Por ora, vamos supor que o User pode ser importado.
+# Para evitar problemas de importação circular se 'User' não for estritamente necessário aqui para as validações
+# que você está usando ativamente, você pode comentar o import e as funções validate_username/validate_email.
+from app.models import User # Se você tiver validações que usam o modelo User
 
 class RegistrationForm(FlaskForm):
     username = StringField('Nome de Usuário', 
                            validators=[DataRequired(message="Este campo é obrigatório."), 
-                                       Length(min=4, max=25, message="Deve ter entre 4 e 25 caracteres.")])
-    email = StringField('Email',
+                                       Length(min=4, max=25, message="Nome de usuário deve ter entre 4 e 25 caracteres.")])
+    email = StringField('Email', 
                         validators=[DataRequired(message="Este campo é obrigatório."), 
-                                    Email(message="Endereço de email inválido.")])
+                                    Email(message="Endereço de e-mail inválido.")])
     password = PasswordField('Senha', 
                              validators=[DataRequired(message="Este campo é obrigatório."), 
-                                         Length(min=6, message="A senha deve ter pelo menos 6 caracteres.")])
-    confirm_password = PasswordField('Confirmar Senha',
+                                         Length(min=6, message="Senha deve ter pelo menos 6 caracteres.")])
+    confirm_password = PasswordField('Confirmar Senha', 
                                      validators=[DataRequired(message="Este campo é obrigatório."), 
-                                                 EqualTo('password', message="As senhas não coincidem.")])
-    submit = SubmitField('Registrar')
+                                                 EqualTo('password', message="As senhas devem ser iguais.")])
+    submit = SubmitField('Registrar', render_kw={"class": "btn btn-primary w-100"})
 
-    def validate_username(self, username_field):
-        user = User.query.filter_by(username=username_field.data).first()
+    # Validações customizadas (exemplos, descomente e ajuste se User estiver importado e for usar)
+    def validate_username(self, username):
+        user = User.query.filter_by(username=username.data).first()
         if user:
-            logger.warning(f"Tentativa de registro com nome de usuário já existente: {username_field.data}")
             raise ValidationError('Este nome de usuário já está em uso. Por favor, escolha outro.')
 
-    def validate_email(self, email_field):
-        user = User.query.filter_by(email=email_field.data).first()
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
         if user:
-            logger.warning(f"Tentativa de registro com email já existente: {email_field.data}")
-            raise ValidationError('Este email já está registrado. Por favor, escolha outro.')
+            raise ValidationError('Este e-mail já está registrado. Por favor, escolha outro ou faça login.')
 
 class LoginForm(FlaskForm):
-    email = StringField('Email',
+    email = StringField('Email', 
                         validators=[DataRequired(message="Este campo é obrigatório."), 
-                                    Email(message="Endereço de email inválido.")])
-    password = PasswordField('Senha', 
-                             validators=[DataRequired(message="Este campo é obrigatório.")])
+                                    Email(message="Endereço de e-mail inválido.")])
+    password = PasswordField('Senha', validators=[DataRequired(message="Este campo é obrigatório.")])
     remember = BooleanField('Lembrar-me')
-    submit = SubmitField('Login')
+    submit = SubmitField('Login', render_kw={"class": "btn btn-primary w-100"})
 
-class TestarRondasForm(FlaskForm): # Mantendo o nome da classe como TestarRondasForm por enquanto
-    log_bruto_rondas = TextAreaField('Log Bruto das Rondas', 
-                                     validators=[DataRequired(message="O log de rondas é obrigatório.")],
-                                     render_kw={"rows": 10, "cols": 70})
-    
+class TestarRondasForm(FlaskForm):
+    # As opções para nome_condominio podem vir do backend ou serem fixas
     condominios_choices = [
-        ('', '-- Selecione um Condomínio --'),
-        ('VEVEY', 'VEVEY'), 
-        ('AROSA', 'AROSA'), 
-        ('ZERMATT', 'ZERMATT'), 
-        ('DAVOS', 'DAVOS'),
-        ('Outro', 'Outro (especificar abaixo)')
-    ]
-    nome_condominio = SelectField('Nome do Condomínio/Residencial', 
-                                  choices=condominios_choices,
-                                  validators=[DataRequired(message="Selecione um condomínio ou 'Outro'.")])
-    
-    nome_condominio_outro = StringField('Nome do Condomínio (se "Outro")',
-                                        validators=[Optional()])
-
-    data_plantao = DateField('Data do Plantão', 
-                             format='%Y-%m-%d',
-                             default=date.today,
-                             validators=[DataRequired(message="Este campo é obrigatório.")])
-    
+        ('', '-- Selecione um Condomínio --'), # Opção padrão
+        ('Condomínio Alpha', 'Condomínio Alpha'), 
+        ('Condomínio Beta', 'Condomínio Beta'),
+        ('Condomínio Gama', 'Condomínio Gama'),
+        ('Outro', 'Outro')
+    ] 
     escala_choices = [
-        ('', '-- Selecione a Escala --'),
-        ('18:00 às 06:00', '18:00 às 06:00'),
-        ('06:00 às 18:00', '06:00 às 18:00')
+        ('', '-- Selecione uma Escala --'), # Opção padrão
+        ('12x36 DIURNO', '12x36 DIURNO'),
+        ('12x36 NOTURNO', '12x36 NOTURNO'),
+        ('6x1 DIURNO', '6x1 DIURNO'),
+        ('6x1 NOTURNO', '6x1 NOTURNO'),
+        ('5x2 DIURNO', '5x2 DIURNO'),
+        ('5x2 NOTURNO', '5x2 NOTURNO')
     ]
-    escala_plantao = SelectField('Escala do Plantão', 
-                                 choices=escala_choices,
-                                 validators=[DataRequired(message="Selecione a escala do plantão.")])
-    
-    submit = SubmitField('Processar Relatório de Ronda')
+
+    nome_condominio = SelectField(
+        'Nome do Condomínio', 
+        choices=condominios_choices, 
+        validators=[DataRequired(message="Selecione um condomínio.")]
+    )
+    nome_condominio_outro = StringField('Nome do Condomínio (Outro)') 
+    data_plantao = DateField( # WTForms DateField espera um objeto date do Python, não string
+        'Data do Plantão', 
+        format='%Y-%m-%d', # Formato que o DateField espera e como ele renderiza
+        validators=[DataRequired(message="Insira a data do plantão.")]
+    )
+    escala_plantao = SelectField(
+        'Escala do Plantão', 
+        choices=escala_choices, 
+        validators=[DataRequired(message="Selecione a escala.")]
+    )
+    log_bruto_rondas = TextAreaField(
+        'Log Bruto das Rondas', 
+        validators=[DataRequired(message="Insira o log bruto das rondas.")],
+        render_kw={"rows": 10, "class": "form-control"}
+    )
+    submit = SubmitField('Processar Relatório de Ronda', render_kw={"class": "btn btn-primary"}) # Mudado para btn-primary para consistência
 
     def validate_nome_condominio_outro(self, field):
         if self.nome_condominio.data == 'Outro' and not field.data:
-            raise ValidationError('Por favor, especifique o nome do condomínio se "Outro" foi selecionado.')
+            raise ValidationError('Por favor, especifique o nome do condomínio se "Outro" for selecionado.')
+
+# NOVO FORMULÁRIO PARA FORMATAR RELATÓRIO PARA E-MAIL
+class FormatEmailReportForm(FlaskForm):
+    raw_report = TextAreaField(
+        'Relatório Bruto (Colar aqui o texto gerado pela IA)', 
+        validators=[DataRequired(message="Por favor, cole o relatório bruto.")],
+        render_kw={"rows": 15, "class": "form-control", "placeholder": "Cole o relatório bruto da IA aqui..."}
+    )
+    include_greeting = BooleanField(
+        'Incluir Saudação Formal (Ex: "Prezados(as),")',
+        default=True # Mantém o padrão que você definiu
+    )
+    custom_greeting = TextAreaField(
+        'Saudação Personalizada (Opcional - sobrescreve a padrão se preenchido)',
+        render_kw={"rows": 2, "class": "form-control form-control-sm", "placeholder": "Ex: Caros Colegas,"}
+    )
+    include_closing = BooleanField(
+        'Incluir Despedida Padrão (Ex: "Atenciosamente, Sua Equipe")',
+        default=True # Mantém o padrão
+    )
+    custom_closing = TextAreaField(
+        'Despedida Personalizada (Opcional - sobrescreve a padrão se preenchido)',
+        render_kw={"rows": 2, "class": "form-control form-control-sm", "placeholder": "Ex: Com os melhores cumprimentos,"}
+    )
+    submit = SubmitField('Formatar Relatório para E-mail', render_kw={"class": "btn btn-primary btn-lg"})

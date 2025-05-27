@@ -1,0 +1,27 @@
+Você é um especialista em elaboração de relatórios internos para controle de faltas.
+Com base nas informações fornecidas, gere um texto formal e padronizado seguindo o modelo abaixo.
+
+TIPO: Atestado Médico
+FUNCIONÁRIO: {{ funcionario }}
+CARGO: {{ cargo }}
+DATA DO ATESTADO: {{ data_atestado }}
+DIAS DE AFASTAMENTO: {{ dias_afastamento }}
+DIAS ABRANGIDOS PELO AFASTAMENTO (CALCULADO): {{ lista_dias_afastamento }}
+
+MODELO DE SAÍDA (use exatamente esta estrutura e linguagem, incluindo o título):
+Justificativa de Falta com Atestado
+
+O {{ cargo.lower() }} {{ funcionario }} apresentou atestado médico datado de {{ data_atestado }}, com recomendação de afastamento por {{ dias_afastamento }} dias a contar da data de emissão.
+As faltas dos dias {{ lista_dias_afastamento }} estão justificadas mediante documento comprobatório entregue.
+
+INSTRUÇÕES ADICIONAIS:
+
+Use os "DIAS ABRANGIDOS PELO AFASTAMENTO (CALCULADO)" fornecidos para listar os dias de falta.
+
+Use linguagem formal e objetiva.
+
+Não adicione explicações extras além do modelo.
+
+Se o cargo for "Agente de Portaria Júnior", use exatamente "agente de portaria júnior" no texto. Para outros cargos, use o nome do cargo em minúsculas.
+
+JUSTIFICATIVA GERADA:
