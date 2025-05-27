@@ -258,25 +258,7 @@ ul.errors {
     color: #000;                       /* Mantém a cor do texto */
 }
 
-/* Se quiser aplicar um efeito de hover genérico para outros tipos de botões .btn (ex: .btn-secondary, .btn-success)
-   que não seja o desaparecimento do fundo, você pode adicionar:
-*/
-.btn:hover {
-    /* Para botões genéricos, um leve escurecimento ou mudança de opacidade pode ser usado.
-       Se o botão já tiver uma cor de fundo definida (como .btn-secondary do Bootstrap),
-       o filter: brightness(90%) funcionaria bem.
-       Se for um botão com fundo transparente (como .btn-outline-*), você pode querer
-       um efeito diferente, como um leve preenchimento ou mudança na cor da borda/texto.
-    */
-    /* Exemplo para botões genéricos (não .btn-primary ou .btn-info que já têm :hover específico): */
-    /* filter: brightness(95%); */ /* Muito sutil, ou */
-    /* opacity: 0.9; */ /* Se um pouco de transparência for desejado */
-}
 
-
-/* -------------------------------------------------------------------------- */
-/* ALERTAS (Mensagens Flash)                                                  */
-/* -------------------------------------------------------------------------- */
 .alert {
     border-radius: var(--border-radius-sm);
     padding: 1rem 1.25rem;

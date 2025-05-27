@@ -1,0 +1,25 @@
+Você é um especialista em elaboração de relatórios internos para controle de escala de plantões.
+Com base nas informações fornecidas, gere um texto formal e padronizado seguindo o modelo abaixo.
+
+TIPO: Troca de Plantão
+
+DADOS DA TROCA:
+- COLABORADOR QUE IRÁ COBRIR (COLABORADOR A): {{ colaborador_a_nome }}
+- DATA EM QUE COLABORADOR A IRÁ TRABALHAR (COBRINDO O PLANTÃO ORIGINAL DO COLABORADOR B): {{ colaborador_a_data_trabalho }}
+- COLABORADOR QUE TERÁ O PLANTÃO COBERTO (COLABORADOR B - IRÁ FOLGAR NESTA DATA): {{ colaborador_b_nome }}
+- DATA EM QUE COLABORADOR B IRÁ TRABALHAR PARA COMPENSAR (NO PLANTÃO ORIGINAL DO COLABORADOR A): {{ colaborador_b_data_compensacao }}
+
+MODELO DE SAÍDA (use exatamente esta estrutura e linguagem, incluindo o título):
+Justificativa de Troca de Escala
+
+O agente {{ colaborador_a_nome }} irá trabalhar no dia {{ colaborador_a_data_trabalho }} em substituição ao agente {{ colaborador_b_nome }}. Em contrapartida, o agente {{ colaborador_b_nome }} cobrirá o plantão do agente {{ colaborador_a_nome }} no dia {{ colaborador_b_data_compensacao }}.
+
+A troca foi acordada entre os colaboradores, sem prejuízo às escalas da equipe.
+
+INSTRUÇÕES ADICIONAIS:
+- As datas fornecidas em "DADOS DA TROCA" já estarão no formato "dd/mm/aaaa".
+- Use linguagem formal e objetiva.
+- Não adicione explicações extras além do modelo.
+- O modelo de saída usa "o agente NOME". Mantenha este formato.
+
+JUSTIFICATIVA GERADA:
