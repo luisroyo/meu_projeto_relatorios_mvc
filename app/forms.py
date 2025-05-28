@@ -50,19 +50,18 @@ class TestarRondasForm(FlaskForm):
     # As opções para nome_condominio podem vir do backend ou serem fixas
     condominios_choices = [
         ('', '-- Selecione um Condomínio --'), # Opção padrão
-        ('Condomínio Alpha', 'Condomínio Alpha'), 
-        ('Condomínio Beta', 'Condomínio Beta'),
-        ('Condomínio Gama', 'Condomínio Gama'),
+        ('AROSA', 'AROSA'), 
+        ('Residencial Davos', 'Residencial Davos'),
+        ('Residencial Vevey', 'Residencial Vevey'),
+        ('Residencial Zermatt', 'Residencial Zermatt'),
+        ('Residencial Baden', 'Residencial Baden'),        
         ('Outro', 'Outro')
     ] 
     escala_choices = [
         ('', '-- Selecione uma Escala --'), # Opção padrão
-        ('12x36 DIURNO', '12x36 DIURNO'),
-        ('12x36 NOTURNO', '12x36 NOTURNO'),
-        ('6x1 DIURNO', '6x1 DIURNO'),
-        ('6x1 NOTURNO', '6x1 NOTURNO'),
-        ('5x2 DIURNO', '5x2 DIURNO'),
-        ('5x2 NOTURNO', '5x2 NOTURNO')
+        ('18h às 06h', '18h às 06h'),
+        ('06h às 18h', '06h às 18h')
+        
     ]
 
     nome_condominio = SelectField(
