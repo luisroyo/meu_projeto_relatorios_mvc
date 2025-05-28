@@ -1,25 +1,46 @@
-Você é um especialista em elaboração de relatórios internos para controle de escala de plantões.
-Com base nas informações fornecidas, gere um texto formal e padronizado seguindo o modelo abaixo.
+Sua tarefa é gerar um texto curto e específico para uma justificativa de troca de plantão.
+Você DEVE preencher o "MODELO DE SAÍDA OBRIGATÓRIO" abaixo usando os "DADOS FORNECIDOS".
+A sua saída deve ser EXATAMENTE e SOMENTE o texto do "MODELO DE SAÍDA OBRIGATÓRIO" preenchido com os dados.
 
-TIPO: Troca de Plantão
+NÃO INCLUA NENHUMA DAS SEGUINTES SEÇÕES OU INFORMAÇÕES ADICIONAIS:
 
-DADOS DA TROCA:
-- COLABORADOR QUE IRÁ COBRIR (COLABORADOR A): {{ colaborador_a_nome }}
-- DATA EM QUE COLABORADOR A IRÁ TRABALHAR (COBRINDO O PLANTÃO ORIGINAL DO COLABORADOR B): {{ colaborador_a_data_trabalho }}
-- COLABORADOR QUE TERÁ O PLANTÃO COBERTO (COLABORADOR B - IRÁ FOLGAR NESTA DATA): {{ colaborador_b_nome }}
-- DATA EM QUE COLABORADOR B IRÁ TRABALHAR PARA COMPENSAR (NO PLANTÃO ORIGINAL DO COLABORADOR A): {{ colaborador_b_data_compensacao }}
+Data: [NÃO INCLUA]
 
-MODELO DE SAÍDA (use exatamente esta estrutura e linguagem, incluindo o título):
+Hora: [NÃO INCLUA]
+
+Local: [NÃO INCLUA]
+
+Ocorrência: [NÃO INCLUA]
+
+Relato: [NÃO INCLUA]
+
+Ações Realizadas: [NÃO INCLUA]
+
+Acionamentos: [NÃO INCLUA]
+
+Envolvidos/Testemunhas: [NÃO INCLUA]
+
+Veículo (envolvido na ocorrência): [NÃO INCLUA]
+
+Responsável pelo registro: [NÃO INCLUA]
+
+Qualquer outro cabeçalho, rodapé, explicação ou formatação que não esteja no "MODELO DE SAÍDA OBRIGATÓRIO".
+
+DADOS FORNECIDOS:
+
+NOME_COLABORADOR_A: {{ colaborador_a_nome }}
+
+DATA_TRABALHO_COLABORADOR_A: {{ colaborador_a_data_trabalho }}
+
+NOME_COLABORADOR_B: {{ colaborador_b_nome }}
+
+DATA_COMPENSACAO_COLABORADOR_B: {{ colaborador_b_data_compensacao }}
+
+MODELO DE SAÍDA OBRIGATÓRIO:
 Justificativa de Troca de Escala
 
-O agente {{ colaborador_a_nome }} irá trabalhar no dia {{ colaborador_a_data_trabalho }} em substituição ao agente {{ colaborador_b_nome }}. Em contrapartida, o agente {{ colaborador_b_nome }} cobrirá o plantão do agente {{ colaborador_a_nome }} no dia {{ colaborador_b_data_compensacao }}.
+O agente {{ NOME_COLABORADOR_A }} irá trabalhar no dia {{ DATA_TRABALHO_COLABORADOR_A }} em substituição ao agente {{ NOME_COLABORADOR_B }}. Em contrapartida, o agente {{ NOME_COLABORADOR_B }} cobrirá o plantão do agente {{ NOME_COLABORADOR_A }} no dia {{ DATA_COMPENSACAO_COLABORADOR_B }}.
 
 A troca foi acordada entre os colaboradores, sem prejuízo às escalas da equipe.
 
-INSTRUÇÕES ADICIONAIS:
-- As datas fornecidas em "DADOS DA TROCA" já estarão no formato "dd/mm/aaaa".
-- Use linguagem formal e objetiva.
-- Não adicione explicações extras além do modelo.
-- O modelo de saída usa "o agente NOME". Mantenha este formato.
-
-JUSTIFICATIVA GERADA:
+TEXTO GERADO (SOMENTE O MODELO ACIMA PREENCHIDO):
