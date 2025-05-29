@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block title %}{{ title }} - Assistente de Relatórios IA{% endblock %}
 
 {% block content %}
@@ -10,261 +9,103 @@
     </div>
 
     <div class="row">
-        <div class="col-12 col-lg-6 mb-4"> 
+        <!-- Formulário -->
+        <div class="col-12 col-lg-6 mb-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header">
                     <h5 class="mb-0">Dados do Plantão e Log de Rondas</h5>
                 </div>
-                <div class="card-body p-4 d-flex flex-column">
-                    {# CORRIGIDO: O action do formulário deve apontar para 'ronda.relatorio_ronda' #}
-                    <form method="POST" action="{{ url_for('ronda.relatorio_ronda') }}" novalidate class="flex-grow-1" id="formRelatorioRonda">
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('ronda.registrar_ronda') }}" novalidate>
                         {{ form.hidden_tag() }}
                         
-                        <div class="mb-3">
-                            {{ form.nome_condominio.label(class="form-label") }}
-                            {{ form.nome_condominio(class="form-select" + (" is-invalid" if form.nome_condominio.errors else ""), id="nome_condominio_select") }}
-                            {% if form.nome_condominio.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.nome_condominio.errors %}<span>{{ error }}</span><br>{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
+                        {{ form.nome_condominio.label(class="form-label") }}
+                        {{ form.nome_condominio(class="form-select", id="nome_condominio_select") }}
 
-                        <div class="mb-3" id="outro_condominio_div" {% if form.nome_condominio.data != 'Outro' or not form.nome_condominio_outro.data %}style="display: none;"{% endif %}>
+                        <div id="outro_condominio_div" {% if form.nome_condominio.data != 'Outro' %}style="display: none;"{% endif %}>
                             {{ form.nome_condominio_outro.label(class="form-label") }}
-                            {{ form.nome_condominio_outro(class="form-control" + (" is-invalid" if form.nome_condominio_outro.errors else ""), placeholder="Digite o nome do condomínio", id="nome_condominio_outro_input") }}
-                            {% if form.nome_condominio_outro.errors %}
-                                 <div class="invalid-feedback d-block">
-                                    {% for error in form.nome_condominio_outro.errors %}<span>{{ error }}</span><br>{% endfor %}
-                                </div>
-                            {% endif %}
+                            {{ form.nome_condominio_outro(class="form-control") }}
                         </div>
 
-                        <div class="mb-3">
-                            {{ form.data_plantao.label(class="form-label") }}
-                            {{ form.data_plantao(class="form-control" + (" is-invalid" if form.data_plantao.errors else ""), id="data_plantao_input") }}
-                            {% if form.data_plantao.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.data_plantao.errors %}<span>{{ error }}</span><br>{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
+                        {{ form.data_plantao.label(class="form-label") }}
+                        {{ form.data_plantao(class="form-control") }}
 
-                        <div class="mb-3">
-                            {{ form.escala_plantao.label(class="form-label") }}
-                            {{ form.escala_plantao(class="form-select" + (" is-invalid" if form.escala_plantao.errors else ""), id="escala_plantao_select") }}
-                            {% if form.escala_plantao.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.escala_plantao.errors %}<span>{{ error }}</span><br>{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
+                        {{ form.escala_plantao.label(class="form-label") }}
+                        {{ form.escala_plantao(class="form-select") }}
 
-                        <div class="mb-3">
-                            {{ form.log_bruto_rondas.label(class="form-label") }}
-                            {{ form.log_bruto_rondas(class="form-control" + (" is-invalid" if form.log_bruto_rondas.errors else ""), rows="10", id="log_bruto_rondas_textarea") }}
-                            {% if form.log_bruto_rondas.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.log_bruto_rondas.errors %}<span>{{ error }}</span><br>{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="mt-auto">
-                            <div class="d-flex flex-column flex-sm-row">
-                                {{ form.submit(class="btn btn-primary btn-lg mb-2 mb-sm-0 me-sm-2 w-100 w-sm-auto", id="submitRelatorioRonda") }} 
-                                <button type="button" class="btn btn-outline-secondary btn-lg w-100 w-sm-auto" id="limparFormRonda">Limpar Log e Resultado</button> 
-                            </div>
+                        {{ form.log_bruto_rondas.label(class="form-label") }}
+                        {{ form.log_bruto_rondas(class="form-control", rows="10") }}
+
+                        <div class="mt-3">
+                            {{ form.submit(class="btn btn-primary") }}
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
+        <!-- Resultado -->
         <div class="col-12 col-lg-6 mb-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header">
                     <h5 class="mb-0">Relatório Gerado</h5>
                 </div>
                 <div class="card-body p-4">
-                    <div class="report-output-container"> 
-                        {% if resultado %}
-                            {% if resultado is string and resultado.startswith("Erro:") %}
-                                 <pre id="rondaResultadoTexto" class="alert alert-danger p-3">{{ resultado }}</pre>
-                            {% elif resultado is string and ("Nenhum evento de ronda válido" in resultado or "Nenhum log de ronda fornecido" in resultado or "Eventos de ronda identificados, mas insuficientes" in resultado) %}
-                                 <div id="rondaResultadoTexto" class="alert alert-warning p-3">{{ resultado }}</div>
-                            {% elif resultado is string %}
-                                <div class="report-output">
-                                    <pre id="rondaResultadoTexto">{{ resultado }}</pre>
-                                </div>
+                    <div class="report-output-container">
+                        {% if relatorio_processado %}
+                            {% if relatorio_processado is string and relatorio_processado.startswith("Erro:") %}
+                                <pre class="alert alert-danger">{{ relatorio_processado }}</pre>
+                            {% elif "Nenhum evento de ronda válido" in relatorio_processado %}
+                                <div class="alert alert-warning">{{ relatorio_processado }}</div>
+                            {% elif relatorio_processado is string %}
+                                <pre>{{ relatorio_processado }}</pre>
                             {% else %}
-                                 <p id="rondaResultadoTexto" class="alert alert-warning">Resultado em formato não reconhecido: {{ resultado }}</p>
+                                <p class="alert alert-warning">Formato não reconhecido</p>
                             {% endif %}
-                        {% elif log_enviado and request.method == 'POST' and not form.errors %} 
-                            <div id="rondaResultadoTexto" class="alert alert-info">O log foi submetido, mas o serviço não retornou um resultado para exibir ou não havia dados válidos.</div>
                         {% else %}
-                            <div id="rondaResultadoTexto" class="alert alert-secondary">O relatório processado aparecerá aqui.</div>
+                            <div class="alert alert-secondary">O relatório processado aparecerá aqui.</div>
                         {% endif %}
                     </div>
-                    <div class="mt-3"> 
-                        <button type="button" class="btn btn-info" id="copiarRelatorioRonda" style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top" title="Copiar para a área de transferência">
-                            Copiar Relatório de Ronda
-                        </button>
-                    </div>
+
+                    <button type="button" class="btn btn-info mt-3" id="copiarRelatorioRonda" style="display: none;">Copiar Relatório</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Seletores para os campos do formulário e elementos de resultado
-            const selectCondominio = document.getElementById('nome_condominio_select');
-            const outroCondominioDiv = document.getElementById('outro_condominio_div');
-            const outroCondominioInput = document.getElementById('nome_condominio_outro_input');
-            const logBrutoTextarea = document.getElementById('log_bruto_rondas_textarea');
-            const resultadoTextoEl = document.getElementById('rondaResultadoTexto');
-            const btnCopiarRonda = document.getElementById('copiarRelatorioRonda');
-            const btnLimparFormRonda = document.getElementById('limparFormRonda');
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const select = document.getElementById('nome_condominio_select');
+        const outroDiv = document.getElementById('outro_condominio_div');
 
-            function toggleOutroCondominio() {
-                if (selectCondominio && outroCondominioDiv) {
-                    if (selectCondominio.value === 'Outro') {
-                        outroCondominioDiv.style.display = 'block';
-                    } else {
-                        outroCondominioDiv.style.display = 'none';
-                        if(outroCondominioInput) outroCondominioInput.value = ''; 
-                    }
-                }
-            }
+        if (select && outroDiv) {
+            select.addEventListener('change', function () {
+                outroDiv.style.display = select.value === 'Outro' ? 'block' : 'none';
+            });
+        }
 
-            if (selectCondominio) {
-                selectCondominio.addEventListener('change', toggleOutroCondominio);
-                toggleOutroCondominio(); 
-            }
+        const resultadoTextoEl = document.querySelector('.report-output-container pre, .report-output-container div.alert');
+        const btnCopiar = document.getElementById('copiarRelatorioRonda');
 
-            if (btnLimparFormRonda) {
-                btnLimparFormRonda.addEventListener('click', function() {
-                    if(logBrutoTextarea) logBrutoTextarea.value = ''; 
-                    
-                    if (resultadoTextoEl) {
-                        // Reseta o conteúdo e a classe do elemento de resultado para o estado inicial
-                        const reportOutputContainer = document.querySelector('.report-output-container');
-                        if(reportOutputContainer) {
-                             reportOutputContainer.innerHTML = '<div id="rondaResultadoTexto" class="alert alert-secondary">O relatório processado aparecerá aqui.</div>';
-                        }
-                        // É preciso reatribuir resultadoTextoEl pois o innerHTML o substituiu
-                        // No entanto, a lógica de 'atualizarVisibilidadeBotaoCopiar' será chamada por MutationObserver
-                    }
-                    if (btnCopiarRonda) {
-                        btnCopiarRonda.style.display = 'none'; 
-                    }
-                });
-            }
+        function atualizarBotao() {
+            if (!resultadoTextoEl || !btnCopiar) return;
+            const texto = resultadoTextoEl.innerText.trim();
+            const isPlaceholder = texto.includes("aparecerá aqui");
+            const isError = resultadoTextoEl.classList.contains('alert-danger');
+            btnCopiar.style.display = texto && !isPlaceholder && !isError ? 'inline-block' : 'none';
+        }
 
-            if (resultadoTextoEl && btnCopiarRonda) {
-                function atualizarVisibilidadeBotaoCopiar() {
-                    const novoResultadoTextoEl = document.getElementById('rondaResultadoTexto'); // Re-seleciona caso tenha sido recriado
-                    if (!novoResultadoTextoEl) return;
+        atualizarBotao();
 
-                    const textoResultado = novoResultadoTextoEl.textContent || novoResultadoTextoEl.innerText;
-                    const isPlaceholder = novoResultadoTextoEl.classList.contains('alert-secondary') && 
-                                        (textoResultado).includes("O relatório processado aparecerá aqui.");
-                    const isErrorMessage = novoResultadoTextoEl.classList.contains('alert-danger');
-                    const isWarningNoData = novoResultadoTextoEl.classList.contains('alert-warning') && 
-                                          (textoResultado.includes("Nenhum evento de ronda válido") || textoResultado.includes("Nenhum log de ronda fornecido"));
-                    const isInfoNoResult = novoResultadoTextoEl.classList.contains('alert-info');
-
-                    if (textoResultado.trim() && !isPlaceholder && !isErrorMessage && !isWarningNoData && !isInfoNoResult) {
-                        btnCopiarRonda.style.display = 'inline-block';
-                    } else {
-                        btnCopiarRonda.style.display = 'none';
-                    }
-                }
-                
-                // Chama uma vez para o estado inicial
-                atualizarVisibilidadeBotaoCopiar(); 
-                
-                // Observa mudanças no container do resultado para atualizar o botão
-                const resultContainer = document.querySelector('.report-output-container');
-                if (resultContainer) {
-                    const observer = new MutationObserver(function(mutationsList, observer) {
-                        // Otimização: só chama se realmente houver mudança de conteúdo relevante
-                        for(let mutation of mutationsList) {
-                            if (mutation.type === 'childList' || mutation.type === 'characterData') {
-                                atualizarVisibilidadeBotaoCopiar();
-                                break; 
-                            }
-                        }
-                    });
-                    observer.observe(resultContainer, { childList: true, characterData: true, subtree: true });
-                }
-
-
-                btnCopiarRonda.addEventListener('click', function() {
-                    const elementoResultadoAtual = document.getElementById('rondaResultadoTexto'); // Garante que está pegando o elemento atual
-                    if (!elementoResultadoAtual) return;
-
-                    const textoParaCopiar = elementoResultadoAtual.textContent || elementoResultadoAtual.innerText;
-                    if (!textoParaCopiar.trim()) return;
-
-                    if (navigator.clipboard) {
-                        navigator.clipboard.writeText(textoParaCopiar)
-                            .then(() => {
-                                const originalText = btnCopiarRonda.textContent; // Salva o texto original do botão
-                                btnCopiarRonda.innerHTML = 'Copiado!'; 
-                                btnCopiarRonda.disabled = true;
-                                setTimeout(() => {
-                                    btnCopiarRonda.textContent = originalText;
-                                    btnCopiarRonda.disabled = false;
-                                }, 2000);
-                            })
-                            .catch(err => {
-                                console.error('Falha ao copiar com navigator.clipboard: ', err);
-                                tryFallbackCopyRonda(textoParaCopiar); // Tenta o fallback
-                            });
-                    } else {
-                        tryFallbackCopyRonda(textoParaCopiar); // Fallback para navegadores sem clipboard API
-                    }
-                });
-            }
-
-            function tryFallbackCopyRonda(text) {
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                textArea.style.position = "fixed"; 
-                textArea.style.opacity = "0"; 
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                try {
-                    const successful = document.execCommand('copy');
-                    if (successful && btnCopiarRonda) { // Verifica se btnCopiarRonda existe
-                        const originalText = "Copiar Relatório de Ronda"; // Define o texto original
-                        btnCopiarRonda.innerHTML = 'Copiado!';
-                        btnCopiarRonda.disabled = true;
-                        setTimeout(() => {
-                            btnCopiarRonda.textContent = originalText;
-                            btnCopiarRonda.disabled = false;
-                        }, 2000);
-                    } else if (!successful) {
-                         throw new Error('document.execCommand("copy") falhou.');
-                    }
-                } catch (err) {
-                    console.error('Falha ao copiar com fallback: ', err);
-                    alert('Não foi possível copiar o texto. Por favor, copie manualmente.');
-                }
-                document.body.removeChild(textArea);
-            }
-            
-            // Inicializa tooltips do Bootstrap (se houver algum na página)
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
-            })
+        // Copiar relatório
+        btnCopiar.addEventListener('click', function () {
+            navigator.clipboard.writeText(resultadoTextoEl.innerText).then(() => {
+                btnCopiar.textContent = 'Copiado!';
+                setTimeout(() => btnCopiar.textContent = 'Copiar Relatório', 2000);
+            }).catch(() => alert('Falha ao copiar.'));
         });
-    </script>
+    });
+</script>
+
 {% endblock %}

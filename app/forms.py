@@ -47,49 +47,53 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Login', render_kw={"class": "btn btn-primary w-100"})
 
 class TestarRondasForm(FlaskForm):
-    # As opções para nome_condominio podem vir do backend ou serem fixas
-    condominios_choices = [
-        ('', '-- Selecione um Condomínio --'), # Opção padrão
-        ('AROSA', 'AROSA'), 
-        ('Residencial Davos', 'Residencial Davos'),
-        ('Residencial Vevey', 'Residencial Vevey'),
-        ('Residencial Zermatt', 'Residencial Zermatt'),
-        ('Residencial Baden', 'Residencial Baden'),        
-        ('Outro', 'Outro')
-    ] 
-    escala_choices = [
-        ('', '-- Selecione uma Escala --'), # Opção padrão
-        ('18h às 06h', '18h às 06h'),
-        ('06h às 18h', '06h às 18h')
-        
-    ]
-
+    # O campo 'nome_condominio' terá suas 'choices' populadas dinamicamente na rota.
+    # A primeira tupla é (valor_interno, rótulo_exibido).
     nome_condominio = SelectField(
         'Nome do Condomínio', 
-        choices=condominios_choices, 
+        choices=[],  # Será preenchido na rota. Pode iniciar com [('', '-- Selecione um Condomínio --')]
         validators=[DataRequired(message="Selecione um condomínio.")]
     )
-    nome_condominio_outro = StringField('Nome do Condomínio (Outro)') 
-    data_plantao = DateField( # WTForms DateField espera um objeto date do Python, não string
+    
+    # Campo para digitar o nome do condomínio se "Outro" for selecionado
+    nome_condominio_outro = StringField(
+        'Se "Outro", qual o nome?',
+        validators=[Length(max=150, message="Nome do condomínio pode ter no máximo 150 caracteres.")] # Validador opcional
+    ) 
+    
+    data_plantao = DateField(
         'Data do Plantão', 
         format='%Y-%m-%d', # Formato que o DateField espera e como ele renderiza
         validators=[DataRequired(message="Insira a data do plantão.")]
     )
+    
     escala_plantao = SelectField(
         'Escala do Plantão', 
-        choices=escala_choices, 
+        choices=[ # Você pode manter estas fixas ou torná-las dinâmicas também se necessário
+            ('', '-- Selecione uma Escala --'),
+            ('18h às 06h', '18h às 06h'),
+            ('06h às 18h', '06h às 18h')
+        ], 
         validators=[DataRequired(message="Selecione a escala.")]
     )
+    
     log_bruto_rondas = TextAreaField(
         'Log Bruto das Rondas', 
         validators=[DataRequired(message="Insira o log bruto das rondas.")],
         render_kw={"rows": 10, "class": "form-control"}
     )
-    submit = SubmitField('Processar Relatório de Ronda', render_kw={"class": "btn btn-primary"}) # Mudado para btn-primary para consistência
+    
+    submit = SubmitField('Processar Relatório de Ronda', render_kw={"class": "btn btn-primary"})
 
+    # Validador customizado para o campo 'nome_condominio_outro'
     def validate_nome_condominio_outro(self, field):
+        # Verifica se a opção "Outro" foi selecionada no campo 'nome_condominio'
+        # E se este campo 'nome_condominio_outro' está vazio.
         if self.nome_condominio.data == 'Outro' and not field.data:
-            raise ValidationError('Por favor, especifique o nome do condomínio se "Outro" for selecionado.')
+            raise ValidationError('Por favor, especifique o nome do condomínio se "Outro" foi selecionado.')
+        # Adicionalmente, pode verificar se não é apenas espaços em branco
+        if self.nome_condominio.data == 'Outro' and field.data and not field.data.strip():
+            raise ValidationError('O nome do condomínio (Outro) não pode ser apenas espaços em branco.')
 
 # NOVO FORMULÁRIO PARA FORMATAR RELATÓRIO PARA E-MAIL
 class FormatEmailReportForm(FlaskForm):
