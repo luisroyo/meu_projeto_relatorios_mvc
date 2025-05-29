@@ -5,16 +5,27 @@ from flask_login import login_required, current_user
 # from app import db
 # from app.models import User 
 
-# Usaremos apenas o ReportService (Gemini)
-from app.services.report_service import ReportService
+# Importar os serviços específicos que serão usados por este blueprint
+from app.services.patrimonial_report_service import PatrimonialReportService # Você precisará criar este serviço
+from app.services.email_format_service import EmailFormatService     # Você precisará criar este serviço
 
 import logging
 
 main_bp = Blueprint('main', __name__)
 logger = logging.getLogger(__name__)
 
-# Instanciar o ReportService (que usa Gemini e pode carregar ambos os prompts)
-report_service = ReportService()
+# Instanciar os serviços que este blueprint utilizará.
+# Eles herdarão a configuração do modelo Gemini da BaseGenerativeService.
+try:
+    patrimonial_service = PatrimonialReportService()
+    email_service = EmailFormatService()
+except Exception as e:
+    logger.critical(f"Falha ao instanciar serviços no main_bp: {e}", exc_info=True)
+    # Em um cenário real, você pode querer tratar isso de forma mais robusta,
+    # talvez impedindo a aplicação de iniciar ou retornando um erro global.
+    # Por enquanto, vamos logar e a aplicação pode falhar nas rotas se os serviços não estiverem prontos.
+    patrimonial_service = None
+    email_service = None
 
 
 @main_bp.route('/')
@@ -31,6 +42,10 @@ def index():
 @main_bp.route('/processar_relatorio', methods=['POST'])
 @login_required
 def processar_relatorio():
+    if patrimonial_service is None or email_service is None:
+        logger.error("Serviços de relatório não foram inicializados corretamente.")
+        return jsonify({'erro': 'Serviço de processamento indisponível no momento.'}), 503
+
     if not request.is_json:
         current_app.logger.warning("Requisição para /processar_relatorio não é JSON.")
         return jsonify({'erro': 'Formato inválido. Envie JSON.'}), 400
@@ -50,47 +65,63 @@ def processar_relatorio():
 
     resposta_json = {
         'relatorio_processado': None,
-        'relatorio_email': None, # Ainda manteremos a estrutura para o frontend
+        'relatorio_email': None,
         'erro': None,
         'erro_email': None 
     }
+    
+    erro_standard_msg = None
 
     try:
-        # 1. Gerar o relatório padrão com Gemini
-        current_app.logger.info("Iniciando processamento do relatório padrão com Gemini...")
-        relatorio_padrao = report_service.processar_relatorio_com_ia(bruto, prompt_type="standard")
+        # 1. Gerar o relatório padrão (patrimonial) com o serviço específico
+        current_app.logger.info("Iniciando processamento do relatório patrimonial...")
+        # O método em PatrimonialReportService pode se chamar, por exemplo, gerar_relatorio_seguranca
+        # e esperar 'bruto' como uma string, se o template dele for formatado com {dados_brutos}
+        relatorio_padrao = patrimonial_service.gerar_relatorio_seguranca(bruto) 
         resposta_json['relatorio_processado'] = relatorio_padrao
-        current_app.logger.info("Relatório padrão processado com sucesso pelo Gemini.")
+        current_app.logger.info("Relatório patrimonial processado com sucesso.")
 
-    except Exception as e_standard: # Captura qualquer erro do processamento padrão
-        current_app.logger.error(f"Erro ao processar relatório padrão (Gemini): {e_standard}", exc_info=True)
-        resposta_json['erro'] = f"Falha ao gerar relatório padrão (Gemini): {str(e_standard)}"
-        # Se o padrão falhar, não tentamos o de e-mail e retornamos o erro.
-        # Ou você pode decidir tentar o de e-mail mesmo assim. Por simplicidade, vamos parar aqui se o padrão falhar.
-        # Contudo, se o objetivo é sempre tentar o email se solicitado, mesmo que o padrão falhe, a lógica seria diferente.
-        # Assumindo que se o padrão falha, não faz sentido prosseguir para o email com o mesmo serviço.
-        # Mas como você quer os dois, vamos continuar e tentar o de email.
+    except Exception as e_standard:
+        current_app.logger.error(f"Erro ao processar relatório patrimonial: {e_standard}", exc_info=True)
+        erro_standard_msg = f"Falha ao gerar relatório patrimonial: {str(e_standard)}"
+        resposta_json['erro'] = erro_standard_msg
     
-    # 2. Se solicitado, gerar o relatório de e-mail TAMBÉM COM GEMINI
+    # 2. Se solicitado, gerar o relatório de e-mail
     if format_for_email_checked:
-        current_app.logger.info("Iniciando formatação de e-mail com Gemini...")
+        current_app.logger.info("Iniciando formatação de e-mail...")
         try:
-            # Usando o mesmo report_service, mas com o prompt_type="email"
-            relatorio_email_formatado = report_service.processar_relatorio_com_ia(bruto, prompt_type="email")
-            resposta_json['relatorio_email'] = relatorio_email_formatado
-            current_app.logger.info("Relatório de e-mail formatado com sucesso pelo Gemini.")
-        except Exception as e_email:
-            current_app.logger.error(f"Erro ao formatar relatório para e-mail (Gemini): {e_email}", exc_info=True)
-            resposta_json['erro_email'] = f"Falha ao gerar relatório para e-mail (Gemini): {str(e_email)}"
-            # Nota: O relatório padrão ainda pode estar em resposta_json['relatorio_processado']
+            # O método em EmailFormatService pode se chamar, por exemplo, formatar_para_email
+            # e também esperar 'bruto' como uma string, se o template dele for formatado com {texto_original} ou similar
+            texto_para_email = resposta_json['relatorio_processado'] if resposta_json['relatorio_processado'] else bruto
             
-    # Se houve um erro no processamento padrão e não há relatório padrão,
-    # e não foi solicitado email ou o email também falhou, então retorne um erro mais genérico.
-    if resposta_json['erro'] and not resposta_json['relatorio_processado'] and \
-       (not format_for_email_checked or (format_for_email_checked and not resposta_json['relatorio_email'])):
-        # Todos os processamentos solicitados falharam ou o principal falhou e nada mais foi solicitado/bem-sucedido
-        status_code = 400 if isinstance(e_standard, ValueError) else 500 # e_standard pode não estar definida se o erro foi no bloco de email
-        return jsonify(resposta_json), status_code # Retorna o que foi acumulado
+            # Se o relatório padrão falhou, você pode optar por não tentar formatar para email
+            # ou tentar formatar o 'bruto' original. Aqui, vamos tentar formatar o que tivermos.
+            if not texto_para_email and erro_standard_msg:
+                 current_app.logger.warning("Relatório padrão falhou, tentando formatar o 'bruto' original para email.")
+                 texto_para_email = bruto # Fallback para o bruto original se o processado falhou
 
+            if texto_para_email: # Só tenta formatar se tiver algo para formatar
+                relatorio_email_formatado = email_service.formatar_para_email(texto_para_email)
+                resposta_json['relatorio_email'] = relatorio_email_formatado
+                current_app.logger.info("Relatório de e-mail formatado com sucesso.")
+            else:
+                current_app.logger.warning("Nenhum texto disponível para formatação de email (relatório padrão falhou e bruto estava vazio).")
+                # Não definimos erro_email aqui, pois o erro principal já foi capturado.
+                # Ou, se preferir, pode adicionar um erro específico.
+                if not resposta_json['erro_email']: # Só adiciona se não houver erro de email já
+                     resposta_json['erro_email'] = "Nenhum conteúdo para formatar para email."
+
+
+        except Exception as e_email:
+            current_app.logger.error(f"Erro ao formatar relatório para e-mail: {e_email}", exc_info=True)
+            resposta_json['erro_email'] = f"Falha ao gerar relatório para e-mail: {str(e_email)}"
+            
+    # Determinar o status code final
+    # Se houve erro no principal e nada mais foi bem-sucedido ou solicitado, retorna erro
+    if erro_standard_msg and not resposta_json['relatorio_processado']:
+        if not format_for_email_checked or (format_for_email_checked and resposta_json['erro_email']):
+            # Erro no padrão, e (não pediu email OU (pediu email E email também falhou))
+            # O status code poderia ser determinado pela natureza do erro_standard_msg
+            return jsonify(resposta_json), 500 # Ou 400 dependendo do erro
+            
     return jsonify(resposta_json)
-
