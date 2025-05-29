@@ -99,3 +99,29 @@ class Colaborador(db.Model):
 
     def __repr__(self):
         return f'<Colaborador {self.id}: {self.nome_completo} ({self.cargo})>'
+
+
+class Condominio(db.Model):
+    __tablename__ = 'condominio' # Opcional, mas boa prática definir o nome da tabela
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(150), unique=True, nullable=False, index=True) # Nomes únicos e indexados
+
+    def __repr__(self):
+        return f'<Condominio {self.nome}>'
+
+# Como sua classe Ronda ficaria (mantendo 'condominio' como string):
+# class Ronda(db.Model):
+#     __tablename__ = 'ronda' # Exemplo de nome de tabela
+#     id = db.Column(db.Integer, primary_key=True)
+#     # ... outros campos da sua tabela Ronda (data_plantao, escala_plantao, log_bruto_rondas, user_id, etc.)
+#     
+#     condominio = db.Column(db.String(150), nullable=False) # Campo continua como string
+#
+#     # Se tiver uma relação com User:
+#     # user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+#     # user = db.relationship('User', backref=db.backref('rondas', lazy=True))
+#
+#     def __repr__(self):
+#         return f'<Ronda {self.id} - {self.condominio}>'
+
+# Certifique-se de que suas outras classes de modelo (User, LoginHistory, etc.) continuam aqui.
