@@ -1,43 +1,31 @@
 # app/blueprints/admin/routes.py
 from flask import (
     Blueprint, render_template, redirect, url_for, flash, 
-    request, current_app, jsonify, render_template_string
+    request, current_app, jsonify # Removido render_template_string pois os serviços lidarão com templates
 )
 from flask_login import login_required, current_user
-from app import db
-from app.models import User, LoginHistory, Ronda 
+from app import db # Necessário para as rotas de gerenciamento de usuário
+from app.models import User, LoginHistory, Ronda # Necessário para as rotas de gerenciamento de usuário
 from app.decorators.admin_required import admin_required 
-from app.forms import TestarRondasForm, FormatEmailReportForm 
+from app.forms import TestarRondasForm, FormatEmailReportForm # Mantido para a rota admin_tools
 import logging
-import os 
-from pathlib import Path # Para carregar os templates de prompt de forma robusta
+# 'os' e 'Path' podem não ser mais necessários aqui se os serviços cuidam dos caminhos dos templates
 
-# Importe o seu serviço de IA. Assumindo que é o ReportService para Gemini.
-from app.services.report_service import ReportService 
+# --- SERVIÇOS DE IA ---
+# Importe os serviços específicos que esta blueprint utilizará.
+from app.services.justificativa_service import JustificativaAtestadoService
+# Se você tiver outros serviços de justificativa, importe-os também:
+# from app.services.justificativa_troca_service import JustificativaTrocaPlantaoService
+# from app.services.justificativa_atraso_service import JustificativaAtrasoService
+# A importação do PatrimonialReportService foi removida pois não parece ser usada nesta blueprint
+# com a refatoração da api_processar_justificativa. Se for usada em outra rota aqui, adicione-a de volta.
 
 logger = logging.getLogger(__name__)
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
-# Define o diretório base para os templates de prompt
-# __file__ é o caminho para este arquivo (app/blueprints/admin/routes.py)
-# .parent é app/blueprints/admin/
-# .parent.parent é app/blueprints/
-# .parent.parent.parent é app/  <- CORREÇÃO AQUI
-PROMPT_TEMPLATE_DIR = Path(__file__).resolve().parent.parent.parent / 'services' / 'prompt_templates'
-
-def carregar_prompt_template(nome_arquivo_template):
-    """Carrega o conteúdo de um arquivo de template de prompt."""
-    try:
-        caminho_template = PROMPT_TEMPLATE_DIR / nome_arquivo_template
-        logger.debug(f"Tentando carregar template de prompt de: {caminho_template}")
-        with open(caminho_template, 'r', encoding='utf-8') as f:
-            return f.read()
-    except FileNotFoundError:
-        logger.error(f"Arquivo de template de prompt NÃO ENCONTRADO: {caminho_template}")
-        return None
-    except Exception as e:
-        logger.error(f"Erro ao carregar template de prompt '{nome_arquivo_template}': {e}", exc_info=True)
-        return None
+# A função carregar_prompt_template e PROMPT_TEMPLATE_DIR foram removidas daqui,
+# pois a lógica de carregar e renderizar templates específicos agora está
+# encapsulada dentro de cada respectivo serviço (ex: JustificativaAtestadoService).
 
 @admin_bp.route('/')
 @login_required
@@ -63,6 +51,9 @@ def admin_tools():
     email_form_instance = FormatEmailReportForm(prefix="email_form")
     formatted_email_report_text = None
 
+    # A lógica de formatação de email aqui é uma manipulação de string local.
+    # Se você quisesse usar a IA para formatar o email, você instanciaria
+    # o EmailFormatService e chamaria um método dele aqui.
     if request.method == 'POST' and request.form.get('tool_action') == 'format_email':
         email_form_instance = FormatEmailReportForm(request.form, prefix="email_form")
         if email_form_instance.validate_on_submit():
@@ -109,45 +100,60 @@ def api_processar_justificativa():
         return jsonify({'erro': 'Dados não fornecidos.'}), 400
 
     tipo_justificativa = payload.get('tipo_justificativa')
-    dados_variaveis = payload.get('dados_variaveis')
+    dados_variaveis = payload.get('dados_variaveis') # Este deve ser o dicionário para o template
 
-    if not tipo_justificativa or not dados_variaveis:
-        logger.warning(f"API Processar Justificativa: 'tipo_justificativa' ou 'dados_variaveis' não encontrados no JSON. Payload: {payload} IP: {request.remote_addr if hasattr(request, 'remote_addr') else 'N/A'}")
-        return jsonify({'erro': 'Dados inválidos: tipo ou dados da justificativa não encontrados.'}), 400
+    if not tipo_justificativa or not isinstance(dados_variaveis, dict):
+        logger.warning(f"API Processar Justificativa: 'tipo_justificativa' ou 'dados_variaveis' inválidos. Payload: {payload} IP: {request.remote_addr if hasattr(request, 'remote_addr') else 'N/A'}")
+        return jsonify({'erro': "Dados inválidos: tipo ou dados da justificativa ausentes ou em formato incorreto."}), 400
 
     logger.info(f"API Processar Justificativa: Tipo='{tipo_justificativa}' Dados='{dados_variaveis}' recebidos por '{current_user.username}'.")
 
-    nome_arquivo_template_prompt = None
-    if tipo_justificativa == "atestado":
-        nome_arquivo_template_prompt = "justificativa_atestado_medico_template.txt"
-    elif tipo_justificativa == "troca_plantao":
-        nome_arquivo_template_prompt = "justificativa_troca_plantao_template.txt"
-    elif tipo_justificativa == "atraso":
-        nome_arquivo_template_prompt = "justificativa_atraso_template.txt" 
-    
-    if not nome_arquivo_template_prompt:
-        logger.warning(f"API Processar Justificativa: Tipo de justificativa desconhecido '{tipo_justificativa}'.")
-        return jsonify({'erro': f"Tipo de justificativa desconhecido: {tipo_justificativa}"}), 400
-
-    template_prompt_str = carregar_prompt_template(nome_arquivo_template_prompt)
-    if not template_prompt_str:
-        logger.error(f"API Processar Justificativa: Falha ao carregar template de prompt '{nome_arquivo_template_prompt}' para tipo '{tipo_justificativa}'. Caminho esperado: {PROMPT_TEMPLATE_DIR / nome_arquivo_template_prompt}")
-        return jsonify({'erro': "Erro interno ao carregar modelo de prompt."}), 500
+    texto_gerado = None
+    service_exception = None
 
     try:
-        prompt_final_para_ia = render_template_string(template_prompt_str, **dados_variaveis)
-        logger.debug(f"API Processar Justificativa: Prompt final para IA ('{tipo_justificativa}'):\n{prompt_final_para_ia}")
-
-        report_service = ReportService() 
-        texto_gerado = report_service.processar_relatorio_com_ia(prompt_final_para_ia) 
+        if tipo_justificativa == "atestado":
+            service = JustificativaAtestadoService()
+            # O método gerar_justificativa no serviço deve lidar com o carregamento
+            # e renderização do seu template específico usando os dados_variaveis.
+            texto_gerado = service.gerar_justificativa(dados_variaveis)
         
+        # elif tipo_justificativa == "troca_plantao":
+        #     # service = JustificativaTrocaPlantaoService() # Você precisaria criar este serviço
+        #     # texto_gerado = service.gerar_justificativa_troca(dados_variaveis)
+        #     logger.warning("Serviço para 'troca_plantao' ainda não implementado.")
+        #     service_exception = NotImplementedError("Serviço para troca de plantão não implementado.")
+        
+        # elif tipo_justificativa == "atraso":
+        #     # service = JustificativaAtrasoService() # Você precisaria criar este serviço
+        #     # texto_gerado = service.gerar_justificativa_atraso(dados_variaveis)
+        #     logger.warning("Serviço para 'atraso' ainda não implementado.")
+        #     service_exception = NotImplementedError("Serviço para justificativa de atraso não implementado.")
+            
+        else:
+            logger.warning(f"API Processar Justificativa: Tipo de justificativa desconhecido '{tipo_justificativa}'.")
+            return jsonify({'erro': f"Tipo de justificativa desconhecido: {tipo_justificativa}"}), 400
+
+        if service_exception: # Se um tipo foi reconhecido mas o serviço não está pronto
+             raise service_exception
+
         logger.info(f"API Processar Justificativa: Justificativa tipo '{tipo_justificativa}' gerada para '{current_user.username}'.")
         return jsonify({'justificativa_gerada': texto_gerado})
-    except Exception as e:
-        logger.error(f"API Processar Justificativa: Erro ao processar tipo '{tipo_justificativa}' para '{current_user.username}': {e}", exc_info=True)
-        return jsonify({'erro': f'Erro ao contatar o serviço de IA ou processar o template: {str(e)}'}), 500
 
-# ROTAS DE GERENCIAMENTO DE USUÁRIOS
+    except ValueError as ve: # Erros de valor levantados pelos serviços (ex: template não encontrado, dados ruins)
+        logger.error(f"API Processar Justificativa: Erro de valor ao processar tipo '{tipo_justificativa}' para '{current_user.username}': {ve}", exc_info=True)
+        return jsonify({'erro': f'Erro nos dados ou configuração do template: {str(ve)}'}), 400
+    except RuntimeError as rte: # Erros de runtime (ex: modelo IA não configurado, template não carregado no serviço)
+        logger.error(f"API Processar Justificativa: Erro de runtime ao processar tipo '{tipo_justificativa}' para '{current_user.username}': {rte}", exc_info=True)
+        return jsonify({'erro': f'Erro interno no serviço de IA: {str(rte)}'}), 500
+    except NotImplementedError as nie:
+        logger.error(f"API Processar Justificativa: Funcionalidade não implementada para tipo '{tipo_justificativa}': {nie}", exc_info=True)
+        return jsonify({'erro': str(nie)}), 501
+    except Exception as e: # Captura genérica para outros erros inesperados
+        logger.error(f"API Processar Justificativa: Erro inesperado ao processar tipo '{tipo_justificativa}' para '{current_user.username}': {e}", exc_info=True)
+        return jsonify({'erro': f'Erro inesperado ao contatar o serviço de IA: {str(e)}'}), 500
+
+# ROTAS DE GERENCIAMENTO DE USUÁRIOS (mantidas como estavam no seu original)
 @admin_bp.route('/user/<int:user_id>/approve', methods=['POST'])
 @login_required
 @admin_required

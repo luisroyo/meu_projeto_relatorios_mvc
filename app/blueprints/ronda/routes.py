@@ -2,11 +2,12 @@ from flask import Blueprint, render_template, request, jsonify, flash, current_a
 from flask_login import login_required, current_user
 from app.forms import TestarRondasForm
 from app.services.rondaservice import processar_log_de_rondas
-from app.services.report_service import ReportService
+
+from app.services.patrimonial_report_service import PatrimonialReportService # Importação corrigida
 
 ronda_bp = Blueprint('ronda', __name__)
 
-report_service = ReportService()
+patrimonial_service = PatrimonialReportService()
 
 @ronda_bp.route('/relatorio_ronda', methods=['GET', 'POST'])
 @login_required
@@ -51,7 +52,7 @@ def processar_relatorio():
         return jsonify({'erro': 'Relatório muito longo (máx 12000 caracteres).'}), 413
 
     try:
-        resultado = report_service.processar_relatorio_com_ia(bruto)
+        resultado = patrimonial_service.processar_relatorio_com_ia(bruto)
         return jsonify({'relatorio_processado': resultado})
     except ValueError as ve:
         return jsonify({'erro': str(ve)}), 400
