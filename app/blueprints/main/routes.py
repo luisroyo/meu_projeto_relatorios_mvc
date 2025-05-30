@@ -121,5 +121,6 @@ def processar_relatorio():
             # Erro no padrão, e (não pediu email OU (pediu email E email também falhou))
             # O status code poderia ser determinado pela natureza do erro_standard_msg
             return jsonify(resposta_json), 500 # Ou 400 dependendo do erro
-            
+                # ... final da rota processar_relatorio
+    current_app.logger.info(f"Resposta JSON final enviada para o cliente: {resposta_json}")
     return jsonify(resposta_json)

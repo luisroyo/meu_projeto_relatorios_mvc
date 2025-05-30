@@ -1,3 +1,4 @@
+{# app/templates/index.html #}
 {% extends "base.html" %}
 
 {% block title %}Analisador de Relatórios IA{% endblock %}
@@ -12,7 +13,7 @@
         {% if current_user.is_authenticated %}
             <div class="row">
                 {# Coluna de Entrada #}
-                <div class="col-12 col-lg-4 mb-4"> {# Ajustado para lg-4 para dar espaço para 3 colunas se necessário ou mais foco na entrada #}
+                <div class="col-12 col-lg-4 mb-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-header">
                             <h5 class="mb-0">Entrada do Relatório</h5>
@@ -55,7 +56,7 @@
                             <h5 class="mb-0">Relatório Processado (Padrão)</h5>
                         </div>
                         <div class="card-body d-flex flex-column">
-                            <div id="statusProcessamento" class="mb-3"></div> {# Status global pode ficar aqui ou ser duplicado #}
+                            <div id="statusProcessamento" class="mb-3"></div>
                             <div class="form-group mb-3 flex-grow-1">
                                 <label for="resultadoProcessamento" class="form-label">Resultado Padrão:</label>
                                 <textarea class="form-control" id="resultadoProcessamento" rows="15" readonly placeholder="O relatório padrão aparecerá aqui..."></textarea>
@@ -92,15 +93,20 @@
 
             </div>
         {% else %}
-            {# ... (bloco else existente) ... #}
+            <div class="alert alert-warning text-center" role="alert">
+                Você precisa estar logado para usar esta funcionalidade. 
+                <a href="{{ url_for('auth.login') }}" class="alert-link">Faça login</a> ou 
+                <a href="{{ url_for('auth.register') }}" class="alert-link">crie uma conta</a>.
+            </div>
         {% endif %}
     </div>
 {% endblock %}
 
 {% block scripts %}
-{{ super() }}
+{{ super() }} {# Inclui scripts do base.html (Bootstrap e o script.js global) #}
+<script src="{{ url_for('static', filename='js/index_page.js') }}"></script> {# Especificamente para a lógica desta página #}
 <script>
-    // Inicializa tooltips do Bootstrap
+    // Inicializa tooltips do Bootstrap nesta página, se houver algum novo
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
       return new bootstrap.Tooltip(tooltipTriggerEl)

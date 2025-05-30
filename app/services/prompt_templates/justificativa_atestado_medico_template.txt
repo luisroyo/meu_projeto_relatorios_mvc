@@ -18,12 +18,12 @@ DIA DO AFASTAMENTO (PARA HORAS): {{ data_atestado }} {# A lista_dias_afastamento
 MODELO DE SAÍDA (use exatamente esta estrutura e linguagem, incluindo o título):
 Justificativa de Falta com Atestado
 
-O {{ cargo.lower() }} {{ funcionario }} apresentou atestado médico datado de {{ data_atestado }}, com recomendação de afastamento por {{ duracao_texto }} a contar da data de emissão.
-{% if tipo_duracao == "dias" %}
-As faltas dos dias {{ lista_dias_afastamento }} estão justificadas mediante documento comprobatório entregue.
-{% elif tipo_duracao == "horas" %}
-A ausência no dia {{ data_atestado }} (referente a {{ duracao_texto }}) está justificada mediante documento comprobatório entregue.
-{% endif %}
+O colaborador {{ funcionario }}, no cargo de {{ cargo | title }}, apresentou atestado médico datado de {{ data_atestado }}, com recomendação de afastamento por {{ duracao_texto }}, a contar da data de emissão.
+{% if tipo_duracao == "dias" -%}
+As ausências nos dias {{ lista_dias_afastamento }} estão devidamente justificadas mediante apresentação do referido documento.
+{%- elif tipo_duracao == "horas" -%}
+A ausência registrada no dia {{ data_atestado }}, referente a {{ duracao_texto }}, está devidamente justificada mediante apresentação do referido documento.
+{%- endif %}
 
 INSTRUÇÕES ADICIONAIS:
 
