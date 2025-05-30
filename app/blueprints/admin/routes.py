@@ -231,6 +231,50 @@ def listar_colaboradores():
     return render_template('admin_listar_colaboradores.html', 
                            title='Gerenciar Colaboradores', 
                            colaboradores_pagination=colaboradores_pagination)
+    
+    # --- NOVAS ROTAS API PARA COLABORADORES (PARA O FORMULÁRIO DE JUSTIFICATIVAS) ---
+
+@admin_bp.route('/api/colaboradores/search', methods=['GET'])
+@login_required
+@admin_required # Garante que apenas admins acessem
+def api_search_colaboradores():
+    search_term = request.args.get('term', '').strip()
+    
+    if not search_term or len(search_term) < 2: # Evita buscas muito amplas ou vazias
+        return jsonify([])
+
+    # Busca por nome_completo que contenha o termo (case-insensitive) e status Ativo
+    # Usando ilike para busca case-insensitive (requer importação de `func` do SQLAlchemy ou uso específico do dialeto do DB)
+    # Para SQLite, 'LIKE' já é case-insensitive por padrão para ASCII. Para unicode, pode precisar de configuração.
+    # Vamos usar 'contains' que geralmente é mapeado para LIKE %term% e `ilike` se disponível.
+    # Uma forma mais portável para case-insensitivity com SQLAlchemy é usar func.lower()
+    from sqlalchemy import func
+
+    colaboradores_encontrados = Colaborador.query.filter(
+        Colaborador.status == 'Ativo',
+        func.lower(Colaborador.nome_completo).contains(func.lower(search_term))
+    ).order_by(Colaborador.nome_completo).limit(10).all() # Limita a 10 resultados
+
+    resultado = [
+        {'id': col.id, 'nome_completo': col.nome_completo, 'cargo': col.cargo}
+        for col in colaboradores_encontrados
+    ]
+    return jsonify(resultado)
+
+@admin_bp.route('/api/colaborador/<int:colaborador_id>/details', methods=['GET'])
+@login_required
+@admin_required
+def api_get_colaborador_details(colaborador_id):
+    colaborador = Colaborador.query.filter_by(id=colaborador_id, status='Ativo').first()
+    if colaborador:
+        return jsonify({
+            'id': colaborador.id,
+            'nome_completo': colaborador.nome_completo,
+            'cargo': colaborador.cargo,
+            'matricula': colaborador.matricula
+            # Adicione outros campos se forem úteis
+        })
+    return jsonify({'erro': 'Colaborador não encontrado ou inativo'}), 404
 
 @admin_bp.route('/colaboradores/novo', methods=['GET', 'POST'])
 @login_required
