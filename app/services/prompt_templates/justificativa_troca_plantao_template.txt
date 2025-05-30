@@ -29,17 +29,17 @@ Qualquer outro cabeçalho, rodapé, explicação ou formatação que não esteja
 DADOS FORNECIDOS:
 
 NOME_COLABORADOR_A: {{ colaborador_a_nome }}
-
+CARGO: {{ cargo }}
 DATA_TRABALHO_COLABORADOR_A: {{ colaborador_a_data_trabalho }}
 
 NOME_COLABORADOR_B: {{ colaborador_b_nome }}
-
+CARGO: {{ cargo }}
 DATA_COMPENSACAO_COLABORADOR_B: {{ colaborador_b_data_compensacao }}
 
 MODELO DE SAÍDA OBRIGATÓRIO:
 Justificativa de Troca de Escala
 
-O agente {{ NOME_COLABORADOR_A }} irá trabalhar no dia {{ DATA_TRABALHO_COLABORADOR_A }} em substituição ao agente {{ NOME_COLABORADOR_B }}. Em contrapartida, o agente {{ NOME_COLABORADOR_B }} cobrirá o plantão do agente {{ NOME_COLABORADOR_A }} no dia {{ DATA_COMPENSACAO_COLABORADOR_B }}.
+O colaborador {{ NOME_COLABORADOR_A }} irá trabalhar no dia {{ DATA_TRABALHO_COLABORADOR_A }} em substituição ao colaborador {{ NOME_COLABORADOR_B }}. Em contrapartida, o colaborador {{ NOME_COLABORADOR_B }} cobrirá o plantão do colaborador {{ NOME_COLABORADOR_A }} no dia {{ DATA_COMPENSACAO_COLABORADOR_B }}.
 
 A troca foi acordada entre os colaboradores, sem prejuízo às escalas da equipe.
 
