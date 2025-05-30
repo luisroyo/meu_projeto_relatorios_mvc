@@ -1,55 +1,64 @@
 {% extends "base.html" %}
-{# {% from "_form_helpers.html" import render_field %} #} {# Se você tiver um macro de formulário #}
+{# Removido: {% import "bootstrap_wtf.html" as wtf %} #}
 
-{% block title %}{{ title }} - Painel Admin{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h2>{{ title }}</h2>
-    <hr>
     <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-7">
-            <div class="card shadow-sm">
-                <div class="card-body p-4">
-                    <form method="POST" action="{{ form_action_url }}" novalidate>
-                        {{ form.hidden_tag() }}
-
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">{{ title }}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="" novalidate>
+                        {{ form.hidden_tag() }} {# Mantém o hidden_tag para CSRF e outros campos ocultos #}
+                        
                         <div class="mb-3">
                             {{ form.nome_completo.label(class="form-label") }}
-                            {{ form.nome_completo(class="form-control" + (" is-invalid" if form.nome_completo.errors else ""), placeholder="Nome completo do colaborador") }}
+                            {{ form.nome_completo(class="form-control" + (" is-invalid" if form.nome_completo.errors else ""), placeholder="Ex: João da Silva") }}
                             {% if form.nome_completo.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {% for error in form.nome_completo.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                    {% for error in form.nome_completo.errors %}
+                                        <span>{{ error }}</span><br>
+                                    {% endfor %}
                                 </div>
                             {% endif %}
                         </div>
 
                         <div class="mb-3">
                             {{ form.cargo.label(class="form-label") }}
-                            {{ form.cargo(class="form-control" + (" is-invalid" if form.cargo.errors else ""), placeholder="Ex: Agente de Segurança, Supervisor") }}
+                            {{ form.cargo(class="form-control" + (" is-invalid" if form.cargo.errors else ""), placeholder="Ex: Vigilante") }}
                             {% if form.cargo.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {% for error in form.cargo.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                    {% for error in form.cargo.errors %}
+                                        <span>{{ error }}</span><br>
+                                    {% endfor %}
                                 </div>
                             {% endif %}
                         </div>
 
                         <div class="mb-3">
                             {{ form.matricula.label(class="form-label") }}
-                            {{ form.matricula(class="form-control" + (" is-invalid" if form.matricula.errors else ""), placeholder="Número da matrícula (se houver)") }}
+                            {{ form.matricula(class="form-control" + (" is-invalid" if form.matricula.errors else ""), placeholder="Ex: 12345 (Opcional)") }}
                             {% if form.matricula.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {% for error in form.matricula.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                    {% for error in form.matricula.errors %}
+                                        <span>{{ error }}</span><br>
+                                    {% endfor %}
                                 </div>
                             {% endif %}
                         </div>
-
+                        
                         <div class="mb-3">
                             {{ form.data_admissao.label(class="form-label") }}
-                            {{ form.data_admissao(class="form-control" + (" is-invalid" if form.data_admissao.errors else "")) }}
+                            {{ form.data_admissao(class="form-control" + (" is-invalid" if form.data_admissao.errors else ""), type="date") }}
                             {% if form.data_admissao.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {% for error in form.data_admissao.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                    {% for error in form.data_admissao.errors %}
+                                        <span>{{ error }}</span><br>
+                                    {% endfor %}
                                 </div>
                             {% endif %}
                         </div>
@@ -59,21 +68,27 @@
                             {{ form.status(class="form-select" + (" is-invalid" if form.status.errors else "")) }}
                             {% if form.status.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {% for error in form.status.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                    {% for error in form.status.errors %}
+                                        <span>{{ error }}</span><br>
+                                    {% endfor %}
                                 </div>
                             {% endif %}
                         </div>
-
-                        <div class="d-grid mt-4">
-                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            {{ form.submit(class="btn btn-primary btn-block btn-lg") }}
                         </div>
                     </form>
+                    {% if colaborador %} {# Link para voltar para a lista, útil se estiver editando #}
+                    <div class="mt-3 text-center">
+                        <a href="{{ url_for('admin.listar_colaboradores') }}" class="btn btn-outline-secondary btn-sm">Cancelar e Voltar para Lista</a>
+                    </div>
+                    {% elif request.endpoint == 'admin.adicionar_colaborador' %} {# Link para voltar se estiver adicionando #}
+                     <div class="mt-3 text-center">
+                        <a href="{{ url_for('admin.listar_colaboradores') }}" class="btn btn-outline-secondary btn-sm">Voltar para Lista de Colaboradores</a>
+                    </div>
+                    {% endif %}
                 </div>
-            </div>
-            <div class="text-center mt-3">
-                <a href="{{ url_for('admin.listar_colaboradores') }}" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left-circle me-1"></i>Voltar para Lista de Colaboradores
-                </a>
             </div>
         </div>
     </div>

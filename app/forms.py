@@ -1,5 +1,7 @@
 # app/forms.py
+
 from flask_wtf import FlaskForm
+from wtforms.validators import Optional # Importação correta
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, DateField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 
@@ -10,7 +12,7 @@ from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationE
 # ou faça a query dentro da rota após a validação básica. Por ora, vamos supor que o User pode ser importado.
 # Para evitar problemas de importação circular se 'User' não for estritamente necessário aqui para as validações
 # que você está usando ativamente, você pode comentar o import e as funções validate_username/validate_email.
-from app.models import User # Se você tiver validações que usam o modelo User
+from app.models import Colaborador, User # Se você tiver validações que usam o modelo User
 
 class RegistrationForm(FlaskForm):
     username = StringField('Nome de Usuário', 
@@ -94,7 +96,51 @@ class TestarRondasForm(FlaskForm):
         # Adicionalmente, pode verificar se não é apenas espaços em branco
         if self.nome_condominio.data == 'Outro' and field.data and not field.data.strip():
             raise ValidationError('O nome do condomínio (Outro) não pode ser apenas espaços em branco.')
+# NOVO FORMULÁRIO PARA CADASTRO DE COLABORADOR
+class ColaboradorForm(FlaskForm):
+    nome_completo = StringField(
+        'Nome Completo',
+        validators=[DataRequired(message="Nome completo é obrigatório."),
+                    Length(min=3, max=150)]
+    )
+    cargo = StringField(
+        'Cargo',
+        validators=[DataRequired(message="Cargo é obrigatório."),
+                    Length(min=2, max=100)]
+    )
+    matricula = StringField(
+        'Matrícula (Opcional)',
+        validators=[Optional(), Length(max=50)] # Opcional, mas se preenchido, tem um limite
+    )
+    data_admissao = DateField(
+        'Data de Admissão (Opcional)',
+        format='%Y-%m-%d',
+        validators=[Optional()]
+    )
+    status = SelectField(
+        'Status',
+        choices=[
+            ('Ativo', 'Ativo'),
+            ('Inativo', 'Inativo'),
+            ('Férias', 'Férias'),
+            ('Licença', 'Licença')
+            # Adicione outros status conforme necessário
+        ],
+        validators=[DataRequired(message="Status é obrigatório.")],
+        default='Ativo'
+    )
+    submit = SubmitField('Salvar Colaborador', render_kw={"class": "btn btn-primary"})
 
+    # Validação customizada para matrícula (se precisar ser única)
+    def validate_matricula(self, matricula_field):
+        if matricula_field.data: # Só valida se algo foi digitado
+            colaborador_existente = Colaborador.query.filter_by(matricula=matricula_field.data).first()
+            # Se estiver editando, precisa permitir que a matrícula seja a mesma do colaborador atual.
+            # Isso requer passar o ID do colaborador para o formulário, o que complica um pouco para um form de criação.
+            # Para um formulário simples de *criação*, a validação abaixo é suficiente.
+            # Para edição, você ajustaria para: if colaborador_existente and colaborador_existente.id != self.id_do_colaborador_em_edicao.data:
+            if colaborador_existente:
+                raise ValidationError('Esta matrícula já está em uso. Por favor, verifique.')
 # NOVO FORMULÁRIO PARA FORMATAR RELATÓRIO PARA E-MAIL
 class FormatEmailReportForm(FlaskForm):
     raw_report = TextAreaField(

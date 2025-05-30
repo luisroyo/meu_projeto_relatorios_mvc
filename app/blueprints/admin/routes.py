@@ -5,9 +5,9 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from app import db
-from app.models import User, LoginHistory, Ronda # Assegure-se que Ronda está aqui se usada no admin
+from app.models import User, LoginHistory, Ronda, Colaborador # Assegure-se que Ronda está aqui se usada no admin
 from app.decorators.admin_required import admin_required
-from app.forms import TestarRondasForm, FormatEmailReportForm # Presumo que sejam usados em admin_tools
+from app.forms import TestarRondasForm, FormatEmailReportForm, ColaboradorForm # Presumo que sejam usados em admin_tools
 import logging
 
 # --- SERVIÇOS DE IA ---
@@ -219,3 +219,107 @@ def delete_user(user_id):
         flash(f'Erro ao deletar usuário {user_to_delete.username}: {str(e)}', 'danger')
         logger.error(f"Erro ao deletar usuário '{user_to_delete.username}' por admin '{current_user.username}': {e}", exc_info=True)
     return redirect(url_for('admin.manage_users'))
+
+# --- ROTAS PARA GERENCIAMENTO DE COLABORADORES ---
+@admin_bp.route('/colaboradores', methods=['GET'])
+@login_required
+@admin_required
+def listar_colaboradores():
+    logger.info(f"Admin '{current_user.username}' acessou a lista de colaboradores.")
+    page = request.args.get('page', 1, type=int)
+    colaboradores_pagination = Colaborador.query.order_by(Colaborador.nome_completo).paginate(page=page, per_page=10)
+    return render_template('admin_listar_colaboradores.html', 
+                           title='Gerenciar Colaboradores', 
+                           colaboradores_pagination=colaboradores_pagination)
+
+@admin_bp.route('/colaboradores/novo', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def adicionar_colaborador():
+    form = ColaboradorForm()
+    if form.validate_on_submit():
+        try:
+            novo_colaborador = Colaborador(
+                nome_completo=form.nome_completo.data,
+                cargo=form.cargo.data,
+                matricula=form.matricula.data if form.matricula.data else None, # Garante None se vazio
+                data_admissao=form.data_admissao.data,
+                status=form.status.data
+            )
+            db.session.add(novo_colaborador)
+            db.session.commit()
+            flash(f'Colaborador "{novo_colaborador.nome_completo}" adicionado com sucesso!', 'success')
+            logger.info(f"Admin '{current_user.username}' adicionou novo colaborador: '{novo_colaborador.nome_completo}'.")
+            return redirect(url_for('admin.listar_colaboradores'))
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erro ao adicionar novo colaborador por '{current_user.username}': {e}", exc_info=True)
+            flash(f'Erro ao adicionar colaborador: {str(e)}', 'danger')
+    
+    elif request.method == 'POST': # Se o formulário não validou no POST
+        flash('Por favor, corrija os erros no formulário.', 'warning')
+
+    logger.debug(f"Admin '{current_user.username}' acessou o formulário para adicionar novo colaborador.")
+    return render_template('admin_colaborador_form.html', title='Adicionar Novo Colaborador', form=form)
+
+@admin_bp.route('/colaboradores/editar/<int:colaborador_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def editar_colaborador(colaborador_id):
+    colaborador = Colaborador.query.get_or_404(colaborador_id)
+    form = ColaboradorForm(obj=colaborador) # Popula o formulário com os dados do colaborador
+
+    if form.validate_on_submit():
+        # Para a validação de matrícula única na edição, precisamos ajustar
+        # a lógica em ColaboradorForm ou aqui.
+        # Se a matrícula mudou E a nova matrícula já existe para OUTRO colaborador: erro.
+        if form.matricula.data and form.matricula.data != colaborador.matricula:
+            colaborador_existente = Colaborador.query.filter(
+                Colaborador.matricula == form.matricula.data,
+                Colaborador.id != colaborador_id # Exclui o próprio colaborador da checagem
+            ).first()
+            if colaborador_existente:
+                form.matricula.errors.append('Esta matrícula já está em uso por outro colaborador.')
+                flash('Erro ao salvar: Matrícula já em uso.', 'danger')
+                return render_template('admin_colaborador_form.html', title='Editar Colaborador', form=form, colaborador=colaborador)
+        
+        try:
+            colaborador.nome_completo = form.nome_completo.data
+            colaborador.cargo = form.cargo.data
+            colaborador.matricula = form.matricula.data if form.matricula.data else None
+            colaborador.data_admissao = form.data_admissao.data
+            colaborador.status = form.status.data
+            # colaborador.data_modificacao é atualizado automaticamente pelo onupdate no modelo
+            
+            db.session.commit()
+            flash(f'Colaborador "{colaborador.nome_completo}" atualizado com sucesso!', 'success')
+            logger.info(f"Admin '{current_user.username}' editou o colaborador ID {colaborador_id}: '{colaborador.nome_completo}'.")
+            return redirect(url_for('admin.listar_colaboradores'))
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erro ao editar colaborador ID {colaborador_id} por '{current_user.username}': {e}", exc_info=True)
+            flash(f'Erro ao atualizar colaborador: {str(e)}', 'danger')
+            
+    elif request.method == 'POST': # Se o formulário não validou no POST
+        flash('Por favor, corrija os erros no formulário.', 'warning')
+
+    logger.debug(f"Admin '{current_user.username}' acessou o formulário para editar colaborador ID {colaborador_id}.")
+    return render_template('admin_colaborador_form.html', title='Editar Colaborador', form=form, colaborador=colaborador)
+
+
+@admin_bp.route('/colaboradores/deletar/<int:colaborador_id>', methods=['POST'])
+@login_required
+@admin_required
+def deletar_colaborador(colaborador_id):
+    colaborador = Colaborador.query.get_or_404(colaborador_id)
+    try:
+        nome_colaborador = colaborador.nome_completo
+        db.session.delete(colaborador)
+        db.session.commit()
+        flash(f'Colaborador "{nome_colaborador}" deletado com sucesso!', 'success')
+        logger.info(f"Admin '{current_user.username}' deletou o colaborador ID {colaborador_id}: '{nome_colaborador}'.")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao deletar colaborador ID {colaborador_id} por '{current_user.username}': {e}", exc_info=True)
+        flash(f'Erro ao deletar colaborador: {str(e)}. Verifique se há dependências.', 'danger')
+    return redirect(url_for('admin.listar_colaboradores'))
