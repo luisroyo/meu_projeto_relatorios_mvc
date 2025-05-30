@@ -1,31 +1,28 @@
 # app/blueprints/admin/routes.py
 from flask import (
-    Blueprint, render_template, redirect, url_for, flash, 
-    request, current_app, jsonify # Removido render_template_string pois os serviços lidarão com templates
+    Blueprint, render_template, redirect, url_for, flash,
+    request, current_app, jsonify
 )
 from flask_login import login_required, current_user
-from app import db # Necessário para as rotas de gerenciamento de usuário
-from app.models import User, LoginHistory, Ronda # Necessário para as rotas de gerenciamento de usuário
-from app.decorators.admin_required import admin_required 
-from app.forms import TestarRondasForm, FormatEmailReportForm # Mantido para a rota admin_tools
+from app import db
+from app.models import User, LoginHistory, Ronda # Assegure-se que Ronda está aqui se usada no admin
+from app.decorators.admin_required import admin_required
+from app.forms import TestarRondasForm, FormatEmailReportForm # Presumo que sejam usados em admin_tools
 import logging
-# 'os' e 'Path' podem não ser mais necessários aqui se os serviços cuidam dos caminhos dos templates
 
 # --- SERVIÇOS DE IA ---
-# Importe os serviços específicos que esta blueprint utilizará.
+# Importações corrigidas para cada serviço de seu respectivo módulo:
 from app.services.justificativa_service import JustificativaAtestadoService
-# Se você tiver outros serviços de justificativa, importe-os também:
-# from app.services.justificativa_troca_service import JustificativaTrocaPlantaoService
+from app.services.justificativa_troca_plantao_service import JustificativaTrocaPlantaoService
+# Se você criar o JustificativaAtrasoService, adicione a importação aqui:
 # from app.services.justificativa_atraso_service import JustificativaAtrasoService
-# A importação do PatrimonialReportService foi removida pois não parece ser usada nesta blueprint
-# com a refatoração da api_processar_justificativa. Se for usada em outra rota aqui, adicione-a de volta.
+
+# Para a ferramenta de formatação de email em admin_tools, se decidir usar IA:
+# from app.services.email_format_service import EmailFormatService
 
 logger = logging.getLogger(__name__)
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
-# A função carregar_prompt_template e PROMPT_TEMPLATE_DIR foram removidas daqui,
-# pois a lógica de carregar e renderizar templates específicos agora está
-# encapsulada dentro de cada respectivo serviço (ex: JustificativaAtestadoService).
 
 @admin_bp.route('/')
 @login_required
@@ -47,13 +44,10 @@ def manage_users():
 @login_required
 @admin_required
 def admin_tools():
-    ronda_form_instance = TestarRondasForm(prefix="ronda_form") 
+    ronda_form_instance = TestarRondasForm(prefix="ronda_form")
     email_form_instance = FormatEmailReportForm(prefix="email_form")
     formatted_email_report_text = None
 
-    # A lógica de formatação de email aqui é uma manipulação de string local.
-    # Se você quisesse usar a IA para formatar o email, você instanciaria
-    # o EmailFormatService e chamaria um método dele aqui.
     if request.method == 'POST' and request.form.get('tool_action') == 'format_email':
         email_form_instance = FormatEmailReportForm(request.form, prefix="email_form")
         if email_form_instance.validate_on_submit():
@@ -62,11 +56,11 @@ def admin_tools():
             custom_greeting = email_form_instance.custom_greeting.data.strip()
             include_closing = email_form_instance.include_closing.data
             custom_closing = email_form_instance.custom_closing.data.strip()
-            
+
             parts = []
             if custom_greeting: parts.append(custom_greeting)
             elif include_greeting: parts.append("Prezados(as),")
-            if parts: parts.append("") 
+            if parts: parts.append("")
             parts.append(raw_report)
             if raw_report.strip() and (custom_closing or include_closing): parts.append("")
             if custom_closing: parts.append(custom_closing)
@@ -77,7 +71,7 @@ def admin_tools():
             flash('Erro na formatação do e-mail. Verifique os campos.', 'danger')
 
     logger.info(f"Admin '{current_user.username}' acessou/interagiu com o dashboard de ferramentas /admin/ferramentas. IP: {request.remote_addr if hasattr(request, 'remote_addr') else 'N/A'}")
-    return render_template('admin_ferramentas.html', 
+    return render_template('admin_ferramentas.html',
                            title='Ferramentas Administrativas',
                            ronda_form=ronda_form_instance,
                            email_form=email_form_instance,
@@ -90,6 +84,7 @@ def gerador_justificativas_tool():
     logger.info(f"Admin '{current_user.username}' acessou o Gerador de Justificativas.")
     return render_template('admin_gerador_justificativas.html', title='Gerador de Justificativas iFractal')
 
+
 @admin_bp.route('/ferramentas/api/processar-justificativa', methods=['POST'])
 @login_required
 @admin_required
@@ -100,7 +95,7 @@ def api_processar_justificativa():
         return jsonify({'erro': 'Dados não fornecidos.'}), 400
 
     tipo_justificativa = payload.get('tipo_justificativa')
-    dados_variaveis = payload.get('dados_variaveis') # Este deve ser o dicionário para o template
+    dados_variaveis = payload.get('dados_variaveis')
 
     if not tipo_justificativa or not isinstance(dados_variaveis, dict):
         logger.warning(f"API Processar Justificativa: 'tipo_justificativa' ou 'dados_variaveis' inválidos. Payload: {payload} IP: {request.remote_addr if hasattr(request, 'remote_addr') else 'N/A'}")
@@ -109,51 +104,45 @@ def api_processar_justificativa():
     logger.info(f"API Processar Justificativa: Tipo='{tipo_justificativa}' Dados='{dados_variaveis}' recebidos por '{current_user.username}'.")
 
     texto_gerado = None
-    service_exception = None
+    service_exception = None # Usado para capturar NotImplementedError antes de tentar retornar
 
     try:
         if tipo_justificativa == "atestado":
             service = JustificativaAtestadoService()
-            # O método gerar_justificativa no serviço deve lidar com o carregamento
-            # e renderização do seu template específico usando os dados_variaveis.
-            texto_gerado = service.gerar_justificativa(dados_variaveis)
-        
-        # elif tipo_justificativa == "troca_plantao":
-        #     # service = JustificativaTrocaPlantaoService() # Você precisaria criar este serviço
-        #     # texto_gerado = service.gerar_justificativa_troca(dados_variaveis)
-        #     logger.warning("Serviço para 'troca_plantao' ainda não implementado.")
-        #     service_exception = NotImplementedError("Serviço para troca de plantão não implementado.")
-        
+            texto_gerado = service.gerar_justificativa(dados_variaveis) # Método consistente com o do serviço
+        elif tipo_justificativa == "troca_plantao":
+            service = JustificativaTrocaPlantaoService()
+            texto_gerado = service.gerar_justificativa_troca(dados_variaveis) # Método consistente com o do serviço
         # elif tipo_justificativa == "atraso":
-        #     # service = JustificativaAtrasoService() # Você precisaria criar este serviço
-        #     # texto_gerado = service.gerar_justificativa_atraso(dados_variaveis)
+        #     # Certifique-se de que JustificativaAtrasoService está importado e o arquivo existe
+        #     # service = JustificativaAtrasoService()
+        #     # texto_gerado = service.gerar_justificativa_atraso(dados_variaveis) # Método hipotético
         #     logger.warning("Serviço para 'atraso' ainda não implementado.")
         #     service_exception = NotImplementedError("Serviço para justificativa de atraso não implementado.")
-            
         else:
             logger.warning(f"API Processar Justificativa: Tipo de justificativa desconhecido '{tipo_justificativa}'.")
             return jsonify({'erro': f"Tipo de justificativa desconhecido: {tipo_justificativa}"}), 400
 
-        if service_exception: # Se um tipo foi reconhecido mas o serviço não está pronto
+        if service_exception:
              raise service_exception
 
         logger.info(f"API Processar Justificativa: Justificativa tipo '{tipo_justificativa}' gerada para '{current_user.username}'.")
         return jsonify({'justificativa_gerada': texto_gerado})
 
-    except ValueError as ve: # Erros de valor levantados pelos serviços (ex: template não encontrado, dados ruins)
+    except ValueError as ve:
         logger.error(f"API Processar Justificativa: Erro de valor ao processar tipo '{tipo_justificativa}' para '{current_user.username}': {ve}", exc_info=True)
         return jsonify({'erro': f'Erro nos dados ou configuração do template: {str(ve)}'}), 400
-    except RuntimeError as rte: # Erros de runtime (ex: modelo IA não configurado, template não carregado no serviço)
+    except RuntimeError as rte:
         logger.error(f"API Processar Justificativa: Erro de runtime ao processar tipo '{tipo_justificativa}' para '{current_user.username}': {rte}", exc_info=True)
         return jsonify({'erro': f'Erro interno no serviço de IA: {str(rte)}'}), 500
     except NotImplementedError as nie:
         logger.error(f"API Processar Justificativa: Funcionalidade não implementada para tipo '{tipo_justificativa}': {nie}", exc_info=True)
         return jsonify({'erro': str(nie)}), 501
-    except Exception as e: # Captura genérica para outros erros inesperados
+    except Exception as e:
         logger.error(f"API Processar Justificativa: Erro inesperado ao processar tipo '{tipo_justificativa}' para '{current_user.username}': {e}", exc_info=True)
         return jsonify({'erro': f'Erro inesperado ao contatar o serviço de IA: {str(e)}'}), 500
 
-# ROTAS DE GERENCIAMENTO DE USUÁRIOS (mantidas como estavam no seu original)
+# --- ROTAS DE GERENCIAMENTO DE USUÁRIOS ---
 @admin_bp.route('/user/<int:user_id>/approve', methods=['POST'])
 @login_required
 @admin_required
@@ -177,7 +166,7 @@ def revoke_user(user_id):
         flash('Você não pode revogar sua própria aprovação.', 'danger')
         logger.warning(f"Admin '{current_user.username}' tentou revogar a própria aprovação.")
         return redirect(url_for('admin.manage_users'))
-    
+
     if user.is_approved:
         user.is_approved = False
         db.session.commit()
@@ -220,7 +209,7 @@ def delete_user(user_id):
         return redirect(url_for('admin.manage_users'))
     try:
         LoginHistory.query.filter_by(user_id=user_to_delete.id).delete(synchronize_session=False)
-        Ronda.query.filter_by(user_id=user_to_delete.id).delete(synchronize_session=False) 
+        Ronda.query.filter_by(user_id=user_to_delete.id).delete(synchronize_session=False)
         db.session.delete(user_to_delete)
         db.session.commit()
         flash(f'Usuário {user_to_delete.username} deletado com sucesso.', 'success')

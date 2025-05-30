@@ -1,46 +1,70 @@
 # app/services/email_format_service.py
 import logging
 import os
-from .base_generative_service import BaseGenerativeService # Importa a classe base
+from .base_generative_service import BaseGenerativeService
+from jinja2 import Environment, FileSystemLoader # Adicionado Jinja2
 
 class EmailFormatService(BaseGenerativeService):
-    def __init__(self):
-        super().__init__() # Chama o construtor da classe base
-        self.logger = logging.getLogger(__name__) 
-        self._template_content = None
+    def __init__(self, model_name="gemini-1.5-flash-latest", template_filename="email_professional_format_template.txt"):
+        super().__init__(model_name=model_name)
+        # self.logger já é inicializado pela BaseGenerativeService
+        self._template = None # Alterado para _template para armazenar o objeto template Jinja2
         try:
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            # Ajuste o caminho se a pasta prompt_templates estiver em outro lugar
-            template_path = os.path.join(current_dir, "prompt_templates", "email_professional_format_template.txt")
-            with open(template_path, 'r', encoding='utf-8') as f:
-                self._template_content = f.read()
-            self.logger.info("Template 'email_professional_format_template.txt' carregado.")
+            template_folder = os.path.join(current_dir, "prompt_templates")
+            jinja_env = Environment(
+                loader=FileSystemLoader(template_folder),
+                autoescape=True 
+            )
+            self._template = jinja_env.get_template(template_filename)
+            self.logger.info(f"Template '{template_filename}' carregado para EmailFormatService.")
         except Exception as e:
-            self.logger.error(f"Erro ao carregar template de formatação de email: {e}", exc_info=True)
-            self._template_content = None
+            self.logger.error(f"Erro ao carregar template '{template_filename}' para EmailFormatService: {e}", exc_info=True)
+            raise RuntimeError(f"Falha ao carregar template para EmailFormatService: {e}") from e
 
-    def formatar_para_email(self, texto_original: str) -> str:
-        if not self._template_content:
-            self.logger.error("Tentativa de formatar para email, mas o template não foi carregado.")
-            raise RuntimeError("Template de formatação de email não está carregado ou não foi encontrado.")
-
-        if not isinstance(texto_original, str):
-            self.logger.warning("texto_original não é uma string para formatar_para_email.")
-            raise ValueError("texto_original deve ser uma string.")
+    def _construir_prompt_formatacao_email(self, dados_brutos_email: str) -> str:
+        if not self._template:
+            self.logger.error("Tentativa de construir prompt de email, mas o template não foi carregado.")
+            raise RuntimeError("Template de formatação de email não está carregado.")
+        
+        if not isinstance(dados_brutos_email, str):
+            self.logger.warning("dados_brutos_email não é uma string.")
+            raise ValueError("Os dados brutos para o email devem ser fornecidos como uma string.")
 
         try:
-            # Verifique qual placeholder seu email_professional_format_template.txt usa.
-            # Se for {{ texto_original }}, você precisará usar Jinja2 como no JustificativaAtestadoService.
-            # Se for {texto_original} ou {dados_brutos}, .format() pode funcionar.
-            # Vou assumir que é {texto_original} para este exemplo com .format():
-            prompt_final = self._template_content.format(texto_original=texto_original)
-            # Se seu template de email for mais complexo e usar {{ ... }}, você precisará
-            # carregar e renderizar com Jinja2, similar ao JustificativaAtestadoService.
-        except KeyError as e:
-            self.logger.error(f"Placeholder não encontrado no template de email. Chave esperada: {e}")
-            raise ValueError(f"Erro ao construir prompt de email: placeholder {e} ausente.")
-        except Exception as e:
-            self.logger.error(f"Erro inesperado ao formatar o prompt de email: {e}", exc_info=True)
-            raise ValueError(f"Erro inesperado ao formatar o prompt de email: {str(e)}")
+            # O template 'email_professional_format_template.txt' espera {dados_brutos}
+            # Usando Jinja2 para renderizar:
+            prompt_final = self._template.render(dados_brutos=dados_brutos_email)
+            self.logger.debug(f"Prompt para Formatação de Email (100 chars): {prompt_final[:100]}...")
+            return prompt_final
+        except Exception as e: # Captura erros de renderização do Jinja2 também
+            self.logger.error(f"Erro ao renderizar template de formatação de email com Jinja2: {e}", exc_info=True)
+            raise ValueError(f"Erro ao construir o prompt para formatação de email: {str(e)}") from e
 
-        return self._call_generative_model(prompt_final)
+    def formatar_para_email(self, texto_original_relatorio: str) -> str:
+        """
+        Formata um texto de relatório (potencialmente já processado) para um formato de email
+        usando IA Gemini e um template de prompt.
+        """
+        self.logger.info(f"Iniciando formatação para email do texto (primeiros 70 chars): '{texto_original_relatorio[:70]}...'")
+
+        if self.model is None:
+            self.logger.error("Modelo de IA não inicializado no EmailFormatService.")
+            raise RuntimeError("Serviço de IA não configurado corretamente (modelo não inicializado).")
+
+        try:
+            prompt_para_ia = self._construir_prompt_formatacao_email(texto_original_relatorio)
+            
+            texto_formatado_email = self._call_generative_model(prompt_para_ia)
+            
+            self.logger.info("Texto formatado para email pela IA com sucesso.")
+            return texto_formatado_email
+        except ValueError as ve:
+            self.logger.error(f"Erro de valor ao formatar para email: {ve}")
+            raise
+        except RuntimeError as rte:
+            self.logger.error(f"Erro de runtime ao formatar para email: {rte}")
+            raise
+        except Exception as e:
+            self.logger.exception("Erro inesperado ao formatar para email:")
+            raise RuntimeError(f"Erro inesperado no serviço de formatação de email: {str(e)}") from e
