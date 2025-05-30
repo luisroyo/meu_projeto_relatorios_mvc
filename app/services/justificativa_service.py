@@ -1,46 +1,51 @@
 # app/services/justificativa_service.py
-import logging # Adicionado para consistência, embora o logger seja herdado
+import logging
 import os
-from jinja2 import Environment, FileSystemLoader # pip install Jinja2
-from .base_generative_service import BaseGenerativeService 
+from .base_generative_service import BaseGenerativeService
+from jinja2 import Environment, FileSystemLoader
 
 class JustificativaAtestadoService(BaseGenerativeService):
-    def __init__(self):
-        super().__init__() 
-        # self.logger já é inicializado na BaseGenerativeService com o nome desta classe.
-        # Se você quiser um logger com o nome 'app.services.justificativa_service' especificamente:
-        # self.logger = logging.getLogger(__name__)
+    def __init__(self, model_name="gemini-1.5-flash-latest", template_filename="justificativa_atestado_medico_template.txt"):
+        super().__init__(model_name=model_name)
         self._template = None
         try:
             current_dir = os.path.dirname(os.path.abspath(__file__))
             template_folder = os.path.join(current_dir, "prompt_templates")
-            jinja_env = Environment(
-                loader=FileSystemLoader(template_folder),
-                autoescape=True 
-            )
-            self._template = jinja_env.get_template("justificativa_atestado_medico_template.txt")
-            self.logger.info("Template 'justificativa_atestado_medico_template.txt' carregado.") # Logger da base será usado
+            jinja_env = Environment(loader=FileSystemLoader(template_folder), autoescape=True)
+            self._template = jinja_env.get_template(template_filename)
+            self.logger.info(f"Template '{template_filename}' carregado para JustificativaAtestadoService.")
         except Exception as e:
-            self.logger.error(f"Erro ao carregar template de justificativa: {e}", exc_info=True)
-            # É importante decidir como tratar este erro. Relançar é uma opção.
-            # Se relançar, a instanciação do serviço falhará, o que pode ser o desejado.
+            self.logger.error(f"Erro ao carregar template '{template_filename}' para JustificativaAtestadoService: {e}", exc_info=True)
             raise RuntimeError(f"Falha ao carregar template para JustificativaAtestadoService: {e}") from e
 
-    def gerar_justificativa(self, dados_justificativa: dict) -> str:
+    def _construir_prompt(self, dados_justificativa: dict) -> str:
         if not self._template:
-            # Este erro ocorreria se o __init__ falhasse em carregar o template mas não relançasse a exceção.
-            self.logger.error("Tentativa de gerar justificativa, mas o template não foi carregado.")
             raise RuntimeError("Template de justificativa de atestado não está carregado.")
-        
         if not isinstance(dados_justificativa, dict):
-            self.logger.warning("dados_justificativa não é um dicionário.")
-            raise ValueError("Os dados para a justificativa devem ser fornecidos como um dicionário.")
-
+            raise ValueError("Os dados para a justificativa de atestado devem ser um dicionário.")
         try:
             prompt_final = self._template.render(dados_justificativa)
-            self.logger.debug(f"Prompt para JustificativaAtestado (100 chars): {prompt_final[:100]}")
+            self.logger.debug(f"Prompt para JustificativaAtestado (100 chars): {prompt_final[:100]}...")
+            return prompt_final
         except Exception as e:
-            self.logger.error(f"Erro ao renderizar template de justificativa com Jinja2: {e}", exc_info=True)
-            raise ValueError(f"Erro ao construir o prompt para a justificativa: {str(e)}") from e
-            
-        return self._call_generative_model(prompt_final)
+            self.logger.error(f"Erro ao renderizar template de justificativa de atestado com Jinja2: {e}", exc_info=True)
+            raise ValueError(f"Erro ao construir o prompt para a justificativa de atestado: {str(e)}") from e
+
+    def gerar_justificativa(self, dados_justificativa: dict) -> str: # Nome do método corrigido para consistência
+        self.logger.info(f"Gerando justificativa de atestado com dados: {dados_justificativa}")
+        if self.model is None:
+            raise RuntimeError("Serviço de IA não configurado corretamente (modelo não inicializado).")
+        try:
+            prompt = self._construir_prompt(dados_justificativa)
+            texto_gerado = self._call_generative_model(prompt)
+            self.logger.info("Justificativa de atestado gerada com sucesso.")
+            return texto_gerado
+        except ValueError as ve:
+            self.logger.error(f"Erro de valor ao gerar justificativa de atestado: {ve}")
+            raise
+        except RuntimeError as rte:
+            self.logger.error(f"Erro de runtime ao gerar justificativa de atestado: {rte}")
+            raise
+        except Exception as e:
+            self.logger.exception("Erro inesperado ao gerar justificativa de atestado:")
+            raise RuntimeError(f"Erro inesperado no serviço de justificativa de atestado: {str(e)}") from e

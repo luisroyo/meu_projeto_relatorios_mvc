@@ -16,14 +16,12 @@ logger = logging.getLogger(__name__)
 
 # Instanciar os serviços que este blueprint utilizará.
 # Eles herdarão a configuração do modelo Gemini da BaseGenerativeService.
+# A instanciação dos serviços permanece a mesma
 try:
     patrimonial_service = PatrimonialReportService()
-    email_service = EmailFormatService()
+    email_service = EmailFormatService() # Garanta que este é o serviço correto (Gemini)
 except Exception as e:
     logger.critical(f"Falha ao instanciar serviços no main_bp: {e}", exc_info=True)
-    # Em um cenário real, você pode querer tratar isso de forma mais robusta,
-    # talvez impedindo a aplicação de iniciar ou retornando um erro global.
-    # Por enquanto, vamos logar e a aplicação pode falhar nas rotas se os serviços não estiverem prontos.
     patrimonial_service = None
     email_service = None
 
