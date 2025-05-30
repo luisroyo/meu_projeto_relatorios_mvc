@@ -11,9 +11,12 @@
         <a href="{{ url_for('admin.manage_users') }}" class="list-group-item list-group-item-action">
             <i class="bi bi-people-fill me-2"></i>Gerenciar Usuários
         </a>
-        {# NOVO LINK ADICIONADO ABAIXO #}
+        {# CERTIFIQUE-SE DE QUE ESTA LINHA FOI ADICIONADA E ESTÁ CORRETA #}
+        <a href="{{ url_for('admin.listar_colaboradores') }}" class="list-group-item list-group-item-action">
+            <i class="bi bi-person-lines-fill me-2"></i>Gerenciar Colaboradores
+        </a>
         <a href="{{ url_for('admin.admin_tools') }}" class="list-group-item list-group-item-action">
-            <i class="bi bi-tools me-2"></i>Ferramentas Administrativas 
+            <i class="bi bi-tools me-2"></i>Ferramentas Administrativas
         </a>
         {# Adicione outros links do painel administrativo aqui, se necessário #}
     </div>
