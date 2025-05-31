@@ -4,84 +4,67 @@ Sua tarefa é analisar o "Relatório Bruto" fornecido abaixo e gerar um e-mail p
 
 Instruções Detalhadas para Processamento:
 
-1.  **Análise do Relatório Bruto:**
-    Leia atentamente o "Relatório Bruto" (`{dados_brutos}`) para extrair todas as informações pertinentes necessárias para compor o e-mail.
+1. **Análise do Relatório Bruto:**
+   Leia atentamente o "Relatório Bruto" (`{{ dados_brutos }}`) para extrair todas as informações pertinentes necessárias para compor o e-mail.
 
-2.  **Extração de Informações Chave:**
-    Com base no "Relatório Bruto", identifique e extraia as seguintes informações. Se alguma informação não estiver presente no relatório bruto, omita o campo correspondente no e-mail final ou indique que a informação não foi fornecida, conforme o contexto do modelo de e-mail:
+2. **Extração de Informações Chave:**
+   Com base no "Relatório Bruto", identifique e extraia as seguintes informações. Se alguma informação não estiver presente no relatório bruto, omita o campo correspondente no e-mail final ou indique que a informação não foi fornecida, conforme o contexto do modelo de e-mail:
 
-    * **Identificação da Ocorrência:**
-        * Data da Ocorrência: (Ex: 08/05/2025)
-        * Hora da Ocorrência (aproximada): (Ex: 19h50)
-        * Local da Ocorrência (Endereço completo ou ponto de referência claro): (Ex: Rua Dermival Bernardes Siqueira, nº 1827)
-        * Natureza Principal da Ocorrência: (Ex: Qualificação de terceiros, Atividade fora do horário comercial)
-    * **Equipe e Recursos Envolvidos:**
-        * Identificação da Viatura/Equipe (VTR): (Ex: VTR 03, Águia-05) - Padronize para "Águia-XX" se aplicável.
-        * Agente(s) Responsável(is) pela Atuação/Registro Principal: (Ex: Agente William)
-        * Supervisor(es) Presente(s) (se houver): (Ex: Supervisor Luis Royo)
-    * **Detalhes da Situação Encontrada:**
-        * Pessoas/Empresa(s) Central na Ocorrência: (Ex: Trabalhadores da empresa Marce Max Planejados)
-        * Descrição da Atividade/Situação Observada (o que estavam fazendo): (Ex: Em atividade de [tipo de serviço] fora do horário comercial permitido)
-        * Constatação sobre Orientações Prévias: Houve orientação anterior aos envolvidos sobre o mesmo assunto? (Sim/Não)
-        * Se sim, data da orientação anterior: (Ex: 06/05/2025)
-        * Breve descrição da orientação anterior: (Ex: Sobre os dias e horários permitidos para execução de serviços no complexo)
-    * **Pessoas Abordadas/Qualificadas (se houver):**
-        * Liste cada pessoa em uma nova linha, no formato: Nome Completo – Documento (RG/CPF, etc.): Número do Documento. (Ex: Edvaldo Pereira – RG: 33.066.462-1)
-    * **Veículos Identificados no Local (se houver):**
-        * Liste cada veículo em uma nova linha, no formato: Placa XXX-YYYY (ou outro formato presente no bruto). (Ex: Placa DDI-7869)
-    * **Ações Realizadas pela Equipe no Local:**
-        * Principal Ação Educativa/Corretiva (orientação dada): (Ex: Novamente orientados quanto ao cumprimento das normas de funcionamento do local/complexo, especialmente sobre horários)
-        * Outras Ações (qualificação, verificação, etc.): (Ex: Qualificação dos envolvidos)
-    * **Acionamentos Realizados:**
-        * Identifique se foram acionados: Central, Apoio Tático/90, Polícia Militar, Supervisor, Coordenador ou Outros. Esta informação deve ser integrada narrativamente ou como um tópico no corpo do e-mail, se relevante.
-    * **Remetente do Email (para assinatura):**
-        * Identifique no relatório bruto ou use um padrão como: Nome/Departamento: (Ex: Supervisão Operacional, [Nome do Agente Principal])
+   * **Identificação da Ocorrência:**
+     * Data da Ocorrência (Ex: 08/05/2025)
+     * Hora da Ocorrência (aproximada, ex: 19:50)
+     * Local da Ocorrência (endereço completo ou ponto de referência claro)
+     * Natureza Principal da Ocorrência (ex: Qualificação de terceiros, Atividade fora do horário comercial)
 
-3.  **Geração do E-mail Formatado:**
-    Utilize as informações extraídas para preencher e gerar o e-mail abaixo. Seja preciso e mantenha a formalidade. Adapte as frases para que fluam naturalmente.
+   * **Equipe e Recursos Envolvidos:**
+     * Identificação da Viatura/Equipe (padronize para "Águia-XX")
+     * Agente(s) responsável(eis) pela atuação ou registro
+     * Supervisor presente (se citado)
 
-    **Modelo de Email Formatado (Siga este modelo para a saída):**
+   * **Detalhes da Situação Encontrada:**
+     * Empresa ou pessoas principais envolvidas
+     * Atividade observada no local
+     * Houve orientação anterior? (Sim/Não)
+     * Se sim, data e descrição resumida da orientação anterior
 
-    Assunto: Relatório de Ocorrência – [Natureza Principal da Ocorrência Extraída] – [Data da Ocorrência Extraída]
+   * **Pessoas Qualificadas (se houver):**
+     * Uma por linha, no formato: Nome – Documento: número
 
-    Prezados,
+   * **Veículos Identificados (se houver):**
+     * Uma por linha, no formato: Placa XXX-YYYY
 
-    Bom dia.
+   * **Ações Realizadas:**
+     * Principal ação corretiva ou educativa
+     * Outras ações (ex: qualificação, verificação)
 
-    Informo que no dia [Data da Ocorrência Extraída], por volta das [Hora da Ocorrência Extraída], a equipe da [Identificação da Viatura/Equipe (VTR) Extraída], composta pelo(s) agente(s) [Agente(s) Responsável(is) Extraído(s)] [SE HOUVER SUPERVISOR NO BRUTO: e acompanhada pelo supervisor [Supervisor(es) Presente(s) Extraído(s)]], realizou uma abordagem referente a [Natureza Principal da Ocorrência Extraída] em [Local da Ocorrência Extraído].
+   * **Acionamentos:**
+     * Se houver acionamento da Central, Apoio 90, PM, Supervisor, etc., inclua como narrativa
 
-    No local, [Pessoas/Empresa(s) Central na Ocorrência Extraída(s)] estavam [Descrição da Atividade/Situação Observada Extraída].
+3. **Geração do E-mail Formatado:**
+   Use as informações extraídas para preencher o modelo de e-mail abaixo. Seja preciso, direto e profissional. O texto será enviado por um supervisor que já possui assinatura automática no sistema de e-mails.
 
-    [SE HOUVE ORIENTAÇÃO PRÉVIA IDENTIFICADA NO BRUTO: Durante a verificação, foi constatado que alguns dos abordados já haviam sido orientados anteriormente, na data de [Data da orientação anterior Extraída], quanto a [Breve descrição da orientação anterior Extraída].]
+---
 
-    [SE HOUVER PESSOAS QUALIFICADAS NO BRUTO: Foram qualificados os seguintes indivíduos:
-    [Liste aqui as Pessoas Abordadas/Qualificadas Extraídas, uma por linha, formatado como "Nome Completo – Documento: Número"]]
+**Modelo de E-mail Formatado:**
 
-    [SE HOUVER VEÍCULOS IDENTIFICADOS NO BRUTO: Veículos vinculados à ocorrência:
-    [Liste aqui os Veículos Identificados Extraídos, uma por linha, formatado como "Placa XXX-YYYY"]]
+Assunto: Ocorrência registrada – [Natureza Principal da Ocorrência] – [Data da Ocorrência]
 
-    Todos os presentes foram [Principal Ação Educativa/Corretiva Extraída].
+Prezados,
 
-    Ações realizadas:
-    [Outras Ações Extraídas] e reforço na orientação sobre [principal regra/norma reforçada, extraída do bruto, ex: horários permitidos].
+Informo que no dia [Data da Ocorrência], por volta das [Hora da Ocorrência], a equipe do [Águia-XX], composta pelo(s) agente(s) [Agente(s)], [SE HOUVER SUPERVISOR: com acompanhamento do supervisor [Nome]], realizou uma verificação referente a [Natureza Principal da Ocorrência] em [Local da Ocorrência].
 
-    [SE HOUVER INFORMAÇÕES DE ACIONAMENTOS RELEVANTES NO BRUTO, INCLUIR DE FORMA NARRATIVA. Ex: "A Central de Operações foi comunicada sobre o ocorrido." OU "O Supervisor [Nome] foi acionado e compareceu ao local."]
+No local, [empresa/pessoa envolvida] realizava [descrição da atividade].  
+[SE HOUVE ORIENTAÇÃO ANTERIOR: Foi constatado que os envolvidos já haviam sido orientados anteriormente, em [Data], sobre [tema da orientação anterior].]
 
-    Permaneço à disposição para eventuais esclarecimentos.
+[SE HOUVER PESSOAS QUALIFICADAS:  
+Foram qualificados os seguintes indivíduos:  
+[Lista de nomes e documentos, uma por linha]]
 
-    Atenciosamente,
+[SE HOUVER VEÍCULOS IDENTIFICADOS:  
+Veículos vinculados à ocorrência:  
+[Lista de placas, uma por linha]]
 
+A equipe realizou [ação principal], além de [outras ações].  
+[SE HOUVE ACIONAMENTOS: A ocorrência foi comunicada à [Central/Supervisor/PM/etc.] conforme procedimento.]
 
-**Instruções de Uso:**
-
-1.  Salve o conteúdo acima em um arquivo chamado `email_professional_format_template.txt` dentro do diretório `app/services/prompt_templates/`.
-2.  Quando você selecionar a opção "Formatar para E-mail Profissional" na página `index.html` e colar um relatório bruto, o `ReportService` usará este prompt para instruir a IA. A IA tentará ler o relatório bruto, extrair os dados conforme os campos que você detalhou e, em seguida, montar o e-mail seguindo o modelo.
-
-**Observações Importantes:**
-
-* **Qualidade da Extração:** A capacidade da IA de extrair corretamente as informações do `{dados_brutos}` dependerá muito da clareza e consistência dos seus relatórios brutos. Quanto mais padronizados forem os relatórios brutos, melhor será a extração.
-* **Flexibilidade da IA:** A IA tentará preencher os campos do modelo de e-mail. Se uma informação específica não for encontrada no relatório bruto, ela pode omitir a seção correspondente no e-mail (especialmente se for uma seção condicional como "Se houve orientação prévia") ou a informação específica.
-* **Placeholder `{dados_brutos}`:** Este prompt assume que o relatório de ocorrência completo, que você normalmente cola na página principal, será inserido no lugar de `{dados_brutos}`.
-* **Teste e Refinamento:** Após implementar, teste com vários exemplos de relatórios brutos para ver como a IA se comporta e refine este prompt se necessário para melhorar a precisão da extração e da formatação do e-mail. Por exemplo, você pode precisar adicionar mais detalhes sobre como identificar o "Remetente do Email" a partir do relatório bruto.
-
-Com este prompt ajustado, o sistema que implementamos anteriormente deverá ser capaz de gerar o e-mail formatado quando a opção correspondente for selecionada.
+Permaneço à disposição para eventuais esclarecimentos.

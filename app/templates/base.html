@@ -3,8 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>
+    <meta name="csrf-token" content="{{ csrf_token() }}"> <title>
       {% block title %}Meu App{% endblock %} - Assistente de Relatórios IA
     </title>
 
@@ -32,26 +31,16 @@
       href="{{ url_for('static', filename='css/style.css') }}"
     />
 
-    {# Carrega CSS específico da página, se aplicável #} 
-    {% if request.endpoint == 'auth.login' and url_for('static', filename='css/login.css') %}
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/login.css') }}"
-    />
-    {% elif request.endpoint == 'auth.register' and url_for('static', filename='css/register.css') %}
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/register.css') }}"
-    />
-    {% elif request.endpoint == 'admin.manage_users' %} {# O endpoint para gerenciar usuários no admin_bp é 'admin.manage_users' #}
-    {# Se você criar um admin.css específico, descomente e ajuste o nome do arquivo se necessário #}
+    {% block page_specific_css %}
     {# 
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/admin.css') }}"
-    />
-     #}
-    {% endif %} 
+      Páginas filhas podem adicionar seus próprios links CSS aqui. Por exemplo, em login.html:
+      <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+      
+      Se você tinha CSS para 'admin.manage_users', o template 'manage_users.html'
+      deveria incluir o link para 'admin.css' dentro deste bloco.
+    #}
+    {% endblock page_specific_css %}
+
     {% block head_links %}{% endblock %}
   </head>
   <body
@@ -77,9 +66,10 @@
           <ul class="navbar-nav ms-auto">
             {% if current_user.is_authenticated and current_user.is_admin %}
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('admin.dashboard') }}" 
-                >Painel Admin</a 
-              >
+              <a class="nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}" 
+                 href="{{ url_for('admin.dashboard') }}">
+                 Painel Admin
+              </a>
             </li>
             {% endif %} 
             
@@ -95,8 +85,8 @@
             <li class="nav-item">
               <a
                 class="nav-link {% if request.endpoint == 'ronda.relatorio_ronda' %}active{% endif %}"
-                href="{{ url_for('ronda.registrar_ronda') }}"
-                ><i class="bi bi-shield-check me-1"></i>Relatório de Ronda</a
+                href="{{ url_for('ronda.registrar_ronda') }}" 
+                ><i class="bi bi-shield-check me-1"></i>Relatório de Ronda</a 
               >
             </li>
 
@@ -120,17 +110,16 @@
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
               >
-                <i class="bi bi-person-circle me-1"></i>{{ current_user.username
-                }}
+                <i class="bi bi-person-circle me-1"></i>{{ current_user.username }}
               </a>
               <ul
                 class="dropdown-menu dropdown-menu-end"
                 aria-labelledby="navbarUserDropdown"
               >
                 <li>
-                  <a class="dropdown-item" href="{{ url_for('auth.logout') }}" 
-                    ><i class="bi bi-box-arrow-right me-2"></i>Logout</a 
-                  >
+                  <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                    <i class="bi bi-box-arrow-right me-2"></i>Logout
+                  </a>
                 </li>
               </ul>
             </li>
@@ -138,14 +127,14 @@
             <li class="nav-item">
               <a
                 class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}"
-                href="{{ url_for('auth.login') }}" 
+                href="{{ url_for('auth.login') }}"
                 ><i class="bi bi-box-arrow-in-right me-1"></i>Login</a
               >
             </li>
             <li class="nav-item">
               <a
                 class="nav-link {% if request.endpoint == 'auth.register' %}active{% endif %}"
-                href="{{ url_for('auth.register') }}" 
+                href="{{ url_for('auth.register') }}"
                 ><i class="bi bi-person-plus-fill me-1"></i>Registrar</a
               >
             </li>
@@ -156,39 +145,28 @@
     </nav>
 
     <main class="container mt-4 mb-5 flex-grow-1">
-      {% with messages = get_flashed_messages(with_categories=true) %} {% if
-      messages %} {% for category, message in messages %}
-      <div
-        class="alert alert-{{ category }} alert-dismissible fade show"
-        role="alert"
-      >
-        {% if category == 'success' %}<i
-          class="bi bi-check-circle-fill me-2"
-        ></i
-        >{% endif %} {% if category == 'danger' %}<i
-          class="bi bi-exclamation-triangle-fill me-2"
-        ></i
-        >{% endif %} {% if category == 'warning' %}<i
-          class="bi bi-exclamation-circle-fill me-2"
-        ></i
-        >{% endif %} {% if category == 'info' %}<i
-          class="bi bi-info-circle-fill me-2"
-        ></i
-        >{% endif %} {{ message }}
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="alert"
-          aria-label="Close"
-        ></button>
-      </div>
-      {% endfor %} {% endif %} {% endwith %} {% block content %}{% endblock %}
+      {% with messages = get_flashed_messages(with_categories=true) %} 
+        {% if messages %} 
+          {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {% if category == 'success' %}<i class="bi bi-check-circle-fill me-2"></i>{% endif %} 
+            {% if category == 'danger' %}<i class="bi bi-exclamation-triangle-fill me-2"></i>{% endif %} 
+            {% if category == 'warning' %}<i class="bi bi-exclamation-circle-fill me-2"></i>{% endif %} 
+            {% if category == 'info' %}<i class="bi bi-info-circle-fill me-2"></i>{% endif %} 
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          {% endfor %} 
+        {% endif %} 
+      {% endwith %} 
+      
+      {% block content %}{% endblock %}
     </main>
 
     <footer class="bg-dark text-white text-center py-4 mt-auto">
       <div class="container">
         <p class="mb-1">
-          &copy; {{ SCRIPT_CURRENT_YEAR }} Assistente de Relatórios IA
+          &copy; {{ current_year | default('2024') }} Assistente de Relatórios IA 
         </p>
         <p class="mb-0">
           <small>Criado por: Luis Eduardo Rodrigues Royo</small>
@@ -202,6 +180,7 @@
       crossorigin="anonymous"
     ></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    
     {% block scripts %}{% endblock %}
   </body>
 </html>
