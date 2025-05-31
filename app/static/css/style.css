@@ -1,4 +1,4 @@
-/* app/static/css/style.css - Tema "Surpresa" com títulos destacados */
+/* app/static/css/style.css - Tema "Surpresa" Refinado */
 
 /* -------------------------------------------------------------------------- */
 /* FONTES E CORES BASE                                                        */
@@ -7,34 +7,54 @@
 @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css");
 
 :root {
-    --primary-color: #0d6efd;
-    --secondary-color: #6c757d;
-    --body-bg: #eef2f5;
-    --content-bg: #ffffff;
-    --dark-bg: #212529;
-    --text-dark: #212529;
-    --text-light: #f8f9fa;
-    --border-color: #dee2e6;
-    --card-bg: #ffffff;
-    --success-color: #198754;
-    --danger-color: #dc3545;
-    --warning-color: #ffc107;
-    --info-color: #0dcaf0;
+    --primary-color: #0d6efd; /* Azul Bootstrap padrão - pode ser alterado para um tom customizado */
+    --primary-color-darker: #0b5ed7; /* Para hovers e bordas escuras */
+    --primary-color-lighter: #3d8bfd; /* Para fundos sutis ou destaques leves */
 
-    /* Novas cores para cabeçalhos */
-    --header-bg-light: #e9ecef; /* Um cinza claro para fundos de cabeçalho de página */
-    --header-text-dark: #343a40;
-    --card-header-bg: var(--primary-color); /* Cor primária para cabeçalhos de card */
-    --card-header-text: #ffffff; /* Texto branco para cabeçalhos de card */
+    --secondary-color: #6c757d;
+    --secondary-color-darker: #5a6268;
+
+    --body-bg: #f8f9fa; /* Um cinza muito claro, padrão Bootstrap para fundos */
+    --content-bg: #ffffff;
+    --dark-bg: #212529; /* Para navbar e footer */
+    --text-dark: #2a2f35; /* Um pouco mais suave que o preto puro */
+    --text-light: #f8f9fa;
+    --text-muted-custom: #6c757d; /* Para textos secundários */
+
+    --border-color: #dee2e6; /* Borda padrão Bootstrap */
+    --card-bg: var(--content-bg);
+    --success-color: #198754;
+    --success-color-darker: #146c43;
+    --danger-color: #dc3545;
+    --danger-color-darker: #b02a37;
+    --warning-color: #ffc107;
+    --warning-color-darker: #d39e00;
+    --info-color: #0dcaf0;
+    --info-color-darker: #0aa9c3;
+    --info-text-color: #000; /* Texto escuro para contraste com --info-color */
+
+
+    /* Cores para cabeçalhos de página e card */
+    --page-header-bg: var(--content-bg);
+    --page-header-title-color: var(--primary-color);
+    --page-header-lead-color: #555e68;
+
+    --card-header-bg: var(--primary-color);
+    --card-header-text: var(--text-light);
+    --card-header-border-color: var(--primary-color-darker);
 
 
     --default-font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --monospace-font: 'SFMono-Regular', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-    --border-radius-sm: 0.25rem;
+    --border-radius-sm: 0.3rem;  /* Cantos ligeiramente mais suaves */
     --border-radius-md: 0.5rem;
-    --box-shadow-sm: 0 .125rem .25rem rgba(0,0,0,.075);
-    --box-shadow-md: 0 .5rem 1rem rgba(0,0,0,.1);
+    --border-radius-lg: 0.8rem; /* Para elementos maiores como modais ou containers principais */
+
+    /* Sombras mais suaves e modernas */
+    --box-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.065);
+    --box-shadow-md: 0 0.4rem 1rem rgba(0, 0, 0, 0.08);
+    --box-shadow-lg: 0 1rem 2.5rem rgba(0, 0, 0, 0.1);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -44,28 +64,32 @@ body {
     font-family: var(--default-font);
     background-color: var(--body-bg);
     color: var(--text-dark);
-    line-height: 1.7;
+    line-height: 1.65; /* Melhor legibilidade */
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    font-size: 16px;
+    font-size: 1rem; /* 16px como base */
+    -webkit-font-smoothing: antialiased; /* Melhor renderização de fontes */
+    -moz-osx-font-smoothing: grayscale;
 }
 
 main.container {
     flex-grow: 1;
-    padding-top: 1rem; /* Reduzido para acomodar page-header */
-    padding-bottom: 2.5rem;
+    padding-top: 2rem; /* Ajustado */
+    padding-bottom: 3rem; /* Ajustado */
 }
 
 h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
     color: var(--text-dark);
     margin-top: 0;
+    letter-spacing: -0.02em; /* Sutileza para títulos */
 }
+
 .lead {
     font-size: 1.15rem;
     font-weight: 300;
-    color: #5a6268; /* Tom de cinza para o lead text */
+    color: var(--text-muted-custom);
 }
 
 a {
@@ -74,32 +98,32 @@ a {
     transition: color 0.2s ease-in-out;
 }
 a:hover {
-    color: var(--primary-color); /* Mantido como primary, mas poderia ser darken(var(--primary-color), 10%) se SASS estivesse ativo */
-    filter: brightness(85%); /* Exemplo de como escurecer o link no hover com CSS puro */
-    text-decoration: none;
+    color: var(--primary-color-darker);
+    text-decoration: none; /* Geralmente não se sublinha mais no hover se já for claro que é um link */
 }
 
 /* -------------------------------------------------------------------------- */
-/* CABEÇALHO DE PÁGINA (para títulos principais como H1)                      */
+/* CABEÇALHO DE PÁGINA (H1 principal)                                         */
 /* -------------------------------------------------------------------------- */
 .page-header {
-    background-color: var(--card-bg); /* Fundo branco para destacar do body-bg */
-    padding: 2rem 1.5rem; /* Mais padding vertical */
-    margin-bottom: 2.5rem; /* Espaço abaixo do cabeçalho */
+    background-color: var(--page-header-bg);
+    padding: 2.5rem 2rem;
+    margin-bottom: 3rem;
     border-radius: var(--border-radius-md);
-    box-shadow: var(--box-shadow-sm);
-    /* border-left: 5px solid var(--primary-color); Opcional: uma borda de destaque */
+    box-shadow: var(--box-shadow-md);
+    /* text-align: left; Se preferir alinhamento à esquerda para um look mais formal */
 }
 
 .page-header h1 {
-    color: var(--primary-color); /* Título principal da página com a cor primária */
-    font-size: 2.25rem; /* Tamanho maior para H1 da página */
-    margin-bottom: 0.5rem; /* Espaço entre H1 e o .lead */
+    color: var(--page-header-title-color);
+    font-size: 2.4rem; /* Ajustado */
+    font-weight: 700;
+    margin-bottom: 0.75rem;
 }
 
 .page-header .lead {
-    font-size: 1.1rem; /* Ajuste no tamanho do lead dentro do page-header */
-    color: #6c757d; /* Cor mais suave para o lead */
+    font-size: 1.2rem;
+    color: var(--page-header-lead-color);
     margin-bottom: 0;
 }
 
@@ -111,61 +135,70 @@ a:hover {
     background-color: var(--dark-bg) !important;
     padding-top: 0.8rem;
     padding-bottom: 0.8rem;
-    box-shadow: var(--box-shadow-md);
+    box-shadow: var(--box-shadow-md); /* Sombra mais suave */
 }
 .navbar-brand {
     font-weight: 700;
-    font-size: 1.6rem;
-    letter-spacing: -0.5px;
+    font-size: 1.65rem; /* Ajustado */
+    letter-spacing: -0.03em;
 }
 .navbar-dark .navbar-nav .nav-link {
-    color: rgba(255,255,255,.8);
+    color: rgba(255,255,255,.85); /* Levemente mais opaco */
     font-weight: 500;
-    padding: 0.6rem 1rem;
+    padding: 0.7rem 1.1rem;
     border-radius: var(--border-radius-sm);
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 .navbar-dark .navbar-nav .nav-link:hover,
 .navbar-dark .navbar-nav .nav-link:focus {
     color: #fff;
-    background-color: rgba(255,255,255,0.1);
+    background-color: rgba(255,255,255,0.12); /* Interação mais visível */
 }
 .navbar-dark .navbar-nav .nav-link.active {
     color: #fff;
     background-color: var(--primary-color);
     font-weight: 600;
+    /* box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); Efeito sutil de profundidade */
 }
 
 /* -------------------------------------------------------------------------- */
 /* CARDS                                                                      */
 /* -------------------------------------------------------------------------- */
 .card {
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow-sm);
+    border: none; /* Remover borda, confiar na sombra */
+    box-shadow: var(--box-shadow-md);
     border-radius: var(--border-radius-md);
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
     background-color: var(--card-bg);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
+/* Opcional: Efeito de levantar no hover do card */
+/*
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--box-shadow-lg);
+}
+*/
 .card-header {
     background-color: var(--card-header-bg);
     color: var(--card-header-text);
-    padding: 0.9rem 1.25rem;
-    border-bottom: 1px solid var(--primary-color); /* Usando a cor primária diretamente ou uma var escura se definida */
-    filter: brightness(90%); /* Escurecendo a cor primária da borda um pouco, similar ao darken(var(--card-header-bg), 10%) */
-    font-weight: 500;
-    font-size: 1.05rem;
-    border-top-left-radius: var(--border-radius-md);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--card-header-border-color); /* Usa variável escura */
+    font-weight: 600;
+    font-size: 1.1rem;
+    border-top-left-radius: var(--border-radius-md); /* Garante consistência com o card */
     border-top-right-radius: var(--border-radius-md);
 }
 .card-header h5.mb-0 {
     color: var(--card-header-text);
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+    font-weight: 600;
 }
 
 .card-body {
-    padding: 1.5rem;
+    padding: 1.75rem; /* Mais respiro interno */
 }
-.card-title {
+.card-title { /* Usado em outros lugares, não no index.html fornecido */
     font-size: 1.75rem;
     margin-bottom: 1.5rem;
     color: var(--text-dark);
@@ -177,28 +210,31 @@ a:hover {
 /* FORMULÁRIOS                                                                */
 /* -------------------------------------------------------------------------- */
 .form-label {
-    font-weight: 600;
+    font-weight: 500; /* Um pouco mais leve */
     margin-bottom: 0.6rem;
-    font-size: 0.95rem;
+    font-size: 0.9rem; /* Menor para dar destaque ao input */
+    color: var(--text-muted-custom);
 }
 .form-control, .form-select {
     border-radius: var(--border-radius-sm);
-    border: 1px solid #ced4da;
-    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    padding: 0.8rem 1.1rem; /* Mais padding interno */
     font-size: 1rem;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    background-color: var(--content-bg); /* Garante que seja branco ou definido */
 }
 .form-control:focus, .form-select:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+    box-shadow: 0 0 0 0.25rem rgba(var(--primary-color-rgb, 13,110,253),.2); /* Usar --primary-color-rgb se definido, ou fallback. Sombra mais sutil */
+    background-color: var(--content-bg); /* Manter fundo ao focar */
 }
 .form-control-lg, .form-select-lg {
     padding: 0.9rem 1.2rem;
     font-size: 1.1rem;
 }
 textarea.form-control {
-    min-height: 120px;
-    line-height: 1.5;
+    min-height: 150px; /* Aumentado */
+    line-height: 1.55; /* Melhor espaçamento */
 }
 .invalid-feedback, ul.errors {
     font-size: 0.875em;
@@ -209,29 +245,47 @@ ul.errors {
     padding-left: 0;
     margin-top: 0.25rem;
 }
+#charCount {
+    font-size: 0.85em;
+    margin-top: 0.3rem;
+}
 
 /* -------------------------------------------------------------------------- */
 /* BOTÕES                                                                     */
 /* -------------------------------------------------------------------------- */
 .btn {
-    padding: 0.65rem 1.3rem;
+    padding: 0.7rem 1.4rem; /* Ajustado */
     font-weight: 600;
     border-radius: var(--border-radius-sm);
-    letter-spacing: 0.5px;
+    letter-spacing: 0.025em; /* Ajustado */
     text-transform: uppercase;
     font-size: 0.9rem;
-    transition: all 0.2s ease-in-out;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    transition: all 0.2s ease-in-out; /* Transição mais suave */
+    box-shadow: var(--box-shadow-sm);
+    border-width: 1px; /* Manter consistência */
 }
-.btn i {
-    margin-right: 0.5em;
-    font-size: 1.1em;
+.btn i, .btn svg { /* Para ícones Bootstrap ou SVGs */
+    margin-right: 0.6em;
+    font-size: 1.1em; /* Ajustar conforme necessário */
+    position: relative;
+    top: -1px; /* Alinhamento vertical sutil */
 }
+.btn:hover {
+    transform: translateY(-2px); /* Efeito sutil */
+    box-shadow: var(--box-shadow-md); /* Sombra mais pronunciada */
+}
+.btn:active {
+    transform: translateY(0px);
+    box-shadow: var(--box-shadow-sm);
+}
+.btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 0.25rem rgba(var(--primary-color-rgb, 13,110,253),.25); /* Sombra de foco consistente */
+}
+
 .btn-lg {
-    padding: 0.8rem 1.6rem;
-    font-size: 1rem;
+    padding: 0.85rem 1.7rem; /* Ajustado */
+    font-size: 1rem; /* Ajustado */
 }
 
 .btn-primary {
@@ -240,51 +294,73 @@ ul.errors {
     color: #fff;
 }
 .btn-primary:hover {
-    background-color: var(--primary-color); /* Mantém a cor base para o filter funcionar sobre ela */
-    border-color: var(--primary-color);   /* Mantém a cor base para o filter funcionar sobre ela */
-    filter: brightness(90%);             /* Escurece o botão em 10% */
-    color: #fff;                         /* Mantém a cor do texto */
+    background-color: var(--primary-color-darker);
+    border-color: var(--primary-color-darker);
+    color: #fff;
 }
 
 .btn-info {
     background-color: var(--info-color);
     border-color: var(--info-color);
-    color: #000;
+    color: var(--info-text-color); /* Usar variável para texto do botão info */
 }
 .btn-info:hover {
-    background-color: var(--info-color); /* Mantém a cor base para o filter funcionar sobre ela */
-    border-color: var(--info-color);   /* Mantém a cor base para o filter funcionar sobre ela */
-    filter: brightness(90%);           /* Escurece o botão em 10% */
-    color: #000;                       /* Mantém a cor do texto */
+    background-color: var(--info-color-darker);
+    border-color: var(--info-color-darker);
+    color: var(--info-text-color);
+}
+.btn-success {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+    color: #fff;
+}
+.btn-success:hover {
+    background-color: var(--success-color-darker);
+    border-color: var(--success-color-darker);
+    color: #fff;
+}
+
+.btn-outline-secondary {
+    border-color: var(--secondary-color);
+    color: var(--secondary-color);
+    background-color: transparent;
+}
+.btn-outline-secondary:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: #fff;
 }
 
 
+/* -------------------------------------------------------------------------- */
+/* ALERTAS                                                                    */
+/* -------------------------------------------------------------------------- */
 .alert {
     border-radius: var(--border-radius-sm);
     padding: 1rem 1.25rem;
-    border-width: 0px;
-    box-shadow: var(--box-shadow-sm);
+    border-width: 0px; /* Removido, se quiser borda, adicione 1px solid var(--cor-da-borda-do-alerta) */
+    box-shadow: var(--box-shadow-md); /* Adiciona sombra para destaque */
 }
 .alert-heading {
     font-weight: 600;
 }
 
 /* -------------------------------------------------------------------------- */
-/* SAÍDA DE RELATÓRIOS                                                        */
+/* SAÍDA DE RELATÓRIOS (index.html)                                           */
 /* -------------------------------------------------------------------------- */
 .report-output pre,
-#resultadoProcessamento {
-    background-color: #e9f1f6;
-    padding: 1rem;
+#resultadoProcessamento,
+#resultadoEmail { /* Aplicar aos dois textareas de resultado */
+    background-color: #e9f1f6; /* Fundo levemente azulado/acinzentado */
+    padding: 1.25rem; /* Mais padding */
     border-radius: var(--border-radius-sm);
-    border: 1px solid #c9d8e3;
+    border: 1px solid #c9d8e3; /* Borda sutil */
     font-family: var(--monospace-font);
     font-size: 0.95em;
     color: var(--text-dark);
-    min-height: 200px;
-}
-#resultadoProcessamento {
+    min-height: 200px; /* Mantido, pode ser ajustado */
     width: 100%;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); /* Sombra interna sutil */
 }
 .report-output-container {
     margin-bottom: 1rem;
@@ -295,12 +371,12 @@ ul.errors {
 /* -------------------------------------------------------------------------- */
 footer.bg-dark {
     background-color: var(--dark-bg) !important;
-    padding: 2rem 0;
+    padding: 2.5rem 0; /* Mais padding vertical */
     font-size: 0.9rem;
-    color: rgba(255,255,255,.7);
+    color: rgba(255,255,255,.75); /* Texto um pouco mais claro */
 }
 footer p {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
 }
 footer small {
     font-size: 0.85em;
