@@ -1,23 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Gerenciar Usuários - Painel Admin{% endblock %} {# Adicionado título específico da página #}
+{% block title %}Gerenciar Usuários - Painel Admin{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <h2>Gerenciar Usuários</h2>
     <hr>
-
-    {# Bloco de mensagens flash já está no base.html, mas pode ser mantido aqui se desejar comportamento específico #}
-    {# {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %} #}
 
     <div class="table-responsive">
         <table class="table table-hover">
@@ -59,6 +47,7 @@
                         <div class="btn-group" role="group" aria-label="Ações do Usuário">
                             {% if not user_item.is_approved %}
                                 <form method="POST" action="{{ url_for('admin.approve_user', user_id=user_item.id) }}" style="display: inline-block;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-success btn-sm" title="Aprovar Usuário">
                                         <i class="bi bi-check-circle"></i> Aprovar
                                     </button>
@@ -66,21 +55,24 @@
                             {% else %}
                                 {% if user_item.id != current_user.id %}
                                 <form method="POST" action="{{ url_for('admin.revoke_user', user_id=user_item.id) }}" style="display: inline-block;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-secondary btn-sm" title="Revogar Aprovação">
                                         <i class="bi bi-x-circle"></i> Revogar
                                     </button>
                                 </form>
-                                {% endif %} {# Não mostrar botão de revogar para o próprio usuário, embora a lógica de backend já impeça #}
+                                {% endif %}
                             {% endif %}
                             
                             {% if user_item.id != current_user.id %}
                             <form method="POST" action="{{ url_for('admin.toggle_admin', user_id=user_item.id) }}" style="display: inline-block; margin-left: 5px;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-info btn-sm" title="Alternar Status de Admin">
                                     {% if user_item.is_admin %}<i class="bi bi-person-dash"></i> Rebaixar{% else %}<i class="bi bi-person-check"></i> Tornar Admin{% endif %}
                                 </button>
                             </form>
                             
                             <form method="POST" action="{{ url_for('admin.delete_user', user_id=user_item.id) }}" style="display: inline-block; margin-left: 5px;" onsubmit="return confirm('Tem certeza que deseja deletar este usuário? Esta ação não pode ser desfeita.');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-danger btn-sm" title="Deletar Usuário">
                                     <i class="bi bi-trash"></i> Deletar
                                 </button>
