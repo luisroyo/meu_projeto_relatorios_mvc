@@ -6,21 +6,21 @@ from flask_login import login_required, current_user
 # from app.models import User 
 
 # Importar os serviços específicos que serão usados por este blueprint
-from app.services.patrimonial_report_service import PatrimonialReportService # Você precisará criar este serviço
-from app.services.email_format_service import EmailFormatService     # Você precisará criar este serviço
+from app.services.patrimonial_report_service import PatrimonialReportService
+from app.services.email_format_service import EmailFormatService 
 
 import logging
 
 main_bp = Blueprint('main', __name__)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__) # Logger específico para este blueprint
 
 # Instanciar os serviços que este blueprint utilizará.
 # Eles herdarão a configuração do modelo Gemini da BaseGenerativeService.
-# A instanciação dos serviços permanece a mesma
 try:
     patrimonial_service = PatrimonialReportService()
-    email_service = EmailFormatService() # Garanta que este é o serviço correto (Gemini)
+    email_service = EmailFormatService() 
 except Exception as e:
+    # Usar o logger do blueprint ou um logger global da aplicação
     logger.critical(f"Falha ao instanciar serviços no main_bp: {e}", exc_info=True)
     patrimonial_service = None
     email_service = None
@@ -29,10 +29,11 @@ except Exception as e:
 @main_bp.route('/')
 @login_required
 def index():
+    remote_addr = request.headers.get('X-Forwarded-For', request.remote_addr)
     logger.debug(
         f"Acessando rota /. Usuário autenticado: {current_user.is_authenticated} "
         f"({current_user.username if current_user.is_authenticated else 'N/A'}). "
-        f"IP: {request.remote_addr if hasattr(request, 'remote_addr') else 'N/A'}"
+        f"IP: {remote_addr}"
     )
     return render_template('index.html', title='Analisador de Relatórios IA')
 
@@ -42,85 +43,81 @@ def index():
 def processar_relatorio():
     if patrimonial_service is None or email_service is None:
         logger.error("Serviços de relatório não foram inicializados corretamente.")
-        return jsonify({'erro': 'Serviço de processamento indisponível no momento.'}), 503
+        return jsonify({'erro': 'Serviço de processamento indisponível no momento.'}), 503 # Service Unavailable
 
     if not request.is_json:
-        current_app.logger.warning("Requisição para /processar_relatorio não é JSON.")
-        return jsonify({'erro': 'Formato inválido. Envie JSON.'}), 400
+        logger.warning("Requisição para /processar_relatorio não é JSON.")
+        return jsonify({'erro': 'Formato inválido. Envie JSON.'}), 400 # Bad Request
 
     data = request.get_json()
     bruto = data.get('relatorio_bruto')
     format_for_email_checked = data.get('format_for_email', False)
 
     if not isinstance(bruto, str) or not bruto.strip():
-        current_app.logger.warning("Relatório bruto ausente ou inválido na requisição.")
-        return jsonify({'erro': 'relatorio_bruto inválido.'}), 400
+        logger.warning("Relatório bruto ausente ou inválido na requisição.")
+        return jsonify({'erro': 'relatorio_bruto é obrigatório e não pode estar vazio.'}), 400 # Bad Request
 
-    MAX_CHARS = 12000 
+    # Idealmente, este valor viria da configuração da aplicação
+    MAX_CHARS = current_app.config.get('REPORT_MAX_CHARS', 12000) 
     if len(bruto) > MAX_CHARS:
-        current_app.logger.warning(f"Relatório bruto excedeu {MAX_CHARS} caracteres.")
-        return jsonify({'erro': f'Relatório muito longo (máx {MAX_CHARS} caracteres).'}), 413
+        logger.warning(f"Relatório bruto excedeu {MAX_CHARS} caracteres.")
+        return jsonify({'erro': f'Relatório muito longo (máximo de {MAX_CHARS} caracteres permitidos).'}), 413 # Payload Too Large
 
     resposta_json = {
         'relatorio_processado': None,
         'relatorio_email': None,
-        'erro': None,
-        'erro_email': None 
+        'erro': None,          # Erro específico do relatório padrão
+        'erro_email': None     # Erro específico do relatório de e-mail
     }
     
-    erro_standard_msg = None
+    # Flags para rastrear o sucesso de cada operação
+    sucesso_padrao = False
+    sucesso_email = False # Considera-se sucesso se não foi solicitado ou se foi gerado com sucesso
 
     try:
-        # 1. Gerar o relatório padrão (patrimonial) com o serviço específico
-        current_app.logger.info("Iniciando processamento do relatório patrimonial...")
-        # O método em PatrimonialReportService pode se chamar, por exemplo, gerar_relatorio_seguranca
-        # e esperar 'bruto' como uma string, se o template dele for formatado com {dados_brutos}
+        logger.info("Iniciando processamento do relatório patrimonial...")
         relatorio_padrao = patrimonial_service.gerar_relatorio_seguranca(bruto) 
         resposta_json['relatorio_processado'] = relatorio_padrao
-        current_app.logger.info("Relatório patrimonial processado com sucesso.")
-
+        sucesso_padrao = True
+        logger.info("Relatório patrimonial processado com sucesso.")
     except Exception as e_standard:
-        current_app.logger.error(f"Erro ao processar relatório patrimonial: {e_standard}", exc_info=True)
-        erro_standard_msg = f"Falha ao gerar relatório patrimonial: {str(e_standard)}"
-        resposta_json['erro'] = erro_standard_msg
+        logger.error(f"Erro ao processar relatório patrimonial: {e_standard}", exc_info=True)
+        resposta_json['erro'] = f"Falha ao gerar relatório padrão: {str(e_standard)}"
     
-    # 2. Se solicitado, gerar o relatório de e-mail
     if format_for_email_checked:
-        current_app.logger.info("Iniciando formatação de e-mail...")
-        try:
-            # O método em EmailFormatService pode se chamar, por exemplo, formatar_para_email
-            # e também esperar 'bruto' como uma string, se o template dele for formatado com {texto_original} ou similar
-            texto_para_email = resposta_json['relatorio_processado'] if resposta_json['relatorio_processado'] else bruto
+        logger.info("Iniciando formatação de e-mail...")
+        texto_para_email = None
+        if sucesso_padrao and resposta_json['relatorio_processado']:
+            texto_para_email = resposta_json['relatorio_processado']
+        elif bruto: # Fallback para o texto bruto se o processamento padrão falhou
+            logger.warning("Relatório padrão falhou ou vazio, usando texto bruto original para e-mail.")
+            texto_para_email = bruto
             
-            # Se o relatório padrão falhou, você pode optar por não tentar formatar para email
-            # ou tentar formatar o 'bruto' original. Aqui, vamos tentar formatar o que tivermos.
-            if not texto_para_email and erro_standard_msg:
-                 current_app.logger.warning("Relatório padrão falhou, tentando formatar o 'bruto' original para email.")
-                 texto_para_email = bruto # Fallback para o bruto original se o processado falhou
-
-            if texto_para_email: # Só tenta formatar se tiver algo para formatar
+        if texto_para_email:
+            try:
                 relatorio_email_formatado = email_service.formatar_para_email(texto_para_email)
                 resposta_json['relatorio_email'] = relatorio_email_formatado
-                current_app.logger.info("Relatório de e-mail formatado com sucesso.")
-            else:
-                current_app.logger.warning("Nenhum texto disponível para formatação de email (relatório padrão falhou e bruto estava vazio).")
-                # Não definimos erro_email aqui, pois o erro principal já foi capturado.
-                # Ou, se preferir, pode adicionar um erro específico.
-                if not resposta_json['erro_email']: # Só adiciona se não houver erro de email já
-                     resposta_json['erro_email'] = "Nenhum conteúdo para formatar para email."
+                sucesso_email = True # Sucesso na formatação do email
+                logger.info("Relatório de e-mail formatado com sucesso.")
+            except Exception as e_email:
+                logger.error(f"Erro ao formatar relatório para e-mail: {e_email}", exc_info=True)
+                resposta_json['erro_email'] = f"Falha ao gerar relatório para e-mail: {str(e_email)}"
+                # sucesso_email permanece False
+        else:
+            logger.warning("Nenhum texto disponível para formatação de email.")
+            resposta_json['erro_email'] = "Nenhum conteúdo para formatar para e-mail, pois o relatório bruto estava vazio e o processado falhou."
+            # sucesso_email permanece False
+    else:
+        sucesso_email = True # Não foi solicitado, então não é uma falha
 
-
-        except Exception as e_email:
-            current_app.logger.error(f"Erro ao formatar relatório para e-mail: {e_email}", exc_info=True)
-            resposta_json['erro_email'] = f"Falha ao gerar relatório para e-mail: {str(e_email)}"
-            
-    # Determinar o status code final
-    # Se houve erro no principal e nada mais foi bem-sucedido ou solicitado, retorna erro
-    if erro_standard_msg and not resposta_json['relatorio_processado']:
-        if not format_for_email_checked or (format_for_email_checked and resposta_json['erro_email']):
-            # Erro no padrão, e (não pediu email OU (pediu email E email também falhou))
-            # O status code poderia ser determinado pela natureza do erro_standard_msg
-            return jsonify(resposta_json), 500 # Ou 400 dependendo do erro
-                # ... final da rota processar_relatorio
-    current_app.logger.info(f"Resposta JSON final enviada para o cliente: {resposta_json}")
-    return jsonify(resposta_json)
+    # Determinar o código de status final
+    # Se qualquer operação solicitada foi bem-sucedida, é 200 OK.
+    # O cliente pode então verificar os campos 'erro' e 'erro_email' para falhas parciais.
+    if sucesso_padrao or (format_for_email_checked and sucesso_email):
+        status_code = 200 # OK
+    else:
+        # Todas as operações solicitadas falharam
+        status_code = 500 # Internal Server Error (ou 422 se a culpa for consistentemente da entrada, mas aqui as exceções dos serviços são tratadas como 500)
+    
+    logger.info(f"Resposta JSON final (status {status_code}): {resposta_json}")
+    return jsonify(resposta_json), status_code

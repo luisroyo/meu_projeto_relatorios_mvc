@@ -10,11 +10,14 @@ class PatrimonialReportService(BaseGenerativeService):
         # self.logger já é inicializado na BaseGenerativeService com o nome desta classe.
         self._template = None
         try:
+            # Obtém o diretório atual do arquivo de serviço
             current_dir = os.path.dirname(os.path.abspath(__file__))
+            # Constrói o caminho para a pasta de templates de prompt
             template_folder = os.path.join(current_dir, "prompt_templates")
+            
             jinja_env = Environment(
                 loader=FileSystemLoader(template_folder),
-                autoescape=True # Boa prática para templates que podem gerar HTML/XML, embora este seja texto.
+                autoescape=True # Boa prática para templates, embora este seja texto.
             )
             self._template = jinja_env.get_template(template_filename)
             self.logger.info(f"Template '{template_filename}' carregado para PatrimonialReportService.")
@@ -30,12 +33,13 @@ class PatrimonialReportService(BaseGenerativeService):
         
         if not isinstance(dados_brutos, str):
             self.logger.warning("dados_brutos não é uma string.")
+            # Considerar se isso deve ser um erro mais específico ou tratado antes.
             raise ValueError("Os dados brutos para o relatório devem ser fornecidos como uma string.")
 
         try:
             # O template 'patrimonial_security_report_template.txt' espera um placeholder {dados_brutos}
             prompt_final = self._template.render(dados_brutos=dados_brutos)
-            self.logger.debug(f"Prompt para Relatório Patrimonial (100 chars): {prompt_final[:100]}...")
+            self.logger.debug(f"Prompt para Relatório Patrimonial (primeiros 100 chars): {prompt_final[:100]}...")
             return prompt_final
         except Exception as e:
             self.logger.error(f"Erro ao renderizar template de relatório patrimonial com Jinja2: {e}", exc_info=True)
@@ -48,7 +52,7 @@ class PatrimonialReportService(BaseGenerativeService):
         """
         self.logger.info(f"Iniciando geração de relatório de segurança para dados brutos (primeiros 70 chars): '{dados_brutos_relatorio[:70]}...'")
         
-        if self.model is None: # Verificação herdada da BaseGenerativeService, mas boa para ter clareza
+        if self.model is None: # Verificação herdada da BaseGenerativeService
             self.logger.error("Modelo de IA não inicializado no PatrimonialReportService.")
             raise RuntimeError("Serviço de IA não configurado corretamente (modelo não inicializado).")
 
@@ -67,6 +71,7 @@ class PatrimonialReportService(BaseGenerativeService):
             self.logger.error(f"Erro de runtime ao gerar relatório de segurança: {rte}")
             raise # Relança
         except Exception as e:
-            self.logger.exception("Erro inesperado ao gerar relatório de segurança patrimonial:")
+            # Usar self.logger.exception para incluir o traceback automaticamente no log
+            self.logger.exception("Erro inesperado ao gerar relatório de segurança patrimonial.")
             # Para erros não esperados, você pode querer uma exceção mais genérica ou específica do seu app
             raise RuntimeError(f"Erro inesperado no serviço de relatório patrimonial: {str(e)}") from e
