@@ -107,8 +107,7 @@
 
 {% block scripts %}
 {{ super() }} {# Inclui scripts do base.html (Bootstrap e o script.js global) #}
-<script src="{{ url_for('static', filename='js/index_page.js') }}"></script> {# Especificamente para a lógica desta página #}
-<script>
+<script type="module" src="{{ url_for('static', filename='js/index_page/main.js') }}"></script>
     // Inicializa tooltips do Bootstrap nesta página, se houver algum novo
     // É uma boa prática garantir que os tooltips sejam reinicializados se o conteúdo for carregado dinamicamente,
     // mas para tooltips estáticos na carga da página, isso é suficiente.
