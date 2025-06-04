@@ -22,7 +22,7 @@
     --body-bg-image: none; /* Sem gradiente por padrão */
     --content-bg: #ffffff;
     --content-bg-opaque: #ffffff;
-    --text-color: #2a2f35;
+    --text-color: #2a2f35; /* Cor principal do texto */
     --text-muted-custom: #6c757d;
     
     --border-color: #dee2e6;
@@ -53,7 +53,7 @@
     --navbar-text-hover-color: #ffffff;
     --navbar-active-bg: var(--primary-color);
     --navbar-active-text-color: #ffffff;
-    --navbar-toggler-icon-color: rgba(255,255,255,.55); /* Ícone do toggler para navbar escuro */
+    --navbar-toggler-icon-color-value: rgba(255,255,255,.55); /* Valor para JS */
     --navbar-toggler-border-color: rgba(255,255,255,.1);
 
     --footer-bg: #212529; /* Footer escuro por padrão em ambos os temas */
@@ -73,7 +73,7 @@
 
     --result-textarea-bg: #e9f1f6;
     --result-textarea-border-color: #c9d8e3;
-    --result-textarea-text-color: var(--text-color); /* Usa cor de texto do tema */
+    --result-textarea-text-color: var(--text-color); 
     --result-textarea-box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
 
     --theme-toggle-button-color: var(--navbar-text-color);
@@ -96,7 +96,7 @@ body.dark-theme {
     --body-bg-start: #1c2331;
     --body-bg-end: #2a2f35;
     --body-bg-image: linear-gradient(135deg, var(--body-bg-start) 0%, var(--body-bg-end) 100%);
-    --body-bg: var(--body-bg-end); /* Fallback para cor sólida */
+    --body-bg: var(--body-bg-end); 
     
     --content-bg: rgba(43, 48, 53, 0.85); 
     --content-bg-opaque: #2b3035;
@@ -107,7 +107,6 @@ body.dark-theme {
     --border-color: #495057; 
     --card-bg: var(--content-bg);
     
-    /* Cores de alerta mantêm bom contraste */
     --warning-text-color: #212529;
     --info-text-color: #000;
 
@@ -120,22 +119,29 @@ body.dark-theme {
     --card-header-text: var(--primary-color-lighter);
     --card-header-border-color: rgba(var(--primary-color-rgb), 0.3);
 
-    /* Navbar e Footer já são escuros e usam suas próprias variáveis, mas podemos ajustar se necessário */
-    /* Se quisermos que o Navbar no tema escuro seja diferente do navbar no tema claro: */
-    /* --navbar-bg: #161a1e; */
-    /* --footer-bg: #111418; */
+    --navbar-bg: #161a1e;
+    --navbar-text-color: rgba(255,255,255,.75);
+    --navbar-text-hover-color: #ffffff;
+    --navbar-active-bg: var(--primary-color);
+    --navbar-active-text-color: #ffffff;
+    --navbar-toggler-icon-color-value: rgba(255,255,255,.5);
+    --navbar-toggler-border-color: rgba(255,255,255,.15);
+
+    --footer-bg: #111418;
+    --footer-text-color: rgba(255,255,255,.6);
+    --footer-border-color: rgba(255,255,255,0.05);
 
     --box-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.25);
     --box-shadow-md: 0 0.4rem 1rem rgba(0, 0, 0, 0.35);
     --box-shadow-lg: 0 1rem 2.5rem rgba(0, 0, 0, 0.4);
 
-    --result-textarea-bg: rgba(10, 15, 20, 0.8); /* Ajustado para ser um pouco mais opaco */
+    --result-textarea-bg: rgba(10, 15, 20, 0.8);
     --result-textarea-border-color: var(--border-color);
     --result-textarea-text-color: var(--text-color);
     --result-textarea-box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
 
-    --theme-toggle-button-color: rgba(255,255,255,.75); /* Já ok para navbar escuro */
-    --theme-toggle-button-hover-color: #ffffff;
+    --theme-toggle-button-color: var(--navbar-text-color);
+    --theme-toggle-button-hover-color: var(--navbar-text-hover-color);
     --theme-toggle-button-hover-bg: rgba(var(--primary-color-rgb),0.25);
 }
 
@@ -183,7 +189,6 @@ a {
     text-decoration: none;
     transition: color 0.2s ease-in-out;
 }
-/* Ajuste específico para links no tema escuro se --primary-color for muito escuro */
 body.dark-theme a {
     color: var(--primary-color-lighter);
 }
@@ -191,7 +196,7 @@ a:hover {
     color: var(--primary-color-darker);
 }
 body.dark-theme a:hover {
-    color: #ffffff; /* Ou var(--primary-color-lighter) com mais brilho */
+    color: #ffffff;
 }
 
 /* Cabeçalho de Página */
@@ -205,18 +210,22 @@ body.dark-theme a:hover {
 }
 .page-header h1 {
     color: var(--page-header-title-color);
-    font-size: 2.4rem;
+    font-size: 2.2rem; /* Levemente ajustado */
+    font-weight: 700;
 }
 .page-header h1 i {
-    opacity: 0.8;
+    font-size: 0.9em;
+    margin-right: 0.4em;
+    opacity: 0.9;
 }
 .page-header .lead {
     color: var(--page-header-lead-color);
+    font-size: 1.2rem; /* Levemente ajustado */
 }
 
 /* Navbar */
 .navbar {
-    background-color: var(--navbar-bg) !important; /* Usa a variável do tema */
+    background-color: var(--navbar-bg) !important;
     padding-top: 0.8rem;
     padding-bottom: 0.8rem;
     box-shadow: 0 2px 10px rgba(0,0,0,0.3);
@@ -254,7 +263,10 @@ body.dark-theme .navbar-brand {
     border-color: var(--navbar-toggler-border-color);
 }
 .navbar-toggler-icon {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke_value='stroke:%20var(--navbar-toggler-icon-color);' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e".replace("stroke_value", "stroke='" + getComputedStyle(document.documentElement).getPropertyValue('--navbar-toggler-icon-color').trim() + "'"));
+    /* A cor do ícone do toggler será definida dinamicamente pelo JS em script.js */
+    /* para garantir que use o valor correto da variável CSS do tema ativo. */
+    /* O fallback é o do Bootstrap para navbar-dark */
+     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255,255,255,0.55)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 }
 
 
@@ -265,24 +277,30 @@ body.dark-theme .navbar-brand {
     border-radius: var(--border-radius-md);
     margin-bottom: 2.5rem;
     background-color: var(--card-bg);
+    backdrop-filter: blur(5px); /* Opcional, para efeito de vidro */
 }
 .card-header {
     background-color: var(--card-header-bg);
     color: var(--card-header-text);
-    padding: 1rem 1.5rem;
+    padding: 1.25rem 1.75rem;
     border-bottom: 1px solid var(--card-header-border-color);
-    font-weight: 600;
+    font-weight: 500; /* Mais suave */
+    font-size: 1.2rem; /* Um pouco maior */
 }
 .card-header h5.mb-0 {
-    color: inherit; /* Herda a cor do card-header-text */
-    font-size: 1.15rem;
+    color: inherit;
+    font-weight: 500;
+    font-size: 1.2rem;
 }
 .card-body {
     padding: 1.75rem;
     color: var(--text-color);
 }
-.card-body label.form-label { /* Labels dentro dos cards */
+.card-body label.form-label {
     color: var(--text-muted-custom);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 /* Formulários */
@@ -290,16 +308,16 @@ body.dark-theme .navbar-brand {
     font-weight: 500;
     margin-bottom: 0.6rem;
     font-size: 0.9rem;
-    color: var(--text-muted-custom); /* Ajustado para usar a var do tema */
+    color: var(--text-muted-custom);
 }
 .form-control, .form-select {
     border-radius: var(--border-radius-sm);
     border: 1px solid var(--border-color);
+    background-color: var(--content-bg-opaque);
+    color: var(--text-color);
     padding: 0.8rem 1.1rem;
     font-size: 1rem;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.15s ease-in-out, color 0.15s ease-in-out;
-    background-color: var(--content-bg-opaque);
-    color: var(--text-color);
 }
 .form-control::placeholder {
   color: var(--text-muted-custom);
@@ -312,7 +330,7 @@ body.dark-theme .navbar-brand {
     color: var(--text-color);
 }
 .form-check-input {
-    background-color: var(--secondary-color); /* Ajustar se necessário para mais contraste */
+    background-color: var(--secondary-color);
     border-color: var(--border-color);
 }
 .form-check-input:checked {
@@ -323,52 +341,68 @@ body.dark-theme .navbar-brand {
     color: var(--text-color);
 }
 .invalid-feedback {
-    color: var(--danger-color) !important; /* Garante que seja vermelho */
+    color: var(--danger-color) !important;
 }
 #charCount {
     color: var(--text-muted-custom);
 }
-#charCount.text-danger { /* text-danger é classe do Bootstrap */
+body.dark-theme #charCount.text-danger {
     color: var(--danger-color) !important;
 }
+body:not(.dark-theme) #charCount.text-danger { /* Bootstrap já deve fazer isso, mas para garantir */
+    color: #dc3545 !important;
+}
+
 
 /* Alertas */
 .alert {
     border-radius: var(--border-radius-sm);
     padding: 1rem 1.25rem;
-    border-width: 0px;
+    border-width: 0px; /* Removida borda padrão, confiar no fundo e sombra */
     box-shadow: var(--box-shadow-md);
 }
-.alert-success { color: #fff; background-color: var(--success-color); border-color: var(--success-color-darker); }
-.alert-danger { color: #fff; background-color: var(--danger-color); border-color: var(--danger-color-darker); }
-.alert-warning { color: var(--warning-text-color); background-color: var(--warning-color); border-color: #d39e00; } /* Amarelo usa texto escuro */
-.alert-info { color: var(--info-text-color); background-color: var(--info-color); border-color: var(--info-color-darker); } /* Ciano usa texto escuro */
+/* Cores de texto para alertas são importantes para contraste */
+.alert-success { color: #fff; background-color: var(--success-color); }
+.alert-danger { color: #fff; background-color: var(--danger-color); }
+.alert-warning { color: var(--warning-text-color); background-color: var(--warning-color); }
+.alert-info { color: var(--info-text-color); background-color: var(--info-color); }
 
-/* Alerta "secondary" usado como placeholder, precisa de estilos para ambos os temas */
-.alert-secondary {
-    color: var(--text-color);
-    background-color: var(--secondary-color);
-    border-color: var(--secondary-color-darker);
+.alert-secondary { /* Placeholder/Default alert */
+    color: var(--text-color); /* Usa cor de texto do tema */
+    background-color: var(--secondary-color); /* Usa cor secundária do tema */
 }
-body:not(.dark-theme) .alert-secondary { /* Específico para tema claro se --secondary-color for muito escuro */
-    color: #383d41; /* Texto escuro do Bootstrap para alert-secondary */
-    background-color: #e2e3e5; /* Fundo claro do Bootstrap para alert-secondary */
-    border-color: #d6d8db;
+body:not(.dark-theme) .alert-secondary { /* Estilo específico para alert-secondary no tema claro */
+    color: #383d41;
+    background-color: #e2e3e5;
+    border-color: #d6d8db; /* Adiciona uma borda sutil no tema claro */
+    border-width: 1px;
 }
-
 
 /* Saída de Relatórios */
 #resultadoProcessamento,
-#resultadoEmail {
-    background-color: var(--result-textarea-bg);
-    border: 1px solid var(--result-textarea-border-color);
-    color: var(--result-textarea-text-color);
+#resultadoEmail,
+textarea:read-only /* Estilo geral para textareas readonly */
+{
+    background-color: var(--result-textarea-bg) !important; /* Usa !important para sobrescrever estilos de .form-control */
+    border: 1px solid var(--result-textarea-border-color) !important;
+    color: var(--result-textarea-text-color) !important;
     font-family: var(--monospace-font);
-    box-shadow: var(--result-textarea-box-shadow);
+    box-shadow: var(--result-textarea-box-shadow) !important;
+    padding: 1.2rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    min-height: 250px;
+    opacity: 1; /* Garante que não fique esmaecido demais */
+}
+body:not(.dark-theme) textarea:read-only::placeholder,
+body.dark-theme textarea:read-only::placeholder {
+    color: var(--text-muted-custom);
+    opacity: 0.7;
 }
 
+
 /* Rodapé */
-footer.bg-dark {
+footer.footer { /* Removido .bg-dark para usar var */
     background-color: var(--footer-bg) !important;
     padding: 2.5rem 0;
     font-size: 0.9rem;
@@ -380,7 +414,7 @@ footer.bg-dark {
 #theme-toggle-button {
     font-size: 1.25rem;
     padding: 0.375rem 0.75rem;
-    color: var(--theme-toggle-button-color); /* Usa variável para cor do ícone */
+    color: var(--theme-toggle-button-color);
     background-color: transparent;
     border: none;
 }
@@ -389,17 +423,91 @@ footer.bg-dark {
     background-color: var(--theme-toggle-button-hover-bg);
 }
 
-/* Ajustes para inputs readonly parecerem menos com inputs editáveis no tema escuro */
-body.dark-theme textarea:read-only,
-body.dark-theme input:read-only {
-    background-color: var(--result-textarea-bg) !important; /* Cor de fundo de resultado */
-    color: var(--text-light) !important;
-    border-color: var(--result-textarea-border-color) !important;
-    opacity: 0.9; /* Um pouco mais de opacidade para diferenciar */
+/* Dropdown Menu no Navbar */
+.navbar .dropdown-menu {
+    background-color: var(--content-bg-opaque); /* Fundo consistente com o tema */
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow-md);
 }
-body:not(.dark-theme) textarea:read-only,
-body:not(.dark-theme) input:read-only {
-     background-color: var(--result-textarea-bg) !important; /* Cor de fundo de resultado */
-     color: var(--text-dark-on-light-bg) !important;
-     border-color: var(--result-textarea-border-color) !important;
+.navbar .dropdown-menu .dropdown-item {
+    color: var(--text-color); /* Cor de texto do tema */
+    padding: 0.5rem 1.2rem;
+}
+.navbar .dropdown-menu .dropdown-item:hover,
+.navbar .dropdown-menu .dropdown-item:focus {
+    color: var(--primary-color-lighter); /* Destaque no hover */
+    background-color: rgba(var(--primary-color-rgb), 0.15);
+}
+body:not(.dark-theme) .navbar .dropdown-menu .dropdown-item:hover,
+body:not(.dark-theme) .navbar .dropdown-menu .dropdown-item:focus {
+    color: var(--primary-color-darker);
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+}
+.navbar .dropdown-menu .dropdown-item i {
+    opacity: 0.8;
+    margin-right: 0.5rem;
+}
+
+
+/* Ajustes para tabelas (admin_listar_colaboradores.html, admin_users.html) */
+.table {
+    color: var(--text-color); /* Cor do texto principal da tabela */
+    border-color: var(--border-color);
+    margin-bottom: 0; /* Remover margem se dentro de um .table-responsive com padding */
+}
+.table-responsive {
+    background-color: var(--card-bg); /* Fundo do container da tabela */
+    border-radius: var(--border-radius-md);
+    padding: 0.5rem; /* Espaçamento interno se a tabela não tiver margens */
+}
+.table thead.table-dark {
+    background-color: var(--content-bg-opaque); /* Usar uma cor do tema para o cabeçalho */
+    color: var(--primary-color-lighter); /* Cor de destaque para o texto do cabeçalho */
+    border-bottom: 2px solid var(--primary-color); /* Linha de destaque */
+}
+body:not(.dark-theme) .table thead.table-dark {
+    background-color: #343a40; /* Escuro tradicional para tema claro */
+    color: #fff;
+    border-bottom: 2px solid #454d55;
+}
+.table th, .table td {
+    border-top: 1px solid var(--border-color);
+    vertical-align: middle;
+    padding: 0.9rem 1rem; /* Mais padding nas células */
+}
+.table-hover tbody tr:hover {
+    background-color: var(--content-bg-opaque); /* Fundo de hover um pouco mais escuro */
+    color: var(--text-light); /* Cor de texto no hover */
+}
+body:not(.dark-theme) .table-hover tbody tr:hover {
+    background-color: #f1f3f5; /* Cinza claro para hover no tema claro */
+    color: var(--text-color);
+}
+.table .badge { /* Badges dentro da tabela */
+    font-size: 0.8em;
+    padding: 0.4em 0.65em;
+}
+
+/* Paginação */
+.pagination .page-link {
+    background-color: var(--content-bg-opaque);
+    border-color: var(--border-color);
+    color: var(--primary-color);
+    transition: all 0.2s ease;
+}
+.pagination .page-link:hover {
+    background-color: var(--secondary-color-darker);
+    color: var(--text-light);
+    border-color: var(--secondary-color-darker);
+}
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+.pagination .page-item.disabled .page-link {
+    background-color: var(--secondary-color);
+    border-color: var(--border-color);
+    color: var(--text-muted-custom);
+    opacity: 0.65;
 }

@@ -1,7 +1,6 @@
 // app/static/js/index_page/main.js
-// (Conteúdo como fornecido na resposta anterior, já está correto para usar o CONFIG)
 import { CONFIG, DOMElements } from './config.js';
-import { updateCharCount, displayStatus } from './uiHandlers.js';
+import { updateCharCount, displayStatus } from './uiHandlers.js'; // Apenas as que são diretamente chamadas aqui
 import { handleProcessReport, handleClearFields, handleCopyResult } from './reportLogic.js';
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -12,6 +11,8 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        // Define o HTML inicial dos botões a partir do CONFIG
+        // e salva esse HTML no dataset para restauração posterior.
         if (DOMElements.btnProcessar) {
             DOMElements.btnProcessar.innerHTML = CONFIG.initialProcessButtonHTML || 'Processar Relatório';
             DOMElements.btnProcessar.dataset.originalHTML = DOMElements.btnProcessar.innerHTML;
@@ -26,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (DOMElements.btnLimpar) {
              DOMElements.btnLimpar.innerHTML = CONFIG.initialClearButtonHTML || 'Limpar Tudo';
-             DOMElements.btnLimpar.dataset.originalHTML = DOMElements.btnLimpar.innerHTML;
+             DOMElements.btnLimpar.dataset.originalHTML = DOMElements.btnLimpar.innerHTML; // Salvar se for mudar dinamicamente
         }
 
         if (DOMElements.relatorioBruto) {
@@ -35,16 +36,29 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if(DOMElements.btnProcessar) DOMElements.btnProcessar.addEventListener('click', handleProcessReport);
-        if (DOMElements.btnCopiar) DOMElements.btnCopiar.addEventListener('click', () => handleCopyResult('standard'));
-        if (DOMElements.btnCopiarEmail) DOMElements.btnCopiarEmail.addEventListener('click', () => handleCopyResult('email'));
-        if (DOMElements.btnLimpar) DOMElements.btnLimpar.addEventListener('click', handleClearFields);
+        
+        if (DOMElements.btnCopiar) {
+            DOMElements.btnCopiar.addEventListener('click', () => handleCopyResult('standard'));
+            DOMElements.btnCopiar.style.display = 'none';
+        }
+        
+        if (DOMElements.btnCopiarEmail) {
+            DOMElements.btnCopiarEmail.addEventListener('click', () => handleCopyResult('email'));
+            DOMElements.btnCopiarEmail.style.display = 'none';
+        }
+
+        if (DOMElements.btnLimpar) {
+            DOMElements.btnLimpar.addEventListener('click', handleClearFields);
+        }
 
         if (DOMElements.colunaRelatorioEmail) DOMElements.colunaRelatorioEmail.style.display = 'none';
+
         if(DOMElements.formatarParaEmailCheckbox && DOMElements.colunaRelatorioEmail){
             DOMElements.formatarParaEmailCheckbox.addEventListener('change', function(){
                 if (!this.checked) {
                     if(DOMElements.resultadoEmail) DOMElements.resultadoEmail.value = '';
-                    if(DOMElements.statusProcessamentoEmail) displayStatus('', 'info', 'email');
+                    // Passando DOMElements explicitamente para displayStatus se ela não tiver acesso global a ele
+                    if(DOMElements.statusProcessamentoEmail) displayStatus('', 'info', 'email'); 
                     if(DOMElements.btnCopiarEmail) DOMElements.btnCopiarEmail.style.display = 'none';
                     DOMElements.colunaRelatorioEmail.style.display = 'none';
                 } else {
@@ -52,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         }
-        console.log("index_page/main.js: Inicialização concluída e listeners adicionados com textos/icones dos botões definidos via config.");
+        console.log("index_page/main.js: Inicialização concluída.");
     }
     init();
 });

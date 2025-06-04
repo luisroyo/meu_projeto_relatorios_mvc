@@ -6,7 +6,7 @@
 {% block content %}
     <div class="container-fluid mt-lg-3">
         <div class="page-header text-center">
-            <h1><i class="bi bi-shield-lock-fill me-2"></i>Analisador de Relatórios com IA</h1> {# Ícone adicionado #}
+            <h1><i class="bi bi-shield-lock-fill me-2"></i>Analisador de Relatórios com IA</h1>
             <p class="lead">Cole o relatório bruto abaixo para processamento e correção pela Inteligência Artificial.</p>
         </div>
 
@@ -16,17 +16,18 @@
                 <div class="col-12 col-lg-4 mb-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-header">
-                            <h5 class="mb-0">Entrada do Relatório</h5>
+                            <h5 class="mb-0"><i class="bi bi-keyboard me-2"></i>Entrada do Relatório</h5>
                         </div>
-                        <div class="card-body d-flex flex-column">
+                        <div class="card-body d-flex flex-column p-lg-4"> {# Padding maior em telas grandes #}
                             <div class="form-group mb-3 flex-grow-1">
                                 <label for="relatorioBruto" class="form-label">Relatório Bruto:</label>
                                 <textarea class="form-control" id="relatorioBruto" name="relatorioBruto" rows="15" placeholder="Cole o relatório bruto aqui..."></textarea>
-                                <small id="charCount" class="form-text text-muted">Caracteres: 0 / 12000</small> </div>
+                                <small id="charCount" class="form-text">Caracteres: 0 / 12000</small> {# Removido text-muted para herdar do tema #}
+                            </div>
 
-                            <div class="form-group mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="" id="formatarParaEmail">
+                            <div class="form-group mb-4"> {# Aumentado margin-bottom #}
+                                <div class="form-check form-switch"> {# Usando form-switch para um visual mais moderno #}
+                                    <input class="form-check-input" type="checkbox" role="switch" id="formatarParaEmail">
                                     <label class="form-check-label" for="formatarParaEmail">
                                         Gerar também para E-mail Profissional
                                     </label>
@@ -34,14 +35,12 @@
                             </div>
 
                             <div class="mt-auto">
-                                <div class="d-grid gap-2 d-sm-flex justify-content-sm-start">
-                                    {# Botão Processar com novo ícone #}
-                                    <button type="button" class="btn btn-primary btn-lg mb-2 mb-sm-0 me-sm-2 flex-grow-1 flex-sm-grow-0" id="processarRelatorio">
-                                        <i class="bi bi-gear-fill me-1"></i>Processar Relatório
+                                <div class="d-grid gap-2 d-md-flex"> {# d-md-flex para botões lado a lado em telas médias+ #}
+                                    <button type="button" class="btn btn-primary btn-lg flex-grow-1 flex-md-grow-0" id="processarRelatorio">
+                                        {# O HTML do botão será definido pelo config.js/main.js #}
                                     </button>
-                                    {# Botão Limpar com novo ícone #}
-                                    <button type="button" class="btn btn-outline-secondary btn-lg flex-grow-1 flex-sm-grow-0" id="limparCampos">
-                                        <i class="bi bi-eraser-fill me-1"></i>Limpar Tudo
+                                    <button type="button" class="btn btn-outline-secondary btn-lg flex-grow-1 flex-md-grow-0" id="limparCampos">
+                                        {# O HTML do botão será definido pelo config.js/main.js #}
                                     </button>
                                 </div>
                             </div>
@@ -53,18 +52,17 @@
                 <div class="col-12 col-lg-4 mb-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-header">
-                            <h5 class="mb-0">Relatório Processado (Padrão)</h5>
+                            <h5 class="mb-0"><i class="bi bi-file-earmark-text-fill me-2"></i>Relatório Processado (Padrão)</h5>
                         </div>
-                        <div class="card-body d-flex flex-column">
+                        <div class="card-body d-flex flex-column p-lg-4">
                             <div id="statusProcessamento" class="mb-3"></div>
                             <div class="form-group mb-3 flex-grow-1">
                                 <label for="resultadoProcessamento" class="form-label">Resultado Padrão:</label>
                                 <textarea class="form-control" id="resultadoProcessamento" rows="15" readonly placeholder="O relatório padrão aparecerá aqui..."></textarea>
                             </div>
                             <div class="mt-auto">
-                                {# Botão Copiar Padrão com ícone #}
                                 <button type="button" class="btn btn-info btn-lg w-100" id="copiarResultado" style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top" title="Copiar Relatório Padrão">
-                                    <i class="bi bi-clipboard-data me-1"></i>Copiar Padrão
+                                    {# O HTML do botão será definido pelo config.js/main.js #}
                                 </button>
                             </div>
                         </div>
@@ -75,18 +73,17 @@
                 <div class="col-12 col-lg-4 mb-4" id="colunaRelatorioEmail" style="display: none;">
                     <div class="card shadow-sm h-100">
                         <div class="card-header">
-                            <h5 class="mb-0">Relatório Formatado para E-mail</h5>
+                            <h5 class="mb-0"><i class="bi bi-envelope-paper-fill me-2"></i>Relatório Formatado para E-mail</h5>
                         </div>
-                        <div class="card-body d-flex flex-column">
+                        <div class="card-body d-flex flex-column p-lg-4">
                             <div id="statusProcessamentoEmail" class="mb-3"></div>
                              <div class="form-group mb-3 flex-grow-1">
                                 <label for="resultadoEmail" class="form-label">Resultado para E-mail:</label>
                                 <textarea class="form-control" id="resultadoEmail" rows="15" readonly placeholder="O relatório para e-mail aparecerá aqui..."></textarea>
                             </div>
                             <div class="mt-auto">
-                                {# Botão Copiar E-mail com ícone #}
                                 <button type="button" class="btn btn-success btn-lg w-100" id="copiarResultadoEmail" style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top" title="Copiar Relatório para E-mail">
-                                    <i class="bi bi-envelope-check me-1"></i>Copiar E-mail
+                                    {# O HTML do botão será definido pelo config.js/main.js #}
                                 </button>
                             </div>
                         </div>
@@ -94,7 +91,11 @@
                 </div>
             </div>
         {% else %}
-            {# ... (bloco else existente) ... #}
+            <div class="alert alert-warning text-center" role="alert">
+                Você precisa estar logado para usar esta funcionalidade. 
+                <a href="{{ url_for('auth.login') }}" class="alert-link">Faça login</a> ou 
+                <a href="{{ url_for('auth.register') }}" class="alert-link">crie uma conta</a>.
+            </div>
         {% endif %}
     </div>
 {% endblock %}
