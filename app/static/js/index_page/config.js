@@ -1,5 +1,9 @@
 // app/static/js/index_page/config.js
-
+// (Conteúdo como fornecido na resposta anterior, já está correto)
+// Exemplo relevante:
+// initialProcessButtonHTML: '<i class="bi bi-gear-fill me-1"></i>Processar Relatório',
+// initialCopyButtonHTML: '<i class="bi bi-clipboard-data me-1"></i>Copiar Padrão',
+// ... etc.
 export const CONFIG = {
     maxInputLengthFrontend: 10000,
     maxInputLengthServerDisplay: 12000,
@@ -13,7 +17,6 @@ export const CONFIG = {
         colunaRelatorioEmail: '#colunaRelatorioEmail',
         statusProcessamento: '#statusProcessamento',
         statusProcessamentoEmail: '#statusProcessamentoEmail',
-        spinnerElement: '#processarSpinner', // Renomeado para clareza, embora o spinner seja agora parte do botão
         btnCopiar: '#copiarResultado',
         btnCopiarEmail: '#copiarResultadoEmail',
         btnLimpar: '#limparCampos',
@@ -31,7 +34,7 @@ export const CONFIG = {
     messages: {
         processing: 'Processando, por favor aguarde...',
         success: 'Relatório processado com sucesso!',
-        copied: '<i class="bi bi-check-lg me-1"></i>Copiado!',
+        copied: '<i class="bi bi-clipboard-check-fill me-1"></i>Copiado!',
         copyFailure: 'Falha ao copiar. Por favor, copie manualmente.',
         emptyReport: 'O relatório bruto não pode estar vazio.',
         reportTooLongFrontend: (max, current) => `Relatório muito longo. Máximo: ${max}, Atual: ${current}.`,
@@ -39,16 +42,13 @@ export const CONFIG = {
         errorPrefix: 'Erro: ',
         unexpectedResponse: 'Resposta inesperada do servidor.'
     },
-    initialCopyButtonText: '<i class="bi bi-clipboard me-1"></i>Copiar Padrão',
-    initialCopyEmailButtonText: '<i class="bi bi-clipboard-check me-1"></i>Copiar E-mail'
-    // Adicione o texto original do botão Processar aqui se ele tiver ícones
-    // initialProcessButtonHTML: '<i class="bi bi-magic"></i> Processar Relatório', // Exemplo
+    initialProcessButtonHTML: '<i class="bi bi-gear-fill me-1"></i>Processar Relatório',
+    initialCopyButtonHTML: '<i class="bi bi-clipboard-data me-1"></i>Copiar Padrão',
+    initialCopyEmailButtonHTML: '<i class="bi bi-envelope-check me-1"></i>Copiar E-mail',
+    initialClearButtonHTML: '<i class="bi bi-eraser-fill me-1"></i>Limpar Tudo'
 };
 
 export const DOMElements = {};
 for (const key in CONFIG.selectors) {
     DOMElements[key] = document.querySelector(CONFIG.selectors[key]);
-    if (!DOMElements[key] && key !== 'spinnerElement') { // spinnerElement pode não existir mais como um span separado
-        // console.warn(`config.js: Elemento DOM para '${key}' (seletor: '${CONFIG.selectors[key]}') NÃO ENCONTRADO.`);
-    }
 }

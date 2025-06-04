@@ -1,184 +1,91 @@
 // app/static/js/script.js
 document.addEventListener('DOMContentLoaded', function () {
-    const CONFIG = {
-        maxInputLengthFrontend: 10000, //
-        maxInputLengthServerDisplay: 12000, //
-        copySuccessMessageDuration: 2000, //
-        apiEndpoint: '/processar_relatorio', //
-        selectors: { /* ... (selectors como no original) ... */ }, //
-        cssClasses: { /* ... (cssClasses como no original) ... */ }, //
-        messages: { /* ... (messages como no original) ... */ }, //
-        initialCopyButtonText: "Copiar Padrão", //
-        initialCopyEmailButtonText: "Copiar E-mail" //
-    };
+    // Lógica para alternância de tema
+    const themeToggleButton = document.getElementById('theme-toggle-button');
+    const bodyElement = document.body;
+    const documentElement = document.documentElement; // Para aplicar a classe no <html> também
+    const sunIcon = document.getElementById('theme-icon-sun');
+    const moonIcon = document.getElementById('theme-icon-moon');
 
-    const DOMElements = {};
-    for (const key in CONFIG.selectors) { //
-        DOMElements[key] = document.querySelector(CONFIG.selectors[key]);
-        if (!DOMElements[key] && !(key === 'resultadoEmail' || key === 'colunaRelatorioEmail' || key === 'statusProcessamentoEmail' || key === 'btnCopiarEmail')) { //
-            // console.warn(`script.js: Elemento DOM para '${key}' não encontrado.`);
-        }
-    }
+    const THEME_KEY = 'themePreference';
+    const LIGHT_THEME_CLASS = 'light-theme';
+    const DARK_THEME_CLASS = 'dark-theme';
 
-    function updateCharCount() { /* ... (código como no original) ... */ } //
-    function displayStatus(message, type = 'info', target = 'standard') { /* ... (código como no original) ... */ } //
-    function setProcessingUI(isProcessing) { /* ... (código como no original) ... */ } //
-    function showCopyFeedback(buttonElement) { /* ... (código como no original) ... */ } //
-    function tryFallbackCopy(text, buttonElement) { /* ... (código como no original) ... */ } //
-
-    async function handleProcessReport() {
-        // Adiciona verificação para só executar se os elementos principais existirem na página
-        if (!DOMElements.relatorioBruto || !DOMElements.btnProcessar || !DOMElements.resultadoProcessamento || !DOMElements.statusProcessamento) {
-            // console.log("script.js: Elementos para processar relatório não presentes. Ignorando handleProcessReport de script.js.");
-            return;
-        }
-
-        const relatorioBrutoValue = DOMElements.relatorioBruto.value; //
-        const formatarParaEmailChecked = DOMElements.formatarParaEmailCheckbox ? DOMElements.formatarParaEmailCheckbox.checked : false; //
-
-        // Limpar campos e status (como em index_page.js)
-        if(DOMElements.resultadoProcessamento) DOMElements.resultadoProcessamento.value = ''; //
-        if (DOMElements.resultadoEmail) DOMElements.resultadoEmail.value = ''; //
-        if(DOMElements.statusProcessamento) displayStatus('', 'info', 'standard'); //
-        if (DOMElements.statusProcessamentoEmail) displayStatus('', 'info', 'email'); //
-        if (DOMElements.btnCopiar) DOMElements.btnCopiar.style.display = 'none'; //
-        if (DOMElements.btnCopiarEmail) DOMElements.btnCopiarEmail.style.display = 'none'; //
-        if (DOMElements.colunaRelatorioEmail) DOMElements.colunaRelatorioEmail.style.display = formatarParaEmailChecked ? 'block' : 'none'; //
-
-
-        if (!relatorioBrutoValue.trim()) { /* ... (validação) ... */ return; } //
-        if (relatorioBrutoValue.length > CONFIG.maxInputLengthFrontend) { /* ... (validação) ... */ return; } //
-
-
-        if(DOMElements.btnProcessar) setProcessingUI(true); //
-        if(DOMElements.statusProcessamento) displayStatus(CONFIG.messages.processing, 'info', 'standard'); //
-        if (formatarParaEmailChecked && DOMElements.statusProcessamentoEmail) {
-            displayStatus(CONFIG.messages.processing, 'info', 'email'); //
-        }
-
-        const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
-        if (!csrfTokenElement) {
-            console.error('script.js: CSRF token meta tag não encontrada!');
-            if(DOMElements.statusProcessamento) displayStatus('Erro de configuração: CSRF token não encontrado (script.js).', 'danger', 'standard'); //
-            if(DOMElements.btnProcessar) setProcessingUI(false); //
-            return;
-        }
-        const csrfToken = csrfTokenElement.getAttribute('content');
-        console.log("CSRF Token a ser enviado (script.js):", csrfToken);
-
-        try {
-            const response = await fetch(CONFIG.apiEndpoint, { //
-                method: 'POST', //
-                headers: {
-                    'Content-Type': 'application/json', //
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({ //
-                    // *** CORREÇÃO APLICADA AQUI ***
-                    relatorio_bruto: relatorioBrutoValue,    // Alinhado com o backend
-                    format_for_email: formatarParaEmailChecked // Alinhado com o backend
-                }),
-            });
-
-            let data;
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.indexOf("application/json") !== -1) {
-                data = await response.json(); //
+    function updateTogglerIcon(theme) {
+        if (sunIcon && moonIcon) {
+            if (theme === 'dark') {
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'inline-block';
             } else {
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error("Resposta não JSON recebida (script.js):", errorText);
-                    let userMessage = CONFIG.messages.communicationFailure; //
-                    if (errorText.trim().toLowerCase().startsWith("<!doctype html")) {
-                        userMessage += "Possível erro de CSRF ou resposta HTML inesperada do servidor (script.js).";
-                    } else {
-                        userMessage += `Erro ${response.status}: Resposta não JSON do servidor (script.js).`;
-                    }
-                    if(DOMElements.statusProcessamento) displayStatus(userMessage, 'danger', 'standard'); //
-                    if (formatarParaEmailChecked && DOMElements.statusProcessamentoEmail) {
-                        displayStatus(userMessage, 'danger', 'email');
-                    }
-                    if(DOMElements.btnProcessar) setProcessingUI(false); //
-                    return;
-                }
-                data = { erro: CONFIG.messages.unexpectedResponse }; //
+                sunIcon.style.display = 'inline-block';
+                moonIcon.style.display = 'none';
             }
+        }
+    }
 
-            console.log("Dados recebidos do servidor (script.js):", JSON.stringify(data, null, 2));
+    function applyTheme(theme) {
+        // Limpa classes antigas de ambos os elementos
+        bodyElement.classList.remove(LIGHT_THEME_CLASS, DARK_THEME_CLASS);
+        documentElement.classList.remove(LIGHT_THEME_CLASS, DARK_THEME_CLASS);
 
-            if (!response.ok) {
-                const errorMessage = data.message || data.erro || `Erro do servidor: ${response.status}`; //
-                if(DOMElements.statusProcessamento) displayStatus(CONFIG.messages.errorPrefix + errorMessage, 'danger', 'standard'); //
-                if (formatarParaEmailChecked && DOMElements.statusProcessamentoEmail) {
-                     if(DOMElements.statusProcessamentoEmail) displayStatus(CONFIG.messages.errorPrefix + (data.erro_email || errorMessage), 'danger', 'email');
-                }
-                if(DOMElements.btnProcessar) setProcessingUI(false); //
-                return;
-            }
+        if (theme === 'dark') {
+            bodyElement.classList.add(DARK_THEME_CLASS);
+            documentElement.classList.add(DARK_THEME_CLASS);
+        } else {
+            bodyElement.classList.add(LIGHT_THEME_CLASS);
+            documentElement.classList.add(LIGHT_THEME_CLASS);
+        }
+        updateTogglerIcon(theme);
+        localStorage.setItem(THEME_KEY, theme);
+        console.log(`Tema aplicado: ${theme}`);
 
-            // Chaves da resposta do backend: relatorio_processado, erro, relatorio_email, erro_email
-            if (data.relatorio_processado) {
-                if(DOMElements.resultadoProcessamento) DOMElements.resultadoProcessamento.value = data.relatorio_processado; //
-                if(DOMElements.statusProcessamento) displayStatus(CONFIG.messages.success, 'success', 'standard'); //
-                if (data.relatorio_processado.trim() && DOMElements.btnCopiar) {
-                    DOMElements.btnCopiar.style.display = 'inline-block'; //
-                }
-            } else if (data.erro) {
-                if(DOMElements.statusProcessamento) displayStatus(CONFIG.messages.errorPrefix + data.erro, 'danger', 'standard'); //
-            } else if (!data.relatorio_processado && !data.relatorio_email && !data.erro_email && !formatarParaEmailChecked) {
-                if(DOMElements.statusProcessamento) displayStatus(CONFIG.messages.unexpectedResponse, 'warning', 'standard'); //
-            }
+        // Atualiza o ícone do navbar-toggler dinamicamente
+        const navbarTogglerIcon = document.querySelector('.navbar-toggler-icon');
+        if (navbarTogglerIcon) {
+            const strokeColor = getComputedStyle(documentElement).getPropertyValue('--navbar-toggler-icon-color').trim() || 'rgba(255, 255, 255, 0.55)';
+            navbarTogglerIcon.style.backgroundImage = `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='${strokeColor}' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e")`;
+        }
+    }
 
-            if (formatarParaEmailChecked) {
-                if (DOMElements.colunaRelatorioEmail) DOMElements.colunaRelatorioEmail.style.display = 'block'; //
-                if (data.relatorio_email) {
-                    if (DOMElements.resultadoEmail) DOMElements.resultadoEmail.value = data.relatorio_email; //
-                    if (DOMElements.statusProcessamentoEmail) displayStatus('Relatório para e-mail gerado com sucesso!', 'success', 'email'); //
-                    if (data.relatorio_email.trim() && DOMElements.btnCopiarEmail) {
-                        DOMElements.btnCopiarEmail.style.display = 'inline-block'; //
-                    }
-                } else if (data.erro_email) {
-                    if (DOMElements.statusProcessamentoEmail) displayStatus(CONFIG.messages.errorPrefix + data.erro_email, 'danger', 'email'); //
-                } else if (!data.erro) {
-                     if (DOMElements.statusProcessamentoEmail) displayStatus('Não foi possível gerar o relatório para e-mail ou não foi retornado.', 'warning', 'email'); //
-                }
-            }
-
-        } catch (error) {
-            console.error('Erro no handleProcessReport (script.js):', error); //
-            let userErrorMessage = CONFIG.messages.communicationFailure; //
-             if (error instanceof SyntaxError && error.message.toLowerCase().includes("unexpected token '<'")) {
-                 userErrorMessage += "Resposta HTML inesperada (script.js - CSRF?).";
-            } else if (error.message.includes("Failed to fetch")) {
-                userErrorMessage += "Falha de conexão (script.js).";
+    if (themeToggleButton) {
+        themeToggleButton.addEventListener('click', () => {
+            // Verifica a classe no body ou no localStorage para decidir qual tema aplicar
+            const currentTheme = localStorage.getItem(THEME_KEY) || (bodyElement.classList.contains(DARK_THEME_CLASS) ? 'dark' : 'light');
+            if (currentTheme === 'dark') {
+                applyTheme('light');
             } else {
-                userErrorMessage += error.message;
+                applyTheme('dark');
             }
-            if(DOMElements.statusProcessamento) displayStatus(userErrorMessage, 'danger', 'standard'); //
-            if (formatarParaEmailChecked && DOMElements.colunaRelatorioEmail && DOMElements.statusProcessamentoEmail) {
-                displayStatus(userErrorMessage, 'danger', 'email'); //
-            }
-        } finally {
-            if(DOMElements.btnProcessar) setProcessingUI(false); //
-        }
+        });
     }
 
-    function handleCopyResult(target = 'standard') { /* ... (código como no original) ... */ } //
-    function handleClearFields() { /* ... (código como no original) ... */ } //
+    // Aplica o tema inicial ao carregar a página
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    const prefersDarkScheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-    function init() {
-        // Adiciona listeners apenas se os elementos relevantes existirem na página ATUAL
-        if (DOMElements.relatorioBruto) { //
-            DOMElements.relatorioBruto.addEventListener('input', updateCharCount); //
-            updateCharCount(); //
-        }
-        if (DOMElements.btnProcessar) {
-             DOMElements.btnProcessar.addEventListener('click', handleProcessReport); //
-        }
-        if (DOMElements.btnCopiar) { /* ... (como no original, verificando DOMElements) ... */ } //
-        if (DOMElements.btnCopiarEmail) { /* ... (como no original, verificando DOMElements) ... */ } //
-        if (DOMElements.btnLimpar) { /* ... (como no original, verificando DOMElements) ... */ } //
-        if (DOMElements.colunaRelatorioEmail && DOMElements.formatarParaEmailCheckbox) { /* ... (como no original) ... */ } //
+    if (savedTheme) {
+        applyTheme(savedTheme);
+    } else if (prefersDarkScheme) {
+        applyTheme('dark');
+    } else {
+        applyTheme('light'); // Tema claro como padrão se nada estiver definido
     }
-    init(); //
+
+    // Listener para mudanças na preferência de tema do sistema
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            // Só muda se o usuário não tiver uma preferência explícita salva no localStorage
+            if (!localStorage.getItem(THEME_KEY)) {
+                const newColorScheme = event.matches ? "dark" : "light";
+                applyTheme(newColorScheme);
+            }
+        });
+    }
+
+    // Adicione aqui qualquer outra lógica global do seu script.js original, se houver.
+    // Por exemplo, a lógica de CONFIG e DOMElements do seu script.js anterior
+    // NÃO deve estar aqui se ela é específica para a index_page.js.
+    // Mantenha este script.js para funcionalidades globais como o theme switcher.
+
+    console.log("script.js carregado e funcionalidade de tema inicializada.");
 });
