@@ -1,9 +1,4 @@
 // app/static/js/index_page/config.js
-// (Conteúdo como fornecido na resposta anterior, já está correto)
-// Exemplo relevante:
-// initialProcessButtonHTML: '<i class="bi bi-gear-fill me-1"></i>Processar Relatório',
-// initialCopyButtonHTML: '<i class="bi bi-clipboard-data me-1"></i>Copiar Padrão',
-// ... etc.
 export const CONFIG = {
     maxInputLengthFrontend: 10000,
     maxInputLengthServerDisplay: 12000,
