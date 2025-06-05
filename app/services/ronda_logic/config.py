@@ -4,33 +4,28 @@ import re
 # --- Constantes de Expressões Regulares Pré-compiladas ---
 REGEX_PREFIXO_LINHA = re.compile(
     r"^\s*\["                          # Início da linha e '['
-    r"(?:[^,\]]*?)"                    # Qualquer coisa que não seja vírgula ou ']', opcional (para a hora do prefixo)
+    r"([^,\]]*?)"                      # Grupo 1: Hora do log no prefixo (ex: "19:41" ou "22:08")
     r"(?:[, ]\s*| )?"                  # Separador opcional (vírgula ou espaço) ou apenas um espaço
-    r"(\d{1,2}/\d{1,2}/\d{4})\s*"      # Grupo 1: Data do log (DD/MM/YYYY)
+    r"(\d{1,2}/\d{1,2}/\d{2,4})\s*"    # Grupo 2: Data do log (DD/MM/YYYY ou DD/MM/YY) - AJUSTADO PARA ACEITAR ANO COM 2 OU 4 DIGITOS NA CAPTURA INICIAL
     r"\]\s*"                           # Fim do ']' do prefixo
-    r"(?:(VTR\s*\d+|Águia\s*\d+):\s*)?" # Grupo 2 (opcional): Identificador da VTR (ex: "VTR 05:", "Águia 04:")
-    r"(.*)$",                          # Grupo 3: Restante da mensagem
+    r"(?:(VTR\s*\d+|Águia\s*\d+):\s*)?" # Grupo 3 (opcional): Identificador da VTR (ex: "VTR 05:", "Águia 04:")
+    r"(.*)$",                          # Grupo 4: Restante da mensagem
     re.IGNORECASE
 )
 
 REGEX_VTR_MENSAGEM_ALTERNATIVA = re.compile(r"^(VTR\s*\d+|Águia\s*\d+):\s*(.*)$", re.IGNORECASE)
 
-REGEX_BLOCO_DATA = re.compile(r"Data:\s*(\d{1,2}/\d{1,2}/\d{2,4})", re.IGNORECASE)
-# Para REGEX_BLOCO_INICIO e _TERMINO, a hora já é capturada de forma mais genérica (aceitando : ou h)
-# e normalizar_hora_capturada lidará com isso. Se precisarmos de ; aqui também, mudaremos.
-# Por ora, vamos focar nas regex de evento na mensagem.
+REGEX_BLOCO_DATA = re.compile(r"Data:\s*(\d{1,2}/\d{1,2}/\d{2,4})", re.IGNORECASE) # Aceita ano com 2 ou 4 digitos
 REGEX_BLOCO_INICIO = re.compile(r"In[ií]cio:\s*(\d{1,2}\s*[:;hH]\s*\d{1,2})", re.IGNORECASE)
 REGEX_BLOCO_TERMINO = re.compile(r"T[eé]rmino:\s*(\d{1,2}\s*[:;hH]\s*\d{1,2})", re.IGNORECASE)
-REGEX_BLOCO_QRA = re.compile(r"QRA\s+.*", re.IGNORECASE) 
+REGEX_BLOCO_QRA = re.compile(r"QRA\s+.*", re.IGNORECASE)
 
 INICIO_KEYWORDS_REGEX_PART = r"(?:[ií]n[ií]cio|in[ií]cio|inicio|iniciou|come[cç]o|come[cç]ou)"
-TERMINO_KEYWORDS_REGEX_PART = r"(?:t[eé]rmino|termino|t[eé]rminou|terminou|fim|final|encerrou)"
+TERMINO_KEYWORDS_REGEX_PART = r"(?:t[eé]rmino|termino|t[eé]rminou|terminou|fim|final|encerrou)" # "Final de final" é coberto por "final"
 TIPO_RONDA_REGEX_PART = r"(?:ronda|vigil[âa]ncia|patrulha)"
 PREPOSICOES_ARTIGOS_REGEX_PART = r"(?:s\sde\s|\sde\s|\sda\s|\s)"
 
-# ATUALIZADO: Grupo de captura de hora agora inclui ';' e espera HH e MM (ou M)
 TIME_CAPTURE_REGEX_PART = r"(\d{1,2}\s*[:;hH]\s*\d{1,2})" # Ex: 19:20, 03;19, 8h30
-# Para horas como "06h" (sem minutos explícitos)
 SIMPLE_HOUR_CAPTURE_REGEX_PART = r"(\d{1,2}\s*h(?!\d))"
 
 
@@ -54,10 +49,10 @@ RONDA_EVENT_REGEX_PATTERNS = [
     {"tipo": "termino", "regex_str": rf"{TERMINO_KEYWORDS_REGEX_PART}\s*{TIME_CAPTURE_REGEX_PART}"},
 
     # Padrões com horas simples "HHh" (sem minutos explícitos)
-    {"tipo": "inicio", "regex_str": rf"{SIMPLE_HOUR_CAPTURE_REGEX_PART}.*?{INICIO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}"}, 
-    {"tipo": "termino", "regex_str": rf"{SIMPLE_HOUR_CAPTURE_REGEX_PART}.*?{TERMINO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}"}, 
-    {"tipo": "inicio", "regex_str": rf"{INICIO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}.*?\s+{SIMPLE_HOUR_CAPTURE_REGEX_PART}"}, 
-    {"tipo": "termino", "regex_str": rf"{TERMINO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}.*?\s+{SIMPLE_HOUR_CAPTURE_REGEX_PART}"}, 
+    {"tipo": "inicio", "regex_str": rf"{SIMPLE_HOUR_CAPTURE_REGEX_PART}.*?{INICIO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}"},
+    {"tipo": "termino", "regex_str": rf"{SIMPLE_HOUR_CAPTURE_REGEX_PART}.*?{TERMINO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}"},
+    {"tipo": "inicio", "regex_str": rf"{INICIO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}.*?\s+{SIMPLE_HOUR_CAPTURE_REGEX_PART}"},
+    {"tipo": "termino", "regex_str": rf"{TERMINO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}.*?\s+{SIMPLE_HOUR_CAPTURE_REGEX_PART}"},
 ]
 
 COMPILED_RONDA_EVENT_REGEXES = [
