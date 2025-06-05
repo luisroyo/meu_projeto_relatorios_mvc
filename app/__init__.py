@@ -7,15 +7,12 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
-# from app.models import User # <--- REMOVA OU COMENTE ESTA LINHA (causa do erro circular)
-from werkzeug.security import generate_password_hash # Pode ser necessário se User.set_password não for chamado
+# NÃO importe User ou models aqui no topo
 
-# Defina as instâncias das extensões AQUI, no nível do módulo
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 
-# Configure o login_manager AQUI
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Por favor, faça login para acessar esta página.'
 login_manager.login_message_category = 'info'
@@ -23,7 +20,6 @@ login_manager.login_message_category = 'info'
 logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO').upper(),
                     format='%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
-
 module_logger = logging.getLogger(__name__)
 
 dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
@@ -33,10 +29,8 @@ if os.path.exists(dotenv_path):
 else:
     module_logger.info(f".env não encontrado em {dotenv_path}, usando variáveis de ambiente do sistema se definidas.")
 
-
 def create_app():
     app_instance = Flask(__name__)
-    # Removido log de criação de instância daqui para evitar duplicidade se create_app for chamada várias vezes por engano
     
     app_instance.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
     BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
@@ -70,13 +64,9 @@ def create_app():
     if should_perform_single_run_actions:
         log_level_str = os.getenv('LOG_LEVEL', 'INFO').upper()
         log_level = getattr(logging, log_level_str, logging.INFO)
-        
-        if not app_instance.logger.handlers or app_instance.logger.name == 'flask.app': # Evita reconfigurar se já configurado por Flask
-            # Se for o logger padrão do Flask 'flask.app', ele pode já ter handlers.
-            # Se for um logger customizado ou se não tiver handlers, configuramos.
+        if not app_instance.logger.handlers or app_instance.logger.name == 'flask.app':
             if app_instance.logger.hasHandlers():
                  app_instance.logger.handlers.clear()
-
             formatter = logging.Formatter(
                 '%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] %(message)s',
                 datefmt='%Y-%m-%d %H:%M:%S'
@@ -87,42 +77,12 @@ def create_app():
             app_instance.logger.setLevel(log_level)
             app_instance.logger.propagate = False 
             module_logger.info(f"Configuração de logging da aplicação Flask (app.logger) aplicada. Nível: {log_level_str}")
-        # Removido o segundo log "Logger da aplicação Flask (app.logger) configurado e pronto." para evitar duplicidade.
 
     with app_instance.app_context():
-        from . import models # Esta importação é a correta e permanece aqui
+        from . import models # Importa modelos aqui
         if should_perform_single_run_actions: module_logger.info("Modelos importados no contexto da app.")
-
-        # --- CÓDIGO TEMPORÁRIO PARA CRIAR USUÁRIO ADMINISTRADOR ---
-        # !!! IMPORTANTE: REMOVA ESTE BLOCO DE CÓDIGO APÓS O USUÁRIO SER CRIADO E TESTADO !!!
-        admin_email_to_create = "luisroyo25@gmail.com"
-        admin_username_to_create = "Luis Royo"
-        admin_password_to_create = "edu123cs"
-
-        # Verifica se o usuário já existe para evitar erro de duplicação
-        existing_admin = models.User.query.filter_by(email=admin_email_to_create).first()
-        if not existing_admin:
-            if should_perform_single_run_actions: # Loga apenas uma vez
-                module_logger.info(f"Usuário administrador {admin_email_to_create} não encontrado, tentando criar...")
-            try:
-                admin_user = models.User(
-                    username=admin_username_to_create,
-                    email=admin_email_to_create,
-                    is_admin=True,
-                    is_approved=True 
-                )
-                admin_user.set_password(admin_password_to_create) 
-                db.session.add(admin_user)
-                db.session.commit()
-                if should_perform_single_run_actions: # Loga apenas uma vez
-                    module_logger.info(f"Usuário administrador {admin_email_to_create} criado com sucesso.")
-            except Exception as e:
-                db.session.rollback()
-                module_logger.error(f"Falha ao criar usuário administrador {admin_email_to_create}: {e}", exc_info=True)
-        else:
-            if should_perform_single_run_actions: # Loga apenas uma vez
-                module_logger.info(f"Usuário administrador {admin_email_to_create} já existe. Nenhuma ação tomada.")
-        # --- FIM DO CÓDIGO TEMPORÁRIO ---
+        
+        # !!! O BLOCO DE CRIAÇÃO DE ADMIN TEMPORÁRIO FOI REMOVIDO DAQUI !!!
 
         from app.blueprints.main.routes import main_bp
         app_instance.register_blueprint(main_bp)
@@ -140,6 +100,10 @@ def create_app():
         app_instance.register_blueprint(ronda_bp, url_prefix='/ronda') 
         if should_perform_single_run_actions: module_logger.info(f"Blueprint '{ronda_bp.name}' registrado com prefixo '/ronda'.")
 
+    # Registrar comandos CLI customizados
+    from . import commands # Importa o novo módulo commands.py
+    app_instance.cli.add_command(commands.create_admin_command)
+    if should_perform_single_run_actions: module_logger.info("Comandos CLI customizados registrados.")
 
     @app_instance.context_processor
     def inject_current_year():
