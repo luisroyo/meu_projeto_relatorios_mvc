@@ -1,9 +1,9 @@
 // app/static/js/index_page/config.js
 export const CONFIG = {
     maxInputLengthFrontend: 10000,
-    maxInputLengthServerDisplay: 12000,
+    maxInputLengthServerDisplay: 12000, // Conforme definido em seu app.config em conftest.py
     copySuccessMessageDuration: 2000,
-    apiEndpoint: '/processar_relatorio',
+    apiEndpoint: '/processar_relatorio', // Endpoint da API
     selectors: {
         btnProcessar: '#processarRelatorio',
         relatorioBruto: '#relatorioBruto',
@@ -14,6 +14,8 @@ export const CONFIG = {
         statusProcessamentoEmail: '#statusProcessamentoEmail',
         btnCopiar: '#copiarResultado',
         btnCopiarEmail: '#copiarResultadoEmail',
+        btnEnviarWhatsAppResultado: '#enviarWhatsAppResultado', // NOVO
+        btnEnviarWhatsAppEmail: '#enviarWhatsAppEmail',     // NOVO
         btnLimpar: '#limparCampos',
         charCount: '#charCount',
         formatarParaEmailCheckbox: '#formatarParaEmail',
@@ -29,7 +31,7 @@ export const CONFIG = {
     messages: {
         processing: 'Processando, por favor aguarde...',
         success: 'Relatório processado com sucesso!',
-        copied: '<i class="bi bi-clipboard-check-fill me-1"></i>Copiado!',
+        copied: '<i class="bi bi-clipboard-check-fill me-1"></i>Copiado!', // Exemplo com ícone
         copyFailure: 'Falha ao copiar. Por favor, copie manualmente.',
         emptyReport: 'O relatório bruto não pode estar vazio.',
         reportTooLongFrontend: (max, current) => `Relatório muito longo. Máximo: ${max}, Atual: ${current}.`,
@@ -40,6 +42,9 @@ export const CONFIG = {
     initialProcessButtonHTML: '<i class="bi bi-gear-fill me-1"></i>Processar Relatório',
     initialCopyButtonHTML: '<i class="bi bi-clipboard-data me-1"></i>Copiar Padrão',
     initialCopyEmailButtonHTML: '<i class="bi bi-envelope-check me-1"></i>Copiar E-mail',
+    // HTML inicial para botões WhatsApp (já definido no template index.html, mas pode ser útil para referência)
+    initialWhatsAppButtonHTML: '<i class="bi bi-whatsapp me-1"></i>Enviar Padrão via WhatsApp',
+    initialWhatsAppEmailButtonHTML: '<i class="bi bi-whatsapp me-1"></i>Enviar E-mail via WhatsApp',
     initialClearButtonHTML: '<i class="bi bi-eraser-fill me-1"></i>Limpar Tudo'
 };
 

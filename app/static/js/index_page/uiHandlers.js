@@ -17,9 +17,9 @@ export function displayStatus(message, type = 'info', target = 'standard') {
     if (statusElement) {
         statusElement.textContent = message;
         const alertBaseClass = CONFIG.cssClasses.alert;
-        const alertTypeClassSuffix = type.charAt(0).toUpperCase() + type.slice(1);
-        const alertTypeClass = CONFIG.cssClasses[`alert${alertTypeClassSuffix}`] || `alert-${type}`;
-        statusElement.className = `${alertBaseClass} ${alertTypeClass} p-2 mt-2`;
+        // Corrigido para usar o nome da classe diretamente do CONFIG.cssClasses
+        const alertTypeClass = CONFIG.cssClasses[`alert${type.charAt(0).toUpperCase() + type.slice(1)}`] || `alert-${type}`;
+        statusElement.className = `${alertBaseClass} ${alertTypeClass} p-2 mt-2`; // Adicionado padding e margin
         statusElement.style.display = message ? 'block' : 'none';
     }
 }
@@ -33,14 +33,16 @@ export function setProcessingUI(isProcessing) {
             }
             DOMElements.btnProcessar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${CONFIG.messages.processing || 'Processando...'}`;
         } else {
+            // Restaura o HTML original do botão que foi salvo no dataset
             DOMElements.btnProcessar.innerHTML = DOMElements.btnProcessar.dataset.originalHTML || 'Processar Relatório';
         }
     }
 }
 
+
 export function showCopyFeedback(buttonElement) {
     if (!buttonElement) return;
-    if (!buttonElement.dataset.originalHTML) {
+    if (!buttonElement.dataset.originalHTML) { // Garante que temos um original
         buttonElement.dataset.originalHTML = buttonElement.innerHTML;
     }
     const originalHTML = buttonElement.dataset.originalHTML;
@@ -55,18 +57,16 @@ export function showCopyFeedback(buttonElement) {
 export function tryFallbackCopy(text, buttonElement) {
     const textArea = document.createElement("textarea");
     textArea.value = text;
-    textArea.style.position = "fixed"; textArea.style.top = "0"; textArea.style.left = "0";
-    textArea.style.width = "2em"; textArea.style.height = "2em"; textArea.style.padding = "0";
-    textArea.style.border = "none"; textArea.style.outline = "none"; textArea.style.boxShadow = "none";
-    textArea.style.background = "transparent";
+    // Estilos para manter o textarea fora da viewport e invisível
+    textArea.style.position = "fixed"; textArea.style.top = "-9999px"; textArea.style.left = "-9999px";
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
     try {
         const successful = document.execCommand('copy');
         if (successful && buttonElement) {
-            showCopyFeedback(buttonElement);
-        } else if (!successful) {
+            showCopyFeedback(buttonElement); // Reutiliza a função de feedback
+        } else if(!successful) {
              throw new Error('document.execCommand("copy") não teve sucesso.');
         }
     } catch (err) {
@@ -85,6 +85,8 @@ export function resetOutputUI(showEmailColumn = false) {
 
     if (DOMElements.btnCopiar) DOMElements.btnCopiar.style.display = 'none';
     if (DOMElements.btnCopiarEmail) DOMElements.btnCopiarEmail.style.display = 'none';
+    if (DOMElements.btnEnviarWhatsAppResultado) DOMElements.btnEnviarWhatsAppResultado.style.display = 'none';
+    if (DOMElements.btnEnviarWhatsAppEmail) DOMElements.btnEnviarWhatsAppEmail.style.display = 'none';
 
     if (DOMElements.colunaRelatorioEmail) {
         DOMElements.colunaRelatorioEmail.style.display = showEmailColumn ? 'block' : 'none';
@@ -96,25 +98,37 @@ export function updateReportUI(data) {
     if (data.relatorio_processado) {
         if (DOMElements.resultadoProcessamento) DOMElements.resultadoProcessamento.value = data.relatorio_processado;
         displayStatus(CONFIG.messages.success || "Sucesso!", 'success', 'standard');
-        if (data.relatorio_processado.trim() && DOMElements.btnCopiar) DOMElements.btnCopiar.style.display = 'inline-block';
+        if (data.relatorio_processado.trim()) {
+            if(DOMElements.btnCopiar) DOMElements.btnCopiar.style.display = 'block'; // Usar 'block' ou 'inline-block' conforme o layout
+            if(DOMElements.btnEnviarWhatsAppResultado) DOMElements.btnEnviarWhatsAppResultado.style.display = 'block';
+        }
         standardReportSuccess = true;
     } else if (data.erro) {
         displayStatus((CONFIG.messages.errorPrefix || "Erro: ") + data.erro, 'danger', 'standard');
+         if(DOMElements.btnCopiar) DOMElements.btnCopiar.style.display = 'none';
+         if(DOMElements.btnEnviarWhatsAppResultado) DOMElements.btnEnviarWhatsAppResultado.style.display = 'none';
     } else if (!data.relatorio_email && !data.erro_email && !(DOMElements.formatarParaEmailCheckbox && DOMElements.formatarParaEmailCheckbox.checked) ) {
+        // Este caso pode ser complexo, talvez seja melhor simplificar o que é mostrado ao usuário
+        // ou garantir que 'erro' seja populado se 'relatorio_processado' não for.
         displayStatus(CONFIG.messages.unexpectedResponse || "Resposta inesperada.", 'warning', 'standard');
     }
     return standardReportSuccess;
 }
 
 export function updateEmailReportUI(data) {
-    // A visibilidade da coluna é tratada em resetOutputUI ou pelo checkbox
     if (data.relatorio_email) {
         if(DOMElements.resultadoEmail) DOMElements.resultadoEmail.value = data.relatorio_email;
         displayStatus('Relatório para e-mail gerado!', 'success', 'email');
-        if (data.relatorio_email.trim() && DOMElements.btnCopiarEmail) DOMElements.btnCopiarEmail.style.display = 'inline-block';
+        if (data.relatorio_email.trim()) {
+            if(DOMElements.btnCopiarEmail) DOMElements.btnCopiarEmail.style.display = 'block';
+            if(DOMElements.btnEnviarWhatsAppEmail) DOMElements.btnEnviarWhatsAppEmail.style.display = 'block';
+        }
     } else if (data.erro_email) {
         displayStatus((CONFIG.messages.errorPrefix || "Erro: ") + data.erro_email, 'danger', 'email');
-    } else if (!data.erro) { // Só mostra warning se não houve um erro mais geral já mostrado
+        if(DOMElements.btnCopiarEmail) DOMElements.btnCopiarEmail.style.display = 'none';
+        if(DOMElements.btnEnviarWhatsAppEmail) DOMElements.btnEnviarWhatsAppEmail.style.display = 'none';
+    } else if (!data.erro && (DOMElements.formatarParaEmailCheckbox && DOMElements.formatarParaEmailCheckbox.checked)) { 
+        // Só mostra warning se foi solicitado e não houve erro mais geral e nem sucesso
         displayStatus('Relatório para e-mail não gerado ou vazio.', 'warning', 'email');
     }
 }
