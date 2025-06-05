@@ -18,15 +18,15 @@
                         <div class="card-header">
                             <h5 class="mb-0"><i class="bi bi-keyboard me-2"></i>Entrada do Relatório</h5>
                         </div>
-                        <div class="card-body d-flex flex-column p-lg-4"> {# Padding maior em telas grandes #}
+                        <div class="card-body d-flex flex-column p-lg-4">
                             <div class="form-group mb-3 flex-grow-1">
                                 <label for="relatorioBruto" class="form-label">Relatório Bruto:</label>
                                 <textarea class="form-control" id="relatorioBruto" name="relatorioBruto" rows="15" placeholder="Cole o relatório bruto aqui..."></textarea>
-                                <small id="charCount" class="form-text">Caracteres: 0 / 12000</small> {# Removido text-muted para herdar do tema #}
+                                <small id="charCount" class="form-text">Caracteres: 0 / 12000</small>
                             </div>
 
-                            <div class="form-group mb-4"> {# Aumentado margin-bottom #}
-                                <div class="form-check form-switch"> {# Usando form-switch para um visual mais moderno #}
+                            <div class="form-group mb-4">
+                                <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" role="switch" id="formatarParaEmail">
                                     <label class="form-check-label" for="formatarParaEmail">
                                         Gerar também para E-mail Profissional
@@ -35,7 +35,7 @@
                             </div>
 
                             <div class="mt-auto">
-                                <div class="d-grid gap-2 d-md-flex"> {# d-md-flex para botões lado a lado em telas médias+ #}
+                                <div class="d-grid gap-2 d-md-flex">
                                     <button type="button" class="btn btn-primary btn-lg flex-grow-1 flex-md-grow-0" id="processarRelatorio">
                                         {# O HTML do botão será definido pelo config.js/main.js #}
                                     </button>
@@ -64,6 +64,9 @@
                                 <button type="button" class="btn btn-info btn-lg w-100" id="copiarResultado" style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top" title="Copiar Relatório Padrão">
                                     {# O HTML do botão será definido pelo config.js/main.js #}
                                 </button>
+                                <button type="button" class="btn btn-success btn-lg w-100 mt-2" id="enviarWhatsAppResultado" style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top" title="Enviar Relatório Padrão via WhatsApp">
+                                    <i class="bi bi-whatsapp me-1"></i>Enviar Padrão via WhatsApp
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -84,6 +87,9 @@
                             <div class="mt-auto">
                                 <button type="button" class="btn btn-success btn-lg w-100" id="copiarResultadoEmail" style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top" title="Copiar Relatório para E-mail">
                                     {# O HTML do botão será definido pelo config.js/main.js #}
+                                </button>
+                                <button type="button" class="btn btn-success btn-lg w-100 mt-2" id="enviarWhatsAppEmail" style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top" title="Enviar Relatório de Email via WhatsApp">
+                                    <i class="bi bi-whatsapp me-1"></i>Enviar E-mail via WhatsApp
                                 </button>
                             </div>
                         </div>

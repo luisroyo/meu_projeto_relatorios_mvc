@@ -1,7 +1,8 @@
 // app/static/js/index_page/main.js
 import { CONFIG, DOMElements } from './config.js';
-import { updateCharCount, displayStatus } from './uiHandlers.js'; // Apenas as que são diretamente chamadas aqui
-import { handleProcessReport, handleClearFields, handleCopyResult } from './reportLogic.js';
+import { updateCharCount, displayStatus } from './uiHandlers.js';
+// Importe a nova função de reportLogic.js
+import { handleProcessReport, handleClearFields, handleCopyResult, handleSendToWhatsApp } from './reportLogic.js';
 
 document.addEventListener('DOMContentLoaded', function () {
     function init() {
@@ -12,23 +13,29 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Define o HTML inicial dos botões a partir do CONFIG
-        // e salva esse HTML no dataset para restauração posterior.
-        if (DOMElements.btnProcessar) {
-            DOMElements.btnProcessar.innerHTML = CONFIG.initialProcessButtonHTML || 'Processar Relatório';
+        if (DOMElements.btnProcessar && CONFIG.initialProcessButtonHTML) {
+            DOMElements.btnProcessar.innerHTML = CONFIG.initialProcessButtonHTML;
             DOMElements.btnProcessar.dataset.originalHTML = DOMElements.btnProcessar.innerHTML;
         }
-        if (DOMElements.btnCopiar) {
-            DOMElements.btnCopiar.innerHTML = CONFIG.initialCopyButtonHTML || 'Copiar Padrão';
+        if (DOMElements.btnCopiar && CONFIG.initialCopyButtonHTML) {
+            DOMElements.btnCopiar.innerHTML = CONFIG.initialCopyButtonHTML;
             DOMElements.btnCopiar.dataset.originalHTML = DOMElements.btnCopiar.innerHTML;
         }
-        if (DOMElements.btnCopiarEmail) {
-            DOMElements.btnCopiarEmail.innerHTML = CONFIG.initialCopyEmailButtonHTML || 'Copiar E-mail';
+        if (DOMElements.btnCopiarEmail && CONFIG.initialCopyEmailButtonHTML) {
+            DOMElements.btnCopiarEmail.innerHTML = CONFIG.initialCopyEmailButtonHTML;
             DOMElements.btnCopiarEmail.dataset.originalHTML = DOMElements.btnCopiarEmail.innerHTML;
         }
-        if (DOMElements.btnLimpar) {
-             DOMElements.btnLimpar.innerHTML = CONFIG.initialClearButtonHTML || 'Limpar Tudo';
-             DOMElements.btnLimpar.dataset.originalHTML = DOMElements.btnLimpar.innerHTML; // Salvar se for mudar dinamicamente
+        if (DOMElements.btnLimpar && CONFIG.initialClearButtonHTML) {
+             DOMElements.btnLimpar.innerHTML = CONFIG.initialClearButtonHTML;
         }
+        // Para botões de WhatsApp, o HTML já está no template, mas você pode padronizar se quiser:
+        if (DOMElements.btnEnviarWhatsAppResultado && CONFIG.initialWhatsAppButtonHTML) {
+             // DOMElements.btnEnviarWhatsAppResultado.innerHTML = CONFIG.initialWhatsAppButtonHTML;
+        }
+        if (DOMElements.btnEnviarWhatsAppEmail && CONFIG.initialWhatsAppEmailButtonHTML) {
+            // DOMElements.btnEnviarWhatsAppEmail.innerHTML = CONFIG.initialWhatsAppEmailButtonHTML;
+        }
+
 
         if (DOMElements.relatorioBruto) {
             DOMElements.relatorioBruto.addEventListener('input', updateCharCount);
@@ -46,6 +53,17 @@ document.addEventListener('DOMContentLoaded', function () {
             DOMElements.btnCopiarEmail.addEventListener('click', () => handleCopyResult('email'));
             DOMElements.btnCopiarEmail.style.display = 'none';
         }
+        
+        // NOVOS EVENT LISTENERS
+        if (DOMElements.btnEnviarWhatsAppResultado) {
+            DOMElements.btnEnviarWhatsAppResultado.addEventListener('click', () => handleSendToWhatsApp('standard'));
+            DOMElements.btnEnviarWhatsAppResultado.style.display = 'none'; 
+        }
+        
+        if (DOMElements.btnEnviarWhatsAppEmail) {
+            DOMElements.btnEnviarWhatsAppEmail.addEventListener('click', () => handleSendToWhatsApp('email'));
+            DOMElements.btnEnviarWhatsAppEmail.style.display = 'none'; 
+        }
 
         if (DOMElements.btnLimpar) {
             DOMElements.btnLimpar.addEventListener('click', handleClearFields);
@@ -55,14 +73,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if(DOMElements.formatarParaEmailCheckbox && DOMElements.colunaRelatorioEmail){
             DOMElements.formatarParaEmailCheckbox.addEventListener('change', function(){
-                if (!this.checked) {
+                const showEmailColumn = this.checked;
+                DOMElements.colunaRelatorioEmail.style.display = showEmailColumn ? 'block' : 'none';
+                if (!showEmailColumn) { // Limpa e esconde se desmarcado
                     if(DOMElements.resultadoEmail) DOMElements.resultadoEmail.value = '';
-                    // Passando DOMElements explicitamente para displayStatus se ela não tiver acesso global a ele
                     if(DOMElements.statusProcessamentoEmail) displayStatus('', 'info', 'email'); 
                     if(DOMElements.btnCopiarEmail) DOMElements.btnCopiarEmail.style.display = 'none';
-                    DOMElements.colunaRelatorioEmail.style.display = 'none';
-                } else {
-                     DOMElements.colunaRelatorioEmail.style.display = 'block';
+                    if(DOMElements.btnEnviarWhatsAppEmail) DOMElements.btnEnviarWhatsAppEmail.style.display = 'none';
                 }
             });
         }

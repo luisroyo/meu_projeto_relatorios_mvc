@@ -9,7 +9,6 @@
     </div>
 
     <div class="row">
-        <!-- Formulário -->
         <div class="col-12 col-lg-6 mb-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header">
@@ -19,32 +18,41 @@
                     <form method="POST" action="{{ url_for('ronda.registrar_ronda') }}" novalidate>
                         {{ form.hidden_tag() }}
                         
-                        {{ form.nome_condominio.label(class="form-label") }}
-                        {{ form.nome_condominio(class="form-select", id="nome_condominio_select") }}
+                        <div class="mb-3"> {# Adicionado mb-3 para espaçamento #}
+                            {{ form.nome_condominio.label(class="form-label") }}
+                            {{ form.nome_condominio(class="form-select", id="nome_condominio_select") }}
+                        </div>
 
-                        <div id="outro_condominio_div" {% if form.nome_condominio.data != 'Outro' %}style="display: none;"{% endif %}>
+                        <div id="outro_condominio_div" class="mb-3" {% if form.nome_condominio.data != 'Outro' %}style="display: none;"{% endif %}>
                             {{ form.nome_condominio_outro.label(class="form-label") }}
                             {{ form.nome_condominio_outro(class="form-control") }}
                         </div>
 
-                        {{ form.data_plantao.label(class="form-label") }}
-                        {{ form.data_plantao(class="form-control") }}
+                        <div class="mb-3"> {# Adicionado mb-3 para espaçamento #}
+                            {{ form.data_plantao.label(class="form-label") }}
+                            {{ form.data_plantao(class="form-control") }}
+                        </div>
 
-                        {{ form.escala_plantao.label(class="form-label") }}
-                        {{ form.escala_plantao(class="form-select") }}
+                        <div class="mb-3"> {# Adicionado mb-3 para espaçamento #}
+                            {{ form.escala_plantao.label(class="form-label") }}
+                            {{ form.escala_plantao(class="form-select") }}
+                        </div>
 
-                        {{ form.log_bruto_rondas.label(class="form-label") }}
-                        {{ form.log_bruto_rondas(class="form-control", rows="10") }}
+                        <div class="mb-3"> {# Adicionado mb-3 para espaçamento #}
+                            {{ form.log_bruto_rondas.label(class="form-label") }}
+                            {{ form.log_bruto_rondas(class="form-control", rows="10") }}
+                        </div>
 
                         <div class="mt-3">
                             {{ form.submit(class="btn btn-primary") }}
+                            {# Se você tiver um botão de limpar específico para este formulário, adicione-o aqui #}
+                            {# Exemplo: <button type="button" class="btn btn-outline-secondary ms-2" id="limparFormRonda">Limpar Log</button> #}
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        <!-- Resultado -->
         <div class="col-12 col-lg-6 mb-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header">
@@ -54,58 +62,34 @@
                     <div class="report-output-container">
                         {% if relatorio_processado %}
                             {% if relatorio_processado is string and relatorio_processado.startswith("Erro:") %}
-                                <pre class="alert alert-danger">{{ relatorio_processado }}</pre>
-                            {% elif "Nenhum evento de ronda válido" in relatorio_processado %}
-                                <div class="alert alert-warning">{{ relatorio_processado }}</div>
+                                <div id="rondaResultadoTexto" class="alert alert-danger">{{ relatorio_processado }}</div>
+                            {% elif "Nenhum evento de ronda válido" in relatorio_processado or "Nenhum log de ronda fornecido" in relatorio_processado %}
+                                <div id="rondaResultadoTexto" class="alert alert-warning">{{ relatorio_processado }}</div>
                             {% elif relatorio_processado is string %}
-                                <pre>{{ relatorio_processado }}</pre>
+                                <pre id="rondaResultadoTexto">{{ relatorio_processado }}</pre>
                             {% else %}
-                                <p class="alert alert-warning">Formato não reconhecido</p>
+                                <div id="rondaResultadoTexto" class="alert alert-info">Formato não reconhecido ou relatório vazio.</div>
                             {% endif %}
                         {% else %}
-                            <div class="alert alert-secondary">O relatório processado aparecerá aqui.</div>
+                            <div id="rondaResultadoTexto" class="alert alert-secondary">O relatório processado aparecerá aqui.</div>
                         {% endif %}
                     </div>
 
-                    <button type="button" class="btn btn-info mt-3" id="copiarRelatorioRonda" style="display: none;">Copiar Relatório</button>
+                    <button type="button" class="btn btn-info mt-3" id="copiarRelatorioRonda" style="display: none;">
+                        <i class="bi bi-clipboard-check me-1"></i>Copiar Relatório
+                    </button>
+                    <button type="button" class="btn btn-success mt-3 ms-2" id="enviarWhatsAppRonda" style="display: none;">
+                        <i class="bi bi-whatsapp me-1"></i>Enviar via WhatsApp
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const select = document.getElementById('nome_condominio_select');
-        const outroDiv = document.getElementById('outro_condominio_div');
-
-        if (select && outroDiv) {
-            select.addEventListener('change', function () {
-                outroDiv.style.display = select.value === 'Outro' ? 'block' : 'none';
-            });
-        }
-
-        const resultadoTextoEl = document.querySelector('.report-output-container pre, .report-output-container div.alert');
-        const btnCopiar = document.getElementById('copiarRelatorioRonda');
-
-        function atualizarBotao() {
-            if (!resultadoTextoEl || !btnCopiar) return;
-            const texto = resultadoTextoEl.innerText.trim();
-            const isPlaceholder = texto.includes("aparecerá aqui");
-            const isError = resultadoTextoEl.classList.contains('alert-danger');
-            btnCopiar.style.display = texto && !isPlaceholder && !isError ? 'inline-block' : 'none';
-        }
-
-        atualizarBotao();
-
-        // Copiar relatório
-        btnCopiar.addEventListener('click', function () {
-            navigator.clipboard.writeText(resultadoTextoEl.innerText).then(() => {
-                btnCopiar.textContent = 'Copiado!';
-                setTimeout(() => btnCopiar.textContent = 'Copiar Relatório', 2000);
-            }).catch(() => alert('Falha ao copiar.'));
-        });
-    });
-</script>
-
+{% block scripts %}
+    {{ super() }}
+    {# Garanta que o script específico da página seja carregado #}
+    <script src="{{ url_for('static', filename='js/relatorio_ronda_page.js') }}"></script>
 {% endblock %}

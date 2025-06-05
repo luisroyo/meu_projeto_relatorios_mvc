@@ -37,30 +37,27 @@ export async function handleProcessReport() {
 
     try {
         const data = await callProcessReportAPI(relatorioBrutoValue, formatarParaEmailChecked);
-        updateReportUI(data);
+        const standardReportSuccess = updateReportUI(data); // Captura se o relatório padrão foi ok
+
         if (formatarParaEmailChecked) {
+             // Garante que a coluna de email seja exibida se a checkbox estiver marcada, 
+             // mesmo que o processamento de email em si ainda não tenha uma mensagem de status.
+            if(DOMElements.colunaRelatorioEmail) DOMElements.colunaRelatorioEmail.style.display = 'block';
             updateEmailReportUI(data);
+        } else {
+            // Garante que a coluna de email esteja oculta se a checkbox não estiver marcada.
+            if(DOMElements.colunaRelatorioEmail) DOMElements.colunaRelatorioEmail.style.display = 'none';
         }
+
     } catch (error) {
         console.error('Erro em handleProcessReport:', error);
         let userErrorMessage = error.message || CONFIG.messages.communicationFailure;
 
-        if (error.isApiError && error.data) { // Erro específico da API com dados JSON
-            // A mensagem principal já vem do apiService
-        } else if (error.isNetworkOrParseError) {
-            // Mensagem já formatada pelo apiService
-        } else if (error.message.includes("CSRF token")) {
-             // Já tratado pelo displayStatus no apiService, mas podemos reforçar
-             userErrorMessage = error.message;
-        } else if (error instanceof SyntaxError && error.message.toLowerCase().includes("unexpected token '<'")) {
-            userErrorMessage = (CONFIG.messages.communicationFailure || "") + " Resposta HTML inesperada (CSRF?).";
-        } else if (error.message && error.message.includes("Failed to fetch")) {
-            userErrorMessage = (CONFIG.messages.communicationFailure || "") + " Falha de conexão.";
-        }
-
+        // Tratamento de erros já existente...
         displayStatus(userErrorMessage, 'danger', 'standard');
         if (formatarParaEmailChecked && DOMElements.statusProcessamentoEmail) {
-            displayStatus(userErrorMessage, 'danger', 'email'); // Pode mostrar o mesmo erro
+            if(DOMElements.colunaRelatorioEmail) DOMElements.colunaRelatorioEmail.style.display = 'block'; // Mostra a coluna para exibir o erro do email
+            displayStatus(userErrorMessage, 'danger', 'email');
         }
     } finally {
         setProcessingUI(false);
@@ -76,7 +73,7 @@ export function handleClearFields() {
     if (DOMElements.formatarParaEmailCheckbox) {
         DOMElements.formatarParaEmailCheckbox.checked = false;
     }
-    resetOutputUI(false); // Passa false para showEmailColumn
+    resetOutputUI(false);
 }
 
 export function handleCopyResult(target = 'standard') {
@@ -91,15 +88,14 @@ export function handleCopyResult(target = 'standard') {
         buttonElement = DOMElements.btnCopiar;
     }
 
-    if (!buttonElement) return; // Se o botão não existe, não faz nada
-
-    // Garante que originalHTML seja definido antes de copiar
+    if (!buttonElement) return; 
+    
     if (!buttonElement.dataset.originalHTML) {
         buttonElement.dataset.originalHTML = buttonElement.innerHTML;
     }
     
     if (!textoParaCopiar || !textoParaCopiar.trim()) {
-        alert("Nada para copiar!");
+        alert("Nada para copiar!"); // Ou usar displayStatus
         return;
     }
 
@@ -113,4 +109,26 @@ export function handleCopyResult(target = 'standard') {
     } else {
         tryFallbackCopy(textoParaCopiar, buttonElement);
     }
+}
+
+// NOVA FUNÇÃO
+export function handleSendToWhatsApp(target = 'standard') {
+    let textoParaEnviar = '';
+    // Não precisamos do buttonElement para feedback aqui, pois abre nova aba
+
+    if (target === 'email' && DOMElements.resultadoEmail) {
+        textoParaEnviar = DOMElements.resultadoEmail.value;
+    } else if (target === 'standard' && DOMElements.resultadoProcessamento) {
+        textoParaEnviar = DOMElements.resultadoProcessamento.value;
+    }
+    
+    if (!textoParaEnviar || !textoParaEnviar.trim()) {
+        alert("Nada para enviar via WhatsApp!"); // Ou usar displayStatus
+        return;
+    }
+
+    const textoCodificado = encodeURIComponent(textoParaEnviar.trim());
+    const whatsappUrl = `https://wa.me/?text=${textoCodificado}`;
+    
+    window.open(whatsappUrl, '_blank');
 }
