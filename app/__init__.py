@@ -7,7 +7,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
-# NÃO importe User ou models aqui no topo
+import pytz # <-- NOVA IMPORTAÇÃO
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -20,6 +20,7 @@ login_manager.login_message_category = 'info'
 logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO').upper(),
                     format='%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
+
 module_logger = logging.getLogger(__name__)
 
 dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
@@ -48,18 +49,12 @@ def create_app():
         module_logger.info(f"Banco de dados URI: {app_instance.config['SQLALCHEMY_DATABASE_URI']}")
 
     db.init_app(app_instance)
-    if should_perform_single_run_actions: module_logger.info("SQLAlchemy inicializado com a app.")
-    
     migrate.init_app(app_instance, db)
-    if should_perform_single_run_actions: module_logger.info("Flask-Migrate inicializado com a app.")
-    
     login_manager.init_app(app_instance)
-    if should_perform_single_run_actions: module_logger.info("Flask-Login inicializado com a app.")
     
     from flask_wtf.csrf import CSRFProtect
     csrf = CSRFProtect()
     csrf.init_app(app_instance)
-    if should_perform_single_run_actions: module_logger.info("CSRFProtect inicializado com a app.")
 
     if should_perform_single_run_actions:
         log_level_str = os.getenv('LOG_LEVEL', 'INFO').upper()
@@ -78,30 +73,43 @@ def create_app():
             app_instance.logger.propagate = False 
             module_logger.info(f"Configuração de logging da aplicação Flask (app.logger) aplicada. Nível: {log_level_str}")
 
-    with app_instance.app_context():
-        from . import models # Importa modelos aqui
-        if should_perform_single_run_actions: module_logger.info("Modelos importados no contexto da app.")
+    # --- NOVO FILTRO DE TEMPLATE PARA FUSO HORÁRIO ---
+    @app_instance.template_filter('localtime')
+    def localtime_filter(dt_obj):
+        """Converte um datetime UTC para o fuso horário de São Paulo."""
+        if dt_obj is None:
+            return "N/A"
         
-        # !!! O BLOCO DE CRIAÇÃO DE ADMIN TEMPORÁRIO FOI REMOVIDO DAQUI !!!
+        utc_tz = pytz.timezone('UTC')
+        local_tz = pytz.timezone('America/Sao_Paulo')
+        
+        # Assume que o objeto datetime do banco de dados é 'naive' mas representa UTC
+        aware_utc_dt = utc_tz.localize(dt_obj)
+        
+        # Converte para o fuso horário local do Brasil
+        local_dt = aware_utc_dt.astimezone(local_tz)
+        
+        return local_dt.strftime('%d/%m/%Y %H:%M:%S')
+    # --- FIM DO NOVO FILTRO ---
+
+    with app_instance.app_context():
+        from . import models
+        if should_perform_single_run_actions: module_logger.info("Modelos importados no contexto da app.")
 
         from app.blueprints.main.routes import main_bp
         app_instance.register_blueprint(main_bp)
-        if should_perform_single_run_actions: module_logger.info(f"Blueprint '{main_bp.name}' registrado.")
-
+        
         from app.blueprints.auth.routes import auth_bp
         app_instance.register_blueprint(auth_bp)
-        if should_perform_single_run_actions: module_logger.info(f"Blueprint '{auth_bp.name}' registrado.")
-
+        
         from app.blueprints.admin.routes import admin_bp
         app_instance.register_blueprint(admin_bp) 
-        if should_perform_single_run_actions: module_logger.info(f"Blueprint '{admin_bp.name}' registrado com prefixo '{admin_bp.url_prefix}'.")
-
+        
         from app.blueprints.ronda.routes import ronda_bp
         app_instance.register_blueprint(ronda_bp, url_prefix='/ronda') 
-        if should_perform_single_run_actions: module_logger.info(f"Blueprint '{ronda_bp.name}' registrado com prefixo '/ronda'.")
 
     # Registrar comandos CLI customizados
-    from . import commands # Importa o novo módulo commands.py
+    from . import commands
     app_instance.cli.add_command(commands.create_admin_command)
     if should_perform_single_run_actions: module_logger.info("Comandos CLI customizados registrados.")
 
