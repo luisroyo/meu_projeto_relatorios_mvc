@@ -1,6 +1,5 @@
 // static/js/admin_justificativas.js
 document.addEventListener('DOMContentLoaded', function () {
-    // Inicialização de tooltips (se ainda não estiver globalmente no seu script.js ou base.html)
     var tooltipTriggerListJustificativa = [].slice.call(document.querySelectorAll('#copiarJustificativa[data-bs-toggle="tooltip"]'));
     if (tooltipTriggerListJustificativa.length > 0 && typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
         tooltipTriggerListJustificativa.map(function (tooltipTriggerEl) {
@@ -17,7 +16,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const spinner = document.getElementById('spinnerGerarJustificativa');
     const resultadoWrapper = document.getElementById('resultado_justificativa_wrapper');
 
-    // --- Funções Auxiliares para Autocomplete ---
     function criarCampoColaboradorHTML(baseId, labelText) {
         return `
             <div class="mb-3 autocomplete-container" data-field-group="${baseId}">
@@ -47,8 +45,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         inputNomeEl.addEventListener('input', async function () {
             const termo = this.value.trim();
-            targetIdEl.value = ''; // Limpa o ID se o nome for alterado
-            targetCargoEl.value = ''; // Limpa o cargo
+            targetIdEl.value = '';
+            targetCargoEl.value = '';
 
             if (termo.length < 2) {
                 suggestionsDivEl.innerHTML = '';
@@ -92,7 +90,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // Esconder sugestões se clicar fora
         document.addEventListener('click', function(e) {
             if (!inputNomeEl.contains(e.target) && !suggestionsDivEl.contains(e.target)) {
                 suggestionsDivEl.style.display = 'none';
@@ -100,8 +97,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-
-    // --- Função Principal para Mostrar Campos ---
     function mostrarCamposJustificativa() {
         if (!tipoSelect || !formFieldsContainer) return;
         const tipo = tipoSelect.value;
@@ -140,12 +135,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         formFieldsContainer.innerHTML = html;
 
-        // Inicializar autocomplete para todos os campos de nome de colaborador recém-criados
         formFieldsContainer.querySelectorAll('.colaborador-autocomplete-nome').forEach(inputEl => {
             inicializarAutocomplete(inputEl);
         });
 
-        // Lógica específica para o tipo "atestado" (dias/horas)
         if (tipo === "atestado") {
             const tipoDuracaoSelect = document.getElementById("just_at_tipo_duracao");
             const diasWrapper = document.getElementById("just_at_duracao_dias_wrapper");
@@ -163,16 +156,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
                 tipoDuracaoSelect.addEventListener('change', toggleDuracaoFields);
-                toggleDuracaoFields(); // Estado inicial
+                toggleDuracaoFields(); 
             }
         }
     }
 
-    // --- Funções de Formatação e Cálculo (mantidas como antes) ---
     function formatarDataParaDisplay(dataInput) {
         if (!dataInput) return '';
-        const parts = dataInput.split('-'); // YYYY-MM-DD
-        if (parts.length === 3) { return `${parts[2]}/${parts[1]}/${parts[0]}`; } // DD/MM/YYYY
+        const parts = dataInput.split('-');
+        if (parts.length === 3) { return `${parts[2]}/${parts[1]}/${parts[0]}`; }
         return dataInput;
     }
 
@@ -195,7 +187,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return diasListados;
     }
 
-    // --- Função para Coletar Dados e Gerar Justificativa ---
     async function gerarJustificativaTexto() {
         if (!tipoSelect || !resultadoDiv || !statusDiv || !btnCopiar || !btnGerar || !spinner || !resultadoWrapper) {
             if (statusDiv) statusDiv.innerHTML = '<div class="alert alert-danger mt-3">Erro de interface. Recarregue a página.</div>';
@@ -212,14 +203,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (tipo === "atestado") {
             const funcionarioNome = document.getElementById("just_at_funcionario_nome")?.value.trim();
-            const funcionarioId = document.getElementById("just_at_funcionario_id")?.value; // Pode ser útil para log ou auditoria
+            const funcionarioId = document.getElementById("just_at_funcionario_id")?.value;
             const funcionarioCargo = document.getElementById("just_at_funcionario_cargo")?.value.trim();
             const dataAtestadoInput = document.getElementById("just_at_data_atestado")?.value;
             const tipoDuracao = document.getElementById("just_at_tipo_duracao")?.value;
             
             payload.dados_variaveis = {
-                funcionario: funcionarioNome, // O prompt espera 'funcionario'
-                cargo: funcionarioCargo,       // O prompt espera 'cargo'
+                funcionario: funcionarioNome,
+                cargo: funcionarioCargo,
                 data_atestado: formatarDataParaDisplay(dataAtestadoInput),
                 tipo_duracao: tipoDuracao
             };
@@ -250,27 +241,23 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         } else if (tipo === "troca_plantao") {
             const colab_a_nome_val = document.getElementById("just_tp_colaborador_a_nome")?.value.trim();
-            // const colab_a_id_val = document.getElementById("just_tp_colaborador_a_id")?.value; // Opcional para dados
-            const colab_a_cargo_val = document.getElementById("just_tp_colaborador_a_cargo")?.value.trim(); // Opcional para dados
+            const colab_a_cargo_val = document.getElementById("just_tp_colaborador_a_cargo")?.value.trim();
             const data_colab_a_input_val = document.getElementById("just_tp_colaborador_a_data_trabalho")?.value;
             
             const colab_b_nome_val = document.getElementById("just_tp_colaborador_b_nome")?.value.trim();
-            // const colab_b_id_val = document.getElementById("just_tp_colaborador_b_id")?.value; // Opcional para dados
-            const colab_b_cargo_val = document.getElementById("just_tp_colaborador_b_cargo")?.value.trim(); // Opcional para dados
+            const colab_b_cargo_val = document.getElementById("just_tp_colaborador_b_cargo")?.value.trim();
             const data_colab_b_input_val = document.getElementById("just_tp_colaborador_b_data_compensacao")?.value;
             
             if (!colab_a_nome_val || !data_colab_a_input_val || !colab_b_nome_val || !data_colab_b_input_val) {
                 dados_completos = false;
             } else {
-                // Ajuste os nomes das chaves para corresponder ao seu template de prompt para troca de plantão
+                // --- CORREÇÃO APLICADA AQUI ---
                 payload.dados_variaveis = {
-                    colaborador_a_nome: colab_a_nome_val, // O prompt espera 'colaborador_a_nome'
+                    colaborador_a_nome: colab_a_nome_val,
                     colaborador_a_data_trabalho: formatarDataParaDisplay(data_colab_a_input_val),
-                    colaborador_b_nome: colab_b_nome_val, // O prompt espera 'colaborador_b_nome'
-                    colaborador_b_data_compensacao: formatarDataParaDisplay(data_colab_b_input_val)
-                    // Adicione cargos se o seu template de troca de plantão os utilizar
-                    // colaborador_a_cargo: colab_a_cargo_val,
-                    // colaborador_b_cargo: colab_b_cargo_val,
+                    colaborador_b_nome: colab_b_nome_val,
+                    colaborador_b_data_compensacao: formatarDataParaDisplay(data_colab_b_input_val), // Corrigido para usar o campo de data correto
+                    cargo: colab_a_cargo_val || colab_b_cargo_val || ''
                 };
             }
         } else if (tipo === "atraso") {
@@ -332,7 +319,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // --- Lógica para Copiar (mantida como antes) ---
     const btnCopiarJustificativaEl = document.getElementById('copiarJustificativa');
     const resultadoJustificativaTextoEl = document.getElementById('resultado_justificativa_texto');
     if (btnCopiarJustificativaEl && resultadoJustificativaTextoEl) {
@@ -354,12 +340,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     
-    // --- Inicialização ---
     if (btnGerar) {
         btnGerar.addEventListener('click', gerarJustificativaTexto);
     }
     if (tipoSelect) {
         tipoSelect.addEventListener('change', mostrarCamposJustificativa);
-        mostrarCamposJustificativa(); // Chama para popular os campos na carga inicial, se um tipo estiver pré-selecionado
+        mostrarCamposJustificativa();
     }
 });
