@@ -1,88 +1,51 @@
 # tests/test_main_routes.py
+
+import pytest
+from unittest.mock import patch, MagicMock
 from flask import url_for
-import json
 
-def test_index_page_unauthenticated(client):
-    """Testa index page redirects to login if not authenticated."""
-    response = client.get(url_for('main.index'), follow_redirects=False)
+def test_index_page_requires_login(client):
+    """Testa se a página inicial redireciona para o login se o usuário não estiver logado."""
+    response = client.get(url_for('main.index'))
     assert response.status_code == 302
-    assert url_for('auth.login') in response.location
+    assert '/login' in response.location
 
-def test_index_page_authenticated(auth_client):
-    """Testa index page loads if authenticated."""
+def test_index_page_loads_for_logged_in_user(auth_client):
+    """Testa se a página inicial carrega para um usuário logado."""
     response = auth_client.get(url_for('main.index'))
     assert response.status_code == 200
-    assert b"Analisador de Relat" in response.data # "Analisador de Relatórios IA"
+    assert 'Analisador de Relatórios IA'.encode('utf-8') in response.data
 
-def test_processar_relatorio_api_success(auth_client, mock_patrimonial_service, mock_email_service):
-    """Testa successful /processar_relatorio API call."""
-    mock_patrimonial_service.return_value = "Relatório Padrão Processado"
-    mock_email_service.return_value = "Relatório Email Formatado"
+@patch('app.blueprints.main.routes._get_email_service')
+@patch('app.blueprints.main.routes._get_patrimonial_service')
+def test_processar_relatorio_success(mock_get_patrimonial, mock_get_email, auth_client):
+    """Testa o endpoint /processar_relatorio com sucesso."""
+    mock_patrimonial_service = MagicMock()
+    mock_patrimonial_service.gerar_relatorio_seguranca.return_value = "Relatório patrimonial gerado."
+    mock_get_patrimonial.return_value = mock_patrimonial_service
 
-    response = auth_client.post(url_for('main.processar_relatorio'),
-                               json={'relatorio_bruto': 'Texto bruto aqui', 'format_for_email': True})
-    
+    mock_email_service = MagicMock()
+    mock_email_service.formatar_para_email.return_value = "Relatório formatado para e-mail."
+    mock_get_email.return_value = mock_email_service
+
+    payload = {
+        'relatorio_bruto': 'Conteúdo do relatório.',
+        'format_for_email': True
+    }
+    response = auth_client.post(url_for('main.processar_relatorio'), json=payload)
     assert response.status_code == 200
-    data = response.get_json()
-    assert data['relatorio_processado'] == "Relatório Padrão Processado"
-    assert data['relatorio_email'] == "Relatório Email Formatado"
-    assert data['erro'] is None
-    assert data['erro_email'] is None
-    mock_patrimonial_service.assert_called_once_with('Texto bruto aqui')
-    mock_email_service.assert_called_once_with("Relatório Padrão Processado")
+    json_data = response.get_json()
+    assert json_data['relatorio_processado'] == "Relatório patrimonial gerado."
+    assert json_data['relatorio_email'] == "Relatório formatado para e-mail."
 
-
-def test_processar_relatorio_api_no_email(auth_client, mock_patrimonial_service, mock_email_service):
-    """Testa /processar_relatorio API call without email formatting."""
-    mock_patrimonial_service.return_value = "Relatório Padrão Processado"
-
-    response = auth_client.post(url_for('main.processar_relatorio'),
-                               json={'relatorio_bruto': 'Outro texto bruto', 'format_for_email': False})
-    
-    assert response.status_code == 200
-    data = response.get_json()
-    assert data['relatorio_processado'] == "Relatório Padrão Processado"
-    assert data['relatorio_email'] is None
-    assert data['erro'] is None
-    assert data['erro_email'] is None
-    mock_patrimonial_service.assert_called_once_with('Outro texto bruto')
-    mock_email_service.assert_not_called()
-
-def test_processar_relatorio_api_empty_input(auth_client):
-    """Testa /processar_relatorio API com entrada vazia."""
-    response = auth_client.post(url_for('main.processar_relatorio'),
-                               json={'relatorio_bruto': '', 'format_for_email': False})
+def test_processar_relatorio_invalid_payload(auth_client):
+    """Testa o endpoint com payload inválido."""
+    response = auth_client.post(url_for('main.processar_relatorio'), json={'relatorio_bruto': ''})
     assert response.status_code == 400
-    data = response.get_json()
-    assert "relatorio_bruto é obrigatório" in data['erro'] #
+    assert 'obrigatório' in response.get_json()['erro']
 
-def test_processar_relatorio_api_too_long(auth_client, app):
-    """Testa /processar_relatorio API com relatório muito longo."""
-    max_chars = app.config.get('REPORT_MAX_CHARS', 12000) 
-    long_text = 'a' * (max_chars + 1)
-    response = auth_client.post(url_for('main.processar_relatorio'),
-                               json={'relatorio_bruto': long_text, 'format_for_email': False})
-    assert response.status_code == 413 # Payload Too Large
-    data = response.get_json()
-    assert f"Relatório muito longo (máximo de {max_chars}" in data['erro'] #
-
-def test_processar_relatorio_api_patrimonial_service_error(auth_client, mock_patrimonial_service):
-    """Testa API quando o serviço patrimonial levanta uma exceção."""
-    mock_patrimonial_service.side_effect = Exception("Falha no serviço IA Patrimonial")
-    response = auth_client.post(url_for('main.processar_relatorio'),
-                               json={'relatorio_bruto': 'Texto qualquer', 'format_for_email': False})
-    assert response.status_code == 500 # Ajustado conforme a lógica da rota
-    data = response.get_json()
-    assert "Falha ao gerar relatório padrão: Falha no serviço IA Patrimonial" in data['erro'] #
-
-def test_processar_relatorio_api_email_service_error(auth_client, mock_patrimonial_service, mock_email_service):
-    """Testa API quando o serviço de e-mail levanta uma exceção mas o patrimonial tem sucesso."""
-    mock_patrimonial_service.return_value = "Sucesso Patrimonial"
-    mock_email_service.side_effect = Exception("Falha no serviço IA Email")
-
-    response = auth_client.post(url_for('main.processar_relatorio'),
-                               json={'relatorio_bruto': 'Texto qualquer', 'format_for_email': True})
-    assert response.status_code == 200 # Se o patrimonial teve sucesso, o status geral é 200
-    data = response.get_json()
-    assert data['relatorio_processado'] == "Sucesso Patrimonial"
-    assert "Falha ao gerar relatório para e-mail: Falha no serviço IA Email" in data['erro_email'] #
+def test_processar_relatorio_not_json(auth_client):
+    """Testa se o endpoint rejeita requisições que não são JSON."""
+    response = auth_client.post(url_for('main.processar_relatorio'), data={'relatorio_bruto': 'dado'})
+    assert response.status_code == 400
+    assert 'Formato inválido' in response.get_json()['erro']

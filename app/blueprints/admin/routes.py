@@ -1,28 +1,37 @@
 # app/blueprints/admin/routes.py
+import logging
 from flask import (
-    Blueprint, render_template, redirect, url_for, flash,
-    request, current_app, jsonify
+    render_template, redirect, url_for, flash,
+    request, jsonify, g
 )
 from flask_login import login_required, current_user
-from app import db
-from app.models import User, LoginHistory, Ronda, Colaborador # Assegure-se que Ronda está aqui se usada no admin
-from app.decorators.admin_required import admin_required
-from app.forms import TestarRondasForm, FormatEmailReportForm, ColaboradorForm # Presumo que sejam usados em admin_tools
-import logging
+from sqlalchemy import func
 
-# --- SERVIÇOS DE IA ---
-# Importações corrigidas para cada serviço de seu respectivo módulo:
+# Importa o blueprint do __init__.py desta pasta
+from . import admin_bp
+from app import db
+from app.models import User, LoginHistory, Ronda, Colaborador
+from app.decorators.admin_required import admin_required
+from app.forms import TestarRondasForm, FormatEmailReportForm, ColaboradorForm
 from app.services.justificativa_service import JustificativaAtestadoService
 from app.services.justificativa_troca_plantao_service import JustificativaTrocaPlantaoService
-# Se você criar o JustificativaAtrasoService, adicione a importação aqui:
-# from app.services.justificativa_atraso_service import JustificativaAtrasoService
-
-# Para a ferramenta de formatação de email em admin_tools, se decidir usar IA:
-# from app.services.email_format_service import EmailFormatService
 
 logger = logging.getLogger(__name__)
-admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
+# A linha "admin_bp = Blueprint(...)" foi removida daqui e movida para o __init__.py da pasta.
+
+# --- INJEÇÃO DE DEPENDÊNCIA PARA SERVIÇOS DE IA ---
+def _get_justificativa_atestado_service():
+    if 'justificativa_atestado_service' not in g:
+        g.justificativa_atestado_service = JustificativaAtestadoService()
+    return g.justificativa_atestado_service
+
+def _get_justificativa_troca_plantao_service():
+    if 'justificativa_troca_plantao_service' not in g:
+        g.justificativa_troca_plantao_service = JustificativaTrocaPlantaoService()
+    return g.justificativa_troca_plantao_service
+
+# --- ROTAS ---
 
 @admin_bp.route('/')
 @login_required
@@ -103,28 +112,16 @@ def api_processar_justificativa():
 
     logger.info(f"API Processar Justificativa: Tipo='{tipo_justificativa}' Dados='{dados_variaveis}' recebidos por '{current_user.username}'.")
 
-    texto_gerado = None
-    service_exception = None # Usado para capturar NotImplementedError antes de tentar retornar
-
     try:
         if tipo_justificativa == "atestado":
-            service = JustificativaAtestadoService()
-            texto_gerado = service.gerar_justificativa(dados_variaveis) # Método consistente com o do serviço
+            service = _get_justificativa_atestado_service()
+            texto_gerado = service.gerar_justificativa(dados_variaveis)
         elif tipo_justificativa == "troca_plantao":
-            service = JustificativaTrocaPlantaoService()
-            texto_gerado = service.gerar_justificativa_troca(dados_variaveis) # Método consistente com o do serviço
-        # elif tipo_justificativa == "atraso":
-        #     # Certifique-se de que JustificativaAtrasoService está importado e o arquivo existe
-        #     # service = JustificativaAtrasoService()
-        #     # texto_gerado = service.gerar_justificativa_atraso(dados_variaveis) # Método hipotético
-        #     logger.warning("Serviço para 'atraso' ainda não implementado.")
-        #     service_exception = NotImplementedError("Serviço para justificativa de atraso não implementado.")
+            service = _get_justificativa_troca_plantao_service()
+            texto_gerado = service.gerar_justificativa_troca(dados_variaveis)
         else:
             logger.warning(f"API Processar Justificativa: Tipo de justificativa desconhecido '{tipo_justificativa}'.")
             return jsonify({'erro': f"Tipo de justificativa desconhecido: {tipo_justificativa}"}), 400
-
-        if service_exception:
-             raise service_exception
 
         logger.info(f"API Processar Justificativa: Justificativa tipo '{tipo_justificativa}' gerada para '{current_user.username}'.")
         return jsonify({'justificativa_gerada': texto_gerado})
@@ -142,7 +139,6 @@ def api_processar_justificativa():
         logger.error(f"API Processar Justificativa: Erro inesperado ao processar tipo '{tipo_justificativa}' para '{current_user.username}': {e}", exc_info=True)
         return jsonify({'erro': f'Erro inesperado ao contatar o serviço de IA: {str(e)}'}), 500
 
-# --- ROTAS DE GERENCIAMENTO DE USUÁRIOS ---
 @admin_bp.route('/user/<int:user_id>/approve', methods=['POST'])
 @login_required
 @admin_required
@@ -220,7 +216,6 @@ def delete_user(user_id):
         logger.error(f"Erro ao deletar usuário '{user_to_delete.username}' por admin '{current_user.username}': {e}", exc_info=True)
     return redirect(url_for('admin.manage_users'))
 
-# --- ROTAS PARA GERENCIAMENTO DE COLABORADORES ---
 @admin_bp.route('/colaboradores', methods=['GET'])
 @login_required
 @admin_required
@@ -232,28 +227,19 @@ def listar_colaboradores():
                            title='Gerenciar Colaboradores', 
                            colaboradores_pagination=colaboradores_pagination)
     
-    # --- NOVAS ROTAS API PARA COLABORADORES (PARA O FORMULÁRIO DE JUSTIFICATIVAS) ---
-
 @admin_bp.route('/api/colaboradores/search', methods=['GET'])
 @login_required
-@admin_required # Garante que apenas admins acessem
+@admin_required
 def api_search_colaboradores():
     search_term = request.args.get('term', '').strip()
     
-    if not search_term or len(search_term) < 2: # Evita buscas muito amplas ou vazias
+    if not search_term or len(search_term) < 2:
         return jsonify([])
-
-    # Busca por nome_completo que contenha o termo (case-insensitive) e status Ativo
-    # Usando ilike para busca case-insensitive (requer importação de `func` do SQLAlchemy ou uso específico do dialeto do DB)
-    # Para SQLite, 'LIKE' já é case-insensitive por padrão para ASCII. Para unicode, pode precisar de configuração.
-    # Vamos usar 'contains' que geralmente é mapeado para LIKE %term% e `ilike` se disponível.
-    # Uma forma mais portável para case-insensitivity com SQLAlchemy é usar func.lower()
-    from sqlalchemy import func
 
     colaboradores_encontrados = Colaborador.query.filter(
         Colaborador.status == 'Ativo',
         func.lower(Colaborador.nome_completo).contains(func.lower(search_term))
-    ).order_by(Colaborador.nome_completo).limit(10).all() # Limita a 10 resultados
+    ).order_by(Colaborador.nome_completo).limit(10).all()
 
     resultado = [
         {'id': col.id, 'nome_completo': col.nome_completo, 'cargo': col.cargo}
@@ -272,7 +258,6 @@ def api_get_colaborador_details(colaborador_id):
             'nome_completo': colaborador.nome_completo,
             'cargo': colaborador.cargo,
             'matricula': colaborador.matricula
-            # Adicione outros campos se forem úteis
         })
     return jsonify({'erro': 'Colaborador não encontrado ou inativo'}), 404
 
@@ -286,7 +271,7 @@ def adicionar_colaborador():
             novo_colaborador = Colaborador(
                 nome_completo=form.nome_completo.data,
                 cargo=form.cargo.data,
-                matricula=form.matricula.data if form.matricula.data else None, # Garante None se vazio
+                matricula=form.matricula.data if form.matricula.data else None,
                 data_admissao=form.data_admissao.data,
                 status=form.status.data
             )
@@ -300,7 +285,7 @@ def adicionar_colaborador():
             logger.error(f"Erro ao adicionar novo colaborador por '{current_user.username}': {e}", exc_info=True)
             flash(f'Erro ao adicionar colaborador: {str(e)}', 'danger')
     
-    elif request.method == 'POST': # Se o formulário não validou no POST
+    elif request.method == 'POST':
         flash('Por favor, corrija os erros no formulário.', 'warning')
 
     logger.debug(f"Admin '{current_user.username}' acessou o formulário para adicionar novo colaborador.")
@@ -311,16 +296,13 @@ def adicionar_colaborador():
 @admin_required
 def editar_colaborador(colaborador_id):
     colaborador = Colaborador.query.get_or_404(colaborador_id)
-    form = ColaboradorForm(obj=colaborador) # Popula o formulário com os dados do colaborador
+    form = ColaboradorForm(obj=colaborador)
 
     if form.validate_on_submit():
-        # Para a validação de matrícula única na edição, precisamos ajustar
-        # a lógica em ColaboradorForm ou aqui.
-        # Se a matrícula mudou E a nova matrícula já existe para OUTRO colaborador: erro.
         if form.matricula.data and form.matricula.data != colaborador.matricula:
             colaborador_existente = Colaborador.query.filter(
                 Colaborador.matricula == form.matricula.data,
-                Colaborador.id != colaborador_id # Exclui o próprio colaborador da checagem
+                Colaborador.id != colaborador_id
             ).first()
             if colaborador_existente:
                 form.matricula.errors.append('Esta matrícula já está em uso por outro colaborador.')
@@ -333,7 +315,6 @@ def editar_colaborador(colaborador_id):
             colaborador.matricula = form.matricula.data if form.matricula.data else None
             colaborador.data_admissao = form.data_admissao.data
             colaborador.status = form.status.data
-            # colaborador.data_modificacao é atualizado automaticamente pelo onupdate no modelo
             
             db.session.commit()
             flash(f'Colaborador "{colaborador.nome_completo}" atualizado com sucesso!', 'success')
@@ -344,12 +325,11 @@ def editar_colaborador(colaborador_id):
             logger.error(f"Erro ao editar colaborador ID {colaborador_id} por '{current_user.username}': {e}", exc_info=True)
             flash(f'Erro ao atualizar colaborador: {str(e)}', 'danger')
             
-    elif request.method == 'POST': # Se o formulário não validou no POST
+    elif request.method == 'POST':
         flash('Por favor, corrija os erros no formulário.', 'warning')
 
     logger.debug(f"Admin '{current_user.username}' acessou o formulário para editar colaborador ID {colaborador_id}.")
     return render_template('admin_colaborador_form.html', title='Editar Colaborador', form=form, colaborador=colaborador)
-
 
 @admin_bp.route('/colaboradores/deletar/<int:colaborador_id>', methods=['POST'])
 @login_required
