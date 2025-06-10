@@ -2,38 +2,30 @@
 import os
 import sys
 import pytest
-from unittest.mock import patch
 
 # Adiciona o diretório raiz do projeto ao sys.path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# Importa os componentes da aplicação APÓS configurar o path
 from app import create_app, db as _db
-from app.models import User, Colaborador
+from app.models import User
 
-@pytest.fixture(scope='session')
+@pytest.fixture()  # Removido scope='session' para criar um app por teste
 def app():
-    """Cria a instância da aplicação uma única vez para toda a sessão de testes."""
+    """Cria e configura uma nova instância do app para cada teste."""
     app = create_app()
     app.config.update({
         "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",  # Usa DB em memória, mais rápido
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
         "WTF_CSRF_ENABLED": False,
-        "SECRET_KEY": "test-secret-for-session",
+        "SECRET_KEY": "test-secret-for-testing",
         "SERVER_NAME": "localhost.local",
     })
-    return app
 
-@pytest.fixture(scope='function')
-def db(app):
-    """
-    Uma fixture que garante um banco de dados limpo para cada teste.
-    """
     with app.app_context():
         _db.create_all()
-        yield _db
+        yield app
         _db.session.remove()
         _db.drop_all()
 
@@ -46,6 +38,11 @@ def client(app):
 def runner(app):
     """Um executor de CLI para a aplicação."""
     return app.test_cli_runner()
+    
+@pytest.fixture
+def db(app):
+    """Retorna a sessão do banco de dados para manipulação."""
+    return _db
 
 @pytest.fixture
 def test_user(db):
