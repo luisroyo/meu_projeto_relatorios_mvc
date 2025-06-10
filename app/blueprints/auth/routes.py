@@ -1,8 +1,12 @@
+# app/blueprints/auth/routes.py
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_user, logout_user, current_user
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
-from app import db
+
+# --- CORREÇÃO: Importar 'limiter' junto com 'db' ---
+from app import db, limiter
 from app.forms import RegistrationForm, LoginForm
 from app.models import User, LoginHistory
 
@@ -28,7 +32,10 @@ def register():
             flash('Erro ao criar a conta. Tente novamente.', 'danger')
     return render_template('register.html', title='Registrar', form=form)
 
+
+# --- ADIÇÃO DO DECORATOR DE RATE LIMIT ---
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")  # Limita tentativas de login a 10 por minuto por IP
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
