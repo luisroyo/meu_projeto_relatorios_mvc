@@ -7,11 +7,13 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
-import pytz # <-- NOVA IMPORTAÇÃO
+from flask_caching import Cache  # <-- NOVA IMPORTAÇÃO
+import pytz
 
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
+cache = Cache()  # <-- NOVA INSTÂNCIA
 
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Por favor, faça login para acessar esta página.'
@@ -33,12 +35,19 @@ else:
 def create_app():
     app_instance = Flask(__name__)
     
+    # --- Configurações Básicas ---
     app_instance.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
     BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
     default_db_path = 'sqlite:///' + os.path.join(BASE_DIR, 'instance', 'site.db')
     app_instance.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL_FLASK', default_db_path)
     app_instance.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app_instance.config['WTF_CSRF_ENABLED'] = True
+
+    # --- NOVA CONFIGURAÇÃO DE CACHE ---
+    app_instance.config['CACHE_TYPE'] = os.getenv('CACHE_TYPE', 'RedisCache')
+    app_instance.config['CACHE_DEFAULT_TIMEOUT'] = int(os.getenv('CACHE_DEFAULT_TIMEOUT', 3600)) # 1 hora
+    app_instance.config['CACHE_REDIS_URL'] = os.getenv('CACHE_REDIS_URL', 'redis://localhost:6379/0')
+    # --- FIM DA CONFIGURAÇÃO DE CACHE ---
 
     is_werkzeug_main_process = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
     is_not_flask_debug_mode = str(os.getenv('FLASK_DEBUG', '0')).lower() not in ['1', 'true', 'on']
@@ -47,11 +56,15 @@ def create_app():
     if should_perform_single_run_actions:
         module_logger.info("create_app: Instância Flask criada e configurações básicas aplicadas.")
         module_logger.info(f"Banco de dados URI: {app_instance.config['SQLALCHEMY_DATABASE_URI']}")
+        module_logger.info(f"Cache Type: {app_instance.config['CACHE_TYPE']}")
+        module_logger.info(f"Cache Redis URL: {app_instance.config['CACHE_REDIS_URL']}")
 
+    # --- Inicialização das Extensões ---
     db.init_app(app_instance)
     migrate.init_app(app_instance, db)
     login_manager.init_app(app_instance)
-    
+    cache.init_app(app_instance)  # <-- INICIALIZA O CACHE
+
     from flask_wtf.csrf import CSRFProtect
     csrf = CSRFProtect()
     csrf.init_app(app_instance)
@@ -73,7 +86,6 @@ def create_app():
             app_instance.logger.propagate = False 
             module_logger.info(f"Configuração de logging da aplicação Flask (app.logger) aplicada. Nível: {log_level_str}")
 
-    # --- NOVO FILTRO DE TEMPLATE PARA FUSO HORÁRIO ---
     @app_instance.template_filter('localtime')
     def localtime_filter(dt_obj):
         """Converte um datetime UTC para o fuso horário de São Paulo."""
@@ -83,14 +95,12 @@ def create_app():
         utc_tz = pytz.timezone('UTC')
         local_tz = pytz.timezone('America/Sao_Paulo')
         
-        # Assume que o objeto datetime do banco de dados é 'naive' mas representa UTC
-        aware_utc_dt = utc_tz.localize(dt_obj)
+        if dt_obj.tzinfo is None:
+            dt_obj = utc_tz.localize(dt_obj)
         
-        # Converte para o fuso horário local do Brasil
-        local_dt = aware_utc_dt.astimezone(local_tz)
+        local_dt = dt_obj.astimezone(local_tz)
         
         return local_dt.strftime('%d/%m/%Y %H:%M:%S')
-    # --- FIM DO NOVO FILTRO ---
 
     with app_instance.app_context():
         from . import models
@@ -108,7 +118,6 @@ def create_app():
         from app.blueprints.ronda.routes import ronda_bp
         app_instance.register_blueprint(ronda_bp, url_prefix='/ronda') 
 
-    # Registrar comandos CLI customizados
     from . import commands
     app_instance.cli.add_command(commands.create_admin_command)
     if should_perform_single_run_actions: module_logger.info("Comandos CLI customizados registrados.")
