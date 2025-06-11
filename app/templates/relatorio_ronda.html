@@ -15,38 +15,64 @@
                     <h5 class="mb-0">Dados do Plantão e Log de Rondas</h5>
                 </div>
                 <div class="card-body p-4">
-                    <form method="POST" action="{{ url_for('ronda.registrar_ronda') }}" novalidate>
+                    <form id="rondaForm" method="POST" action="{{ url_for('ronda.registrar_ronda') }}" novalidate>
                         {{ form.hidden_tag() }}
                         
-                        <div class="mb-3"> {# Adicionado mb-3 para espaçamento #}
+                        {# Campo oculto para armazenar o ID da ronda se estiver editando/atualizando #}
+                        <input type="hidden" id="ronda_id_input" name="ronda_id_input" value="{{ ronda_data_to_save.ronda_id if ronda_data_to_save.ronda_id else '' }}">
+
+                        <div class="mb-3">
                             {{ form.nome_condominio.label(class="form-label") }}
                             {{ form.nome_condominio(class="form-select", id="nome_condominio_select") }}
+                            {% if form.nome_condominio.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.nome_condominio.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
 
-                        <div id="outro_condominio_div" class="mb-3" {% if form.nome_condominio.data != 'Outro' %}style="display: none;"{% endif %}>
+                        <div id="outro_condominio_div" class="mb-3" {% if form.nome_condominio.data != 'Outro' and (ronda_data_to_save.condominio_id is none or ronda_data_to_save.condominio_id | string not in form.nome_condominio.choices | map(attribute='0') | list ) %}style="display: none;"{% endif %}>
                             {{ form.nome_condominio_outro.label(class="form-label") }}
                             {{ form.nome_condominio_outro(class="form-control") }}
+                            {% if form.nome_condominio_outro.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.nome_condominio_outro.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
 
-                        <div class="mb-3"> {# Adicionado mb-3 para espaçamento #}
+                        <div class="mb-3">
                             {{ form.data_plantao.label(class="form-label") }}
                             {{ form.data_plantao(class="form-control") }}
+                            {% if form.data_plantao.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.data_plantao.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
 
-                        <div class="mb-3"> {# Adicionado mb-3 para espaçamento #}
+                        <div class="mb-3">
                             {{ form.escala_plantao.label(class="form-label") }}
                             {{ form.escala_plantao(class="form-select") }}
+                            {% if form.escala_plantao.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.escala_plantao.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
 
-                        <div class="mb-3"> {# Adicionado mb-3 para espaçamento #}
+                        <div class="mb-3">
                             {{ form.log_bruto_rondas.label(class="form-label") }}
                             {{ form.log_bruto_rondas(class="form-control", rows="10") }}
+                            {% if form.log_bruto_rondas.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.log_bruto_rondas.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div class="mt-3">
                             {{ form.submit(class="btn btn-primary") }}
-                            {# Se você tiver um botão de limpar específico para este formulário, adicione-o aqui #}
-                            {# Exemplo: <button type="button" class="btn btn-outline-secondary ms-2" id="limparFormRonda">Limpar Log</button> #}
                         </div>
                     </form>
                 </div>
@@ -75,12 +101,25 @@
                         {% endif %}
                     </div>
 
-                    <button type="button" class="btn btn-info mt-3" id="copiarRelatorioRonda" style="display: none;">
-                        <i class="bi bi-clipboard-check me-1"></i>Copiar Relatório
-                    </button>
-                    <button type="button" class="btn btn-success mt-3 ms-2" id="enviarWhatsAppRonda" style="display: none;">
-                        <i class="bi bi-whatsapp me-1"></i>Enviar via WhatsApp
-                    </button>
+                    {# Removida a lógica de 'display' direto do HTML, será feita via JS #}
+                    <div class="mt-3" id="ronda_actions" style="display: none;">
+                        <button type="button" class="btn btn-info" id="copiarRelatorioRonda">
+                            <i class="bi bi-clipboard-check me-1"></i>Copiar Relatório
+                        </button>
+                        <button type="button" class="btn btn-success ms-2" id="enviarWhatsAppRonda">
+                            <i class="bi bi-whatsapp me-1"></i>Enviar via WhatsApp
+                        </button>
+                        <button type="button" class="btn btn-secondary ms-2" id="salvarRondaParcial">
+                            <i class="bi bi-save me-1"></i>Salvar Parcial
+                        </button>
+                        <button type="button" class="btn btn-primary ms-2" id="finalizarRonda">
+                            <i class="bi bi-check-circle me-1"></i>Finalizar Ronda
+                        </button>
+                    </div>
+
+                    {# Mensagens de feedback para salvar/finalizar via JS #}
+                    <div id="saveFeedback" class="mt-3" style="display: none;"></div>
+
                 </div>
             </div>
         </div>
@@ -90,6 +129,206 @@
 
 {% block scripts %}
     {{ super() }}
+    <script>
+        // Variável global para armazenar os dados da ronda, vindo do backend
+        // Esta variável é populada APENAS se o relatório foi processado no backend
+        var rondaData = {{ ronda_data_to_save | tojson | safe }};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const nomeCondominioSelect = document.getElementById('nome_condominio_select');
+            const outroCondominioDiv = document.getElementById('outro_condominio_div');
+            const logBrutoRondas = document.getElementById('log_bruto_rondas');
+            const rondaResultadoTexto = document.getElementById('rondaResultadoTexto');
+            const rondaActionsDiv = document.getElementById('ronda_actions');
+            const copiarBtn = document.getElementById('copiarRelatorioRonda');
+            const whatsappBtn = document.getElementById('enviarWhatsAppRonda');
+            const salvarParcialBtn = document.getElementById('salvarRondaParcial');
+            const finalizarRondaBtn = document.getElementById('finalizarRonda');
+            const rondaIdInput = document.getElementById('ronda_id_input');
+            const saveFeedbackDiv = document.getElementById('saveFeedback');
+            const form = document.getElementById('rondaForm');
+
+
+            // Ajuste para exibir/ocultar "Outro Condomínio"
+            function toggleOutroCondominio() {
+                if (nomeCondominioSelect.value === 'Outro') {
+                    outroCondominioDiv.style.display = 'block';
+                } else {
+                    outroCondominioDiv.style.display = 'none';
+                }
+            }
+            nomeCondominioSelect.addEventListener('change', toggleOutroCondominio);
+            // Chama no carregamento para o caso de um valor 'Outro' pré-selecionado (ex: na edição)
+            toggleOutroCondominio();
+
+
+            // Função para exibir/ocultar botões de ação com base no relatório processado
+            function toggleRondaActions() {
+                // Modificado para usar a visibilidade controlada inteiramente por JS
+                if (rondaResultadoTexto && rondaResultadoTexto.textContent.trim() !== '' && !rondaResultadoTexto.classList.contains('alert-danger')) {
+                    rondaActionsDiv.style.display = 'block';
+                    copiarBtn.style.display = 'inline-block';
+                    whatsappBtn.style.display = 'inline-block';
+                    salvarParcialBtn.style.display = 'inline-block';
+                    finalizarRondaBtn.style.display = 'inline-block';
+                } else {
+                    rondaActionsDiv.style.display = 'none';
+                    copiarBtn.style.display = 'none';
+                    whatsappBtn.style.display = 'none';
+                    salvarParcialBtn.style.display = 'none';
+                    finalizarRondaBtn.style.display = 'none';
+                }
+            }
+            // Chama a função no carregamento da página para definir o estado inicial
+            toggleRondaActions();
+
+            // Evento de clique para copiar
+            copiarBtn.addEventListener('click', function() {
+                const textToCopy = rondaResultadoTexto.textContent;
+                navigator.clipboard.writeText(textToCopy)
+                    .then(() => {
+                        flashMessage('Relatório copiado para a área de transferência!', 'success');
+                    })
+                    .catch(err => {
+                        console.error('Erro ao copiar texto: ', err);
+                        flashMessage('Falha ao copiar relatório.', 'danger');
+                    });
+            });
+
+            // Evento de clique para enviar via WhatsApp
+            whatsappBtn.addEventListener('click', function() {
+                const textToShare = rondaResultadoTexto.textContent;
+                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(textToShare)}`;
+                window.open(whatsappUrl, '_blank');
+            });
+
+            // Função genérica para salvar/finalizar ronda via AJAX
+            async function saveRonda(isFinalizing) {
+                // Prepara os dados para enviar ao backend
+                const currentRondaData = {
+                    ronda_id: rondaData.ronda_id || null, // Se não tiver ID, é uma nova ronda
+                    log_bruto: logBrutoRondas.value,
+                    relatorio_processado: rondaResultadoTexto.textContent,
+                    condominio_id: nomeCondominioSelect.value,
+                    data_plantao: document.getElementById('data_plantao').value, // Pega o valor do input de data
+                    escala_plantao: document.getElementById('escala_plantao').value,
+                    turno_ronda: rondaData.turno_ronda, // Mantém o turno inferido pelo backend
+                    data_hora_inicio: rondaData.data_hora_inicio, // Mantém a hora de início original
+                    data_hora_fim: rondaData.data_hora_fim, // Mantém a hora de fim original, se houver
+                    finalizar_ronda: isFinalizing
+                };
+
+                // Validação mínima antes de enviar (além da validação do Flask-WTF)
+                if (!currentRondaData.log_bruto || !currentRondaData.condominio_id || currentRondaData.condominio_id === '') {
+                     flashMessage('Preencha o Log Bruto e selecione um Condomínio antes de salvar.', 'danger');
+                     return;
+                }
+                if (currentRondaData.condominio_id === 'Outro' && !document.getElementById('nome_condominio_outro').value.trim()) {
+                     flashMessage('Forneça o nome do novo Condomínio se "Outro" for selecionado.', 'danger');
+                     return;
+                }
+                if (!currentRondaData.data_plantao) {
+                     flashMessage('Preencha a Data do Plantão antes de salvar.', 'danger');
+                     return;
+                }
+                // Se estiver finalizando, garanta que há dados no relatório processado
+                if (isFinalizing && (!currentRondaData.relatorio_processado || currentRondaData.relatorio_processado.trim() === '' || rondaResultadoTexto.classList.contains('alert-danger'))) {
+                    flashMessage('Um relatório processado válido é necessário para finalizar a ronda.', 'danger');
+                    return;
+                }
+
+
+                try {
+                    saveFeedbackDiv.innerHTML = '<div class="alert alert-info">Salvando...</div>';
+                    saveFeedbackDiv.style.display = 'block';
+
+                    const response = await fetch('{{ url_for("ronda.salvar_ronda") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        },
+                        body: JSON.stringify(currentRondaData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        flashMessage(result.message, 'success');
+                        // Atualiza o ID da ronda no campo oculto e na variável JS
+                        // para que salvamentos futuros atualizem a mesma ronda
+                        if (result.ronda_id) {
+                            rondaData.ronda_id = result.ronda_id;
+                            rondaIdInput.value = result.ronda_id;
+                        }
+                        if (isFinalizing) {
+                            // Redireciona para a página de detalhes ou histórico após finalizar
+                            window.location.href = `{{ url_for('ronda.detalhes_ronda', ronda_id=0) }}`.replace('0', result.ronda_id);
+                        } else {
+                            // Se salvou parcial, e não havia ID, agora temos um, pode redirecionar para a URL com ID
+                            // para que o próximo acesso já seja em modo de edição
+                            if (!rondaData.ronda_id && result.ronda_id) {
+                                window.history.replaceState(null, '', `{{ url_for('ronda.registrar_ronda', ronda_id=0) }}`.replace('0', result.ronda_id));
+                            }
+                        }
+                    } else {
+                        flashMessage(result.message, 'danger');
+                    }
+                } catch (error) {
+                    console.error('Erro ao salvar ronda:', error);
+                    flashMessage('Erro de comunicação ao salvar ronda.', 'danger');
+                } finally {
+                    // Opcional: esconder o feedback após um tempo
+                    setTimeout(() => { saveFeedbackDiv.style.display = 'none'; }, 5000);
+                }
+            }
+
+            salvarParcialBtn.addEventListener('click', () => saveRonda(false));
+            finalizarRondaBtn.addEventListener('click', () => saveRonda(true));
+
+            // Função para exibir mensagens flash dinamicamente (substituindo Flask's flash)
+            function flashMessage(message, category) {
+                const alertHtml = `
+                    <div class="alert alert-${category} alert-dismissible fade show" role="alert">
+                        ${category === 'success' ? '<i class="bi bi-check-circle-fill me-2"></i>' : ''}
+                        ${category === 'danger' ? '<i class="bi bi-exclamation-triangle-fill me-2"></i>' : ''}
+                        ${category === 'warning' ? '<i class="bi bi-exclamation-circle-fill me-2"></i>' : ''}
+                        ${category === 'info' ? '<i class="bi bi-info-circle-fill me-2"></i>' : ''}
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+                // Adiciona a mensagem flash no container principal de mensagens, se existir
+                const mainContainer = document.querySelector('main.container');
+                if (mainContainer) {
+                    const existingAlerts = mainContainer.querySelector('.alert');
+                    if (existingAlerts) {
+                        existingAlerts.remove(); // Remove qualquer mensagem anterior para não acumular
+                    }
+                    mainContainer.insertAdjacentHTML('afterbegin', alertHtml);
+                } else {
+                    console.warn("Elemento 'main.container' não encontrado para exibir flash message.");
+                }
+            }
+
+            // Se o formulário não tiver sido submetido via POST e tivermos rondaData para preencher
+            // E o formulário não está sendo validado pelo Flask-WTF (i.e., não é um erro de validação de campo)
+            if (Object.keys(rondaData).length > 0 && !form.dataset.isSubmitted) { // Adiciona um dataset flag para indicar submissão
+                 // Preenche o formulário com rondaData se vier da URL (para edição/continuar)
+                document.getElementById('nome_condominio_select').value = rondaData.condominio_id || '';
+                document.getElementById('data_plantao').value = rondaData.data_plantao || '';
+                document.getElementById('escala_plantao').value = rondaData.escala_plantao || '';
+                document.getElementById('log_bruto_rondas').value = rondaData.log_bruto || '';
+                rondaIdInput.value = rondaData.ronda_id || '';
+                toggleOutroCondominio(); // Garante que o campo "Outro" aparece se necessário
+            }
+
+            // Marca o formulário como submetido após a validação do Flask para evitar repetição ao carregar a página
+            form.addEventListener('submit', () => {
+                form.dataset.isSubmitted = 'true';
+            });
+        });
+    </script>
     {# Garanta que o script específico da página seja carregado #}
     <script src="{{ url_for('static', filename='js/relatorio_ronda_page.js') }}"></script>
 {% endblock %}
