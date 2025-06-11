@@ -5,12 +5,13 @@ from flask import (
     request, jsonify, g
 )
 from flask_login import login_required, current_user
-from sqlalchemy import func
+from sqlalchemy import func, extract, and_ # Importa 'and_' para condições múltiplas
+from datetime import datetime, timedelta, timezone
 
 # Importa o blueprint do __init__.py desta pasta
 from . import admin_bp
 from app import db
-from app.models import User, LoginHistory, Ronda, Colaborador
+from app.models import User, LoginHistory, Ronda, Colaborador, ProcessingHistory # Importa ProcessingHistory
 from app.decorators.admin_required import admin_required
 from app.forms import TestarRondasForm, FormatEmailReportForm, ColaboradorForm
 from app.services.justificativa_service import JustificativaAtestadoService
@@ -38,7 +39,114 @@ def _get_justificativa_troca_plantao_service():
 @admin_required
 def dashboard():
     logger.info(f"Admin '{current_user.username}' acessou /admin/, redirecionando para /admin/ferramentas.")
-    return redirect(url_for('admin.admin_tools'))
+    # Redireciona para o novo dashboard de métricas em vez de ferramentas, ou crie uma rota separada para ele.
+    # Por enquanto, vou redirecionar para a nova rota de métricas que vamos criar.
+    return redirect(url_for('admin.dashboard_metrics'))
+
+@admin_bp.route('/dashboard_metrics')
+@login_required
+@admin_required
+def dashboard_metrics():
+    logger.info(f"Admin '{current_user.username}' acessou o dashboard de métricas.")
+
+    # Data de 30 dias atrás para filtrar os dados
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+
+    # 1. Total de usuários registrados (aprovados e pendentes)
+    total_users = db.session.query(User).count()
+    total_approved_users = db.session.query(User).filter_by(is_approved=True).count()
+    total_pending_users = total_users - total_approved_users
+
+    # 2. Histórico de logins (sucessos vs. falhas nos últimos 30 dias)
+    successful_logins = db.session.query(LoginHistory).filter(
+        and_(LoginHistory.timestamp >= thirty_days_ago,
+             LoginHistory.success == True)
+    ).count()
+    failed_logins = db.session.query(LoginHistory).filter(
+        and_(LoginHistory.timestamp >= thirty_days_ago,
+             LoginHistory.success == False)
+    ).count()
+    
+    # 3. Processamentos de relatórios (sucessos vs. falhas nos últimos 30 dias)
+    successful_reports = db.session.query(ProcessingHistory).filter(
+        and_(ProcessingHistory.timestamp >= thirty_days_ago,
+             ProcessingHistory.success == True)
+    ).count()
+    failed_reports = db.session.query(ProcessingHistory).filter(
+        and_(ProcessingHistory.timestamp >= thirty_days_ago,
+             ProcessingHistory.success == False)
+    ).count()
+
+    # 4. Processamentos de relatórios por tipo (nos últimos 30 dias)
+    processing_by_type = db.session.query(
+        ProcessingHistory.processing_type,
+        func.count(ProcessingHistory.id)
+    ).filter(
+        ProcessingHistory.timestamp >= thirty_days_ago
+    ).group_by(
+        ProcessingHistory.processing_type
+    ).all()
+    
+    # Converte para um dicionário para facilitar o uso no template/JS
+    processing_types_data = {item[0]: item[1] for item in processing_by_type}
+
+
+    # 5. Atividade de usuários por dia (logins e processamentos nos últimos 30 dias)
+    # Logins por dia
+    logins_per_day = db.session.query(
+        func.date(LoginHistory.timestamp), # Extrai apenas a data
+        func.count(LoginHistory.id)
+    ).filter(
+        LoginHistory.timestamp >= thirty_days_ago
+    ).group_by(
+        func.date(LoginHistory.timestamp)
+    ).order_by(
+        func.date(LoginHistory.timestamp)
+    ).all()
+
+    # Processamentos por dia
+    processing_per_day = db.session.query(
+        func.date(ProcessingHistory.timestamp), # Extrai apenas a data
+        func.count(ProcessingHistory.id)
+    ).filter(
+        ProcessingHistory.timestamp >= thirty_days_ago
+    ).group_by(
+        func.date(ProcessingHistory.timestamp)
+    ).order_by(
+        func.date(ProcessingHistory.timestamp)
+    ).all()
+
+    # Formata os dados de logins e processamentos por dia para o Chart.js
+    # Garante que todos os dias no período tenham um valor (0 se não houver atividade)
+    date_labels = []
+    current_date = thirty_days_ago.date()
+    end_date = datetime.now(timezone.utc).date()
+    
+    while current_date <= end_date:
+        date_labels.append(current_date.strftime('%Y-%m-%d'))
+        current_date += timedelta(days=1)
+    
+    logins_data_map = {str(date): count for date, count in logins_per_day}
+    processing_data_map = {str(date): count for date, count in processing_per_day}
+
+    logins_chart_data = [logins_data_map.get(label, 0) for label in date_labels]
+    processing_chart_data = [processing_data_map.get(label, 0) for label in date_labels]
+
+    return render_template('admin_dashboard.html',
+                           title='Dashboard de Métricas',
+                           total_users=total_users,
+                           total_approved_users=total_approved_users,
+                           total_pending_users=total_pending_users,
+                           successful_logins=successful_logins,
+                           failed_logins=failed_logins,
+                           successful_reports=successful_reports,
+                           failed_reports=failed_reports,
+                           processing_types_data=processing_types_data,
+                           date_labels=date_labels,
+                           logins_chart_data=logins_chart_data,
+                           processing_chart_data=processing_chart_data
+                           )
+
 
 @admin_bp.route('/users')
 @login_required
@@ -204,8 +312,11 @@ def delete_user(user_id):
         logger.warning(f"Admin '{current_user.username}' tentou deletar a própria conta.")
         return redirect(url_for('admin.manage_users'))
     try:
+        # Exclui o histórico de login e rondas antes de deletar o usuário para evitar erros de chave estrangeira
         LoginHistory.query.filter_by(user_id=user_to_delete.id).delete(synchronize_session=False)
         Ronda.query.filter_by(user_id=user_to_delete.id).delete(synchronize_session=False)
+        # Exclui o histórico de processamento
+        ProcessingHistory.query.filter_by(user_id=user_to_delete.id).delete(synchronize_session=False) # ADIÇÃO
         db.session.delete(user_to_delete)
         db.session.commit()
         flash(f'Usuário {user_to_delete.username} deletado com sucesso.', 'success')
@@ -223,16 +334,16 @@ def listar_colaboradores():
     logger.info(f"Admin '{current_user.username}' acessou a lista de colaboradores.")
     page = request.args.get('page', 1, type=int)
     colaboradores_pagination = Colaborador.query.order_by(Colaborador.nome_completo).paginate(page=page, per_page=10)
-    return render_template('admin_listar_colaboradores.html', 
-                           title='Gerenciar Colaboradores', 
+    return render_template('admin_listar_colaboradores.html',
+                           title='Gerenciar Colaboradores',
                            colaboradores_pagination=colaboradores_pagination)
-    
+
 @admin_bp.route('/api/colaboradores/search', methods=['GET'])
 @login_required
 @admin_required
 def api_search_colaboradores():
     search_term = request.args.get('term', '').strip()
-    
+
     if not search_term or len(search_term) < 2:
         return jsonify([])
 
@@ -284,7 +395,7 @@ def adicionar_colaborador():
             db.session.rollback()
             logger.error(f"Erro ao adicionar novo colaborador por '{current_user.username}': {e}", exc_info=True)
             flash(f'Erro ao adicionar colaborador: {str(e)}', 'danger')
-    
+
     elif request.method == 'POST':
         flash('Por favor, corrija os erros no formulário.', 'warning')
 
@@ -308,14 +419,14 @@ def editar_colaborador(colaborador_id):
                 form.matricula.errors.append('Esta matrícula já está em uso por outro colaborador.')
                 flash('Erro ao salvar: Matrícula já em uso.', 'danger')
                 return render_template('admin_colaborador_form.html', title='Editar Colaborador', form=form, colaborador=colaborador)
-        
+
         try:
             colaborador.nome_completo = form.nome_completo.data
             colaborador.cargo = form.cargo.data
             colaborador.matricula = form.matricula.data if form.matricula.data else None
             colaborador.data_admissao = form.data_admissao.data
             colaborador.status = form.status.data
-            
+
             db.session.commit()
             flash(f'Colaborador "{colaborador.nome_completo}" atualizado com sucesso!', 'success')
             logger.info(f"Admin '{current_user.username}' editou o colaborador ID {colaborador_id}: '{colaborador.nome_completo}'.")
@@ -324,7 +435,7 @@ def editar_colaborador(colaborador_id):
             db.session.rollback()
             logger.error(f"Erro ao editar colaborador ID {colaborador_id} por '{current_user.username}': {e}", exc_info=True)
             flash(f'Erro ao atualizar colaborador: {str(e)}', 'danger')
-            
+
     elif request.method == 'POST':
         flash('Por favor, corrija os erros no formulário.', 'warning')
 

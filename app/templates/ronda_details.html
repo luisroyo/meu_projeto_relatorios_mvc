@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - Assistente IA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ title }}</h2>
+    <p class="lead">Detalhes completos do relatório de ronda.</p>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Informações da Ronda</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>ID da Ronda:</strong> {{ ronda.id }}</p>
+                    <p><strong>Condomínio:</strong> {{ ronda.condominio_obj.nome if ronda.condominio_obj else 'N/A' }}</p>
+                    <p><strong>Data do Plantão:</strong> {{ ronda.data_plantao_ronda.strftime('%d/%m/%Y') if ronda.data_plantao_ronda else 'N/A' }}</p>
+                    <p><strong>Escala/Plantão:</strong> {{ ronda.escala_plantao or 'N/A' }}</p>
+                    <p><strong>Turno:</strong> {{ ronda.turno_ronda or 'N/A' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Supervisor (Criador):</strong> {{ ronda.criador.username if ronda.criador else 'N/A' }}</p>
+                    <p><strong>Início da Ronda:</strong> {{ ronda.data_hora_inicio.strftime('%d/%m/%Y %H:%M:%S') if ronda.data_hora_inicio else 'N/A' }}</p>
+                    <p><strong>Fim da Ronda:</strong> 
+                        {% if ronda.data_hora_fim %}
+                            {{ ronda.data_hora_fim.strftime('%d/%m/%Y %H:%M:%S') }}
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Em Andamento</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Status:</strong> 
+                        {% if ronda.data_hora_fim %}
+                            <span class="badge bg-success">Finalizada</span>
+                        {% else %}
+                            <span class="badge bg-info text-dark">Em Andamento</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Log Bruto da Ronda</h5>
+        </div>
+        <div class="card-body">
+            <pre class="bg-light p-3 border rounded" style="white-space: pre-wrap; word-wrap: break-word;">{{ ronda.log_ronda_bruto }}</pre>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Relatório Processado</h5>
+        </div>
+        <div class="card-body">
+            {% if ronda.relatorio_processado %}
+                <pre class="bg-light p-3 border rounded" style="white-space: pre-wrap; word-wrap: break-word;">{{ ronda.relatorio_processado }}</pre>
+            {% else %}
+                <p class="text-muted">Nenhum relatório processado disponível para esta ronda.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('ronda.listar_rondas') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar ao Histórico</a>
+        {% if ronda.user_id == current_user.id or current_user.is_admin %}
+        <a href="{{ url_for('ronda.registrar_ronda', ronda_id=ronda.id) }}" class="btn btn-warning ms-2"><i class="bi bi-pencil me-1"></i>Continuar/Editar Ronda</a>
+        <form action="{{ url_for('ronda.excluir_ronda', ronda_id=ronda.id) }}" method="POST" class="d-inline">
+            <button type="submit" class="btn btn-danger ms-2" onclick="return confirm('Tem certeza que deseja excluir esta ronda? Esta ação é irreversível.');">
+                <i class="bi bi-trash me-1"></i>Excluir Ronda
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
