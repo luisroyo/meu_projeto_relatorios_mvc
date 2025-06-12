@@ -18,16 +18,18 @@ from app.services.justificativa_troca_plantao_service import JustificativaTrocaP
 
 logger = logging.getLogger(__name__)
 
-# ... (funções _get_service permanecem as mesmas) ...
+
 def _get_justificativa_atestado_service():
     if 'justificativa_atestado_service' not in g:
         g.justificativa_atestado_service = JustificativaAtestadoService()
     return g.justificativa_atestado_service
 
+
 def _get_justificativa_troca_plantao_service():
     if 'justificativa_troca_plantao_service' not in g:
         g.justificativa_troca_plantao_service = JustificativaTrocaPlantaoService()
     return g.justificativa_troca_plantao_service
+
 
 @admin_bp.route('/')
 @login_required
@@ -41,7 +43,6 @@ def dashboard():
 @login_required
 @admin_required
 def dashboard_metrics():
-    # ... (código do dashboard_metrics, que já está correto, permanece aqui) ...
     logger.info(f"Admin '{current_user.username}' acessou o dashboard de métricas.")
 
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
@@ -130,11 +131,11 @@ def dashboard_metrics():
                            processing_chart_data=processing_chart_data
                            )
 
+
 @admin_bp.route('/ronda_dashboard')
 @login_required
 @admin_required
 def ronda_dashboard():
-    # ... (código do ronda_dashboard, que já está correto, permanece aqui) ...
     logger.info(f"Admin '{current_user.username}' acessou o dashboard de rondas.")
 
     # 1. Rondas por Condomínio
@@ -147,7 +148,14 @@ def ronda_dashboard():
     rondas_por_condominio_data = [item[1] if item[1] is not None else 0 for item in rondas_por_condominio]
 
     # 2. Duração Média das Rondas por Condomínio
-    diff_seconds = func.strftime('%s', Ronda.ultimo_evento_log_dt).cast(BigInteger) - func.strftime('%s', Ronda.primeiro_evento_log_dt).cast(BigInteger)
+    # Lógica condicional para funcionar em PostgreSQL (Render) e SQLite (local)
+    if db.engine.dialect.name == 'postgresql':
+        # Função específica do PostgreSQL para obter a diferença em segundos
+        diff_seconds = func.extract('epoch', Ronda.ultimo_evento_log_dt - Ronda.primeiro_evento_log_dt)
+    else:
+        # Função para SQLite e outros bancos
+        diff_seconds = func.strftime('%s', Ronda.ultimo_evento_log_dt).cast(BigInteger) - func.strftime('%s', Ronda.primeiro_evento_log_dt).cast(BigInteger)
+    
     diff_minutes = diff_seconds / 60.0
     
     duracao_media_por_condominio_raw = db.session.query(
@@ -229,13 +237,12 @@ def ronda_dashboard():
 @login_required
 @admin_required
 def manage_users():
-    # ... (código de manage_users, que já está correto, permanece aqui) ...
     logger.info(f"Admin '{current_user.username}' acessou /admin/users. IP: {request.remote_addr if hasattr(request, 'remote_addr') else 'N/A'}")
     page = request.args.get('page', 1, type=int)
     users_pagination_obj = User.query.order_by(User.date_registered.desc()).paginate(page=page, per_page=10)
     return render_template('admin_users.html', title='Gerenciar Usuários', users_pagination=users_pagination_obj)
 
-# --- CORREÇÃO: A rota /ferramentas agora apenas exibe o menu ---
+
 @admin_bp.route('/ferramentas', methods=['GET'])
 @login_required
 @admin_required
@@ -243,7 +250,7 @@ def admin_tools():
     logger.info(f"Admin '{current_user.username}' acessou o menu de ferramentas /admin/ferramentas.")
     return render_template('admin_ferramentas.html', title='Ferramentas Administrativas')
 
-# --- CORREÇÃO: Nova rota dedicada para a ferramenta de formatação de e-mail ---
+
 @admin_bp.route('/ferramentas/formatar-email', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -258,15 +265,21 @@ def format_email_report_tool():
         custom_closing = form.custom_closing.data.strip()
 
         parts = []
-        if custom_greeting: parts.append(custom_greeting)
-        elif include_greeting: parts.append("Prezados(as),")
+        if custom_greeting:
+            parts.append(custom_greeting)
+        elif include_greeting:
+            parts.append("Prezados(as),")
         
-        if parts: parts.append("")
+        if parts:
+            parts.append("")
         parts.append(raw_report)
-        if raw_report.strip() and (custom_closing or include_closing): parts.append("")
+        if raw_report.strip() and (custom_closing or include_closing):
+            parts.append("")
         
-        if custom_closing: parts.append(custom_closing)
-        elif include_closing: parts.append("Atenciosamente,\nEquipe Administrativa")
+        if custom_closing:
+            parts.append(custom_closing)
+        elif include_closing:
+            parts.append("Atenciosamente,\nEquipe Administrativa")
         
         formatted_report = "\n".join(parts)
         flash('Relatório formatado para e-mail com sucesso!', 'success')
@@ -289,7 +302,6 @@ def gerador_justificativas_tool():
 @login_required
 @admin_required
 def api_processar_justificativa():
-    # ... (código da API de justificativas, que já está correto, permanece aqui) ...
     payload = request.get_json()
     if not payload:
         logger.warning(f"API Processar Justificativa: JSON vazio recebido. IP: {request.remote_addr if hasattr(request, 'remote_addr') else 'N/A'}")
@@ -331,7 +343,7 @@ def api_processar_justificativa():
         logger.error(f"API Processar Justificativa: Erro inesperado ao processar tipo '{tipo_justificativa}' para '{current_user.username}': {e}", exc_info=True)
         return jsonify({'erro': f'Erro inesperado ao contatar o serviço de IA: {str(e)}'}), 500
 
-# ... (todas as rotas de /user/<id> e /colaboradores, que já estão corretas, permanecem aqui) ...
+
 @admin_bp.route('/user/<int:user_id>/approve', methods=['POST'])
 @login_required
 @admin_required
@@ -345,6 +357,7 @@ def approve_user(user_id):
     else:
         flash(f'Usuário {user.username} já está aprovado.', 'info')
     return redirect(url_for('admin.manage_users'))
+
 
 @admin_bp.route('/user/<int:user_id>/revoke', methods=['POST'])
 @login_required
@@ -364,6 +377,7 @@ def revoke_user(user_id):
     else:
         flash(f'Aprovação do usuário {user.username} já estava revogada/pendente.', 'info')
     return redirect(url_for('admin.manage_users'))
+
 
 @admin_bp.route('/user/<int:user_id>/toggle_admin', methods=['POST'])
 @login_required
@@ -386,6 +400,7 @@ def toggle_admin(user_id):
     flash(f'Usuário {user.username} foi {status} com sucesso.', 'success')
     logger.info(f"Admin '{current_user.username}' alterou o status de admin do usuário '{user.username}' (ID: {user.id}) para: {user.is_admin}.")
     return redirect(url_for('admin.manage_users'))
+
 
 @admin_bp.route('/user/<int:user_id>/delete', methods=['POST'])
 @login_required
@@ -410,6 +425,7 @@ def delete_user(user_id):
         logger.error(f"Erro ao deletar usuário '{user_to_delete.username}' por admin '{current_user.username}': {e}", exc_info=True)
     return redirect(url_for('admin.manage_users'))
 
+
 @admin_bp.route('/colaboradores', methods=['GET'])
 @login_required
 @admin_required
@@ -420,6 +436,7 @@ def listar_colaboradores():
     return render_template('admin_listar_colaboradores.html',
                            title='Gerenciar Colaboradores',
                            colaboradores_pagination=colaboradores_pagination)
+
 
 @admin_bp.route('/api/colaboradores/search', methods=['GET'])
 @login_required
@@ -441,6 +458,7 @@ def api_search_colaboradores():
     ]
     return jsonify(resultado)
 
+
 @admin_bp.route('/api/colaborador/<int:colaborador_id>/details', methods=['GET'])
 @login_required
 @admin_required
@@ -454,6 +472,7 @@ def api_get_colaborador_details(colaborador_id):
             'matricula': colaborador.matricula
         })
     return jsonify({'erro': 'Colaborador não encontrado ou inativo'}), 404
+
 
 @admin_bp.route('/colaboradores/novo', methods=['GET', 'POST'])
 @login_required
@@ -484,6 +503,7 @@ def adicionar_colaborador():
 
     logger.debug(f"Admin '{current_user.username}' acessou o formulário para adicionar novo colaborador.")
     return render_template('admin_colaborador_form.html', title='Adicionar Novo Colaborador', form=form)
+
 
 @admin_bp.route('/colaboradores/editar/<int:colaborador_id>', methods=['GET', 'POST'])
 @login_required
@@ -524,6 +544,7 @@ def editar_colaborador(colaborador_id):
 
     logger.debug(f"Admin '{current_user.username}' acessou o formulário para editar colaborador ID {colaborador_id}.")
     return render_template('admin_colaborador_form.html', title='Editar Colaborador', form=form, colaborador=colaborador)
+
 
 @admin_bp.route('/colaboradores/deletar/<int:colaborador_id>', methods=['POST'])
 @login_required
