@@ -57,38 +57,6 @@ class LoginHistory(db.Model):
         status = "Sucesso" if self.success else f"Falha ({self.failure_reason or ''})"
         return f'<LoginHistory ID:{self.id} UserID:{self.user_id or "N/A"} Status:{status} @{self.timestamp.strftime("%Y-%m-%d %H:%M:%S")}>'
 
-class Ronda(db.Model):
-    __tablename__ = 'ronda'
-    id = db.Column(db.Integer, primary_key=True)
-    # data_hora_inicio e data_hora_fim do REGISTRO da ronda (quando foi criada/finalizada no sistema)
-    data_hora_inicio = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
-    data_hora_fim = db.Column(db.DateTime, nullable=True)
-    
-    log_ronda_bruto = db.Column(db.Text, nullable=False)
-    relatorio_processado = db.Column(db.Text, nullable=True)
-    
-    # Campo para a FK do Condominio
-    condominio_id = db.Column(db.Integer, db.ForeignKey('condominio.id'), nullable=True, index=True)
-    condominio_obj = db.relationship('Condominio', backref='rondas')
-    
-    turno_ronda = db.Column(db.String(50), nullable=True, index=True) # Ex: 'Diurno Par', 'Noturno Ímpar'
-    escala_plantao = db.Column(db.String(100), nullable=True)
-    data_plantao_ronda = db.Column(db.Date, nullable=True, index=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
-
-    # --- NOVOS CAMPOS PARA MÉTRICAS DO LOG PROCESSADO ---
-    total_rondas_no_log = db.Column(db.Integer, nullable=True, default=0)
-    primeiro_evento_log_dt = db.Column(db.DateTime, nullable=True) # Data/hora do PRIMEIRO evento VÁLIDO no log
-    ultimo_evento_log_dt = db.Column(db.DateTime, nullable=True)   # Data/hora do ÚLTIMO evento VÁLIDO no log
-
-    def __repr__(self):
-        return (
-            f'<Ronda {self.id} em {self.data_hora_inicio.strftime("%Y-%m-%d %H:%M")} '
-            f'Cond: {self.condominio_obj.nome if self.condominio_obj else "N/A"} '
-            f'Turno: {self.turno_ronda or "N/A"} '
-            f'Total Rondas: {self.total_rondas_no_log or 0}>'
-        )
-
 class Colaborador(db.Model):
     __tablename__ = 'colaborador'
     id = db.Column(db.Integer, primary_key=True)
@@ -110,6 +78,38 @@ class Condominio(db.Model):
 
     def __repr__(self):
         return f'<Condominio {self.nome}>'
+
+class Ronda(db.Model):
+    __tablename__ = 'ronda'
+    id = db.Column(db.Integer, primary_key=True)
+    data_hora_inicio = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    data_hora_fim = db.Column(db.DateTime, nullable=True)
+    
+    log_ronda_bruto = db.Column(db.Text, nullable=False)
+    relatorio_processado = db.Column(db.Text, nullable=True)
+    
+    condominio_id = db.Column(db.Integer, db.ForeignKey('condominio.id'), nullable=True, index=True)
+    condominio_obj = db.relationship('Condominio', backref='rondas')
+    
+    turno_ronda = db.Column(db.String(50), nullable=True, index=True)
+    escala_plantao = db.Column(db.String(100), nullable=True)
+    data_plantao_ronda = db.Column(db.Date, nullable=True, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+
+    total_rondas_no_log = db.Column(db.Integer, nullable=True, default=0)
+    primeiro_evento_log_dt = db.Column(db.DateTime, nullable=True)
+    ultimo_evento_log_dt = db.Column(db.DateTime, nullable=True)
+    
+    # --- CAMPO CORRETAMENTE ADICIONADO AQUI ---
+    duracao_total_rondas_minutos = db.Column(db.Integer, default=0)
+
+    def __repr__(self):
+        return (
+            f'<Ronda {self.id} em {self.data_hora_inicio.strftime("%Y-%m-%d %H:%M")} '
+            f'Cond: {self.condominio_obj.nome if self.condominio_obj else "N/A"} '
+            f'Turno: {self.turno_ronda or "N/A"} '
+            f'Total Rondas: {self.total_rondas_no_log or 0}>'
+        )
 
 class ProcessingHistory(db.Model):
     __tablename__ = 'processing_history'

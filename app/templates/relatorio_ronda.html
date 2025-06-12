@@ -23,51 +23,26 @@
                         <div class="mb-3">
                             {{ form.nome_condominio.label(class="form-label") }}
                             {{ form.nome_condominio(class="form-select", id="nome_condominio_select") }}
-                            {% if form.nome_condominio.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.nome_condominio.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
                         </div>
 
                         <div id="outro_condominio_div" class="mb-3" style="display: none;">
                             {{ form.nome_condominio_outro.label(class="form-label") }}
                             {{ form.nome_condominio_outro(class="form-control", id="nome_condominio_outro") }}
-                            {% if form.nome_condominio_outro.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.nome_condominio_outro.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
                         </div>
 
                         <div class="mb-3">
                             {{ form.data_plantao.label(class="form-label") }}
                             {{ form.data_plantao(class="form-control", id="data_plantao") }}
-                            {% if form.data_plantao.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.data_plantao.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
                         </div>
 
                         <div class="mb-3">
                             {{ form.escala_plantao.label(class="form-label") }}
                             {{ form.escala_plantao(class="form-select", id="escala_plantao") }}
-                            {% if form.escala_plantao.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.escala_plantao.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
                         </div>
 
                         <div class="mb-3">
                             {{ form.log_bruto_rondas.label(class="form-label") }}
                             {{ form.log_bruto_rondas(class="form-control", rows="10", id="log_bruto_rondas") }}
-                            {% if form.log_bruto_rondas.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.log_bruto_rondas.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
                         </div>
 
                         <div class="mt-3">
@@ -89,26 +64,23 @@
                         <button type="button" class="btn btn-sm btn-success" id="enviarWhatsAppRonda" title="Enviar via WhatsApp">
                             <i class="bi bi-whatsapp"></i>
                         </button>
+                        
+                        {% if current_user.is_admin %}
                         <button type="button" class="btn btn-sm btn-primary" id="salvarRonda" title="Salvar Ronda">
                             <i class="bi bi-check-circle"></i> Salvar
                         </button>
+                        {% endif %}
+
                     </div>
                 </div>
                 <div class="card-body p-4">
                     <div class="report-output-container">
                         {% if relatorio_processado %}
-                            {% if "Erro:" in relatorio_processado %}
-                                <div id="rondaResultadoTexto" class="alert alert-danger">{{ relatorio_processado }}</div>
-                            {% elif "Nenhum evento de ronda" in relatorio_processado or "Nenhum log" in relatorio_processado %}
-                                <div id="rondaResultadoTexto" class="alert alert-warning">{{ relatorio_processado }}</div>
-                            {% else %}
-                                <pre id="rondaResultadoTexto" class="p-2 bg-light border rounded">{{ relatorio_processado }}</pre>
-                            {% endif %}
+                            <pre id="rondaResultadoTexto" class="p-2 bg-light border rounded">{{ relatorio_processado }}</pre>
                         {% else %}
                             <div id="rondaResultadoTexto" class="alert alert-secondary">O relatório processado aparecerá aqui.</div>
                         {% endif %}
                     </div>
-                    <div id="saveFeedback" class="mt-3" style="display: none;"></div>
                 </div>
             </div>
         </div>
