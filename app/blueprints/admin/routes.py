@@ -136,103 +136,82 @@ def dashboard_metrics():
 @admin_required
 def ronda_dashboard():
     logger.info(f"Admin '{current_user.username}' acessou o dashboard de rondas.")
+    
+    turno_filter = request.args.get('turno', '')
 
     # 1. Rondas por Condomínio
-    rondas_por_condominio = db.session.query(
+    rondas_por_condominio_q = db.session.query(
         Condominio.nome,
         func.sum(Ronda.total_rondas_no_log)
-    ).outerjoin(Ronda, Ronda.condominio_id == Condominio.id).group_by(Condominio.nome).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
+    ).outerjoin(Ronda, Condominio.id == Ronda.condominio_id)
+    if turno_filter:
+        rondas_por_condominio_q = rondas_por_condominio_q.filter(Ronda.turno_ronda == turno_filter)
+    rondas_por_condominio = rondas_por_condominio_q.group_by(Condominio.nome).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
 
     condominio_labels = [item[0] for item in rondas_por_condominio]
     rondas_por_condominio_data = [item[1] if item[1] is not None else 0 for item in rondas_por_condominio]
 
-    # 2. Duração Média de CADA RONDA INDIVIDUAL por Condomínio
-    somas_por_condominio = db.session.query(
-        Condominio.nome,
-        func.sum(Ronda.duracao_total_rondas_minutos).label('total_minutos'),
-        func.sum(Ronda.total_rondas_no_log).label('total_rondas')
-    ).outerjoin(Ronda, Ronda.condominio_id == Condominio.id).group_by(Condominio.nome).all()
-
-    duracao_media_por_condominio_raw = []
-    for nome, total_minutos, total_rondas in somas_por_condominio:
-        # --- INÍCIO DA CORREÇÃO ---
-        # Garante que total_minutos seja tratado como 0 se for None
-        soma_real_minutos = total_minutos or 0
-        
-        if total_rondas and total_rondas > 0:
-            media = soma_real_minutos / total_rondas
-            duracao_media_por_condominio_raw.append((nome, media))
-        else:
-            duracao_media_por_condominio_raw.append((nome, 0))
-        # --- FIM DA CORREÇÃO ---
-
-    duracao_media_por_condominio_raw.sort(key=lambda x: x[1], reverse=True)
-
+    # 2. Duração Média de Rondas
+    media_expression = cast(func.coalesce(func.sum(Ronda.duracao_total_rondas_minutos), 0), Float) / \
+                       cast(func.coalesce(func.sum(Ronda.total_rondas_no_log), 1), Float)
+    duracao_media_q = db.session.query(Condominio.nome, media_expression).outerjoin(Ronda, Ronda.condominio_id == Condominio.id)
+    if turno_filter:
+        duracao_media_q = duracao_media_q.filter(Ronda.turno_ronda == turno_filter)
+    duracao_media_por_condominio_raw = duracao_media_q.group_by(Condominio.nome).order_by(media_expression.desc()).all()
+    
     duracao_condominio_labels = [item[0] for item in duracao_media_por_condominio_raw]
     duracao_media_data = [round(item[1], 2) if item[1] is not None else 0 for item in duracao_media_por_condominio_raw]
 
-    # 3. Rondas por Turno (Geral)
+    # 3. Rondas por Turno (Visão Geral)
     rondas_por_turno = db.session.query(
         Ronda.turno_ronda,
         func.sum(Ronda.total_rondas_no_log)
-    ).filter(
-        Ronda.turno_ronda.isnot(None), Ronda.total_rondas_no_log.isnot(None)
-    ).group_by(Ronda.turno_ronda).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
-
+    ).filter(Ronda.turno_ronda.isnot(None), Ronda.total_rondas_no_log.isnot(None)).group_by(Ronda.turno_ronda).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
     turno_labels = [item[0] for item in rondas_por_turno]
     rondas_por_turno_data = [item[1] if item[1] is not None else 0 for item in rondas_por_turno]
 
     # 4. Rondas por Supervisor
-    rondas_por_supervisor = db.session.query(
+    rondas_por_supervisor_q = db.session.query(
         User.username,
         func.sum(Ronda.total_rondas_no_log)
-    ).outerjoin(Ronda, User.id == Ronda.user_id).filter(
-        User.is_approved == True
-    ).group_by(User.username).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
-
+    ).outerjoin(Ronda, User.id == Ronda.user_id).filter(User.is_approved == True)
+    if turno_filter:
+        rondas_por_supervisor_q = rondas_por_supervisor_q.filter(Ronda.turno_ronda == turno_filter)
+    rondas_por_supervisor = rondas_por_supervisor_q.group_by(User.username).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
+    
     supervisor_labels = [item[0] for item in rondas_por_supervisor]
     rondas_por_supervisor_data = [item[1] if item[1] is not None else 0 for item in rondas_por_supervisor]
 
-    # 5. Total de Rondas ao Longo do Tempo (Últimos 30 dias)
+    # 5. Total de Rondas ao Longo do Tempo
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
-    rondas_por_dia = db.session.query(
+    rondas_por_dia_q = db.session.query(
         func.date(Ronda.data_plantao_ronda),
         func.sum(Ronda.total_rondas_no_log)
-    ).filter(
-        Ronda.data_plantao_ronda >= thirty_days_ago.date(),
-        Ronda.total_rondas_no_log.isnot(None)
-    ).group_by(
-        func.date(Ronda.data_plantao_ronda)
-    ).order_by(
-        func.date(Ronda.data_plantao_ronda)
-    ).all()
-
-    ronda_date_labels = []
-    ronda_activity_data = []
+    ).filter(Ronda.data_plantao_ronda >= thirty_days_ago.date(), Ronda.total_rondas_no_log.isnot(None))
+    if turno_filter:
+        rondas_por_dia_q = rondas_por_dia_q.filter(Ronda.turno_ronda == turno_filter)
+    rondas_por_dia = rondas_por_dia_q.group_by(func.date(Ronda.data_plantao_ronda)).order_by(func.date(Ronda.data_plantao_ronda)).all()
+    
+    ronda_date_labels, ronda_activity_data, rondas_by_date_map = [], [], {}
     current_date = thirty_days_ago.date()
     end_date = datetime.now(timezone.utc).date()
-
     rondas_by_date_map = {str(date): count if count is not None else 0 for date, count in rondas_por_dia}
-
     while current_date <= end_date:
         date_str = current_date.strftime('%Y-%m-%d')
         ronda_date_labels.append(date_str)
         ronda_activity_data.append(rondas_by_date_map.get(date_str, 0))
         current_date += timedelta(days=1)
+    
+    all_turnos = ['Diurno Par', 'Noturno Par', 'Diurno Impar', 'Noturno Impar']
 
     return render_template('admin_ronda_dashboard.html',
                            title='Dashboard de Métricas de Rondas',
-                           condominio_labels=condominio_labels,
-                           rondas_por_condominio_data=rondas_por_condominio_data,
-                           duracao_condominio_labels=duracao_condominio_labels,
-                           duracao_media_data=duracao_media_data,
-                           turno_labels=turno_labels,
-                           rondas_por_turno_data=rondas_por_turno_data,
-                           supervisor_labels=supervisor_labels,
-                           rondas_por_supervisor_data=rondas_por_supervisor_data,
-                           ronda_date_labels=ronda_date_labels,
-                           ronda_activity_data=ronda_activity_data
-                           )
+                           condominio_labels=condominio_labels, rondas_por_condominio_data=rondas_por_condominio_data,
+                           duracao_condominio_labels=duracao_condominio_labels, duracao_media_data=duracao_media_data,
+                           turno_labels=turno_labels, rondas_por_turno_data=rondas_por_turno_data,
+                           supervisor_labels=supervisor_labels, rondas_por_supervisor_data=rondas_por_supervisor_data,
+                           ronda_date_labels=ronda_date_labels, ronda_activity_data=ronda_activity_data,
+                           turnos=all_turnos, selected_turno=turno_filter)
 
 
 @admin_bp.route('/users')
