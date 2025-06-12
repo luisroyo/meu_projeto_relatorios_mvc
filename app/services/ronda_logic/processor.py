@@ -24,7 +24,7 @@ def calcular_intervalo_plantao(data_plantao_str: str, escala_plantao_str: str):
     try:
         data_norm = normalizar_data_capturada(data_plantao_str)
         if not data_norm or len(data_norm.split('/')[2]) != 4:
-             raise ValueError("Data normalizada inválida ou ano não tem 4 dígitos")
+                raise ValueError("Data normalizada inválida ou ano não tem 4 dígitos")
         data_base_dt = datetime.strptime(data_norm, "%d/%m/%Y")
         data_cabecalho = data_norm # A data do cabeçalho por padrão é a data de entrada
     except ValueError as e:
@@ -49,10 +49,8 @@ def calcular_intervalo_plantao(data_plantao_str: str, escala_plantao_str: str):
         logger.error(f"Horas da escala ('{escala_normalizada_para_parse}') não são numéricas.")
         return None, None, data_cabecalho
 
-    # --- LÓGICA DE CÁLCULO DE PLANTÃO CORRIGIDA ---
     inicio_plantao = data_base_dt.replace(hour=hora_inicio_escala, minute=0, second=0, microsecond=0)
     
-    # A data do cabeçalho será a data de início do plantão, que já foi definida em 'data_cabecalho'
     data_para_cabecalho_valida = data_cabecalho
 
     if hora_inicio_escala < hora_fim_escala: # Plantão Diurno (ex: 06-18)
@@ -60,7 +58,6 @@ def calcular_intervalo_plantao(data_plantao_str: str, escala_plantao_str: str):
     else: # Plantão Noturno (ex: 18-06), cruza a meia-noite
         fim_plantao_dia_seguinte = data_base_dt + timedelta(days=1)
         fim_plantao = fim_plantao_dia_seguinte.replace(hour=hora_fim_escala, minute=0, second=0, microsecond=0)
-        # A linha que alterava a data do cabeçalho foi removida.
         
     logger.info(f"Intervalo de plantão calculado: de {inicio_plantao.strftime('%d/%m/%Y %H:%M')} a {fim_plantao.strftime('%d/%m/%Y %H:%M')}")
     return inicio_plantao, fim_plantao, data_para_cabecalho_valida
@@ -73,7 +70,7 @@ def processar_log_de_rondas(log_bruto_rondas_str: str,
     logger.info(f"Processando log para: {nome_condominio_str}, Data Plantão: {data_plantao_manual_str}, Escala: {escala_plantao_str}")
     if not log_bruto_rondas_str or not log_bruto_rondas_str.strip():
         logger.warning("Log de ronda bruto está vazio.")
-        return "Nenhum log de ronda fornecido ou log vazio."
+        return "Nenhum log de ronda fornecido ou log vazio.", 0, None, None
 
     inicio_intervalo_plantao, fim_intervalo_plantao, data_formatada_cabecalho = calcular_intervalo_plantao(data_plantao_manual_str, escala_plantao_str)
 
@@ -144,7 +141,7 @@ def processar_log_de_rondas(log_bruto_rondas_str: str,
             
             ultima_vtr_identificada_global = vtr_global
             if data_prefixo and data_prefixo != config.FALLBACK_DATA_INDEFINIDA:
-                 ultima_data_valida_global = data_prefixo
+                    ultima_data_valida_global = data_prefixo
             
             vtr_para_contexto_bloco_atual = vtr_linha
             data_para_contexto_bloco_atual = ultima_data_valida_global
@@ -171,7 +168,9 @@ def processar_log_de_rondas(log_bruto_rondas_str: str,
     if inicio_intervalo_plantao and fim_intervalo_plantao:
         for ev in eventos_encontrados_todos:
             if ev.get("datetime_obj"):
-                if inicio_intervalo_plantao <= ev["datetime_obj"] < (fim_intervalo_plantao + timedelta(seconds=1)):
+                # CORREÇÃO: Usar intervalo meio-aberto [inicio, fim) para evitar sobreposição de eventos.
+                # Esta é a forma correta de filtrar intervalos de tempo contíguos.
+                if inicio_intervalo_plantao <= ev["datetime_obj"] < fim_intervalo_plantao:
                     eventos_do_plantao.append(ev)
                 else:
                     logger.debug(f"Evento FORA do intervalo do plantão: {ev['datetime_obj']} (VTR: {ev['vtr']}, Tipo: {ev['tipo']})")
@@ -181,24 +180,30 @@ def processar_log_de_rondas(log_bruto_rondas_str: str,
         logger.warning("Intervalo do plantão não definido. Incluindo todos os eventos parseados.")
         eventos_do_plantao = [ev for ev in eventos_encontrados_todos if ev.get("datetime_obj")]
 
+    primeiro_evento_dt = None
+    ultimo_evento_dt = None
+    if eventos_do_plantao:
+        eventos_do_plantao.sort(key=lambda x: x["datetime_obj"]) # Garante ordenação
+        primeiro_evento_dt = eventos_do_plantao[0]["datetime_obj"]
+        ultimo_evento_dt = eventos_do_plantao[-1]["datetime_obj"]
+
     if not eventos_do_plantao:
         msg_retorno = "Nenhum evento de ronda (início/término com data/hora reconhecível) foi identificado no log fornecido"
         if inicio_intervalo_plantao and fim_intervalo_plantao:
             msg_retorno += f" para o plantão de {inicio_intervalo_plantao.strftime('%d/%m/%Y %H:%M')} a {fim_intervalo_plantao.strftime('%d/%m/%Y %H:%M')}."
         elif not data_plantao_manual_str or not escala_plantao_str :
-             msg_retorno += " (data/escala do plantão não fornecida para filtragem)."
+                msg_retorno += " (data/escala do plantão não fornecida para filtragem)."
         else:
             msg_retorno += f" (problema ao definir intervalo para data '{data_plantao_manual_str}' e escala '{escala_plantao_str}')."
         logger.info(msg_retorno)
-        return msg_retorno
+        return msg_retorno, 0, None, None
 
-    eventos_do_plantao.sort(key=lambda x: x["datetime_obj"])
     logger.info(f"Total de {len(eventos_do_plantao)} eventos encontrados DENTRO do intervalo do plantão.")
 
     rondas_pareadas, alertas_pareamento = parear_eventos_ronda(eventos_do_plantao)
 
     if not rondas_pareadas and not alertas_pareamento:
-        return "Eventos de ronda identificados, mas insuficientes para formar pares ou gerar alertas."
+        return "Eventos de ronda identificados, mas insuficientes para formar pares ou gerar alertas.", 0, primeiro_evento_dt, ultimo_evento_dt
 
     relatorio_final = formatar_relatorio_rondas(
         nome_condominio_str, data_formatada_cabecalho, escala_plantao_str, 
@@ -206,4 +211,5 @@ def processar_log_de_rondas(log_bruto_rondas_str: str,
     )
     rondas_completas_count = sum(1 for r in rondas_pareadas if r.get("inicio_dt") and r.get("termino_dt"))
     logger.info(f"Relatório para {nome_condominio_str} formatado. {len(eventos_do_plantao)} eventos, {rondas_completas_count} rondas completas.")
-    return relatorio_final
+    
+    return relatorio_final, rondas_completas_count, primeiro_evento_dt, ultimo_evento_dt

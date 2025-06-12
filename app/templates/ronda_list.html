@@ -110,11 +110,10 @@
                             <a href="{{ url_for('ronda.registrar_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-warning ms-1" title="Continuar/Editar">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <form action="{{ url_for('ronda.excluir_ronda', ronda_id=ronda.id) }}" method="POST" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-danger ms-1" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir esta ronda? Esta ação é irreversível.');">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                            {# BOTÃO DE EXCLUIR VIA JAVASCRIPT/AJAX #}
+                            <button type="button" class="btn btn-sm btn-danger ms-1" title="Excluir" onclick="confirmDeleteRonda({{ ronda.id }});">
+                                <i class="bi bi-trash"></i>
+                            </button>
                         {% endif %}
                     </td>
                 </tr>
@@ -163,4 +162,42 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        function confirmDeleteRonda(rondaId) {
+            if (confirm('Tem certeza que deseja excluir esta ronda? Esta ação é irreversível.')) {
+                deleteRonda(rondaId);
+            }
+        }
+
+        async function deleteRonda(rondaId) {
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                const response = await fetch(`/ronda/rondas/excluir/${rondaId}`, {
+                    method: 'DELETE', // Alterado para DELETE
+                    headers: {
+                        'X-CSRFToken': csrfToken, // Envia o token no cabeçalho
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Exibir mensagem de sucesso e recarregar a página ou remover a linha da tabela
+                    alert(result.message);
+                    window.location.reload(); // Recarrega a página para atualizar a lista
+                } else {
+                    // Exibir mensagem de erro
+                    alert('Erro: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Erro ao excluir ronda:', error);
+                alert('Erro de comunicação ao excluir ronda.');
+            }
+        }
+    </script>
 {% endblock %}
