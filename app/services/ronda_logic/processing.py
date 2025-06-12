@@ -8,6 +8,9 @@ def parear_eventos_ronda(eventos: list):
     rondas_pareadas = []
     alertas_pareamento = []
     inicios_pendentes_por_vtr = {}
+    
+    # --- NOVO: Variável para acumular a duração ---
+    soma_duracoes_minutos = 0
 
     for evento in eventos:
         if not evento.get("datetime_obj") or not isinstance(evento["datetime_obj"], datetime):
@@ -36,17 +39,19 @@ def parear_eventos_ronda(eventos: list):
                 inicio_dt = inicio_pendente_vtr_atual["datetime_obj"]
                 termino_dt = evento["datetime_obj"]
                 
-                # --- HEURÍSTICA PARA RONDAS QUE CRUZAM A MEIA-NOITE ---
                 if termino_dt < inicio_dt:
-                    # Se o término é cronologicamente antes, só ajustamos se a HORA também for anterior,
-                    # o que indica um cruzamento de dia (ex: início 23:00, término 01:00).
                     if termino_dt.time() < inicio_dt.time():
                         termino_dt_ajustado = termino_dt + timedelta(days=1)
                         logger.info(f"Aplicando heurística de cruzamento de dia para VTR {vtr_evento}. Término ajustado para {termino_dt_ajustado}.")
-                        # Se mesmo após ajustar, ainda estiver errado, o alerta abaixo pegará.
                         termino_dt = termino_dt_ajustado
                 
-                if termino_dt <= inicio_dt:
+                duracao_minutos = 0 # Inicializa a duração
+                if termino_dt > inicio_dt:
+                    # --- NOVO: Cálculo e soma da duração ---
+                    duracao_timedelta = termino_dt - inicio_dt
+                    duracao_minutos = round(duracao_timedelta.total_seconds() / 60)
+                    soma_duracoes_minutos += duracao_minutos
+                else:
                     alertas_pareamento.append(
                         f"⚠️ ALERTA DE HORÁRIO: Término para {evento['vtr']} às {evento['data_str']} {evento['hora_str']} "
                         f"ocorreu ANTES ou no mesmo momento que o início. (Linhas: '{evento['linha_original']}' e '{inicio_pendente_vtr_atual['linha_original']}')"
@@ -55,7 +60,8 @@ def parear_eventos_ronda(eventos: list):
                 rondas_pareadas.append({
                     "inicio_dt": inicio_dt,
                     "termino_dt": termino_dt,
-                    "vtr": vtr_evento
+                    "vtr": vtr_evento,
+                    "duracao_minutos": duracao_minutos # Adiciona a duração individual ao par
                 })
                 inicios_pendentes_por_vtr.pop(vtr_evento, None)
             else:
@@ -75,4 +81,6 @@ def parear_eventos_ronda(eventos: list):
         rondas_pareadas.append({
             "inicio_dt": inicio_pendente["datetime_obj"], "termino_dt": None, "vtr": inicio_pendente["vtr"]
         })
-    return rondas_pareadas, alertas_pareamento
+
+    # --- ALTERADO: Retorna 3 valores, incluindo a soma dos minutos ---
+    return rondas_pareadas, alertas_pareamento, soma_duracoes_minutos
