@@ -1,6 +1,6 @@
 # app/models.py
-from datetime import datetime, timezone, date # Importa date
-from app import db, login_manager # Importa 'db' e 'login_manager' de app/__init__.py
+from datetime import datetime, timezone, date
+from app import db, login_manager
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging
@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 @login_manager.user_loader
 def load_user(user_id):
-    """Carrega o usuário a partir do seu ID para a sessão do Flask-Login."""
     try:
         user = db.session.get(User, int(user_id))
         return user
@@ -61,23 +60,34 @@ class LoginHistory(db.Model):
 class Ronda(db.Model):
     __tablename__ = 'ronda'
     id = db.Column(db.Integer, primary_key=True)
+    # data_hora_inicio e data_hora_fim do REGISTRO da ronda (quando foi criada/finalizada no sistema)
     data_hora_inicio = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     data_hora_fim = db.Column(db.DateTime, nullable=True)
+    
     log_ronda_bruto = db.Column(db.Text, nullable=False)
     relatorio_processado = db.Column(db.Text, nullable=True)
     
-    # --- ALTERAÇÃO: Adiciona ForeignKey para Condominio e novo campo 'turno_ronda' ---
+    # Campo para a FK do Condominio
     condominio_id = db.Column(db.Integer, db.ForeignKey('condominio.id'), nullable=True, index=True)
-    condominio_obj = db.relationship('Condominio', backref='rondas') # Relacionamento com o modelo Condominio
+    condominio_obj = db.relationship('Condominio', backref='rondas')
     
     turno_ronda = db.Column(db.String(50), nullable=True, index=True) # Ex: 'Diurno Par', 'Noturno Ímpar'
-    
-    escala_plantao = db.Column(db.String(100), nullable=True) # Mantido para compatibilidade, mas turno_ronda é mais granular
+    escala_plantao = db.Column(db.String(100), nullable=True)
     data_plantao_ronda = db.Column(db.Date, nullable=True, index=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True) # Mantido como o criador/supervisor
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+
+    # --- NOVOS CAMPOS PARA MÉTRICAS DO LOG PROCESSADO ---
+    total_rondas_no_log = db.Column(db.Integer, nullable=True, default=0)
+    primeiro_evento_log_dt = db.Column(db.DateTime, nullable=True) # Data/hora do PRIMEIRO evento VÁLIDO no log
+    ultimo_evento_log_dt = db.Column(db.DateTime, nullable=True)   # Data/hora do ÚLTIMO evento VÁLIDO no log
 
     def __repr__(self):
-        return f'<Ronda {self.id} em {self.data_hora_inicio.strftime("%Y-%m-%d %H:%M")} Cond: {self.condominio_obj.nome if self.condominio_obj else "N/A"} Turno: {self.turno_ronda or "N/A"}>'
+        return (
+            f'<Ronda {self.id} em {self.data_hora_inicio.strftime("%Y-%m-%d %H:%M")} '
+            f'Cond: {self.condominio_obj.nome if self.condominio_obj else "N/A"} '
+            f'Turno: {self.turno_ronda or "N/A"} '
+            f'Total Rondas: {self.total_rondas_no_log or 0}>'
+        )
 
 class Colaborador(db.Model):
     __tablename__ = 'colaborador'

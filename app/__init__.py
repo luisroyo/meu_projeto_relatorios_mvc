@@ -8,33 +8,37 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_caching import Cache
-import pytz
 
-# --- NOVA IMPORTAÇÃO PARA O RATE LIMITER ---
+# --- IMPORTAÇÕES ADICIONAIS ---
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
+import pytz  # <--- CORREÇÃO ADICIONADA AQUI
 
+# --- Instâncias das extensões ---
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 cache = Cache()
-
-# --- NOVA INSTÂNCIA DO RATE LIMITER ---
+csrf = CSRFProtect()
 limiter = Limiter(
-    key_func=get_remote_address,  # Usa o IP do usuário para rastrear as requisições
-    default_limits=["200 per day", "50 per hour"]  # Limites padrão para todas as rotas
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
 )
 
+# --- Configurações do LoginManager ---
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Por favor, faça login para acessar esta página.'
 login_manager.login_message_category = 'info'
 
+# --- Configuração de Logging ---
 logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO').upper(),
                     format='%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
 
 module_logger = logging.getLogger(__name__)
 
+# --- Carregamento do .env ---
 dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
@@ -42,16 +46,30 @@ if os.path.exists(dotenv_path):
 else:
     module_logger.info(f".env não encontrado em {dotenv_path}, usando variáveis de ambiente do sistema se definidas.")
 
+# --- Application Factory ---
 def create_app():
     app_instance = Flask(__name__)
     
-    # --- Configurações Básicas ---
+    # --- Configurações da Aplicação ---
     app_instance.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
     BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
     default_db_path = 'sqlite:///' + os.path.join(BASE_DIR, 'instance', 'site.db')
     app_instance.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL_FLASK', default_db_path)
     app_instance.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # --- Configurações de CSRF e Cookies ---
     app_instance.config['WTF_CSRF_ENABLED'] = True
+    
+    if not app_instance.debug:
+        app_instance.config['SESSION_COOKIE_SECURE'] = True
+        app_instance.config['REMEMBER_COOKIE_SECURE'] = True
+        app_instance.config['SESSION_COOKIE_HTTPONLY'] = True
+        app_instance.config['REMEMBER_COOKIE_HTTPONLY'] = True
+    else:
+        app_instance.config['SESSION_COOKIE_SECURE'] = False
+        app_instance.config['REMEMBER_COOKIE_SECURE'] = False
+        app_instance.config['SESSION_COOKIE_HTTPONLY'] = False
+        app_instance.config['REMEMBER_COOKIE_HTTPONLY'] = False
 
     # --- Configuração de Cache ---
     app_instance.config['CACHE_TYPE'] = os.getenv('CACHE_TYPE', 'RedisCache')
@@ -63,31 +81,28 @@ def create_app():
     migrate.init_app(app_instance, db)
     login_manager.init_app(app_instance)
     cache.init_app(app_instance)
-    # --- INICIALIZA O LIMITER ---
     limiter.init_app(app_instance)
-
-    from flask_wtf.csrf import CSRFProtect
-    csrf = CSRFProtect()
     csrf.init_app(app_instance)
     
-    # (O restante do arquivo continua exatamente como estava)
+    # --- Lógica para evitar duplicação de execução com Werkzeug reloader ---
     is_werkzeug_main_process = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
     is_not_flask_debug_mode = str(os.getenv('FLASK_DEBUG', '0')).lower() not in ['1', 'true', 'on']
     should_perform_single_run_actions = is_werkzeug_main_process or is_not_flask_debug_mode
 
     if should_perform_single_run_actions:
-        # ... (bloco de logging)
         pass
 
+    # --- Definição de Filtros de Template ---
     @app_instance.template_filter('localtime')
     def localtime_filter(dt_obj):
         if dt_obj is None: return "N/A"
         utc_tz = pytz.timezone('UTC')
-        local_tz = pytz.timezone('America/Sao_Paulo')
+        local_tz = pytz.timezone('America/Sao_Paulo') # Campinas, SP
         if dt_obj.tzinfo is None: dt_obj = utc_tz.localize(dt_obj)
         local_dt = dt_obj.astimezone(local_tz)
         return local_dt.strftime('%d/%m/%Y %H:%M:%S')
 
+    # --- Registro de Blueprints e Comandos ---
     with app_instance.app_context():
         from . import models
         from app.blueprints.main.routes import main_bp

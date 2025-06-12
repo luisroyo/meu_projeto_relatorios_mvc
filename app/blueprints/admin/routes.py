@@ -5,13 +5,12 @@ from flask import (
     request, jsonify, g
 )
 from flask_login import login_required, current_user
-from sqlalchemy import func, extract, and_ # Importa 'and_' para condições múltiplas
+from sqlalchemy import func, extract, and_, case, cast, Float, BigInteger
 from datetime import datetime, timedelta, timezone
 
-# Importa o blueprint do __init__.py desta pasta
 from . import admin_bp
 from app import db
-from app.models import User, LoginHistory, Ronda, Colaborador, ProcessingHistory # Importa ProcessingHistory
+from app.models import User, LoginHistory, Ronda, Colaborador, ProcessingHistory, Condominio
 from app.decorators.admin_required import admin_required
 from app.forms import TestarRondasForm, FormatEmailReportForm, ColaboradorForm
 from app.services.justificativa_service import JustificativaAtestadoService
@@ -19,9 +18,7 @@ from app.services.justificativa_troca_plantao_service import JustificativaTrocaP
 
 logger = logging.getLogger(__name__)
 
-# A linha "admin_bp = Blueprint(...)" foi removida daqui e movida para o __init__.py da pasta.
-
-# --- INJEÇÃO DE DEPENDÊNCIA PARA SERVIÇOS DE IA ---
+# ... (funções _get_service permanecem as mesmas) ...
 def _get_justificativa_atestado_service():
     if 'justificativa_atestado_service' not in g:
         g.justificativa_atestado_service = JustificativaAtestadoService()
@@ -32,32 +29,27 @@ def _get_justificativa_troca_plantao_service():
         g.justificativa_troca_plantao_service = JustificativaTrocaPlantaoService()
     return g.justificativa_troca_plantao_service
 
-# --- ROTAS ---
-
 @admin_bp.route('/')
 @login_required
 @admin_required
 def dashboard():
-    logger.info(f"Admin '{current_user.username}' acessou /admin/, redirecionando para /admin/ferramentas.")
-    # Redireciona para o novo dashboard de métricas em vez de ferramentas, ou crie uma rota separada para ele.
-    # Por enquanto, vou redirecionar para a nova rota de métricas que vamos criar.
+    logger.info(f"Admin '{current_user.username}' acessou /admin/, redirecionando para /admin/dashboard_metrics.")
     return redirect(url_for('admin.dashboard_metrics'))
+
 
 @admin_bp.route('/dashboard_metrics')
 @login_required
 @admin_required
 def dashboard_metrics():
+    # ... (código do dashboard_metrics, que já está correto, permanece aqui) ...
     logger.info(f"Admin '{current_user.username}' acessou o dashboard de métricas.")
 
-    # Data de 30 dias atrás para filtrar os dados
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
 
-    # 1. Total de usuários registrados (aprovados e pendentes)
     total_users = db.session.query(User).count()
     total_approved_users = db.session.query(User).filter_by(is_approved=True).count()
     total_pending_users = total_users - total_approved_users
 
-    # 2. Histórico de logins (sucessos vs. falhas nos últimos 30 dias)
     successful_logins = db.session.query(LoginHistory).filter(
         and_(LoginHistory.timestamp >= thirty_days_ago,
              LoginHistory.success == True)
@@ -67,7 +59,6 @@ def dashboard_metrics():
              LoginHistory.success == False)
     ).count()
     
-    # 3. Processamentos de relatórios (sucessos vs. falhas nos últimos 30 dias)
     successful_reports = db.session.query(ProcessingHistory).filter(
         and_(ProcessingHistory.timestamp >= thirty_days_ago,
              ProcessingHistory.success == True)
@@ -77,7 +68,6 @@ def dashboard_metrics():
              ProcessingHistory.success == False)
     ).count()
 
-    # 4. Processamentos de relatórios por tipo (nos últimos 30 dias)
     processing_by_type = db.session.query(
         ProcessingHistory.processing_type,
         func.count(ProcessingHistory.id)
@@ -87,14 +77,10 @@ def dashboard_metrics():
         ProcessingHistory.processing_type
     ).all()
     
-    # Converte para um dicionário para facilitar o uso no template/JS
     processing_types_data = {item[0]: item[1] for item in processing_by_type}
 
-
-    # 5. Atividade de usuários por dia (logins e processamentos nos últimos 30 dias)
-    # Logins por dia
     logins_per_day = db.session.query(
-        func.date(LoginHistory.timestamp), # Extrai apenas a data
+        func.date(LoginHistory.timestamp),
         func.count(LoginHistory.id)
     ).filter(
         LoginHistory.timestamp >= thirty_days_ago
@@ -104,9 +90,8 @@ def dashboard_metrics():
         func.date(LoginHistory.timestamp)
     ).all()
 
-    # Processamentos por dia
     processing_per_day = db.session.query(
-        func.date(ProcessingHistory.timestamp), # Extrai apenas a data
+        func.date(ProcessingHistory.timestamp),
         func.count(ProcessingHistory.id)
     ).filter(
         ProcessingHistory.timestamp >= thirty_days_ago
@@ -116,8 +101,6 @@ def dashboard_metrics():
         func.date(ProcessingHistory.timestamp)
     ).all()
 
-    # Formata os dados de logins e processamentos por dia para o Chart.js
-    # Garante que todos os dias no período tenham um valor (0 se não houver atividade)
     date_labels = []
     current_date = thirty_days_ago.date()
     end_date = datetime.now(timezone.utc).date()
@@ -147,52 +130,152 @@ def dashboard_metrics():
                            processing_chart_data=processing_chart_data
                            )
 
+@admin_bp.route('/ronda_dashboard')
+@login_required
+@admin_required
+def ronda_dashboard():
+    # ... (código do ronda_dashboard, que já está correto, permanece aqui) ...
+    logger.info(f"Admin '{current_user.username}' acessou o dashboard de rondas.")
+
+    # 1. Rondas por Condomínio
+    rondas_por_condominio = db.session.query(
+        Condominio.nome,
+        func.sum(Ronda.total_rondas_no_log)
+    ).outerjoin(Ronda, Ronda.condominio_id == Condominio.id).group_by(Condominio.nome).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
+
+    condominio_labels = [item[0] for item in rondas_por_condominio]
+    rondas_por_condominio_data = [item[1] if item[1] is not None else 0 for item in rondas_por_condominio]
+
+    # 2. Duração Média das Rondas por Condomínio
+    diff_seconds = func.strftime('%s', Ronda.ultimo_evento_log_dt).cast(BigInteger) - func.strftime('%s', Ronda.primeiro_evento_log_dt).cast(BigInteger)
+    diff_minutes = diff_seconds / 60.0
+    
+    duracao_media_por_condominio_raw = db.session.query(
+        Condominio.nome,
+        func.avg(diff_minutes)
+    ).outerjoin(Ronda, Ronda.condominio_id == Condominio.id).filter(
+        Ronda.primeiro_evento_log_dt.isnot(None),
+        Ronda.ultimo_evento_log_dt.isnot(None)
+    ).group_by(Condominio.nome).order_by(func.avg(diff_minutes).desc()).all()
+
+    duracao_condominio_labels = [item[0] for item in duracao_media_por_condominio_raw]
+    duracao_media_data = [round(item[1], 2) if item[1] is not None else 0 for item in duracao_media_por_condominio_raw]
+
+    # 3. Rondas por Turno (Geral)
+    rondas_por_turno = db.session.query(
+        Ronda.turno_ronda,
+        func.sum(Ronda.total_rondas_no_log)
+    ).filter(
+        Ronda.turno_ronda.isnot(None), Ronda.total_rondas_no_log.isnot(None)
+    ).group_by(Ronda.turno_ronda).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
+
+    turno_labels = [item[0] for item in rondas_por_turno]
+    rondas_por_turno_data = [item[1] if item[1] is not None else 0 for item in rondas_por_turno]
+
+    # 4. Rondas por Supervisor
+    rondas_por_supervisor = db.session.query(
+        User.username,
+        func.sum(Ronda.total_rondas_no_log)
+    ).outerjoin(Ronda, User.id == Ronda.user_id).filter(
+        User.is_approved == True
+    ).group_by(User.username).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
+
+    supervisor_labels = [item[0] for item in rondas_por_supervisor]
+    rondas_por_supervisor_data = [item[1] if item[1] is not None else 0 for item in rondas_por_supervisor]
+
+    # 5. Total de Rondas ao Longo do Tempo (Últimos 30 dias)
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+    rondas_por_dia = db.session.query(
+        func.date(Ronda.data_plantao_ronda),
+        func.sum(Ronda.total_rondas_no_log)
+    ).filter(
+        Ronda.data_plantao_ronda >= thirty_days_ago.date(),
+        Ronda.total_rondas_no_log.isnot(None)
+    ).group_by(
+        func.date(Ronda.data_plantao_ronda)
+    ).order_by(
+        func.date(Ronda.data_plantao_ronda)
+    ).all()
+
+    ronda_date_labels = []
+    ronda_activity_data = []
+    current_date = thirty_days_ago.date()
+    end_date = datetime.now(timezone.utc).date()
+
+    rondas_by_date_map = {str(date): count if count is not None else 0 for date, count in rondas_por_dia}
+
+    while current_date <= end_date:
+        date_str = current_date.strftime('%Y-%m-%d')
+        ronda_date_labels.append(date_str)
+        ronda_activity_data.append(rondas_by_date_map.get(date_str, 0))
+        current_date += timedelta(days=1)
+
+    return render_template('admin_ronda_dashboard.html',
+                           title='Dashboard de Métricas de Rondas',
+                           condominio_labels=condominio_labels,
+                           rondas_por_condominio_data=rondas_por_condominio_data,
+                           duracao_condominio_labels=duracao_condominio_labels,
+                           duracao_media_data=duracao_media_data,
+                           turno_labels=turno_labels,
+                           rondas_por_turno_data=rondas_por_turno_data,
+                           supervisor_labels=supervisor_labels,
+                           rondas_por_supervisor_data=rondas_por_supervisor_data,
+                           ronda_date_labels=ronda_date_labels,
+                           ronda_activity_data=ronda_activity_data
+                           )
+
 
 @admin_bp.route('/users')
 @login_required
 @admin_required
 def manage_users():
+    # ... (código de manage_users, que já está correto, permanece aqui) ...
     logger.info(f"Admin '{current_user.username}' acessou /admin/users. IP: {request.remote_addr if hasattr(request, 'remote_addr') else 'N/A'}")
     page = request.args.get('page', 1, type=int)
     users_pagination_obj = User.query.order_by(User.date_registered.desc()).paginate(page=page, per_page=10)
     return render_template('admin_users.html', title='Gerenciar Usuários', users_pagination=users_pagination_obj)
 
-@admin_bp.route('/ferramentas', methods=['GET', 'POST'])
+# --- CORREÇÃO: A rota /ferramentas agora apenas exibe o menu ---
+@admin_bp.route('/ferramentas', methods=['GET'])
 @login_required
 @admin_required
 def admin_tools():
-    ronda_form_instance = TestarRondasForm(prefix="ronda_form")
-    email_form_instance = FormatEmailReportForm(prefix="email_form")
-    formatted_email_report_text = None
+    logger.info(f"Admin '{current_user.username}' acessou o menu de ferramentas /admin/ferramentas.")
+    return render_template('admin_ferramentas.html', title='Ferramentas Administrativas')
 
-    if request.method == 'POST' and request.form.get('tool_action') == 'format_email':
-        email_form_instance = FormatEmailReportForm(request.form, prefix="email_form")
-        if email_form_instance.validate_on_submit():
-            raw_report = email_form_instance.raw_report.data
-            include_greeting = email_form_instance.include_greeting.data
-            custom_greeting = email_form_instance.custom_greeting.data.strip()
-            include_closing = email_form_instance.include_closing.data
-            custom_closing = email_form_instance.custom_closing.data.strip()
+# --- CORREÇÃO: Nova rota dedicada para a ferramenta de formatação de e-mail ---
+@admin_bp.route('/ferramentas/formatar-email', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def format_email_report_tool():
+    form = FormatEmailReportForm()
+    formatted_report = None
+    if form.validate_on_submit():
+        raw_report = form.raw_report.data
+        include_greeting = form.include_greeting.data
+        custom_greeting = form.custom_greeting.data.strip()
+        include_closing = form.include_closing.data
+        custom_closing = form.custom_closing.data.strip()
 
-            parts = []
-            if custom_greeting: parts.append(custom_greeting)
-            elif include_greeting: parts.append("Prezados(as),")
-            if parts: parts.append("")
-            parts.append(raw_report)
-            if raw_report.strip() and (custom_closing or include_closing): parts.append("")
-            if custom_closing: parts.append(custom_closing)
-            elif include_closing: parts.append("Atenciosamente,\nEquipe Administrativa")
-            formatted_email_report_text = "\n".join(parts)
-            flash('Relatório formatado para e-mail com sucesso!', 'success')
-        else:
-            flash('Erro na formatação do e-mail. Verifique os campos.', 'danger')
+        parts = []
+        if custom_greeting: parts.append(custom_greeting)
+        elif include_greeting: parts.append("Prezados(as),")
+        
+        if parts: parts.append("")
+        parts.append(raw_report)
+        if raw_report.strip() and (custom_closing or include_closing): parts.append("")
+        
+        if custom_closing: parts.append(custom_closing)
+        elif include_closing: parts.append("Atenciosamente,\nEquipe Administrativa")
+        
+        formatted_report = "\n".join(parts)
+        flash('Relatório formatado para e-mail com sucesso!', 'success')
+    
+    return render_template('admin_formatar_email.html', 
+                           title='Formatar Relatório para E-mail', 
+                           form=form, 
+                           formatted_report=formatted_report)
 
-    logger.info(f"Admin '{current_user.username}' acessou/interagiu com o dashboard de ferramentas /admin/ferramentas. IP: {request.remote_addr if hasattr(request, 'remote_addr') else 'N/A'}")
-    return render_template('admin_ferramentas.html',
-                           title='Ferramentas Administrativas',
-                           ronda_form=ronda_form_instance,
-                           email_form=email_form_instance,
-                           formatted_email_report=formatted_email_report_text)
 
 @admin_bp.route('/ferramentas/gerador-justificativas', methods=['GET'])
 @login_required
@@ -206,6 +289,7 @@ def gerador_justificativas_tool():
 @login_required
 @admin_required
 def api_processar_justificativa():
+    # ... (código da API de justificativas, que já está correto, permanece aqui) ...
     payload = request.get_json()
     if not payload:
         logger.warning(f"API Processar Justificativa: JSON vazio recebido. IP: {request.remote_addr if hasattr(request, 'remote_addr') else 'N/A'}")
@@ -247,6 +331,7 @@ def api_processar_justificativa():
         logger.error(f"API Processar Justificativa: Erro inesperado ao processar tipo '{tipo_justificativa}' para '{current_user.username}': {e}", exc_info=True)
         return jsonify({'erro': f'Erro inesperado ao contatar o serviço de IA: {str(e)}'}), 500
 
+# ... (todas as rotas de /user/<id> e /colaboradores, que já estão corretas, permanecem aqui) ...
 @admin_bp.route('/user/<int:user_id>/approve', methods=['POST'])
 @login_required
 @admin_required
@@ -312,11 +397,9 @@ def delete_user(user_id):
         logger.warning(f"Admin '{current_user.username}' tentou deletar a própria conta.")
         return redirect(url_for('admin.manage_users'))
     try:
-        # Exclui o histórico de login e rondas antes de deletar o usuário para evitar erros de chave estrangeira
         LoginHistory.query.filter_by(user_id=user_to_delete.id).delete(synchronize_session=False)
         Ronda.query.filter_by(user_id=user_to_delete.id).delete(synchronize_session=False)
-        # Exclui o histórico de processamento
-        ProcessingHistory.query.filter_by(user_id=user_to_delete.id).delete(synchronize_session=False) # ADIÇÃO
+        ProcessingHistory.query.filter_by(user_id=user_to_delete.id).delete(synchronize_session=False)
         db.session.delete(user_to_delete)
         db.session.commit()
         flash(f'Usuário {user_to_delete.username} deletado com sucesso.', 'success')
@@ -395,7 +478,7 @@ def adicionar_colaborador():
             db.session.rollback()
             logger.error(f"Erro ao adicionar novo colaborador por '{current_user.username}': {e}", exc_info=True)
             flash(f'Erro ao adicionar colaborador: {str(e)}', 'danger')
-
+    
     elif request.method == 'POST':
         flash('Por favor, corrija os erros no formulário.', 'warning')
 
@@ -419,14 +502,14 @@ def editar_colaborador(colaborador_id):
                 form.matricula.errors.append('Esta matrícula já está em uso por outro colaborador.')
                 flash('Erro ao salvar: Matrícula já em uso.', 'danger')
                 return render_template('admin_colaborador_form.html', title='Editar Colaborador', form=form, colaborador=colaborador)
-
+        
         try:
             colaborador.nome_completo = form.nome_completo.data
             colaborador.cargo = form.cargo.data
             colaborador.matricula = form.matricula.data if form.matricula.data else None
             colaborador.data_admissao = form.data_admissao.data
             colaborador.status = form.status.data
-
+            
             db.session.commit()
             flash(f'Colaborador "{colaborador.nome_completo}" atualizado com sucesso!', 'success')
             logger.info(f"Admin '{current_user.username}' editou o colaborador ID {colaborador_id}: '{colaborador.nome_completo}'.")
@@ -435,7 +518,7 @@ def editar_colaborador(colaborador_id):
             db.session.rollback()
             logger.error(f"Erro ao editar colaborador ID {colaborador_id} por '{current_user.username}': {e}", exc_info=True)
             flash(f'Erro ao atualizar colaborador: {str(e)}', 'danger')
-
+            
     elif request.method == 'POST':
         flash('Por favor, corrija os erros no formulário.', 'warning')
 
@@ -455,6 +538,6 @@ def deletar_colaborador(colaborador_id):
         logger.info(f"Admin '{current_user.username}' deletou o colaborador ID {colaborador_id}: '{nome_colaborador}'.")
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Erro ao deletar colaborador ID {colaborador_id} por '{current_user.username}': {e}", exc_info=True)
         flash(f'Erro ao deletar colaborador: {str(e)}. Verifique se há dependências.', 'danger')
+        logger.error(f"Erro ao deletar colaborador ID {colaborador_id} por '{current_user.username}': {e}", exc_info=True)
     return redirect(url_for('admin.listar_colaboradores'))
