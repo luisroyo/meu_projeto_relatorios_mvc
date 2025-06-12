@@ -7,21 +7,17 @@ from app import db
 from app.models import Condominio, Ronda, User
 from app.forms import TestarRondasForm
 from app.services.ronda_logic import processar_log_de_rondas
+from app.decorators.admin_required import admin_required 
 import logging
 
 logger = logging.getLogger(__name__)
 
 ronda_bp = Blueprint('ronda', __name__, template_folder='templates')
 
-# --- FUNÇÃO AUXILIAR: Inferir Turno da Ronda ---
 def inferir_turno(data_plantao_obj, escala_plantao_str):
     """
     Infere o turno da ronda (Diurno/Noturno, Par/Impar) com base na data do plantão
     e na ESCOLHA MANUAL da escala, se ela indicar Diurno/Noturno.
-
-    Regras de Turno:
-    - Diurno: 06h00 às 17h59
-    - Noturno: 18h00 às 05h59
     """
     turno_ronda_base = "Indefinido"
     escala_lower = escala_plantao_str.lower() if escala_plantao_str else ""
@@ -47,11 +43,11 @@ def inferir_turno(data_plantao_obj, escala_plantao_str):
     
     return escala_plantao_str if escala_plantao_str else "N/A - Turno Indefinido"
 
-# --- ROTA: Registrar/Processar Ronda ---
+
 @ronda_bp.route('/registrar', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def registrar_ronda():
-    # ... (código da rota registrar_ronda, que já está correto, permanece o mesmo) ...
     form = TestarRondasForm()
     relatorio_processado_final = None
     ronda_data_to_save = {}
@@ -203,11 +199,10 @@ def registrar_ronda():
                            relatorio_processado=relatorio_processado_final,
                            ronda_data_to_save=ronda_data_to_save)
 
-# --- ROTA: Salvar (Criar ou Atualizar) Ronda ---
 @ronda_bp.route('/rondas/salvar', methods=['POST'])
 @login_required
+@admin_required
 def salvar_ronda():
-    # ... (código da rota salvar_ronda, que já está correto, permanece o mesmo) ...
     data = request.get_json()
     if not data:
         return jsonify({'success': False, 'message': 'Dados não fornecidos.'}), 400
@@ -258,10 +253,8 @@ def salvar_ronda():
             
             ronda.primeiro_evento_log_dt = primeiro_evento_log_dt
             ronda.ultimo_evento_log_dt = ultimo_evento_log_dt
-            
             if not ronda.data_hora_inicio:
                 ronda.data_hora_inicio = primeiro_evento_log_dt
-            
             ronda.data_hora_fim = ultimo_evento_log_dt
             
             db.session.commit()
@@ -284,7 +277,6 @@ def salvar_ronda():
             nova_ronda = Ronda(
                 data_hora_inicio=primeiro_evento_log_dt,
                 data_hora_fim=ultimo_evento_log_dt,
-                
                 log_ronda_bruto=log_bruto,
                 relatorio_processado=relatorio_processado,
                 condominio_id=condominio_id,
@@ -306,11 +298,10 @@ def salvar_ronda():
         logger.error(f"Erro ao salvar/finalizar ronda para {current_user.username}: {e}", exc_info=True)
         return jsonify({'success': False, 'message': f'Erro interno ao salvar ronda: {str(e)}'}), 500
 
-# --- ROTA: Listagem de Rondas ---
+
 @ronda_bp.route('/rondas/historico', methods=['GET'])
 @login_required
 def listar_rondas():
-    # ... (código da rota listar_rondas, que já está correto, permanece o mesmo) ...
     page = request.args.get('page', 1, type=int)
     
     condominio_filter = request.args.get('condominio', type=str)
@@ -387,7 +378,7 @@ def listar_rondas():
                            selected_status=status_ronda_filter
                            )
 
-# --- ROTA: Detalhes da Ronda ---
+
 @ronda_bp.route('/rondas/detalhes/<int:ronda_id>')
 @login_required
 def detalhes_ronda(ronda_id):
@@ -402,15 +393,13 @@ def detalhes_ronda(ronda_id):
                            title=f'Detalhes da Ronda #{ronda.id}',
                            ronda=ronda)
 
-# --- ROTA: Excluir Ronda ---
-# CORREÇÃO: Adicionado 'POST' para compatibilidade com o formulário da página de detalhes.
+
 @ronda_bp.route('/rondas/excluir/<int:ronda_id>', methods=['POST', 'DELETE'])
 @login_required
 def excluir_ronda(ronda_id):
     ronda_to_delete = Ronda.query.get_or_404(ronda_id)
 
     if not current_user.is_admin and ronda_to_delete.user_id != current_user.id:
-        # Para requisições AJAX, retornar JSON. Para formulários, redirecionar com flash.
         if request.method == 'DELETE':
             return jsonify({'success': False, 'message': 'Você não tem permissão para excluir esta ronda.'}), 403
         else:
@@ -421,19 +410,19 @@ def excluir_ronda(ronda_id):
         db.session.delete(ronda_to_delete)
         db.session.commit()
         logger.info(f"Usuário '{current_user.username}' excluiu a ronda ID {ronda_id}.")
-        # Para requisições AJAX, retornar JSON. Para formulários, redirecionar com flash.
+        
         if request.method == 'DELETE':
             return jsonify({'success': True, 'message': f'Ronda {ronda_id} excluída com sucesso.'}), 200
         else:
             flash(f'Ronda {ronda_id} excluída com sucesso.', 'success')
             return redirect(url_for('ronda.listar_rondas'))
+            
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao excluir ronda ID {ronda_id} por {current_user.username}: {e}", exc_info=True)
-        # Para requisições AJAX, retornar JSON. Para formulários, redirecionar com flash.
+
         if request.method == 'DELETE':
             return jsonify({'success': False, 'message': f'Erro ao excluir ronda {ronda_id}: {str(e)}'}), 500
         else:
             flash(f'Erro ao excluir ronda {ronda_id}: {str(e)}', 'danger')
             return redirect(url_for('ronda.detalhes_ronda', ronda_id=ronda_id))
-
