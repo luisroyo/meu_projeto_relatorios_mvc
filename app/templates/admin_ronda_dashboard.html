@@ -31,6 +31,29 @@
         <h2>{{ title }}</h2>
         <p class="lead">Métricas e estatísticas detalhadas sobre as rondas de segurança.</p>
 
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <i class="bi bi-filter me-1"></i>Filtros
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('admin.ronda_dashboard') }}" class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="turno" class="form-label">Filtrar por Turno:</label>
+                        <select class="form-select" id="turno" name="turno">
+                            <option value="">-- Todos os Turnos --</option>
+                            {% for t in turnos %}
+                                <option value="{{ t }}" {% if selected_turno == t %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <button type="submit" class="btn btn-primary me-2"><i class="bi bi-funnel-fill me-1"></i>Aplicar Filtro</button>
+                        <a href="{{ url_for('admin.ronda_dashboard') }}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Limpar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <div class="row mb-4">
             <div class="col-md-6">
                 <div class="card">
@@ -58,7 +81,7 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header">
-                        Rondas por Turno
+                        Rondas por Turno (Visão Geral)
                     </div>
                     <div class="card-body">
                         <canvas id="rondasPorTurnoChart"></canvas>
@@ -110,11 +133,8 @@
                 },
                 options: {
                     responsive: true,
-                    plugins: {
-                        legend: { display: false },
-                        title: { display: true, text: 'Rondas por Condomínio' }
-                    },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Quantidade de Rondas' } } }
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
                 }
             });
 
@@ -134,10 +154,7 @@
                 },
                 options: {
                     responsive: true,
-                    plugins: {
-                        legend: { display: false },
-                        title: { display: true, text: 'Duração Média das Rondas por Condomínio' }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: { y: { beginAtZero: true, title: { display: true, text: 'Minutos' } } }
                 }
             });
@@ -151,22 +168,14 @@
                     datasets: [{
                         data: {{ rondas_por_turno_data | tojson | safe }},
                         backgroundColor: [
-                            'rgba(255, 99, 132, 0.7)', // Diurno Par
-                            'rgba(54, 162, 235, 0.7)', // Noturno Par
-                            'rgba(255, 206, 86, 0.7)', // Diurno Ímpar
-                            'rgba(75, 192, 192, 0.7)'  // Noturno Ímpar
-                        ],
-                        borderColor: 'white',
-                        borderWidth: 2
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)'
+                        ]
                     }]
                 },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Rondas por Turno' }
-                    }
-                }
+                options: { responsive: true, plugins: { legend: { position: 'top' } } }
             });
 
             // Gráfico: Rondas por Supervisor
@@ -179,18 +188,9 @@
                         label: 'Rondas Registradas',
                         data: {{ rondas_por_supervisor_data | tojson | safe }},
                         backgroundColor: 'rgba(153, 102, 255, 0.7)',
-                        borderColor: 'rgba(153, 102, 255, 1)',
-                        borderWidth: 1
                     }]
                 },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false },
-                        title: { display: true, text: 'Rondas por Supervisor' }
-                    },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Quantidade de Rondas' } } }
-                }
+                options: { responsive: true, plugins: { legend: { display: false } } }
             });
 
             // Gráfico: Atividade de Rondas Diária
@@ -203,21 +203,10 @@
                         label: 'Número de Rondas',
                         data: {{ ronda_activity_data | tojson | safe }},
                         borderColor: 'rgb(255, 159, 64)',
-                        tension: 0.3,
-                        fill: false
+                        tension: 0.1
                     }]
                 },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Atividade de Rondas Diária (Últimos 30 Dias)' }
-                    },
-                    scales: {
-                        x: { type: 'category', title: { display: true, text: 'Data' } },
-                        y: { beginAtZero: true, title: { display: true, text: 'Quantidade' } }
-                    }
-                }
+                options: { responsive: true, plugins: { legend: { position: 'top' } } }
             });
         });
     </script>
