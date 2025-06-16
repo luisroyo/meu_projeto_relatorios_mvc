@@ -1,4 +1,3 @@
-# app/models.py
 from datetime import datetime, timezone, date
 from app import db, login_manager
 from flask_login import UserMixin
@@ -24,12 +23,21 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(256))
     is_approved = db.Column(db.Boolean, default=False, nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    is_supervisor = db.Column(db.Boolean, default=False, nullable=False)
     date_registered = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     last_login = db.Column(db.DateTime, nullable=True)
 
     login_history = db.relationship('LoginHistory', backref='user', lazy='dynamic', cascade="all, delete-orphan")
-    rondas_criadas = db.relationship('Ronda', backref='criador', lazy='dynamic', cascade="all, delete-orphan")
+    rondas_criadas = db.relationship('Ronda', backref='criador', lazy='dynamic', cascade="all, delete-orphan", foreign_keys='Ronda.user_id')
     processing_history = db.relationship('ProcessingHistory', backref='user', lazy='dynamic', cascade="all, delete-orphan")
+
+    rondas_supervisionadas = db.relationship(
+        'Ronda',
+        backref='supervisor',
+        lazy='dynamic',
+        cascade="all, delete-orphan",
+        primaryjoin="User.id == Ronda.supervisor_id"
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -84,30 +92,40 @@ class Ronda(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     data_hora_inicio = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     data_hora_fim = db.Column(db.DateTime, nullable=True)
-    
+
     log_ronda_bruto = db.Column(db.Text, nullable=False)
     relatorio_processado = db.Column(db.Text, nullable=True)
-    
+
     condominio_id = db.Column(db.Integer, db.ForeignKey('condominio.id'), nullable=True, index=True)
     condominio_obj = db.relationship('Condominio', backref='rondas')
-    
+
     turno_ronda = db.Column(db.String(50), nullable=True, index=True)
     escala_plantao = db.Column(db.String(100), nullable=True)
     data_plantao_ronda = db.Column(db.Date, nullable=True, index=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+
+    # user_id: o usuário que CRIOU a ronda
+    # Adicionado 'name' para a chave estrangeira
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', name='fk_ronda_criador_id'), nullable=False, index=True)
 
     total_rondas_no_log = db.Column(db.Integer, nullable=True, default=0)
     primeiro_evento_log_dt = db.Column(db.DateTime, nullable=True)
     ultimo_evento_log_dt = db.Column(db.DateTime, nullable=True)
-    
-    # --- CAMPO CORRETAMENTE ADICIONADO AQUI ---
+
     duracao_total_rondas_minutos = db.Column(db.Integer, default=0)
 
+    # NOVO CAMPO: supervisor_id para o usuário supervisor
+    # Adicionado 'name' para a chave estrangeira
+    supervisor_id = db.Column(db.Integer, db.ForeignKey('user.id', name='fk_ronda_supervisor_id'), nullable=True, index=True)
+
     def __repr__(self):
+        supervisor_nome = self.supervisor.username if self.supervisor else "N/A"
+        criador_nome = self.criador.username if self.criador else "N/A"
         return (
             f'<Ronda {self.id} em {self.data_hora_inicio.strftime("%Y-%m-%d %H:%M")} '
             f'Cond: {self.condominio_obj.nome if self.condominio_obj else "N/A"} '
             f'Turno: {self.turno_ronda or "N/A"} '
+            f'Criador: {criador_nome} '
+            f'Supervisor: {supervisor_nome} '
             f'Total Rondas: {self.total_rondas_no_log or 0}>'
         )
 
