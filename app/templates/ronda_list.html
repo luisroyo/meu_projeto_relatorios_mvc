@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% from '_pagination_helper.html' import render_pagination %}
+
 {% block title %}Histórico de Rondas - Assistente IA{% endblock %}
 
 {% block content %}
@@ -49,11 +51,11 @@
                 </div>
                 <div class="col-md-4">
                     <label for="data_inicio" class="form-label">Data Início:</label>
-                    <input type="date" class="form-control" id="data_inicio" name="data_inicio" value="{{ selected_data_inicio }}">
+                    <input type="date" class="form-control" id="data_inicio" name="data_inicio" value="{{ selected_data_inicio or '' }}">
                 </div>
                 <div class="col-md-4">
                     <label for="data_fim" class="form-label">Data Fim:</label>
-                    <input type="date" class="form-control" id="data_fim" name="data_fim" value="{{ selected_data_fim }}">
+                    <input type="date" class="form-control" id="data_fim" name="data_fim" value="{{ selected_data_fim or '' }}">
                 </div>
                 <div class="col-12">
                     <button type="submit" class="btn btn-primary me-2"><i class="bi bi-filter me-1"></i>Aplicar Filtros</button>
@@ -65,18 +67,19 @@
 
     {% if rondas_pagination.items %}
     <div class="table-responsive">
-        <table class="table table-hover table-striped">
+        <table class="table table-hover table-striped align-middle">
             <thead class="table-dark">
                 <tr>
                     <th>ID</th>
                     <th>Condomínio</th>
                     <th>Data Plantão</th>
                     <th>Turno</th>
+                    <th>Criado por</th>
                     <th>Supervisor</th>
                     <th>Início Ronda</th>
                     <th>Fim Ronda</th>
                     <th>Status</th>
-                    <th>Ações</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -87,14 +90,9 @@
                     <td>{{ ronda.data_plantao_ronda.strftime('%d/%m/%Y') if ronda.data_plantao_ronda else 'N/A' }}</td>
                     <td>{{ ronda.turno_ronda or 'N/A' }}</td>
                     <td>{{ ronda.criador.username if ronda.criador else 'N/A' }}</td>
-                    <td>{{ ronda.data_hora_inicio.strftime('%d/%m/%Y %H:%M') if ronda.data_hora_inicio else 'N/A' }}</td>
-                    <td>
-                        {% if ronda.data_hora_fim %}
-                            {{ ronda.data_hora_fim.strftime('%d/%m/%Y %H:%M') }}
-                        {% else %}
-                            <span class="badge bg-warning text-dark">Em Andamento</span>
-                        {% endif %}
-                    </td>
+                    <td>{{ ronda.supervisor.username if ronda.supervisor else 'N/A' }}</td>
+                    <td>{{ ronda.data_hora_inicio | localtime }}</td>
+                    <td>{{ ronda.data_hora_fim | localtime }}</td>
                     <td>
                         {% if ronda.data_hora_fim %}
                             <span class="badge bg-success">Finalizada</span>
@@ -102,19 +100,20 @@
                             <span class="badge bg-info text-dark">Em Andamento</span>
                         {% endif %}
                     </td>
-                    <td>
-                        <a href="{{ url_for('ronda.detalhes_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-info" title="Ver Detalhes">
-                            <i class="bi bi-eye"></i>
-                        </a>
-                        {% if ronda.user_id == current_user.id or current_user.is_admin %}
-                            <a href="{{ url_for('ronda.registrar_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-warning ms-1" title="Continuar/Editar">
+                    <td class="text-center">
+                        <div class="btn-group" role="group" aria-label="Ações da Ronda">
+                            <a href="{{ url_for('ronda.detalhes_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-info" title="Ver Detalhes">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{{ url_for('ronda.registrar_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-warning" title="Editar Ronda">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            {# BOTÃO DE EXCLUIR VIA JAVASCRIPT/AJAX #}
-                            <button type="button" class="btn btn-sm btn-danger ms-1" title="Excluir" onclick="confirmDeleteRonda({{ ronda.id }});">
+                            {% if current_user.is_admin %}
+                            <button type="button" class="btn btn-sm btn-danger" title="Excluir" onclick="confirmDeleteRonda({{ ronda.id }});">
                                 <i class="bi bi-trash"></i>
                             </button>
-                        {% endif %}
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -122,39 +121,15 @@
         </table>
     </div>
 
-    {# Paginação #}
-    <nav aria-label="Page navigation">
-        <ul class="pagination justify-content-center">
-            <li class="page-item {% if not rondas_pagination.has_prev %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('ronda.listar_rondas', page=rondas_pagination.prev_num, 
-                                            condominio=selected_condominio, supervisor=selected_supervisor, 
-                                            data_inicio=selected_data_inicio, data_fim=selected_data_fim, 
-                                            turno=selected_turno, status=selected_status) }}">Anterior</a>
-            </li>
-            {% for page_num in rondas_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                {% if page_num %}
-                    {% if page_num == rondas_pagination.page %}
-                        <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
-                    {% else %}
-                        <li class="page-item">
-                            <a class="page-link" href="{{ url_for('ronda.listar_rondas', page=page_num, 
-                                                    condominio=selected_condominio, supervisor=selected_supervisor, 
-                                                    data_inicio=selected_data_inicio, data_fim=selected_data_fim, 
-                                                    turno=selected_turno, status=selected_status) }}">{{ page_num }}</a>
-                        </li>
-                    {% endif %}
-                {% else %}
-                    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
-                {% endif %}
-            {% endfor %}
-            <li class="page-item {% if not rondas_pagination.has_next %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('ronda.listar_rondas', page=rondas_pagination.next_num, 
-                                            condominio=selected_condominio, supervisor=selected_supervisor, 
-                                            data_inicio=selected_data_inicio, data_fim=selected_data_fim, 
-                                            turno=selected_turno, status=selected_status) }}">Próxima</a>
-            </li>
-        </ul>
-    </nav>
+    {% if rondas_pagination %}
+    <div class="mt-4">
+         {{ render_pagination(rondas_pagination, 'ronda.listar_rondas', 
+            condominio=selected_condominio, supervisor=selected_supervisor, 
+            data_inicio=selected_data_inicio, data_fim=selected_data_fim, 
+            turno=selected_turno, status=selected_status) }}
+    </div>
+    {% endif %}
+
     {% else %}
     <div class="alert alert-info text-center" role="alert">
         Nenhum relatório de ronda encontrado com os filtros aplicados.
@@ -167,6 +142,8 @@
 {% block scripts %}
     {{ super() }}
     <script>
+        const csrfToken = '{{ csrf_token() }}';
+
         function confirmDeleteRonda(rondaId) {
             if (confirm('Tem certeza que deseja excluir esta ronda? Esta ação é irreversível.')) {
                 deleteRonda(rondaId);
@@ -175,23 +152,19 @@
 
         async function deleteRonda(rondaId) {
             try {
-                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                 const response = await fetch(`/ronda/rondas/excluir/${rondaId}`, {
-                    method: 'DELETE', // Alterado para DELETE
+                    method: 'DELETE',
                     headers: {
-                        'X-CSRFToken': csrfToken, // Envia o token no cabeçalho
+                        'X-CSRFToken': csrfToken,
                         'Content-Type': 'application/json'
                     }
                 });
 
                 const result = await response.json();
-
                 if (result.success) {
-                    // Exibir mensagem de sucesso e recarregar a página ou remover a linha da tabela
                     alert(result.message);
-                    window.location.reload(); // Recarrega a página para atualizar a lista
+                    window.location.reload();
                 } else {
-                    // Exibir mensagem de erro
                     alert('Erro: ' + result.message);
                 }
             } catch (error) {

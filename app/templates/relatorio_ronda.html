@@ -3,50 +3,68 @@
 
 {% block content %}
 <div class="container-fluid mt-lg-3">
-    <div class="page-header text-center">
-        <h1>{{ title }}</h1>
-        <p class="lead">Insira os dados do plantão e o log bruto das rondas para gerar o relatório formatado.</p>
+    <div class="page-header text-center mb-4">
+        <h1><i class="bi bi-card-checklist me-2"></i>{{ title }}</h1>
+        <p class="lead text-muted">Insira os dados e o log para gerar um relatório profissional.</p>
     </div>
 
     <div class="row">
         <div class="col-12 col-lg-6 mb-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header">
-                    <h5 class="mb-0">Dados do Plantão e Log de Rondas</h5>
+                    <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Dados de Entrada</h5>
                 </div>
                 <div class="card-body p-4">
                     <form id="rondaForm" method="POST" action="{{ url_for('ronda.registrar_ronda') }}" novalidate>
                         {{ form.hidden_tag() }}
-                        
-                        <input type="hidden" id="ronda_id_input" name="ronda_id_input" value="{{ ronda_data_to_save.ronda_id if ronda_data_to_save.ronda_id else '' }}">
+                        <input type="hidden" id="ronda_id_input" name="ronda_id_input" value="{{ ronda_data_to_save.ronda_id if ronda_data_to_save else '' }}">
 
-                        <div class="mb-3">
-                            {{ form.nome_condominio.label(class="form-label") }}
-                            {{ form.nome_condominio(class="form-select", id="nome_condominio_select") }}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.data_plantao.label(class="form-label fw-bold") }}
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
+                                    {{ form.data_plantao(class="form-control", id="data_plantao") }}
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.escala_plantao.label(class="form-label fw-bold") }}
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-clock-history"></i></span>
+                                    {{ form.escala_plantao(class="form-select", id="escala_plantao") }}
+                                </div>
+                            </div>
                         </div>
 
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.nome_condominio.label(class="form-label fw-bold") }}
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-building"></i></span>
+                                    {{ form.nome_condominio(class="form-select", id="nome_condominio_select") }}
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.supervisor_id.label(class="form-label fw-bold") }}
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                                    {{ form.supervisor_id(class="form-select", id="supervisor_id_select") }}
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div id="outro_condominio_div" class="mb-3" style="display: none;">
-                            {{ form.nome_condominio_outro.label(class="form-label") }}
+                            {{ form.nome_condominio_outro.label(class="form-label fw-bold") }}
                             {{ form.nome_condominio_outro(class="form-control", id="nome_condominio_outro") }}
                         </div>
 
                         <div class="mb-3">
-                            {{ form.data_plantao.label(class="form-label") }}
-                            {{ form.data_plantao(class="form-control", id="data_plantao") }}
-                        </div>
-
-                        <div class="mb-3">
-                            {{ form.escala_plantao.label(class="form-label") }}
-                            {{ form.escala_plantao(class="form-select", id="escala_plantao") }}
-                        </div>
-
-                        <div class="mb-3">
-                            {{ form.log_bruto_rondas.label(class="form-label") }}
+                            {{ form.log_bruto_rondas.label(class="form-label fw-bold") }}
                             {{ form.log_bruto_rondas(class="form-control", rows="10", id="log_bruto_rondas") }}
                         </div>
 
-                        <div class="mt-3">
-                            {{ form.submit(class="btn btn-primary") }}
+                        <div class="d-grid gap-2">
+                            {{ form.submit(class="btn btn-primary btn-lg") }}
                         </div>
                     </form>
                 </div>
@@ -55,32 +73,30 @@
 
         <div class="col-12 col-lg-6 mb-4">
             <div class="card shadow-sm h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Relatório Gerado</h5>
-                     <div id="ronda_actions" style="display: none;">
-                        <button type="button" class="btn btn-sm btn-info" id="copiarRelatorioRonda" title="Copiar Relatório">
-                            <i class="bi bi-clipboard-check"></i>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-success" id="enviarWhatsAppRonda" title="Enviar via WhatsApp">
-                            <i class="bi bi-whatsapp"></i>
-                        </button>
-                        
-                        {% if current_user.is_admin %}
-                        <button type="button" class="btn btn-sm btn-primary" id="salvarRonda" title="Salvar Ronda">
-                            <i class="bi bi-check-circle"></i> Salvar
-                        </button>
-                        {% endif %}
-
-                    </div>
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Relatório Gerado</h5>
                 </div>
                 <div class="card-body p-4">
                     <div class="report-output-container">
                         {% if relatorio_processado %}
-                            <pre id="rondaResultadoTexto" class="p-2 bg-light border rounded">{{ relatorio_processado }}</pre>
+                            <pre id="rondaResultadoTexto" class="p-3 bg-light border rounded">{{ relatorio_processado }}</pre>
                         {% else %}
-                            <div id="rondaResultadoTexto" class="alert alert-secondary">O relatório processado aparecerá aqui.</div>
+                            <div id="rondaResultadoTexto" class="alert alert-secondary text-center">O relatório processado aparecerá aqui.</div>
                         {% endif %}
                     </div>
+                </div>
+                <div class="card-footer text-end" id="ronda_actions" style="display: none; background-color: var(--bs-gray-100);">
+                     <button type="button" class="btn btn-secondary" id="copiarRelatorioRonda" title="Copiar Relatório">
+                         <i class="bi bi-clipboard-check me-1"></i> Copiar
+                     </button>
+                     <button type="button" class="btn btn-success" id="enviarWhatsAppRonda" title="Enviar via WhatsApp">
+                         <i class="bi bi-whatsapp me-1"></i> WhatsApp
+                     </button>
+                     {% if current_user.is_admin or current_user.is_supervisor %}
+                     <button type="button" class="btn btn-primary" id="salvarRonda" title="Salvar Ronda">
+                         <i class="bi bi-check-circle me-1"></i> Salvar Alterações
+                     </button>
+                     {% endif %}
                 </div>
             </div>
         </div>
@@ -91,6 +107,7 @@
 {% block scripts %}
     {{ super() }}
     <script>
+        // Passa os dados do servidor (se existirem) para o JavaScript
         var rondaDataFromServer = {{ ronda_data_to_save | tojson | safe }};
     </script>
     <script src="{{ url_for('static', filename='js/relatorio_ronda_page.js') }}"></script>
