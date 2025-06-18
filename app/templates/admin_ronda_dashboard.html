@@ -1,213 +1,207 @@
 {% extends "base.html" %}
 
-{% block head %}
-    {{ super() }}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <style>
-        .card {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .card-header {
-            background-color: #f8f9fa;
-            padding: 10px 15px;
-            border-bottom: 1px solid #e9ecef;
-            font-weight: bold;
-        }
-        .card-body {
-            padding: 15px;
-        }
-        canvas {
-            max-width: 100%;
-            height: auto;
-        }
-    </style>
-{% endblock %}
+{% block title %}{{ title }} - Assistente IA{% endblock %}
 
 {% block content %}
-    <div class="container mt-4">
-        <h2>{{ title }}</h2>
-        <p class="lead">Métricas e estatísticas detalhadas sobre as rondas de segurança.</p>
+<div class="container-fluid mt-lg-3">
+    <div class="page-header text-center mb-4">
+        <h1><i class="bi bi-graph-up-arrow me-2"></i>{{ title }}</h1>
+        <p class="lead text-muted">Analise o desempenho e as tendências das rondas.</p>
+    </div>
 
-        <div class="card shadow-sm">
-            <div class="card-header">
-                <i class="bi bi-filter me-1"></i>Filtros
-            </div>
-            <div class="card-body">
-                <form method="GET" action="{{ url_for('admin.ronda_dashboard') }}" class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <label for="turno" class="form-label">Filtrar por Turno:</label>
-                        <select class="form-select" id="turno" name="turno">
-                            <option value="">-- Todos os Turnos --</option>
-                            {% for t in turnos %}
-                                <option value="{{ t }}" {% if selected_turno == t %}selected{% endif %}>{{ t }}</option>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-filter"></i> Filtros do Dashboard</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.ronda_dashboard') }}">
+                <div class="row g-3">
+                    <div class="col-md-3 col-sm-6">
+                        <label for="data_inicio" class="form-label">De:</label>
+                        <input type="date" class="form-control" id="data_inicio" name="data_inicio" value="{{ selected_data_inicio or '' }}">
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <label for="data_fim" class="form-label">Até:</label>
+                        <input type="date" class="form-control" id="data_fim" name="data_fim" value="{{ selected_data_fim or '' }}">
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <label for="supervisor_id" class="form-label">Supervisor:</label>
+                        <select class="form-select" id="supervisor_id" name="supervisor_id">
+                            <option value="">-- Todos --</option>
+                            {% for supervisor in supervisors %}
+                            <option value="{{ supervisor.id }}" {% if supervisor.id == selected_supervisor_id %}selected{% endif %}>{{ supervisor.username }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-8">
-                        <button type="submit" class="btn btn-primary me-2"><i class="bi bi-funnel-fill me-1"></i>Aplicar Filtro</button>
-                        <a href="{{ url_for('admin.ronda_dashboard') }}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Limpar</a>
+                     <div class="col-md-3 col-sm-6">
+                        <label for="condominio_id" class="form-label">Condomínio:</label>
+                        <select class="form-select" id="condominio_id" name="condominio_id">
+                            <option value="">-- Todos --</option>
+                            {% for condominio in condominios %}
+                            <option value="{{ condominio.id }}" {% if condominio.id == selected_condominio_id %}selected{% endif %}>{{ condominio.nome }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                </form>
-            </div>
+                    <div class="col-md-3 col-sm-6">
+                        <label for="turno" class="form-label">Turno:</label>
+                        <select class="form-select" id="turno" name="turno">
+                            <option value="">-- Todos --</option>
+                            {% for t in turnos %}
+                            <option value="{{ t }}" {% if t == selected_turno %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-sm-12 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100 me-2">Filtrar</button>
+                        <a href="{{ url_for('admin.ronda_dashboard') }}" class="btn btn-secondary w-100">Limpar</a>
+                    </div>
+                </div>
+            </form>
         </div>
-
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        Rondas por Condomínio
-                    </div>
-                    <div class="card-body">
-                        <canvas id="rondasPorCondominioChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        Duração Média das Rondas (Minutos) por Condomínio
-                    </div>
-                    <div class="card-body">
-                        <canvas id="duracaoMediaRondasChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        Rondas por Turno (Visão Geral)
-                    </div>
-                    <div class="card-body">
-                        <canvas id="rondasPorTurnoChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        Rondas por Supervisor
-                    </div>
-                    <div class="card-body">
-                        <canvas id="rondasPorSupervisorChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        Atividade de Rondas Diária (Últimos 30 Dias)
-                    </div>
-                    <div class="card-body">
-                        <canvas id="rondaAtividadeDiariaChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Gráfico: Rondas por Condomínio
-            var rondasPorCondominioCtx = document.getElementById('rondasPorCondominioChart').getContext('2d');
-            new Chart(rondasPorCondominioCtx, {
-                type: 'bar',
-                data: {
-                    labels: {{ condominio_labels | tojson | safe }},
-                    datasets: [{
-                        label: 'Número de Rondas',
-                        data: {{ rondas_por_condominio_data | tojson | safe }},
-                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
-                    }]
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">Total de Rondas por Supervisor</div>
+                <div class="card-body">
+                    <canvas id="rondasPorSupervisorChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">Total de Rondas por Condomínio</div>
+                <div class="card-body">
+                    <canvas id="rondasPorCondominioChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+     <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">Atividade de Rondas ao Longo do Tempo</div>
+                <div class="card-body">
+                    <canvas id="rondaActivityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">Duração Média (min) por Ronda</div>
+                <div class="card-body">
+                    <canvas id="duracaoMediaChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">Total de Rondas por Turno</div>
+                <div class="card-body">
+                    <canvas id="rondasPorTurnoChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // ---- PALETA DE CORES PARA AS COLUNAS DOS GRÁFICOS ----
+    const barColors = [
+        'rgba(54, 162, 235, 0.6)',
+        'rgba(255, 99, 132, 0.6)',
+        'rgba(75, 192, 192, 0.6)',
+        'rgba(255, 206, 86, 0.6)',
+        'rgba(153, 102, 255, 0.6)',
+        'rgba(255, 159, 64, 0.6)',
+        'rgba(201, 203, 207, 0.6)',
+        'rgba(231, 142, 238, 0.6)',
+        'rgba(142, 238, 149, 0.6)'
+    ];
+    const barBorders = [
+        'rgb(54, 162, 235)',
+        'rgb(255, 99, 132)',
+        'rgb(75, 192, 192)',
+        'rgb(255, 206, 86)',
+        'rgb(153, 102, 255)',
+        'rgb(255, 159, 64)',
+        'rgb(201, 203, 207)',
+        'rgb(231, 142, 238)',
+        'rgb(142, 238, 149)'
+    ];
+
+    // Função genérica para renderizar gráficos
+    const renderChart = (ctx, type, labels, data, label, backgroundColor, borderColor) => {
+        new Chart(ctx, {
+            type: type,
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: label,
+                    data: data,
+                    backgroundColor: backgroundColor,
+                    borderColor: borderColor,
+                    borderWidth: 1,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                         // Esconde a legenda para gráficos de barra com cores múltiplas, pois fica redundante
+                        display: type === 'bar' && Array.isArray(backgroundColor) ? false : true,
+                    }
                 },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
+                scales: { 
+                    y: { 
+                        beginAtZero: true 
+                    } 
                 }
-            });
-
-            // Gráfico: Duração Média das Rondas por Condomínio
-            var duracaoMediaRondasCtx = document.getElementById('duracaoMediaRondasChart').getContext('2d');
-            new Chart(duracaoMediaRondasCtx, {
-                type: 'bar',
-                data: {
-                    labels: {{ duracao_condominio_labels | tojson | safe }},
-                    datasets: [{
-                        label: 'Duração Média (Minutos)',
-                        data: {{ duracao_media_data | tojson | safe }},
-                        backgroundColor: 'rgba(75, 192, 192, 0.7)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Minutos' } } }
-                }
-            });
-
-            // Gráfico: Rondas por Turno
-            var rondasPorTurnoCtx = document.getElementById('rondasPorTurnoChart').getContext('2d');
-            new Chart(rondasPorTurnoCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: {{ turno_labels | tojson | safe }},
-                    datasets: [{
-                        data: {{ rondas_por_turno_data | tojson | safe }},
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.7)',
-                            'rgba(54, 162, 235, 0.7)',
-                            'rgba(255, 206, 86, 0.7)',
-                            'rgba(75, 192, 192, 0.7)'
-                        ]
-                    }]
-                },
-                options: { responsive: true, plugins: { legend: { position: 'top' } } }
-            });
-
-            // Gráfico: Rondas por Supervisor
-            var rondasPorSupervisorCtx = document.getElementById('rondasPorSupervisorChart').getContext('2d');
-            new Chart(rondasPorSupervisorCtx, {
-                type: 'bar',
-                data: {
-                    labels: {{ supervisor_labels | tojson | safe }},
-                    datasets: [{
-                        label: 'Rondas Registradas',
-                        data: {{ rondas_por_supervisor_data | tojson | safe }},
-                        backgroundColor: 'rgba(153, 102, 255, 0.7)',
-                    }]
-                },
-                options: { responsive: true, plugins: { legend: { display: false } } }
-            });
-
-            // Gráfico: Atividade de Rondas Diária
-            var rondaAtividadeDiariaCtx = document.getElementById('rondaAtividadeDiariaChart').getContext('2d');
-            new Chart(rondaAtividadeDiariaCtx, {
-                type: 'line',
-                data: {
-                    labels: {{ ronda_date_labels | tojson | safe }},
-                    datasets: [{
-                        label: 'Número de Rondas',
-                        data: {{ ronda_activity_data | tojson | safe }},
-                        borderColor: 'rgb(255, 159, 64)',
-                        tension: 0.1
-                    }]
-                },
-                options: { responsive: true, plugins: { legend: { position: 'top' } } }
-            });
+            }
         });
-    </script>
+    };
+
+    // --- GRÁFICOS ATUALIZADOS ---
+
+    // Rondas por Supervisor
+    const supervisorCtx = document.getElementById('rondasPorSupervisorChart');
+    if (supervisorCtx) {
+        renderChart(supervisorCtx, 'bar', {{ supervisor_labels | tojson }}, {{ rondas_por_supervisor_data | tojson }}, '# de Rondas', barColors, barBorders);
+    }
+
+    // Rondas por Condomínio
+    const condominioCtx = document.getElementById('rondasPorCondominioChart');
+    if (condominioCtx) {
+        renderChart(condominioCtx, 'bar', {{ condominio_labels | tojson }}, {{ rondas_por_condominio_data | tojson }}, '# de Rondas', barColors, barBorders);
+    }
+    
+    // Atividade de Rondas ao Longo do Tempo (Alterado para Barras)
+    const activityCtx = document.getElementById('rondaActivityChart');
+    if(activityCtx) {
+        renderChart(activityCtx, 'bar', {{ ronda_date_labels | tojson }}, {{ ronda_activity_data | tojson }}, 'Total de Rondas por Dia', barColors, barBorders);
+    }
+
+    // Duração Média (Alterado para Barras)
+    const duracaoCtx = document.getElementById('duracaoMediaChart');
+    if(duracaoCtx) {
+        renderChart(duracaoCtx, 'bar', {{ duracao_condominio_labels | tojson }}, {{ duracao_media_data | tojson }}, 'Duração Média (min)', barColors, barBorders);
+    }
+
+    // Rondas por Turno (Alterado para Barras)
+    const turnoCtx = document.getElementById('rondasPorTurnoChart');
+    if(turnoCtx) {
+        renderChart(turnoCtx, 'bar', {{ turno_labels | tojson }}, {{ rondas_por_turno_data | tojson }}, '# de Rondas', barColors, barBorders);
+    }
+});
+</script>
 {% endblock %}

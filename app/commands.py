@@ -1,45 +1,83 @@
 # app/commands.py
 import click
 from flask.cli import with_appcontext
-from .models import User  # Importa seus modelos
-from . import db         # Importa a instância db de app/__init__.py
+from .models import User
+from . import db
 import logging
+import re
 
-# Você pode usar o logger da app atual ou um logger de módulo
-# from flask import current_app
-# logger = current_app.logger
 logger = logging.getLogger(__name__)
 
-
-@click.command('create-admin')
+# O comando foi renomeado de 'create-admin' para 'seed-db' para refletir sua nova função
+@click.command('seed-db')
 @with_appcontext
-def create_admin_command():
-    """Cria o usuário administrador padrão se ele não existir."""
-    admin_email_to_create = "luisroyo25@gmail.com"
-    admin_username_to_create = "Luis Royo"
-    admin_password_to_create = "edu123cs" # Considere usar variáveis de ambiente para isso
+def seed_db_command():
+    """Cria os usuários administradores e supervisores padrão."""
+    
+    # Lista de todos os usuários padrão que queremos garantir que existam
+    default_users = [
+        {
+            "username": "Luis Royo",
+            "email": "luisroyo25@gmail.com",
+            "password": "edu123cs", # Considere usar uma variável de ambiente
+            "is_admin": True,
+            "is_supervisor": True # Admins também podem ser supervisores
+        },
+        {
+            "username": "Romel / Arnaldo",
+            "email": "romel.arnaldo@example.com", # Email de exemplo
+            "password": "password123",
+            "is_admin": False,
+            "is_supervisor": True
+        },
+        {
+            "username": "Gleison",
+            "email": "gleison@example.com", # Email de exemplo
+            "password": "password123",
+            "is_admin": False,
+            "is_supervisor": True
+        },
+        {
+            "username": "Douglas",
+            "email": "douglas@example.com", # Email de exemplo
+            "password": "password123",
+            "is_admin": False,
+            "is_supervisor": True
+        }
+    ]
 
-    try:
-        existing_admin = User.query.filter_by(email=admin_email_to_create).first()
-        if not existing_admin:
-            logger.info(f"Usuário administrador {admin_email_to_create} não encontrado, criando...")
-            admin_user = User(
-                username=admin_username_to_create,
-                email=admin_email_to_create,
-                is_admin=True,
-                is_approved=True  # Ativa o usuário imediatamente
-            )
-            admin_user.set_password(admin_password_to_create) # A função set_password faz o hash
-            db.session.add(admin_user)
-            db.session.commit()
-            logger.info(f"Usuário administrador {admin_email_to_create} criado com sucesso.")
-            click.echo(f"Usuário administrador {admin_email_to_create} criado com sucesso.")
-        else:
-            logger.info(f"Usuário administrador {admin_email_to_create} já existe.")
-            click.echo(f"Usuário administrador {admin_email_to_create} já existe.")
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Falha ao criar usuário administrador {admin_email_to_create}: {e}", exc_info=True)
-        click.echo(f"Erro ao criar usuário administrador: {e}")
+    for user_data in default_users:
+        try:
+            user_exists = User.query.filter_by(email=user_data['email']).first()
+            if not user_exists:
+                new_user = User(
+                    username=user_data['username'],
+                    email=user_data['email'],
+                    is_admin=user_data.get('is_admin', False),
+                    is_supervisor=user_data.get('is_supervisor', False),
+                    is_approved=True  # Aprova todos os usuários padrão automaticamente
+                )
+                new_user.set_password(user_data['password'])
+                db.session.add(new_user)
+                logger.info(f"Usuário '{user_data['username']}' criado com sucesso.")
+                click.echo(f"Usuário '{user_data['username']}' criado com sucesso.")
+            else:
+                # Se o usuário já existe, podemos garantir que ele tenha o status correto
+                if user_data['is_supervisor'] and not user_exists.is_supervisor:
+                    user_exists.is_supervisor = True
+                    logger.info(f"Usuário '{user_data['username']}' atualizado para supervisor.")
+                    click.echo(f"Usuário '{user_data['username']}' atualizado para supervisor.")
+                else:
+                    logger.info(f"Usuário '{user_data['username']}' já existe.")
+                    click.echo(f"Usuário '{user_data['username']}' já existe.")
 
-# Você pode adicionar outros comandos aqui no futuro
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Falha ao criar/atualizar usuário '{user_data['username']}': {e}", exc_info=True)
+            click.echo(f"Erro ao processar usuário '{user_data['username']}': {e}")
+            # Interrompe o processo se um usuário falhar
+            return
+
+    db.session.commit()
+    logger.info("Comando seed-db concluído com sucesso.")
+    click.echo("Comando de inicialização do banco de dados concluído.")
