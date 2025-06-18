@@ -5,14 +5,14 @@ from flask import (
     request, jsonify, g
 )
 from flask_login import login_required, current_user
-from sqlalchemy import func, extract, and_, case, cast, Float, BigInteger
+from sqlalchemy import func, and_, cast, Float
 from datetime import datetime, timedelta, timezone
 
 from . import admin_bp
 from app import db
-from app.models import User, LoginHistory, Ronda, Colaborador, ProcessingHistory, Condominio
+from app.models import User, LoginHistory, Ronda, Colaborador, ProcessingHistory, Condominio, EscalaMensal
 from app.decorators.admin_required import admin_required
-from app.forms import TestarRondasForm, FormatEmailReportForm, ColaboradorForm
+from app.forms import FormatEmailReportForm, ColaboradorForm
 from app.services.justificativa_service import JustificativaAtestadoService
 from app.services.justificativa_troca_plantao_service import JustificativaTrocaPlantaoService
 
@@ -137,14 +137,12 @@ def dashboard_metrics():
 def ronda_dashboard():
     logger.info(f"Admin '{current_user.username}' acessou o dashboard de rondas.")
     
-    # --- Captura de todos os filtros da URL ---
     turno_filter = request.args.get('turno', '')
     supervisor_id_filter = request.args.get('supervisor_id', type=int)
     condominio_id_filter = request.args.get('condominio_id', type=int)
     data_inicio_str = request.args.get('data_inicio', '')
     data_fim_str = request.args.get('data_fim', '')
 
-    # Converte datas string para objetos date para usar no DB
     data_inicio, data_fim = None, None
     try:
         if data_inicio_str:
@@ -154,7 +152,6 @@ def ronda_dashboard():
     except ValueError:
         flash("Formato de data inválido. Use AAAA-MM-DD.", "danger")
 
-    # Função auxiliar para aplicar os mesmos filtros em várias consultas
     def apply_filters(query):
         if turno_filter:
             query = query.filter(Ronda.turno_ronda == turno_filter)
@@ -168,7 +165,6 @@ def ronda_dashboard():
             query = query.filter(Ronda.data_plantao_ronda <= data_fim)
         return query
 
-    # Gráfico 1: Rondas por Condomínio
     rondas_por_condominio_q = db.session.query(
         Condominio.nome, func.sum(Ronda.total_rondas_no_log)
     ).outerjoin(Ronda, Condominio.id == Ronda.condominio_id)
@@ -177,7 +173,6 @@ def ronda_dashboard():
     condominio_labels = [item[0] for item in rondas_por_condominio]
     rondas_por_condominio_data = [item[1] if item[1] is not None else 0 for item in rondas_por_condominio]
 
-    # Gráfico 2: Duração Média
     media_expression = cast(func.coalesce(func.sum(Ronda.duracao_total_rondas_minutos), 0), Float) / \
                        cast(func.coalesce(func.sum(Ronda.total_rondas_no_log), 1), Float)
     duracao_media_q = db.session.query(Condominio.nome, media_expression).outerjoin(Ronda, Ronda.condominio_id == Condominio.id)
@@ -186,14 +181,12 @@ def ronda_dashboard():
     duracao_condominio_labels = [item[0] for item in duracao_media_por_condominio_raw]
     duracao_media_data = [round(item[1], 2) if item[1] is not None else 0 for item in duracao_media_por_condominio_raw]
 
-    # Gráfico 3: Rondas por Turno
     rondas_por_turno_q = db.session.query(Ronda.turno_ronda, func.sum(Ronda.total_rondas_no_log))
     rondas_por_turno_q = apply_filters(rondas_por_turno_q)
     rondas_por_turno = rondas_por_turno_q.filter(Ronda.turno_ronda.isnot(None), Ronda.total_rondas_no_log.isnot(None)).group_by(Ronda.turno_ronda).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
     turno_labels = [item[0] for item in rondas_por_turno]
     rondas_por_turno_data = [item[1] if item[1] is not None else 0 for item in rondas_por_turno]
 
-    # Gráfico 4: Rondas por Supervisor
     rondas_por_supervisor_q = db.session.query(User.username, func.coalesce(func.sum(Ronda.total_rondas_no_log), 0))\
         .outerjoin(Ronda, User.id == Ronda.supervisor_id).filter(User.is_supervisor == True)
     rondas_por_supervisor_q = apply_filters(rondas_por_supervisor_q)
@@ -201,7 +194,6 @@ def ronda_dashboard():
     supervisor_labels = [item[0] for item in rondas_por_supervisor]
     rondas_por_supervisor_data = [item[1] for item in rondas_por_supervisor]
 
-    # Gráfico 5: Total de Rondas ao Longo do Tempo
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     rondas_por_dia_q = db.session.query(func.date(Ronda.data_plantao_ronda), func.sum(Ronda.total_rondas_no_log))
     rondas_por_dia_q = apply_filters(rondas_por_dia_q).filter(Ronda.total_rondas_no_log.isnot(None))
@@ -212,27 +204,24 @@ def ronda_dashboard():
     ronda_date_labels, ronda_activity_data, rondas_by_date_map = [], [], {}
     current_date = date_start_range
     rondas_by_date_map = {str(date): count if count is not None else 0 for date, count in rondas_por_dia}
-    if (date_end_range - current_date).days < 366: # Evita loop excessivo
+    if (date_end_range - current_date).days < 366:
         while current_date <= date_end_range:
             date_str = current_date.strftime('%Y-%m-%d')
             ronda_date_labels.append(date_str)
             ronda_activity_data.append(rondas_by_date_map.get(date_str, 0))
             current_date += timedelta(days=1)
     
-    # Dados para popular os dropdowns dos filtros
     all_turnos = ['Diurno Par', 'Noturno Par', 'Diurno Impar', 'Noturno Impar']
     all_supervisors = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
     all_condominios = Condominio.query.order_by(Condominio.nome).all()
 
     return render_template('admin_ronda_dashboard.html',
                            title='Dashboard de Métricas de Rondas',
-                           # Dados dos gráficos
                            condominio_labels=condominio_labels, rondas_por_condominio_data=rondas_por_condominio_data,
                            duracao_condominio_labels=duracao_condominio_labels, duracao_media_data=duracao_media_data,
                            turno_labels=turno_labels, rondas_por_turno_data=rondas_por_turno_data,
                            supervisor_labels=supervisor_labels, rondas_por_supervisor_data=rondas_por_supervisor_data,
                            ronda_date_labels=ronda_date_labels, ronda_activity_data=ronda_activity_data,
-                           # Dados para os filtros
                            turnos=all_turnos, selected_turno=turno_filter,
                            supervisors=all_supervisors, selected_supervisor_id=supervisor_id_filter,
                            condominios=all_condominios, selected_condominio_id=condominio_id_filter,
@@ -247,6 +236,65 @@ def manage_users():
     page = request.args.get('page', 1, type=int)
     users_pagination_obj = User.query.order_by(User.date_registered.desc()).paginate(page=page, per_page=10)
     return render_template('admin_users.html', title='Gerenciar Usuários', users_pagination=users_pagination_obj)
+
+
+@admin_bp.route('/escalas', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def gerenciar_escalas():
+    try:
+        ano_selecionado = request.args.get('ano', default=datetime.now().year, type=int)
+        mes_selecionado = request.args.get('mes', default=datetime.now().month, type=int)
+    except (ValueError, TypeError):
+        ano_selecionado = datetime.now().year
+        mes_selecionado = datetime.now().month
+
+    turnos_definidos = ['Diurno Par', 'Diurno Impar', 'Noturno Par', 'Noturno Impar']
+    
+    if request.method == 'POST':
+        try:
+            ano_form = request.form.get('ano', type=int)
+            mes_form = request.form.get('mes', type=int)
+
+            for turno in turnos_definidos:
+                form_field_name = f"supervisor_{turno.lower().replace(' ', '_')}"
+                supervisor_id = request.form.get(form_field_name, type=int)
+
+                if supervisor_id:
+                    escala = EscalaMensal.query.filter_by(
+                        ano=ano_form, mes=mes_form, nome_turno=turno
+                    ).first()
+                    if not escala:
+                        escala = EscalaMensal(ano=ano_form, mes=mes_form, nome_turno=turno)
+                        db.session.add(escala)
+                    escala.supervisor_id = supervisor_id
+            
+            db.session.commit()
+            flash(f'Escala de supervisores para {mes_form}/{ano_form} atualizada com sucesso!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erro ao atualizar escala de supervisores: {e}", exc_info=True)
+            flash(f'Erro ao salvar as alterações: {str(e)}', 'danger')
+        
+        return redirect(url_for('admin.gerenciar_escalas', ano=ano_form, mes=mes_form))
+
+    supervisores = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
+    escalas_salvas_raw = EscalaMensal.query.filter_by(ano=ano_selecionado, mes=mes_selecionado).all()
+    escalas_atuais = {escala.nome_turno: escala.supervisor_id for escala in escalas_salvas_raw}
+    anos_disponiveis = range(datetime.now().year - 2, datetime.now().year + 3)
+    meses_disponiveis = [
+        (1, 'Janeiro'), (2, 'Fevereiro'), (3, 'Março'), (4, 'Abril'), (5, 'Maio'), (6, 'Junho'),
+        (7, 'Julho'), (8, 'Agosto'), (9, 'Setembro'), (10, 'Outubro'), (11, 'Novembro'), (12, 'Dezembro')
+    ]
+    return render_template('admin_gerenciar_escalas.html',
+                           title='Gerenciar Escalas de Supervisores',
+                           turnos=turnos_definidos,
+                           supervisores=supervisores,
+                           escalas_atuais=escalas_atuais,
+                           anos=anos_disponiveis,
+                           meses=meses_disponiveis,
+                           ano_selecionado=ano_selecionado,
+                           mes_selecionado=mes_selecionado)
 
 
 @admin_bp.route('/ferramentas', methods=['GET'])
@@ -269,31 +317,17 @@ def format_email_report_tool():
         custom_greeting = form.custom_greeting.data.strip()
         include_closing = form.include_closing.data
         custom_closing = form.custom_closing.data.strip()
-
         parts = []
-        if custom_greeting:
-            parts.append(custom_greeting)
-        elif include_greeting:
-            parts.append("Prezados(as),")
-        
-        if parts:
-            parts.append("")
+        if custom_greeting: parts.append(custom_greeting)
+        elif include_greeting: parts.append("Prezados(as),")
+        if parts: parts.append("")
         parts.append(raw_report)
-        if raw_report.strip() and (custom_closing or include_closing):
-            parts.append("")
-        
-        if custom_closing:
-            parts.append(custom_closing)
-        elif include_closing:
-            parts.append("Atenciosamente,\nEquipe Administrativa")
-        
+        if raw_report.strip() and (custom_closing or include_closing): parts.append("")
+        if custom_closing: parts.append(custom_closing)
+        elif include_closing: parts.append("Atenciosamente,\nEquipe Administrativa")
         formatted_report = "\n".join(parts)
         flash('Relatório formatado para e-mail com sucesso!', 'success')
-    
-    return render_template('admin_formatar_email.html', 
-                           title='Formatar Relatório para E-mail', 
-                           form=form, 
-                           formatted_report=formatted_report)
+    return render_template('admin_formatar_email.html', title='Formatar Relatório para E-mail', form=form, formatted_report=formatted_report)
 
 
 @admin_bp.route('/ferramentas/gerador-justificativas', methods=['GET'])
@@ -309,17 +343,11 @@ def gerador_justificativas_tool():
 @admin_required
 def api_processar_justificativa():
     payload = request.get_json()
-    if not payload:
-        return jsonify({'erro': 'Dados não fornecidos.'}), 400
-
+    if not payload: return jsonify({'erro': 'Dados não fornecidos.'}), 400
     tipo_justificativa = payload.get('tipo_justificativa')
     dados_variaveis = payload.get('dados_variaveis')
-
-    if not tipo_justificativa or not isinstance(dados_variaveis, dict):
-        return jsonify({'erro': "Dados inválidos."}), 400
-
+    if not tipo_justificativa or not isinstance(dados_variaveis, dict): return jsonify({'erro': "Dados inválidos."}), 400
     logger.info(f"API Processar Justificativa: Tipo='{tipo_justificativa}' por '{current_user.username}'.")
-
     try:
         if tipo_justificativa == "atestado":
             service = _get_justificativa_atestado_service()
@@ -327,11 +355,8 @@ def api_processar_justificativa():
         elif tipo_justificativa == "troca_plantao":
             service = _get_justificativa_troca_plantao_service()
             texto_gerado = service.gerar_justificativa_troca(dados_variaveis)
-        else:
-            return jsonify({'erro': f"Tipo de justificativa desconhecido: {tipo_justificativa}"}), 400
-
+        else: return jsonify({'erro': f"Tipo de justificativa desconhecido: {tipo_justificativa}"}), 400
         return jsonify({'justificativa_gerada': texto_gerado})
-
     except Exception as e:
         logger.error(f"API Processar Justificativa: Erro inesperado: {e}", exc_info=True)
         return jsonify({'erro': f'Erro inesperado: {str(e)}'}), 500
@@ -387,17 +412,13 @@ def toggle_admin(user_id):
 @admin_required
 def toggle_supervisor(user_id):
     user = User.query.get_or_404(user_id)
-    
     user.is_supervisor = not user.is_supervisor
-    
     if user.is_supervisor and not user.is_approved:
         user.is_approved = True
         flash(f'Usuário {user.username} também foi aprovado automaticamente.', 'info')
-        
     db.session.commit()
     status = "promovido a supervisor" if user.is_supervisor else "rebaixado de supervisor"
     flash(f'Usuário {user.username} foi {status} com sucesso.', 'success')
-    
     return redirect(url_for('admin.manage_users'))
 
 
@@ -408,7 +429,6 @@ def delete_user(user_id):
     user_to_delete = User.query.get_or_404(user_id)
     if user_to_delete.id != current_user.id:
         try:
-            # Excluir registros dependentes
             LoginHistory.query.filter_by(user_id=user_to_delete.id).delete()
             Ronda.query.filter_by(user_id=user_to_delete.id).delete()
             ProcessingHistory.query.filter_by(user_id=user_to_delete.id).delete()
@@ -441,12 +461,10 @@ def api_search_colaboradores():
     search_term = request.args.get('term', '').strip()
     if not search_term or len(search_term) < 2:
         return jsonify([])
-
     colaboradores = Colaborador.query.filter(
         Colaborador.status == 'Ativo',
         func.lower(Colaborador.nome_completo).contains(func.lower(search_term))
     ).order_by(Colaborador.nome_completo).limit(10).all()
-    
     return jsonify([{'id': c.id, 'nome_completo': c.nome_completo, 'cargo': c.cargo} for c in colaboradores])
 
 
@@ -486,7 +504,6 @@ def adicionar_colaborador():
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao adicionar colaborador: {str(e)}', 'danger')
-    
     return render_template('admin_colaborador_form.html', title='Adicionar Colaborador', form=form)
 
 
@@ -505,7 +522,6 @@ def editar_colaborador(colaborador_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao atualizar colaborador: {str(e)}', 'danger')
-            
     return render_template('admin_colaborador_form.html', title='Editar Colaborador', form=form, colaborador=colaborador)
 
 
