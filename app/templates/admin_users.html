@@ -8,12 +8,11 @@
     </div>
 
     <div class="card shadow-sm">
-        <div class="card-body p-0"> {# Removido padding para a tabela ocupar todo o espaço do card #}
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover table-striped align-middle mb-0"> {# mb-0 para remover margem inferior da tabela #}
+                <table class="table table-hover table-striped align-middle mb-0">
                     <thead class="table-dark">
                         <tr>
-                            {# -- CABEÇALHOS RESTAURADOS CONFORME O ORIGINAL -- #}
                             <th>ID</th>
                             <th>Usuário</th>
                             <th>Email</th>
@@ -21,6 +20,7 @@
                             <th>Último Login</th>
                             <th>Status</th>
                             <th>Admin</th>
+                            <th>Supervisor</th>
                             <th class="text-center">Ações</th>
                         </tr>
                     </thead>
@@ -30,7 +30,6 @@
                             <td>{{ user_item.id }}</td>
                             <td>{{ user_item.username }}</td>
                             <td>{{ user_item.email }}</td>
-                            {# -- CORREÇÃO DE VARIÁVEL (user_item) E FILTRO DE FUSO HORÁRIO APLICADO -- #}
                             <td>{{ user_item.date_registered | localtime }}</td>
                             <td>{{ user_item.last_login | localtime }}</td>
                             <td>
@@ -47,50 +46,56 @@
                                     <span class="badge bg-secondary">Não</span>
                                 {% endif %}
                             </td>
+                            <td>
+                                {% if user_item.is_supervisor %}
+                                    <span class="badge bg-info">Sim</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Não</span>
+                                {% endif %}
+                            </td>
                             <td class="text-center">
-                                <div class="btn-group" role="group">
-                                    {# --- Formulários de ação com token CSRF --- #}
+                                <div class="btn-group" role="group" aria-label="Ações do Usuário">
+
                                     {% if not user_item.is_approved %}
                                         <form method="POST" action="{{ url_for('admin.approve_user', user_id=user_item.id) }}" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-success btn-sm" title="Aprovar Usuário">
-                                                <i class="bi bi-check-circle"></i>
-                                            </button>
+                                            <button type="submit" class="btn btn-success btn-sm" title="Aprovar Usuário"><i class="bi bi-check-lg"></i></button>
                                         </form>
-                                    {% else %}
-                                        {% if user_item.id != current_user.id %}
+                                    {% elif user_item.id != current_user.id %}
                                         <form method="POST" action="{{ url_for('admin.revoke_user', user_id=user_item.id) }}" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-secondary btn-sm" title="Revogar Aprovação">
-                                                <i class="bi bi-x-circle"></i>
-                                            </button>
+                                            <button type="submit" class="btn btn-secondary btn-sm" title="Revogar Aprovação"><i class="bi bi-x-lg"></i></button>
                                         </form>
-                                        {% endif %}
                                     {% endif %}
-                                    
-                                    {% if user_item.id != current_user.id %}
+
                                     <form method="POST" action="{{ url_for('admin.toggle_admin', user_id=user_item.id) }}" class="d-inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-info btn-sm" title="Alternar Status de Admin">
                                             {% if user_item.is_admin %}<i class="bi bi-person-dash"></i>{% else %}<i class="bi bi-person-check"></i>{% endif %}
                                         </button>
                                     </form>
-                                    
-                                    <form method="POST" action="{{ url_for('admin.delete_user', user_id=user_item.id) }}" class="d-inline" onsubmit="return confirm('Tem certeza que deseja deletar este usuário? Esta ação não pode ser desfeita.');">
+
+                                    <form method="POST" action="{{ url_for('admin.toggle_supervisor', user_id=user_item.id) }}" class="d-inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-danger btn-sm" title="Deletar Usuário">
-                                            <i class="bi bi-trash"></i>
+                                        <button type="submit" class="btn btn-warning btn-sm" title="Alternar Status de Supervisor">
+                                            <i class="bi bi-person-badge"></i>
                                         </button>
                                     </form>
+
+                                    {% if user_item.id != current_user.id %}
+                                        <form method="POST" action="{{ url_for('admin.delete_user', user_id=user_item.id) }}" class="d-inline" onsubmit="return confirm('Tem certeza que deseja deletar este usuário? Esta ação não pode ser desfeita.');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Deletar Usuário"><i class="bi bi-trash"></i></button>
+                                        </form>
                                     {% else %}
-                                        <span class="badge bg-light text-dark ms-2">Você</span>
+                                        <span class="badge bg-light text-dark ms-2 align-self-center p-2">Você</span>
                                     {% endif %}
                                 </div>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="8" class="text-center">Nenhum usuário encontrado.</td>
+                            <td colspan="9" class="text-center">Nenhum usuário encontrado.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -100,7 +105,7 @@
         <div class="card-footer">
             <nav aria-label="Paginação de usuários">
                 <ul class="pagination justify-content-center mb-0">
-                     {% if users_pagination.has_prev %}
+                    {% if users_pagination.has_prev %}
                         <li class="page-item"><a class="page-link" href="{{ url_for('admin.manage_users', page=users_pagination.prev_num) }}">&laquo; Anterior</a></li>
                     {% else %}
                         <li class="page-item disabled"><span class="page-link">&laquo; Anterior</span></li>
@@ -113,9 +118,7 @@
                                     <span class="page-link">{{ page_num }}</span>
                                 </li>
                             {% else %}
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('admin.manage_users', page=page_num) }}">{{ page_num }}</a>
-                                </li>
+                                <li class="page-item"><a class="page-link" href="{{ url_for('admin.manage_users', page=page_num) }}">{{ page_num }}</a></li>
                             {% endif %}
                         {% else %}
                             <li class="page-item disabled"><span class="page-link">…</span></li>

@@ -139,7 +139,7 @@ def ronda_dashboard():
     
     turno_filter = request.args.get('turno', '')
 
-    # 1. Rondas por Condomínio
+    # 1. Rondas por Condomínio (sem alteração)
     rondas_por_condominio_q = db.session.query(
         Condominio.nome,
         func.sum(Ronda.total_rondas_no_log)
@@ -151,7 +151,7 @@ def ronda_dashboard():
     condominio_labels = [item[0] for item in rondas_por_condominio]
     rondas_por_condominio_data = [item[1] if item[1] is not None else 0 for item in rondas_por_condominio]
 
-    # 2. Duração Média de Rondas
+    # 2. Duração Média de Rondas (sem alteração)
     media_expression = cast(func.coalesce(func.sum(Ronda.duracao_total_rondas_minutos), 0), Float) / \
                        cast(func.coalesce(func.sum(Ronda.total_rondas_no_log), 1), Float)
     duracao_media_q = db.session.query(Condominio.nome, media_expression).outerjoin(Ronda, Ronda.condominio_id == Condominio.id)
@@ -162,7 +162,7 @@ def ronda_dashboard():
     duracao_condominio_labels = [item[0] for item in duracao_media_por_condominio_raw]
     duracao_media_data = [round(item[1], 2) if item[1] is not None else 0 for item in duracao_media_por_condominio_raw]
 
-    # 3. Rondas por Turno (Visão Geral)
+    # 3. Rondas por Turno (sem alteração)
     rondas_por_turno = db.session.query(
         Ronda.turno_ronda,
         func.sum(Ronda.total_rondas_no_log)
@@ -170,19 +170,24 @@ def ronda_dashboard():
     turno_labels = [item[0] for item in rondas_por_turno]
     rondas_por_turno_data = [item[1] if item[1] is not None else 0 for item in rondas_por_turno]
 
+    # --- INÍCIO DA CORREÇÃO ---
     # 4. Rondas por Supervisor
+    # A consulta agora usa `Ronda.supervisor_id` e filtra para mostrar apenas usuários que são supervisores.
     rondas_por_supervisor_q = db.session.query(
         User.username,
-        func.sum(Ronda.total_rondas_no_log)
-    ).outerjoin(Ronda, User.id == Ronda.user_id).filter(User.is_approved == True)
+        func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)
+    ).outerjoin(Ronda, User.id == Ronda.supervisor_id).filter(
+        User.is_supervisor == True
+    )
     if turno_filter:
         rondas_por_supervisor_q = rondas_por_supervisor_q.filter(Ronda.turno_ronda == turno_filter)
-    rondas_por_supervisor = rondas_por_supervisor_q.group_by(User.username).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
+    rondas_por_supervisor = rondas_por_supervisor_q.group_by(User.username).order_by(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0).desc()).all()
     
     supervisor_labels = [item[0] for item in rondas_por_supervisor]
-    rondas_por_supervisor_data = [item[1] if item[1] is not None else 0 for item in rondas_por_supervisor]
+    rondas_por_supervisor_data = [item[1] for item in rondas_por_supervisor]
+    # --- FIM DA CORREÇÃO ---
 
-    # 5. Total de Rondas ao Longo do Tempo
+    # 5. Total de Rondas ao Longo do Tempo (sem alteração)
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     rondas_por_dia_q = db.session.query(
         func.date(Ronda.data_plantao_ronda),
@@ -354,6 +359,25 @@ def toggle_admin(user_id):
         flash(f'Usuário {user.username} foi {status} com sucesso.', 'success')
     else:
         flash('Você não pode alterar seu próprio status de administrador.', 'warning')
+    return redirect(url_for('admin.manage_users'))
+
+
+@admin_bp.route('/user/<int:user_id>/toggle_supervisor', methods=['POST'])
+@login_required
+@admin_required
+def toggle_supervisor(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    user.is_supervisor = not user.is_supervisor
+    
+    if user.is_supervisor and not user.is_approved:
+        user.is_approved = True
+        flash(f'Usuário {user.username} também foi aprovado automaticamente.', 'info')
+        
+    db.session.commit()
+    status = "promovido a supervisor" if user.is_supervisor else "rebaixado de supervisor"
+    flash(f'Usuário {user.username} foi {status} com sucesso.', 'success')
+    
     return redirect(url_for('admin.manage_users'))
 
 

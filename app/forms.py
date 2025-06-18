@@ -48,6 +48,10 @@ class TestarRondasForm(FlaskForm):
         choices=[('', '-- Selecione uma Escala --'), ('18h às 06h', '18h às 06h'), ('06h às 18h', '06h às 18h')],
         validators=[DataRequired(message="Selecione a escala.")]
     )
+    
+    # NOVO CAMPO DE SUPERVISOR
+    supervisor_id = SelectField('Supervisor da Ronda (Opcional)', coerce=int, validators=[Optional()])
+
     log_bruto_rondas = TextAreaField(
         'Log Bruto das Rondas',
         validators=[DataRequired(message="Insira o log bruto das rondas.")],
@@ -58,6 +62,7 @@ class TestarRondasForm(FlaskForm):
     def validate_nome_condominio_outro(self, field):
         if self.nome_condominio.data == 'Outro' and not field.data.strip():
             raise ValidationError('Por favor, especifique o nome do condomínio se "Outro" foi selecionado.')
+
 
 class ColaboradorForm(FlaskForm):
     nome_completo = StringField('Nome Completo', validators=[DataRequired(message="Nome completo é obrigatório."), Length(min=3, max=150)])
