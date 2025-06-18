@@ -1,256 +1,155 @@
 {% extends "base.html" %}
 
-{% block head %}
-    {{ super() }}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <style>
-        /* Adicione algum CSS básico para as caixas de card */
-        .card {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .card-header {
-            background-color: #f8f9fa;
-            padding: 10px 15px;
-            border-bottom: 1px solid #e9ecef;
-            font-weight: bold;
-        }
-        .card-body {
-            padding: 15px;
-        }
-        canvas {
-            max-width: 100%;
-            height: auto;
-        }
-    </style>
-{% endblock %}
+{% block title %}{{ title }} - Assistente IA{% endblock %}
 
 {% block content %}
-    <div class="container mt-4">
-        <h2>{{ title }}</h2>
-        <p>Visão geral das métricas de uso da aplicação.</p>
+<div class="container-fluid mt-lg-3">
+    <div class="page-header text-center mb-4">
+        <h1><i class="bi bi-speedometer2 me-2"></i>{{ title }}</h1>
+        <p class="lead text-muted">Uma visão geral da atividade e uso da aplicação.</p>
+    </div>
 
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        Status de Usuários
-                    </div>
-                    <div class="card-body">
-                        <p>Total de Usuários: <strong>{{ total_users }}</strong></p>
-                        <p>Aprovados: <strong>{{ total_approved_users }}</strong></p>
-                        <p>Pendentes: <strong>{{ total_pending_users }}</strong></p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        Logins (últimos 30 dias)
-                    </div>
-                    <div class="card-body">
-                        <canvas id="loginsChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        Processamento de Relatórios (últimos 30 dias)
-                    </div>
-                    <div class="card-body">
-                        <canvas id="reportsChart"></canvas>
-                    </div>
+    <div class="row">
+        <div class="col-md-4 col-sm-6 mb-4">
+            <div class="card text-white bg-primary shadow">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-people-fill me-2"></i>Usuários Totais</h5>
+                    <p class="card-text fs-2 fw-bold">{{ total_users }}</p>
                 </div>
             </div>
         </div>
-
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        Processamentos por Tipo (últimos 30 dias)
-                    </div>
-                    <div class="card-body">
-                        <canvas id="processingTypeChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        Atividade Diária (últimos 30 dias)
-                    </div>
-                    <div class="card-body">
-                        <canvas id="dailyActivityChart"></canvas>
-                    </div>
+        <div class="col-md-4 col-sm-6 mb-4">
+            <div class="card text-white bg-success shadow">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-person-check-fill me-2"></i>Usuários Aprovados</h5>
+                    <p class="card-text fs-2 fw-bold">{{ total_approved_users }}</p>
                 </div>
             </div>
         </div>
-
+        <div class="col-md-4 col-sm-6 mb-4">
+            <div class="card text-white bg-warning shadow">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-person-plus-fill me-2"></i>Usuários Pendentes</h5>
+                    <p class="card-text fs-2 fw-bold">{{ total_pending_users }}</p>
+                </div>
+            </div>
         </div>
+    </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Dados de Logins
-            var loginsCtx = document.getElementById('loginsChart').getContext('2d');
-            var loginsChart = new Chart(loginsCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Sucesso', 'Falha'],
-                    datasets: [{
-                        data: [{{ successful_logins }}, {{ failed_logins }}],
-                        backgroundColor: ['#28a745', '#dc3545']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Tentativas de Login'
-                        }
-                    }
-                }
-            });
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">Logins nos Últimos 30 Dias</div>
+                <div class="card-body">
+                    <canvas id="loginStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">Relatórios Processados (Últimos 30 Dias)</div>
+                <div class="card-body">
+                    <canvas id="reportStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">Atividade Diária (Últimos 30 dias)</div>
+                <div class="card-body">
+                     <canvas id="dailyActivityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+     <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">Distribuição de Processamentos por Tipo</div>
+                <div class="card-body">
+                     <canvas id="processingTypesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            // Dados de Processamento de Relatórios
-            var reportsCtx = document.getElementById('reportsChart').getContext('2d');
-            var reportsChart = new Chart(reportsCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Sucesso', 'Falha'],
-                    datasets: [{
-                        data: [{{ successful_reports }}, {{ failed_reports }}],
-                        backgroundColor: ['#17a2b8', '#ffc107']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Processamento de Relatórios'
-                        }
-                    }
-                }
-            });
+</div>
+{% endblock %}
 
-            // Dados de Processamentos por Tipo
-            var processingTypeCtx = document.getElementById('processingTypeChart').getContext('2d');
-            var processingTypesData = {{ processing_types_data | tojson }};
-            var processingTypeLabels = Object.keys(processingTypesData);
-            var processingTypeValues = Object.values(processingTypesData);
-
-            var processingTypeChart = new Chart(processingTypeCtx, {
-                type: 'bar',
-                data: {
-                    labels: processingTypeLabels,
-                    datasets: [{
-                        label: 'Número de Processamentos',
-                        data: processingTypeValues,
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.7)',
-                            'rgba(54, 162, 235, 0.7)',
-                            'rgba(255, 206, 86, 0.7)',
-                            'rgba(75, 192, 192, 0.7)',
-                            'rgba(153, 102, 255, 0.7)',
-                            'rgba(255, 159, 64, 0.7)'
-                        ],
-                        borderColor: [
-                            'rgba(255, 99, 132, 1)',
-                            'rgba(54, 162, 235, 1)',
-                            'rgba(255, 206, 86, 1)',
-                            'rgba(75, 192, 192, 1)',
-                            'rgba(153, 102, 255, 1)',
-                            'rgba(255, 159, 64, 1)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: false,
-                        },
-                        title: {
-                            display: true,
-                            text: 'Processamentos de Relatórios por Tipo'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-
-            // Dados de Atividade Diária
-            var dailyActivityCtx = document.getElementById('dailyActivityChart').getContext('2d');
-            var dateLabels = {{ date_labels | tojson }};
-            var loginsData = {{ logins_chart_data | tojson }};
-            var processingData = {{ processing_chart_data | tojson }};
-
-            var dailyActivityChart = new Chart(dailyActivityCtx, {
-                type: 'line',
-                data: {
-                    labels: dateLabels,
-                    datasets: [
-                        {
-                            label: 'Logins',
-                            data: loginsData,
-                            borderColor: 'rgb(75, 192, 192)',
-                            tension: 0.1,
-                            fill: false
-                        },
-                        {
-                            label: 'Processamentos',
-                            data: processingData,
-                            borderColor: 'rgb(153, 102, 255)',
-                            tension: 0.1,
-                            fill: false
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Atividade Diária (Logins e Processamentos)'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            type: 'category',
-                            title: {
-                                display: true,
-                                text: 'Data'
-                            }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Quantidade'
-                            }
-                        }
-                    }
-                }
-            });
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const renderChart = (ctx, type, labels, data, label, backgroundColor, borderColor) => {
+        // Previne a criação de gráficos se não houver dados
+        if (!data || data.length === 0) {
+            ctx.parentNode.innerHTML = '<div class="alert alert-info text-center">Não há dados suficientes para exibir este gráfico.</div>';
+            return;
+        }
+        new Chart(ctx, {
+            type: type,
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: label,
+                    data: data,
+                    backgroundColor: backgroundColor,
+                    borderColor: borderColor,
+                    borderWidth: 1,
+                    tension: 0.1
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: true, scales: type === 'bar' || type === 'line' ? { y: { beginAtZero: true } } : {} }
         });
-    </script>
+    };
+
+    // Gráfico de Status de Login
+    const loginCtx = document.getElementById('loginStatusChart');
+    if(loginCtx) {
+        renderChart(loginCtx, 'doughnut', ['Sucesso', 'Falha'], [{{ successful_logins }}, {{ failed_logins }}], 'Logins', ['rgba(75, 192, 192, 0.5)', 'rgba(255, 99, 132, 0.5)'], ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)']);
+    }
+
+    // Gráfico de Status de Relatórios
+    const reportCtx = document.getElementById('reportStatusChart');
+    if(reportCtx) {
+        renderChart(reportCtx, 'pie', ['Sucesso', 'Falha'], [{{ successful_reports }}, {{ failed_reports }}], 'Relatórios', ['rgba(54, 162, 235, 0.5)', 'rgba(255, 159, 64, 0.5)'], ['rgba(54, 162, 235, 1)', 'rgba(255, 159, 64, 1)']);
+    }
+
+    // Gráfico de Atividade Diária
+    const dailyActivityCtx = document.getElementById('dailyActivityChart');
+    if(dailyActivityCtx) {
+        new Chart(dailyActivityCtx, {
+            type: 'line',
+            data: {
+                labels: {{ date_labels | tojson }},
+                datasets: [{
+                    label: 'Logins por Dia',
+                    data: {{ logins_chart_data | tojson }},
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.2
+                }, {
+                    label: 'Processamentos por Dia',
+                    data: {{ processing_chart_data | tojson }},
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                    fill: true,
+                    tension: 0.2
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    // Gráfico de Tipos de Processamento
+    const processingTypesCtx = document.getElementById('processingTypesChart');
+    if(processingTypesCtx) {
+        renderChart(processingTypesCtx, 'bar', {{ processing_types_data.keys() | list | tojson }}, {{ processing_types_data.values() | list | tojson }}, 'Número de Usos', 'rgba(255, 206, 86, 0.5)', 'rgba(255, 206, 86, 1)');
+    }
+});
+</script>
 {% endblock %}

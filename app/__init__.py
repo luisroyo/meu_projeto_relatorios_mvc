@@ -108,7 +108,7 @@ def create_app():
         app_instance.register_blueprint(ronda_bp, url_prefix='/ronda')
 
     from . import commands
-    app_instance.cli.add_command(commands.create_admin_command)
+    app_instance.cli.add_command(commands.seed_db_command)
 
     @app_instance.context_processor
     def inject_current_year():
