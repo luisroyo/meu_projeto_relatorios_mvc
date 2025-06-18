@@ -141,3 +141,28 @@ class ProcessingHistory(db.Model):
     def __repr__(self):
         status = "Sucesso" if self.success else "Falha"
         return f'<ProcessingHistory {self.id} ({self.processing_type}) by User {self.user_id} - {status}>'
+    
+#ADICIONE ESTA NOVA CLASSE NO FINAL DO ARQUIVO
+class EscalaMensal(db.Model):
+    __tablename__ = 'escala_mensal'
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Ano e Mês da escala
+    ano = db.Column(db.Integer, nullable=False, index=True)
+    mes = db.Column(db.Integer, nullable=False, index=True)
+
+    # Ex: 'Noturno Par', 'Diurno Impar', etc.
+    nome_turno = db.Column(db.String(50), nullable=False, index=True)
+    
+    # Chave estrangeira para o usuário que é o supervisor daquele turno naquele mês/ano
+    supervisor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+
+    # Relacionamento para acessar o objeto User facilmente
+    supervisor = db.relationship('User', backref='escalas_mensais')
+
+    # Garante que não haja duas atribuições para o mesmo turno no mesmo mês/ano
+    __table_args__ = (db.UniqueConstraint('ano', 'mes', 'nome_turno', name='_ano_mes_turno_uc'),)
+
+    def __repr__(self):
+        supervisor_nome = self.supervisor.username if self.supervisor else "N/A"
+        return f'<EscalaMensal {self.mes}/{self.ano} - {self.nome_turno} -> {supervisor_nome}>'
