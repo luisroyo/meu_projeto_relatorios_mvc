@@ -43,8 +43,6 @@ else:
 def create_app():
     app_instance = Flask(__name__)
 
-    # Configuração do WhiteNoise para servir arquivos estáticos em produção
-    # Ele "empacota" a aplicação e intercepta requisições para /static/
     app_instance.wsgi_app = WhiteNoise(app_instance.wsgi_app, root='app/static/')
 
     # --- Configurações da Aplicação ---
@@ -57,16 +55,12 @@ def create_app():
     # --- Configurações de CSRF e Cookies ---
     app_instance.config['WTF_CSRF_ENABLED'] = True
     
-    if not app_instance.debug:
-        app_instance.config['SESSION_COOKIE_SECURE'] = True
-        app_instance.config['REMEMBER_COOKIE_SECURE'] = True
-        app_instance.config['SESSION_COOKIE_HTTPONLY'] = True
-        app_instance.config['REMEMBER_COOKIE_HTTPONLY'] = True
-    else:
-        app_instance.config['SESSION_COOKIE_SECURE'] = False
-        app_instance.config['REMEMBER_COOKIE_SECURE'] = False
-        app_instance.config['SESSION_COOKIE_HTTPONLY'] = False
-        app_instance.config['REMEMBER_COOKIE_HTTPONLY'] = False
+    # Em um ambiente de produção real, app_instance.debug deve ser False
+    is_production = not app_instance.debug
+    app_instance.config['SESSION_COOKIE_SECURE'] = is_production
+    app_instance.config['REMEMBER_COOKIE_SECURE'] = is_production
+    app_instance.config['SESSION_COOKIE_HTTPONLY'] = is_production
+    app_instance.config['REMEMBER_COOKIE_HTTPONLY'] = is_production
 
     # --- Configuração de Cache ---
     app_instance.config['CACHE_TYPE'] = os.getenv('CACHE_TYPE', 'RedisCache')
@@ -88,7 +82,6 @@ def create_app():
             return "N/A"
         local_tz = pytz.timezone('America/Sao_Paulo')
         
-        # Se o datetime não tiver fuso horário, assume que é UTC
         if dt_obj.tzinfo is None:
             dt_obj = pytz.utc.localize(dt_obj)
             
@@ -103,12 +96,14 @@ def create_app():
         from app.blueprints.auth.routes import auth_bp
         app_instance.register_blueprint(auth_bp)
         from app.blueprints.admin.routes import admin_bp
-        app_instance.register_blueprint(admin_bp)
+        app_instance.register_blueprint(admin_bp, url_prefix='/admin')
         from app.blueprints.ronda.routes import ronda_bp
         app_instance.register_blueprint(ronda_bp, url_prefix='/ronda')
 
     from . import commands
     app_instance.cli.add_command(commands.seed_db_command)
+    # --- CORREÇÃO APLICADA AQUI: Registra o novo comando ---
+    app_instance.cli.add_command(commands.assign_supervisors_command)
 
     @app_instance.context_processor
     def inject_current_year():
