@@ -95,7 +95,7 @@ def create_app():
         app_instance.register_blueprint(main_bp)
         from app.blueprints.auth.routes import auth_bp
         app_instance.register_blueprint(auth_bp)
-        from app.blueprints.admin.routes import admin_bp
+        from app.blueprints.admin import admin_bp
         app_instance.register_blueprint(admin_bp, url_prefix='/admin')
         from app.blueprints.ronda.routes import ronda_bp
         app_instance.register_blueprint(ronda_bp, url_prefix='/ronda')

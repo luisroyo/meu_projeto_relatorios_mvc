@@ -1,14 +1,13 @@
 # app/blueprints/admin/__init__.py
-
 from flask import Blueprint
 
-# 1. O Blueprint é criado aqui, de forma isolada.
+# Definição do Blueprint de Admin
 admin_bp = Blueprint(
     'admin',
     __name__,
-    url_prefix='/admin',
-    template_folder='templates'
+    url_prefix='/admin'  # Adicionar um prefixo é uma boa prática
 )
 
-# 2. As rotas são importadas DEPOIS, o que as anexa ao blueprint.
-from . import routes
+# Importa as rotas dos novos arquivos para que o Flask as reconheça.
+# Esta linha DEVE vir DEPOIS da definição do admin_bp.
+from . import routes_dashboard, routes_user, routes_colaborador, routes_tools
