@@ -30,7 +30,7 @@ def register():
             db.session.rollback()
             current_app.logger.error(f"Erro ao registrar usuário {form.username.data}: {e}")
             flash('Erro ao criar a conta. Tente novamente.', 'danger')
-    return render_template('register.html', title='Registrar', form=form)
+    return render_template('auth/register.html', title='Registrar', form=form)
 
 
 # --- ADIÇÃO DO DECORATOR DE RATE LIMIT ---
@@ -66,7 +66,7 @@ def login():
                 next_page = url_for('main.index')
             return redirect(next_page)
 
-    return render_template('login.html', title='Login', form=form)
+    return render_template('auth/login.html', title='Login', form=form)
 
 @auth_bp.route('/logout')
 def logout():
