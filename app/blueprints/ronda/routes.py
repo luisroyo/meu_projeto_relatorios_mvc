@@ -37,15 +37,20 @@ def inferir_turno(data_plantao_obj, escala_plantao_str):
     return escala_plantao_str if escala_plantao_str else "N/A - Turno Indefinido"
 
 
-@ronda_bp.route('/registrar', methods=['GET'])
+@ronda_bp.route('/registrar', methods=['GET', 'POST'])
 @login_required
 def registrar_ronda():
-    """Exibe a página para registrar uma nova ronda ou editar uma existente."""
-    form = TestarRondasForm()
+    """Exibe a página para registrar/editar e lida com o POST do botão 'Processar'."""
     ronda_id_existente = request.args.get('ronda_id', type=int)
-    title = "Editar Ronda" if ronda_id_existente else "Registrar Ronda"
+    if request.method == 'POST':
+        ronda_id_from_form = request.form.get('ronda_id_input', type=int)
+        if ronda_id_from_form:
+            ronda_id_existente = ronda_id_from_form
+            
+    form = TestarRondasForm()
     relatorio_processado_final = None
     ronda_data_to_save = {}
+    title = "Editar Ronda" if ronda_id_existente else "Registrar Ronda"
 
     try:
         condominios_db = Condominio.query.order_by(Condominio.nome).all()
@@ -57,7 +62,7 @@ def registrar_ronda():
         logger.error(f"Erro ao carregar dados para o formulário de ronda: {e}", exc_info=True)
         flash('Erro ao carregar dados. Tente novamente.', 'danger')
 
-    if ronda_id_existente:
+    if ronda_id_existente and request.method == 'GET':
         ronda = Ronda.query.get_or_404(ronda_id_existente)
         if not (current_user.is_admin or current_user.is_supervisor):
             flash("Você não tem permissão para editar esta ronda.", 'danger')
@@ -72,6 +77,40 @@ def registrar_ronda():
         ronda_data_to_save['ronda_id'] = ronda.id
         relatorio_processado_final = ronda.relatorio_processado
 
+    if request.method == 'POST' and form.validate_on_submit():
+        log_bruto = form.log_bruto_rondas.data
+        data_plantao_obj = form.data_plantao.data
+        escala_plantao_str = form.escala_plantao.data
+        condominio_id_sel = form.nome_condominio.data
+        nome_condominio_outro_str = form.nome_condominio_outro.data
+        supervisor_id_sel = form.supervisor_id.data
+        condominio_obj = None
+
+        if condominio_id_sel == 'Outro':
+            if not nome_condominio_outro_str.strip():
+                flash('Se "Outro" é selecionado, o nome do condomínio deve ser fornecido.', 'danger')
+            else:
+                # Lógica para popular o campo do formulário para o re-render
+                form.nome_condominio_outro.data = nome_condominio_outro_str
+        
+        if condominio_id_sel:
+            try:
+                # A lógica de processamento não precisa criar o condomínio, apenas passar o nome
+                nome_condo_para_processar = nome_condominio_outro_str if condominio_id_sel == 'Outro' else dict(form.nome_condominio.choices).get(condominio_id_sel)
+                
+                data_plantao_fmt = data_plantao_obj.strftime('%d/%m/%Y') if data_plantao_obj else None
+                relatorio, total, p_evento, u_evento, duracao = processar_log_de_rondas(
+                    log_bruto_rondas_str=log_bruto, nome_condominio_str=nome_condo_para_processar,
+                    data_plantao_manual_str=data_plantao_fmt, escala_plantao_str=escala_plantao_str)
+                
+                relatorio_processado_final = relatorio
+                flash('Relatório de ronda processado. Verifique os dados e salve se estiver correto.', 'info')
+            except Exception as e:
+                flash(f'Erro ao processar o log de rondas: {str(e)}', 'danger')
+                
+    elif request.method == 'POST':
+        flash('Por favor, corrija os erros no formulário.', 'danger')
+
     return render_template('relatorio_ronda.html',
                            title=title,
                            form=form,
@@ -82,7 +121,6 @@ def registrar_ronda():
 @ronda_bp.route('/rondas/salvar', methods=['POST'])
 @login_required
 def salvar_ronda():
-    """ Rota única para criar ou atualizar uma ronda, com atribuição automática de supervisor. """
     if not (current_user.is_admin or current_user.is_supervisor):
         return jsonify({'success': False, 'message': 'Acesso negado.'}), 403
 
@@ -122,28 +160,23 @@ def salvar_ronda():
         
         turno_ronda = inferir_turno(data_plantao, escala_plantao)
         
-        # --- INÍCIO DA LÓGICA DE ATRIBUIÇÃO AUTOMÁTICA DE SUPERVISOR ---
         supervisor_id_para_db = None
         if supervisor_id_manual_str and supervisor_id_manual_str != '0':
             supervisor_id_para_db = int(supervisor_id_manual_str)
         else:
-            escala = EscalaMensal.query.filter_by(
-                ano=data_plantao.year, mes=data_plantao.month, nome_turno=turno_ronda
-            ).first()
+            escala = EscalaMensal.query.filter_by(ano=data_plantao.year, mes=data_plantao.month, nome_turno=turno_ronda).first()
             if escala:
                 supervisor_id_para_db = escala.supervisor_id
-        # --- FIM DA LÓGICA DE ATRIBUIÇÃO ---
 
-        if ronda_id: # ATUALIZAR
+        if ronda_id:
             ronda = Ronda.query.get_or_404(ronda_id)
             if not current_user.is_admin and ronda.supervisor_id is not None and ronda.supervisor_id != current_user.id:
                  return jsonify({'success': False, 'message': 'Você não tem permissão para alterar esta ronda.'}), 403
 
             ronda.log_ronda_bruto, ronda.relatorio_processado, ronda.condominio_id, ronda.data_plantao_ronda, ronda.escala_plantao, ronda.turno_ronda, ronda.supervisor_id, ronda.total_rondas_no_log, ronda.primeiro_evento_log_dt, ronda.ultimo_evento_log_dt, ronda.duracao_total_rondas_minutos, ronda.data_hora_fim = \
                 log_bruto, relatorio, condominio_obj.id, data_plantao, escala_plantao, turno_ronda, supervisor_id_para_db, total, p_evento, u_evento, duracao, datetime.now(timezone.utc)
-            
             mensagem_sucesso = 'Ronda atualizada com sucesso!'
-        else: # CRIAR
+        else:
             ronda = Ronda(
                 data_hora_inicio=p_evento or datetime.now(timezone.utc), data_hora_fim=datetime.now(timezone.utc),
                 log_ronda_bruto=log_bruto, relatorio_processado=relatorio, condominio_id=condominio_obj.id,
@@ -153,7 +186,6 @@ def salvar_ronda():
             )
             db.session.add(ronda)
             mensagem_sucesso = 'Ronda registrada com sucesso!'
-
         db.session.commit()
         return jsonify({'success': True, 'message': mensagem_sucesso, 'ronda_id': ronda.id}), 200
 
@@ -163,7 +195,7 @@ def salvar_ronda():
         return jsonify({'success': False, 'message': f'Erro interno ao salvar ronda: {str(e)}'}), 500
 
 
-# As rotas /historico, /detalhes e /excluir permanecem as mesmas
+# As rotas /historico, /detalhes e /excluir permanecem as mesmas e não precisam de alteração
 @ronda_bp.route('/rondas/historico', methods=['GET'])
 @login_required
 def listar_rondas():
