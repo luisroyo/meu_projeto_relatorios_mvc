@@ -121,6 +121,9 @@ def registrar_ronda():
 @ronda_bp.route('/rondas/salvar', methods=['POST'])
 @login_required
 def salvar_ronda():
+    """
+    Rota única para criar ou atualizar uma ronda, com verificação de duplicidade.
+    """
     if not (current_user.is_admin or current_user.is_supervisor):
         return jsonify({'success': False, 'message': 'Acesso negado.'}), 403
 
@@ -168,15 +171,26 @@ def salvar_ronda():
             if escala:
                 supervisor_id_para_db = escala.supervisor_id
 
-        if ronda_id:
+        if ronda_id: # Atualiza uma ronda existente
             ronda = Ronda.query.get_or_404(ronda_id)
             if not current_user.is_admin and ronda.supervisor_id is not None and ronda.supervisor_id != current_user.id:
                  return jsonify({'success': False, 'message': 'Você não tem permissão para alterar esta ronda.'}), 403
 
             ronda.log_ronda_bruto, ronda.relatorio_processado, ronda.condominio_id, ronda.data_plantao_ronda, ronda.escala_plantao, ronda.turno_ronda, ronda.supervisor_id, ronda.total_rondas_no_log, ronda.primeiro_evento_log_dt, ronda.ultimo_evento_log_dt, ronda.duracao_total_rondas_minutos, ronda.data_hora_fim = \
                 log_bruto, relatorio, condominio_obj.id, data_plantao, escala_plantao, turno_ronda, supervisor_id_para_db, total, p_evento, u_evento, duracao, datetime.now(timezone.utc)
+            
             mensagem_sucesso = 'Ronda atualizada com sucesso!'
-        else:
+        else: # Cria uma nova ronda
+            # --- INÍCIO DA CORREÇÃO: VERIFICAÇÃO DE DUPLICIDADE ---
+            ronda_existente = Ronda.query.filter_by(
+                condominio_id=condominio_obj.id,
+                data_plantao_ronda=data_plantao,
+                turno_ronda=turno_ronda
+            ).first()
+            if ronda_existente:
+                return jsonify({'success': False, 'message': f'Já existe uma ronda para este condomínio, data e turno (ID: {ronda_existente.id}).'}), 409
+            # --- FIM DA CORREÇÃO ---
+            
             ronda = Ronda(
                 data_hora_inicio=p_evento or datetime.now(timezone.utc), data_hora_fim=datetime.now(timezone.utc),
                 log_ronda_bruto=log_bruto, relatorio_processado=relatorio, condominio_id=condominio_obj.id,
@@ -186,6 +200,7 @@ def salvar_ronda():
             )
             db.session.add(ronda)
             mensagem_sucesso = 'Ronda registrada com sucesso!'
+            
         db.session.commit()
         return jsonify({'success': True, 'message': mensagem_sucesso, 'ronda_id': ronda.id}), 200
 
