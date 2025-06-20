@@ -111,7 +111,7 @@ def registrar_ronda():
     elif request.method == 'POST':
         flash('Por favor, corrija os erros no formulário.', 'danger')
 
-    return render_template('relatorio_ronda.html',
+    return render_template('ronda/relatorio.html',
                            title=title,
                            form=form,
                            relatorio_processado=relatorio_processado_final,
@@ -250,7 +250,7 @@ def listar_rondas():
     all_supervisors = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
     all_turnos = ['Diurno Par', 'Noturno Par', 'Diurno Impar', 'Noturno Impar']
     all_statuses = [{'value': '', 'label': '-- Todos --'}, {'value': 'em_andamento', 'label': 'Em Andamento'}, {'value': 'finalizada', 'label': 'Finalizada'}]
-    return render_template('ronda_list.html', title='Histórico de Rondas', rondas_pagination=rondas_pagination,
+    return render_template('ronda/list.html', title='Histórico de Rondas', rondas_pagination=rondas_pagination,
                            condominios=all_condominios, supervisors=all_supervisors, turnos=all_turnos, statuses=all_statuses,
                            selected_condominio=condominio_filter, selected_supervisor=supervisor_filter_id,
                            selected_data_inicio=data_inicio_filter_str, selected_data_fim=data_fim_filter_str,
@@ -263,7 +263,7 @@ def detalhes_ronda(ronda_id):
     if not (current_user.is_admin or current_user.is_supervisor):
         flash("Você não tem permissão para visualizar os detalhes desta ronda.", 'danger')
         return redirect(url_for('ronda.listar_rondas'))
-    return render_template('ronda_details.html', title=f'Detalhes da Ronda #{ronda.id}', ronda=ronda)
+    return render_template('ronda/details.html', title=f'Detalhes da Ronda #{ronda.id}', ronda=ronda)
 
 @ronda_bp.route('/rondas/excluir/<int:ronda_id>', methods=['POST', 'DELETE'])
 @login_required

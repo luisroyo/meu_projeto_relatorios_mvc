@@ -115,7 +115,7 @@ def dashboard_metrics():
     logins_chart_data = [logins_data_map.get(label, 0) for label in date_labels]
     processing_chart_data = [processing_data_map.get(label, 0) for label in date_labels]
 
-    return render_template('admin_dashboard.html',
+    return render_template('admin/dashboard.html',
                            title='Dashboard de Métricas',
                            total_users=total_users,
                            total_approved_users=total_approved_users,
@@ -215,7 +215,7 @@ def ronda_dashboard():
     all_supervisors = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
     all_condominios = Condominio.query.order_by(Condominio.nome).all()
 
-    return render_template('admin_ronda_dashboard.html',
+    return render_template('admin/ronda_dashboard.html',
                            title='Dashboard de Métricas de Rondas',
                            condominio_labels=condominio_labels, rondas_por_condominio_data=rondas_por_condominio_data,
                            duracao_condominio_labels=duracao_condominio_labels, duracao_media_data=duracao_media_data,
@@ -235,7 +235,7 @@ def manage_users():
     logger.info(f"Admin '{current_user.username}' acessou /admin/users.")
     page = request.args.get('page', 1, type=int)
     users_pagination_obj = User.query.order_by(User.date_registered.desc()).paginate(page=page, per_page=10)
-    return render_template('admin_users.html', title='Gerenciar Usuários', users_pagination=users_pagination_obj)
+    return render_template('admin/users.html', title='Gerenciar Usuários', users_pagination=users_pagination_obj)
 
 
 @admin_bp.route('/escalas', methods=['GET', 'POST'])
@@ -286,7 +286,7 @@ def gerenciar_escalas():
         (1, 'Janeiro'), (2, 'Fevereiro'), (3, 'Março'), (4, 'Abril'), (5, 'Maio'), (6, 'Junho'),
         (7, 'Julho'), (8, 'Agosto'), (9, 'Setembro'), (10, 'Outubro'), (11, 'Novembro'), (12, 'Dezembro')
     ]
-    return render_template('admin_gerenciar_escalas.html',
+    return render_template('admin/gerenciar_escalas.html',
                            title='Gerenciar Escalas de Supervisores',
                            turnos=turnos_definidos,
                            supervisores=supervisores,
@@ -302,7 +302,7 @@ def gerenciar_escalas():
 @admin_required
 def admin_tools():
     logger.info(f"Admin '{current_user.username}' acessou o menu de ferramentas.")
-    return render_template('admin_ferramentas.html', title='Ferramentas Administrativas')
+    return render_template('admin/ferramentas.html', title='Ferramentas Administrativas')
 
 
 @admin_bp.route('/ferramentas/formatar-email', methods=['GET', 'POST'])
@@ -327,7 +327,7 @@ def format_email_report_tool():
         elif include_closing: parts.append("Atenciosamente,\nEquipe Administrativa")
         formatted_report = "\n".join(parts)
         flash('Relatório formatado para e-mail com sucesso!', 'success')
-    return render_template('admin_formatar_email.html', title='Formatar Relatório para E-mail', form=form, formatted_report=formatted_report)
+    return render_template('admin/formatar_email.html', title='Formatar Relatório para E-mail', form=form, formatted_report=formatted_report)
 
 
 @admin_bp.route('/ferramentas/gerador-justificativas', methods=['GET'])
@@ -335,7 +335,7 @@ def format_email_report_tool():
 @admin_required
 def gerador_justificativas_tool():
     logger.info(f"Admin '{current_user.username}' acessou o Gerador de Justificativas.")
-    return render_template('admin_gerador_justificativas.html', title='Gerador de Justificativas iFractal')
+    return render_template('admin/gerador_justificativas.html', title='Gerador de Justificativas iFractal')
 
 
 @admin_bp.route('/ferramentas/api/processar-justificativa', methods=['POST'])
@@ -449,7 +449,7 @@ def delete_user(user_id):
 def listar_colaboradores():
     page = request.args.get('page', 1, type=int)
     colaboradores_pagination = Colaborador.query.order_by(Colaborador.nome_completo).paginate(page=page, per_page=10)
-    return render_template('admin_listar_colaboradores.html',
+    return render_template('admin/listar_colaboradores.html',
                            title='Gerenciar Colaboradores',
                            colaboradores_pagination=colaboradores_pagination)
 
@@ -504,7 +504,7 @@ def adicionar_colaborador():
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao adicionar colaborador: {str(e)}', 'danger')
-    return render_template('admin_colaborador_form.html', title='Adicionar Colaborador', form=form)
+    return render_template('admin/colaborador_form.html', title='Adicionar Colaborador', form=form)
 
 
 @admin_bp.route('/colaboradores/editar/<int:colaborador_id>', methods=['GET', 'POST'])
@@ -522,7 +522,7 @@ def editar_colaborador(colaborador_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao atualizar colaborador: {str(e)}', 'danger')
-    return render_template('admin_colaborador_form.html', title='Editar Colaborador', form=form, colaborador=colaborador)
+    return render_template('admin/colaborador_form.html', title='Editar Colaborador', form=form, colaborador=colaborador)
 
 
 @admin_bp.route('/colaboradores/deletar/<int:colaborador_id>', methods=['POST'])
