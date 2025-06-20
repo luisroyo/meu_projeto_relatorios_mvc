@@ -64,7 +64,7 @@
                         </div>
 
                         <div class="d-grid gap-2">
-                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                            <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-gear-wide-connected me-2"></i>Processar Relatório</button>
                         </div>
                     </form>
                 </div>
@@ -77,6 +77,20 @@
                     <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Relatório Gerado</h5>
                 </div>
                 <div class="card-body p-4">
+                    <div class="text-end mb-3" id="ronda_actions" style="display: none;">
+                         <button type="button" class="btn btn-secondary" id="copiarRelatorioRonda" title="Copiar Relatório">
+                             <i class="bi bi-clipboard-check me-1"></i> Copiar
+                         </button>
+                         <button type="button" class="btn btn-success" id="enviarWhatsAppRonda" title="Enviar via WhatsApp">
+                             <i class="bi bi-whatsapp me-1"></i> WhatsApp
+                         </button>
+                         {% if current_user.is_admin or current_user.is_supervisor %}
+                         <button type="button" class="btn btn-primary" id="salvarRonda" title="Salvar Ronda">
+                             <i class="bi bi-check-circle me-1"></i> Salvar
+                         </button>
+                         {% endif %}
+                    </div>
+
                     <div class="report-output-container">
                         {% if relatorio_processado %}
                             <pre id="rondaResultadoTexto" class="p-3 bg-light border rounded">{{ relatorio_processado }}</pre>
@@ -84,19 +98,6 @@
                             <div id="rondaResultadoTexto" class="alert alert-secondary text-center">O relatório processado aparecerá aqui.</div>
                         {% endif %}
                     </div>
-                </div>
-                <div class="card-footer text-end" id="ronda_actions" style="display: none; background-color: var(--bs-gray-100);">
-                     <button type="button" class="btn btn-secondary" id="copiarRelatorioRonda" title="Copiar Relatório">
-                         <i class="bi bi-clipboard-check me-1"></i> Copiar
-                     </button>
-                     <button type="button" class="btn btn-success" id="enviarWhatsAppRonda" title="Enviar via WhatsApp">
-                         <i class="bi bi-whatsapp me-1"></i> WhatsApp
-                     </button>
-                     {% if current_user.is_admin or current_user.is_supervisor %}
-                     <button type="button" class="btn btn-primary" id="salvarRonda" title="Salvar Ronda">
-                         <i class="bi bi-check-circle me-1"></i> Salvar Alterações
-                     </button>
-                     {% endif %}
                 </div>
             </div>
         </div>
@@ -107,7 +108,6 @@
 {% block scripts %}
     {{ super() }}
     <script>
-        // Passa os dados do servidor (se existirem) para o JavaScript
         var rondaDataFromServer = {{ ronda_data_to_save | tojson | safe }};
     </script>
     <script src="{{ url_for('static', filename='js/relatorio_ronda_page.js') }}"></script>
