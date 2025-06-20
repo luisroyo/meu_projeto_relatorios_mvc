@@ -1,6 +1,6 @@
 // app/static/js/relatorio_ronda_page.js
 document.addEventListener('DOMContentLoaded', function() {
-    // Seletores de elementos do DOM
+    const rondaForm = document.getElementById('rondaForm');
     const nomeCondominioSelect = document.getElementById('nome_condominio_select');
     const outroCondominioDiv = document.getElementById('outro_condominio_div');
     const nomeCondominioOutroInput = document.getElementById('nome_condominio_outro');
@@ -24,12 +24,19 @@ document.addEventListener('DOMContentLoaded', function() {
                                  rondaResultadoTexto.textContent.trim() !== '' &&
                                  !rondaResultadoTexto.classList.contains('alert-secondary');
         
-        // Mostra ações se estiver editando OU se um relatório válido foi gerado
-        rondaActionsDiv.style.display = (isEditMode || hasValidReport) ? 'flex' : 'none';
-        // Usamos 'flex' para um melhor alinhamento dos botões no rodapé
-        if (isEditMode || hasValidReport) {
-            rondaActionsDiv.style.justifyContent = 'flex-end'; // Alinha os botões à direita
-        }
+        rondaActionsDiv.style.display = (isEditMode || hasValidReport) ? 'block' : 'none';
+    }
+
+    function resetForm() {
+        rondaForm.reset();
+        rondaResultadoTexto.textContent = 'O relatório processado aparecerá aqui.';
+        rondaResultadoTexto.className = 'alert alert-secondary text-center';
+        rondaActionsDiv.style.display = 'none';
+        document.getElementById('ronda_id_input').value = '';
+        toggleOutroCondominio();
+        
+        // Foca no primeiro campo do formulário para agilizar
+        if(nomeCondominioSelect) nomeCondominioSelect.focus();
     }
 
     function flashMessage(message, category = 'info') {
@@ -51,16 +58,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function salvarRondaCompleta() {
-        // Objeto com todos os dados do formulário para enviar ao backend
         const dataToSend = {
             ronda_id: document.getElementById('ronda_id_input').value || null,
             log_bruto: logBrutoRondas.value,
             condominio_id: nomeCondominioSelect.value,
-            
-            // --- CORREÇÃO PRINCIPAL APLICADA AQUI ---
-            // Adicionamos o valor do campo de texto 'outro condomínio' ao pacote de dados
             nome_condominio_outro: nomeCondominioOutroInput.value,
-            
             data_plantao: document.getElementById('data_plantao').value,
             escala_plantao: document.getElementById('escala_plantao').value,
             supervisor_id: supervisorSelect.value
@@ -82,18 +84,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await response.json();
             if (result.success) {
                 flashMessage(result.message, 'success');
-                setTimeout(() => {
-                    window.location.href = `/ronda/rondas/detalhes/${result.ronda_id}`;
-                }, 1000);
+                if (!dataToSend.ronda_id) {
+                    resetForm();
+                } else {
+                    setTimeout(() => {
+                        window.location.href = `/ronda/rondas/detalhes/${result.ronda_id}`;
+                    }, 1000);
+                }
             } else {
-                flashMessage(result.message || 'Ocorreu um erro desconhecido ao salvar.', 'danger');
+                flashMessage(result.message || 'Ocorreu um erro desconhecido.', 'danger');
             }
         } catch (error) {
             console.error('Erro no fetch:', error);
-            flashMessage('Erro de comunicação com o servidor. Verifique sua conexão.', 'danger');
+            flashMessage('Erro de comunicação com o servidor.', 'danger');
         } finally {
             salvarRondaBtn.disabled = false;
-            salvarRondaBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Salvar Alterações';
+            salvarRondaBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Salvar';
         }
     }
 
