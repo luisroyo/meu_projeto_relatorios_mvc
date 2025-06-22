@@ -1,49 +1,27 @@
-/* app/static/css/login.css */
+/* /app/static/css/login.css - CÓDIGO CORRETO */
 
-.login-container {
-    background-color: #ffffff;
-    padding: 30px 40px; /* Mais padding */
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+.login-page-body {
+    background-image: url('../images/login-background.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.login-page-body .card {
+    max-width: 450px;
     width: 100%;
-    max-width: 420px; /* Limita a largura do container de login */
-    text-align: center; /* Centraliza o título e o link de registro */
+    background-color: var(--content-bg);
+    /* Efeito de vidro para destacar o card do fundo */
+    backdrop-filter: blur(10px); 
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.login-container h2 {
-    margin-bottom: 25px;
-    color: #333;
-    font-weight: 600;
-}
-
-
-
-.login-container .btn-primary {
-    width: 100%; /* Botão de login ocupa toda a largura */
-    padding: 12px;
-    font-size: 1.1em;
-}
-
-.login-container .form-group {
-    text-align: left; /* Alinha labels e inputs à esquerda dentro do container centralizado */
-    margin-bottom: 20px;
-}
-
-.login-container .form-group label {
-    margin-bottom: 8px; /* Espaço entre label e input */
-}
-
-.login-container p {
-    margin-top: 20px;
-    font-size: 0.9em;
-}
-
-.login-container p a {
-    color: #007bff;
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.login-container p a:hover {
-    text-decoration: underline;
+/* Garante que o efeito de hover não levante o card de login */
+.login-page-body .card:hover {
+    transform: none;
+    box-shadow: var(--box-shadow);
 }

@@ -1,4 +1,4 @@
-/* app/static/css/style.css - Suporte a Tema Claro e Escuro */
+/* app/static/css/style.css - Versão com Cores e Tipografia Refinadas */
 
 /* -------------------------------------------------------------------------- */
 /* FONTES E ÍCONES                                                            */
@@ -7,162 +7,70 @@
 @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css");
 
 /* -------------------------------------------------------------------------- */
-/* VARIÁVEIS DE COR - TEMA CLARO (PADRÃO)                                     */
+/* VARIÁVEIS GLOBAIS (CORES, FONTES, SOMBRAS, BORDAS)                         */
 /* -------------------------------------------------------------------------- */
 :root {
-    --primary-color: #0d6efd;
-    --primary-color-darker: #0b5ed7;
-    --primary-color-lighter: #3d8bfd;
-    --primary-color-rgb: 13, 110, 253;
+    /* Cores Primárias e de Acento */
+    --primary-color: #2563eb;
+    --primary-color-rgb: 37, 99, 235;
+    --accent-color: #10b981;
+    --accent-color-rgb: 16, 185, 129;
 
-    --secondary-color: #6c757d;
-    --secondary-color-darker: #5a6268;
+    /* Cores de Feedback (Bootstrap standard) */
+    --bs-danger: #dc3545;
+    --bs-danger-rgb: 220, 53, 69;
+    --bs-success: #198754;
+    --bs-warning: #ffc107;
+    --bs-info: #0dcaf0;
 
-    --body-bg: #f8f9fa; /* Fundo claro padrão */
-    --body-bg-image: none; /* Sem gradiente por padrão */
-    --content-bg: #ffffff;
-    --content-bg-opaque: #ffffff;
-    --text-color: #2a2f35; /* Cor principal do texto */
-    --text-muted-custom: #6c757d;
+    /* Fontes */
+    --font-sans-serif: 'Inter', sans-serif;
+    --font-monospace: 'SFMono-Regular', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     
-    --border-color: #dee2e6;
-    --card-bg: var(--content-bg);
-    
-    --success-color: #198754;
-    --success-color-darker: #146c43;
-    --danger-color: #dc3545;
-    --danger-color-darker: #b02a37;
-    --warning-color: #ffc107;
-    --warning-text-color: #212529; /* Texto escuro para fundo amarelo */
-    --info-color: #0dcaf0;
-    --info-color-darker: #0aa9c3;
-    --info-text-color: #000; /* Texto escuro para fundo ciano */
-
-    --page-header-bg: var(--content-bg);
-    --page-header-title-color: var(--primary-color);
-    --page-header-lead-color: #555e68;
-    --page-header-border-color: var(--border-color);
-
-
-    --card-header-bg: var(--primary-color);
-    --card-header-text: #ffffff;
-    --card-header-border-color: var(--primary-color-darker);
-    
-    --navbar-bg: #212529; /* Navbar escuro por padrão em ambos os temas */
-    --navbar-text-color: rgba(255,255,255,.85);
-    --navbar-text-hover-color: #ffffff;
-    --navbar-active-bg: var(--primary-color);
-    --navbar-active-text-color: #ffffff;
-    --navbar-toggler-icon-color-value: rgba(255,255,255,.55); /* Valor para JS */
-    --navbar-toggler-border-color: rgba(255,255,255,.1);
-
-    --footer-bg: #212529; /* Footer escuro por padrão em ambos os temas */
-    --footer-text-color: rgba(255,255,255,.75);
-    --footer-border-color: rgba(255,255,255,0.05);
-
-    --default-font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --monospace-font: 'SFMono-Regular', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-
+    /* Bordas e Sombras */
+    --border-radius: 0.5rem;
     --border-radius-sm: 0.3rem;
-    --border-radius-md: 0.5rem;
-    --border-radius-lg: 0.8rem;
-
-    --box-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.065);
-    --box-shadow-md: 0 0.4rem 1rem rgba(0, 0, 0, 0.08);
-    --box-shadow-lg: 0 1rem 2.5rem rgba(0, 0, 0, 0.1);
-
-    --result-textarea-bg: #e9f1f6;
-    --result-textarea-border-color: #c9d8e3;
-    --result-textarea-text-color: var(--text-color); 
-    --result-textarea-box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-
-    --theme-toggle-button-color: var(--navbar-text-color);
-    --theme-toggle-button-hover-color: var(--navbar-text-hover-color);
-    --theme-toggle-button-hover-bg: rgba(var(--primary-color-rgb),0.2);
+    --box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    
+    /* TEMA CLARO (PADRÃO) */
+    --body-bg: #f5f7fa;
+    --body-bg-image: none;
+    --content-bg: #ffffff;
+    --form-bg: #ffffff;
+    --text-color: #1e293b;
+    --text-muted-custom: #64748b;
+    --border-color: #e2e8f0;
+    --link-color: var(--primary-color);
+    --link-hover-color: #1d4ed8; /* Um tom de azul mais escuro para hover */
+    --result-textarea-bg: #eef2f9;
 }
 
-/* -------------------------------------------------------------------------- */
-/* VARIÁVEIS DE COR - TEMA ESCURO                                             */
-/* -------------------------------------------------------------------------- */
 body.dark-theme {
-    --primary-color: #0d6efd; 
-    --primary-color-darker: #0a58ca;
-    --primary-color-lighter: #589bff; 
-    --primary-color-rgb: 13, 110, 253;
-
-    --secondary-color: #616870; 
-    --secondary-color-darker: #495057;
-
-    --body-bg-start: #1c2331;
-    --body-bg-end: #2a2f35;
-    --body-bg-image: linear-gradient(135deg, var(--body-bg-start) 0%, var(--body-bg-end) 100%);
-    --body-bg: var(--body-bg-end); 
-    
-    --content-bg: rgba(43, 48, 53, 0.85); 
-    --content-bg-opaque: #2b3035;
-    
-    --text-color: #f8f9fa;
-    --text-muted-custom: #adb5bd;
-    
-    --border-color: #495057; 
-    --card-bg: var(--content-bg);
-    
-    --warning-text-color: #212529;
-    --info-text-color: #000;
-
-    --page-header-bg: rgba(33, 37, 41, 0.7);
-    --page-header-title-color: var(--primary-color-lighter);
-    --page-header-lead-color: #ced4da;
-    --page-header-border-color: rgba(255,255,255,0.1);
-
-    --card-header-bg: rgba(var(--primary-color-rgb), 0.2); 
-    --card-header-text: var(--primary-color-lighter);
-    --card-header-border-color: rgba(var(--primary-color-rgb), 0.3);
-
-    --navbar-bg: #161a1e;
-    --navbar-text-color: rgba(255,255,255,.75);
-    --navbar-text-hover-color: #ffffff;
-    --navbar-active-bg: var(--primary-color);
-    --navbar-active-text-color: #ffffff;
-    --navbar-toggler-icon-color-value: rgba(255,255,255,.5);
-    --navbar-toggler-border-color: rgba(255,255,255,.15);
-
-    --footer-bg: #111418;
-    --footer-text-color: rgba(255,255,255,.6);
-    --footer-border-color: rgba(255,255,255,0.05);
-
-    --box-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.25);
-    --box-shadow-md: 0 0.4rem 1rem rgba(0, 0, 0, 0.35);
-    --box-shadow-lg: 0 1rem 2.5rem rgba(0, 0, 0, 0.4);
-
-    --result-textarea-bg: rgba(10, 15, 20, 0.8);
-    --result-textarea-border-color: var(--border-color);
-    --result-textarea-text-color: var(--text-color);
-    --result-textarea-box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
-
-    --theme-toggle-button-color: var(--navbar-text-color);
-    --theme-toggle-button-hover-color: var(--navbar-text-hover-color);
-    --theme-toggle-button-hover-bg: rgba(var(--primary-color-rgb),0.25);
+    /* TEMA ESCURO */
+    --body-bg: #121826;
+    --body-bg-image: linear-gradient(145deg, #121826 0%, #17213a 100%);
+    --content-bg: rgba(28, 35, 51, 0.8);
+    --form-bg: #1c2333; /* Fundo sólido para formulários */
+    --text-color: #e2e8f0;
+    --text-muted-custom: #94a3b8;
+    --border-color: #334155;
+    --link-color: #3b82f6; /* Azul mais claro para bom contraste */
+    --link-hover-color: #60a5fa;
+    --result-textarea-bg: rgba(10, 15, 26, 0.7);
 }
 
-
 /* -------------------------------------------------------------------------- */
-/* ESTILOS GLOBAIS APLICADOS USANDO AS VARIÁVEIS                              */
+/* ESTILOS GLOBAIS                                                            */
 /* -------------------------------------------------------------------------- */
 body {
-    font-family: var(--default-font);
+    font-family: var(--font-sans-serif);
+    line-height: 1.6; /* MODIFICADO - Adicionado para conforto de leitura */
     background-color: var(--body-bg);
     background-image: var(--body-bg-image);
-    background-attachment: fixed;
     color: var(--text-color);
-    line-height: 1.65;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    font-size: 1rem;
+    transition: background-color 0.3s ease, color 0.3s ease;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 main.container {
@@ -171,343 +79,219 @@ main.container {
     padding-bottom: 3rem;
 }
 
-h1, h2, h3, h4, h5, h6 {
-    font-weight: 600;
-    color: var(--text-color);
-    margin-top: 0;
-    letter-spacing: -0.02em;
-}
+/* MODIFICADO - Hierarquia de títulos mais clara */
+h1, .h1 { font-weight: 700; color: var(--text-color); letter-spacing: -0.025em; }
+h2, .h2 { font-weight: 600; color: var(--text-color); letter-spacing: -0.02em; }
+h3, .h3 { font-weight: 600; color: var(--text-color); }
+h4, .h4 { font-weight: 500; color: var(--text-color); }
+h5, .h5, h6, .h6 { font-weight: 500; color: var(--text-color); }
 
+/* ADICIONADO - Estilo para parágrafos de destaque */
 .lead {
-    font-size: 1.15rem;
-    font-weight: 300;
+    font-size: 1.2rem;
+    font-weight: 400;
     color: var(--text-muted-custom);
 }
 
 a {
-    color: var(--primary-color);
+    color: var(--link-color);
     text-decoration: none;
     transition: color 0.2s ease-in-out;
 }
-body.dark-theme a {
-    color: var(--primary-color-lighter);
-}
 a:hover {
-    color: var(--primary-color-darker);
-}
-body.dark-theme a:hover {
-    color: #ffffff;
+    color: var(--link-hover-color);
 }
 
-/* Cabeçalho de Página */
-.page-header {
-    background-color: var(--page-header-bg);
-    padding: 2.5rem 2rem;
-    margin-bottom: 3rem;
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--box-shadow-md);
-    border: 1px solid var(--page-header-border-color);
-}
-.page-header h1 {
-    color: var(--page-header-title-color);
-    font-size: 2.2rem; /* Levemente ajustado */
-    font-weight: 700;
-}
-.page-header h1 i {
-    font-size: 0.9em;
-    margin-right: 0.4em;
-    opacity: 0.9;
-}
-.page-header .lead {
-    color: var(--page-header-lead-color);
-    font-size: 1.2rem; /* Levemente ajustado */
-}
+/* -------------------------------------------------------------------------- */
+/* COMPONENTES PRINCIPAIS                                                     */
+/* -------------------------------------------------------------------------- */
 
 /* Navbar */
 .navbar {
-    background-color: var(--navbar-bg) !important;
-    padding-top: 0.8rem;
-    padding-bottom: 0.8rem;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    background-color: var(--content-bg) !important;
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: none; /* A borda sutil substitui a sombra */
 }
+/* Estilos Finais de Destaque para o Logo */
 .navbar-brand {
+    padding-top: 0.25rem;    /* Adiciona espaço vertical */
+    padding-bottom: 0.25rem;
     font-weight: 700;
-    font-size: 1.65rem;
-    color: var(--navbar-text-hover-color) !important;
-}
-body.dark-theme .navbar-brand {
-    color: var(--primary-color-lighter) !important;
-}
-.navbar-brand i {
-    opacity: 0.9;
+    font-size: 1.5rem;
+    color: var(--text-color) !important;
 }
 
 .navbar-nav .nav-link {
-    color: var(--navbar-text-color);
+    color: var(--text-muted-custom);
     font-weight: 500;
-    padding: 0.7rem 1.1rem;
     border-radius: var(--border-radius-sm);
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 .navbar-nav .nav-link:hover,
 .navbar-nav .nav-link:focus {
-    color: var(--navbar-text-hover-color);
-    background-color: rgba(var(--primary-color-rgb),0.2);
+    color: var(--text-color);
+    background-color: rgba(var(--primary-color-rgb), 0.1);
 }
 .navbar-nav .nav-link.active {
-    color: var(--navbar-active-text-color);
-    background-color: var(--navbar-active-bg);
+    color: var(--primary-color);
     font-weight: 600;
+    background-color: transparent;
 }
 .navbar-toggler {
-    border-color: var(--navbar-toggler-border-color);
-}
-.navbar-toggler-icon {
-    /* A cor do ícone do toggler será definida dinamicamente pelo JS em script.js */
-    /* para garantir que use o valor correto da variável CSS do tema ativo. */
-    /* O fallback é o do Bootstrap para navbar-dark */
-     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255,255,255,0.55)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    border: 1px solid var(--border-color);
 }
 
+/* Estilo para o Logo no Navbar */
+/* Estilo para o Logo no Navbar (com !important para garantir a aplicação) */
+.navbar-brand img {
+    height: 40px !important; /* Tamanho final para bom destaque */
+    width: auto !important;
+}
+
+/* Estilos para Ícones nos Cabeçalhos de Card */
+.card-header .bi {
+    font-size: 1.2rem;
+    color: var(--text-muted-custom);
+}
+
+/* ADICIONE ESTAS NOVAS REGRAS PARA BOTÕES */
+
+/* Estilo Base para botões principais */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Efeito de hover para botões */
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(var(--primary-color-rgb), 0.2);
+}
+
+.btn-primary:hover {
+    background-color: var(--link-hover-color);
+    border-color: var(--link-hover-color);
+}
 
 /* Cards */
+/* Localize a regra .card e adicione a transição */
 .card {
     border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow-md);
-    border-radius: var(--border-radius-md);
-    margin-bottom: 2.5rem;
-    background-color: var(--card-bg);
-    backdrop-filter: blur(5px); /* Opcional, para efeito de vidro */
+    box-shadow: var(--box-shadow);
+    border-radius: var(--border-radius);
+    margin-bottom: 2rem;
+    background-color: var(--content-bg);
+    transition: all 0.2s ease-in-out; /* ADICIONADO - Para animar hover */
 }
+
+/* ADICIONE esta nova regra para o efeito de hover no card */
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
+}
+
 .card-header {
-    background-color: var(--card-header-bg);
-    color: var(--card-header-text);
-    padding: 1.25rem 1.75rem;
-    border-bottom: 1px solid var(--card-header-border-color);
-    font-weight: 500; /* Mais suave */
-    font-size: 1.2rem; /* Um pouco maior */
-}
-.card-header h5.mb-0 {
-    color: inherit;
-    font-weight: 500;
-    font-size: 1.2rem;
-}
-.card-body {
-    padding: 1.75rem;
+    background-color: transparent;
     color: var(--text-color);
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 500;
+    font-size: 1.1rem;
 }
-.card-body label.form-label {
-    color: var(--text-muted-custom);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+/* Localize a regra .card-body e aumente o padding */
+.card-body {
+    padding: 2rem; /* MODIFICADO - Aumentamos de 1.5rem para 2rem */
+    color: var(--text-color);
 }
 
 /* Formulários */
 .form-label {
     font-weight: 500;
-    margin-bottom: 0.6rem;
-    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem; /* MODIFICADO */
     color: var(--text-muted-custom);
+    text-transform: uppercase; /* ADICIONADO */
+    letter-spacing: 0.05em; /* ADICIONADO */
 }
 .form-control, .form-select {
     border-radius: var(--border-radius-sm);
     border: 1px solid var(--border-color);
-    background-color: var(--content-bg-opaque);
+    background-color: var(--form-bg);
     color: var(--text-color);
-    padding: 0.8rem 1.1rem;
-    font-size: 1rem;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+    padding: 0.75rem 1rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 .form-control::placeholder {
-  color: var(--text-muted-custom);
-  opacity: 0.7;
-}
-.form-control:focus, .form-select:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.25rem rgba(var(--primary-color-rgb),.35);
-    background-color: var(--content-bg-opaque);
-    color: var(--text-color);
-}
-.form-check-input {
-    background-color: var(--secondary-color);
-    border-color: var(--border-color);
-}
-.form-check-input:checked {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-}
-.form-check-label {
-    color: var(--text-color);
-}
-.invalid-feedback {
-    color: var(--danger-color) !important;
-}
-#charCount {
-    color: var(--text-muted-custom);
-}
-body.dark-theme #charCount.text-danger {
-    color: var(--danger-color) !important;
-}
-body:not(.dark-theme) #charCount.text-danger { /* Bootstrap já deve fazer isso, mas para garantir */
-    color: #dc3545 !important;
-}
-
-
-/* Alertas */
-.alert {
-    border-radius: var(--border-radius-sm);
-    padding: 1rem 1.25rem;
-    border-width: 0px; /* Removida borda padrão, confiar no fundo e sombra */
-    box-shadow: var(--box-shadow-md);
-}
-/* Cores de texto para alertas são importantes para contraste */
-.alert-success { color: #fff; background-color: var(--success-color); }
-.alert-danger { color: #fff; background-color: var(--danger-color); }
-.alert-warning { color: var(--warning-text-color); background-color: var(--warning-color); }
-.alert-info { color: var(--info-text-color); background-color: var(--info-color); }
-
-.alert-secondary { /* Placeholder/Default alert */
-    color: var(--text-color); /* Usa cor de texto do tema */
-    background-color: var(--secondary-color); /* Usa cor secundária do tema */
-}
-body:not(.dark-theme) .alert-secondary { /* Estilo específico para alert-secondary no tema claro */
-    color: #383d41;
-    background-color: #e2e3e5;
-    border-color: #d6d8db; /* Adiciona uma borda sutil no tema claro */
-    border-width: 1px;
-}
-
-/* Saída de Relatórios */
-#resultadoProcessamento,
-#resultadoEmail,
-textarea:read-only /* Estilo geral para textareas readonly */
-{
-    background-color: var(--result-textarea-bg) !important; /* Usa !important para sobrescrever estilos de .form-control */
-    border: 1px solid var(--result-textarea-border-color) !important;
-    color: var(--result-textarea-text-color) !important;
-    font-family: var(--monospace-font);
-    box-shadow: var(--result-textarea-box-shadow) !important;
-    padding: 1.2rem;
-    font-size: 0.9rem;
-    line-height: 1.6;
-    min-height: 250px;
-    opacity: 1; /* Garante que não fique esmaecido demais */
-}
-body:not(.dark-theme) textarea:read-only::placeholder,
-body.dark-theme textarea:read-only::placeholder {
     color: var(--text-muted-custom);
     opacity: 0.7;
 }
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(var(--primary-color-rgb), 0.25);
+    background-color: var(--form-bg);
+}
 
-
-/* Rodapé */
-footer.footer { /* Removido .bg-dark para usar var */
-    background-color: var(--footer-bg) !important;
-    padding: 2.5rem 0;
+/* Área de Texto de Resultado (somente leitura) */
+#resultadoProcessamento,
+#resultadoEmail,
+textarea:read-only {
+    background-color: var(--result-textarea-bg) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-color) !important;
+    font-family: var(--font-monospace);
     font-size: 0.9rem;
-    color: var(--footer-text-color);
-    border-top: 1px solid var(--footer-border-color);
+    line-height: 1.6;
+    border-radius: var(--border-radius-sm);
 }
 
-/* Botão de alternar tema */
-#theme-toggle-button {
-    font-size: 1.25rem;
-    padding: 0.375rem 0.75rem;
-    color: var(--theme-toggle-button-color);
-    background-color: transparent;
-    border: none;
-}
-#theme-toggle-button:hover {
-    color: var(--theme-toggle-button-hover-color);
-    background-color: var(--theme-toggle-button-hover-bg);
-}
-
-/* Dropdown Menu no Navbar */
-.navbar .dropdown-menu {
-    background-color: var(--content-bg-opaque); /* Fundo consistente com o tema */
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow-md);
-}
-.navbar .dropdown-menu .dropdown-item {
-    color: var(--text-color); /* Cor de texto do tema */
-    padding: 0.5rem 1.2rem;
-}
-.navbar .dropdown-menu .dropdown-item:hover,
-.navbar .dropdown-menu .dropdown-item:focus {
-    color: var(--primary-color-lighter); /* Destaque no hover */
-    background-color: rgba(var(--primary-color-rgb), 0.15);
-}
-body:not(.dark-theme) .navbar .dropdown-menu .dropdown-item:hover,
-body:not(.dark-theme) .navbar .dropdown-menu .dropdown-item:focus {
-    color: var(--primary-color-darker);
-    background-color: rgba(var(--primary-color-rgb), 0.1);
-}
-.navbar .dropdown-menu .dropdown-item i {
-    opacity: 0.8;
-    margin-right: 0.5rem;
-}
-
-
-/* Ajustes para tabelas (admin_listar_colaboradores.html, admin_users.html) */
+/* Tabelas */
 .table {
-    color: var(--text-color); /* Cor do texto principal da tabela */
+    color: var(--text-color);
     border-color: var(--border-color);
-    margin-bottom: 0; /* Remover margem se dentro de um .table-responsive com padding */
-}
-.table-responsive {
-    background-color: var(--card-bg); /* Fundo do container da tabela */
-    border-radius: var(--border-radius-md);
-    padding: 0.5rem; /* Espaçamento interno se a tabela não tiver margens */
-}
-.table thead.table-dark {
-    background-color: var(--content-bg-opaque); /* Usar uma cor do tema para o cabeçalho */
-    color: var(--primary-color-lighter); /* Cor de destaque para o texto do cabeçalho */
-    border-bottom: 2px solid var(--primary-color); /* Linha de destaque */
-}
-body:not(.dark-theme) .table thead.table-dark {
-    background-color: #343a40; /* Escuro tradicional para tema claro */
-    color: #fff;
-    border-bottom: 2px solid #454d55;
 }
 .table th, .table td {
     border-top: 1px solid var(--border-color);
     vertical-align: middle;
-    padding: 0.9rem 1rem; /* Mais padding nas células */
 }
 .table-hover tbody tr:hover {
-    background-color: var(--content-bg-opaque); /* Fundo de hover um pouco mais escuro */
-    color: var(--text-light); /* Cor de texto no hover */
-}
-body:not(.dark-theme) .table-hover tbody tr:hover {
-    background-color: #f1f3f5; /* Cinza claro para hover no tema claro */
-    color: var(--text-color);
-}
-.table .badge { /* Badges dentro da tabela */
-    font-size: 0.8em;
-    padding: 0.4em 0.65em;
+    background-color: rgba(var(--primary-color-rgb), 0.05);
 }
 
 /* Paginação */
 .pagination .page-link {
-    background-color: var(--content-bg-opaque);
+    background-color: var(--content-bg);
     border-color: var(--border-color);
-    color: var(--primary-color);
+    color: var(--link-color);
     transition: all 0.2s ease;
 }
 .pagination .page-link:hover {
-    background-color: var(--secondary-color-darker);
-    color: var(--text-light);
-    border-color: var(--secondary-color-darker);
+    background-color: var(--border-color);
 }
 .pagination .page-item.active .page-link {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
     color: #fff;
 }
-.pagination .page-item.disabled .page-link {
-    background-color: var(--secondary-color);
-    border-color: var(--border-color);
+
+/* Botão de alternar tema */
+#theme-toggle-button {
     color: var(--text-muted-custom);
-    opacity: 0.65;
+    background-color: transparent;
+    border: none;
+}
+#theme-toggle-button:hover {
+    color: var(--text-color);
+    background-color: var(--border-color);
+}
+
+/* Rodapé */
+footer.footer {
+    background-color: var(--content-bg) !important;
+    padding: 2rem 0;
+    font-size: 0.9rem;
+    color: var(--text-muted-custom);
+    border-top: 1px solid var(--border-color);
 }
