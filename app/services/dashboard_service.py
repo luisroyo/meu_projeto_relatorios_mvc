@@ -1,6 +1,6 @@
 # app/services/dashboard_service.py
 from flask import flash
-from sqlalchemy import func, and_, cast, Float
+from sqlalchemy import func, and_, cast, Float, case
 from datetime import datetime, timedelta, timezone
 
 from app import db
@@ -177,3 +177,91 @@ def get_ronda_dashboard_data(filters):
         'dados_dia_detalhado': dados_dia_detalhado,
         'dados_tabela_dia': dados_tabela_dia,
     }
+
+def get_supervisor_ronda_quality_ranking(filters=None):
+    """
+    Calcula e retorna um ranking de supervisores com base na qualidade das rondas supervisionadas.
+    A "qualidade" é medida pelo percentual de rondas incompletas ou com duração anômala.
+    """
+    if filters is None:
+        filters = {}
+
+    # Define a função interna para aplicar filtros à query
+    def apply_quality_filters(query):
+        turno_filter = filters.get('turno')
+        condominio_id_filter = filters.get('condominio_id')
+        data_inicio_str = filters.get('data_inicio_str')
+        data_fim_str = filters.get('data_fim_str')
+
+        data_inicio, data_fim = None, None
+        try:
+            if data_inicio_str:
+                data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%d').date()
+            if data_fim_str:
+                data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash("Formato de data inválido para filtros de qualidade. Use AAAA-MM-DD.", "danger")
+        
+        if turno_filter:
+            query = query.filter(Ronda.turno_ronda == turno_filter)
+        if condominio_id_filter:
+            query = query.filter(Ronda.condominio_id == condominio_id_filter)
+        if data_inicio:
+            query = query.filter(Ronda.data_plantao_ronda >= data_inicio)
+        if data_fim:
+            query = query.filter(Ronda.data_plantao_ronda <= data_fim)
+        
+        return query
+
+    # Subconsulta para contar rondas problemáticas (incompletas OU anômalas)
+    problematic_rondas_subquery = db.session.query(
+        Ronda.supervisor_id,
+        func.count(Ronda.id).label('total_rondas'),
+        func.sum(case((Ronda.is_incomplete == True, 1), else_=0)).label('incompletas_count'),
+        func.sum(case((Ronda.is_duration_anomalous == True, 1), else_=0)).label('anomalas_duracao_count')
+    ).filter(Ronda.supervisor_id.isnot(None)) # Apenas rondas com supervisor atribuído
+    
+    # Aplica os mesmos filtros que o dashboard geral se fornecidos
+    problematic_rondas_subquery = apply_quality_filters(problematic_rondas_subquery)
+    
+    problematic_rondas_subquery = problematic_rondas_subquery.group_by(Ronda.supervisor_id).subquery()
+
+    # Consulta principal para unir com os dados do supervisor e calcular o ranking
+    ranking_query = db.session.query(
+        User.username,
+        problematic_rondas_subquery.c.total_rondas,
+        problematic_rondas_subquery.c.incompletas_count,
+        problematic_rondas_subquery.c.anomalas_duracao_count,
+        # Calcula o total de rondas problematicas para o ranking (qualquer uma das flags)
+        (problematic_rondas_subquery.c.incompletas_count + problematic_rondas_subquery.c.anomalas_duracao_count).label('total_problematicas'),
+        # Calcula o percentual de rondas problematicas, evitando divisão por zero
+        case(
+            (problematic_rondas_subquery.c.total_rondas > 0, 
+             cast((problematic_rondas_subquery.c.incompletas_count + problematic_rondas_subquery.c.anomalas_duracao_count), Float) / 
+             cast(problematic_rondas_subquery.c.total_rondas, Float) * 100
+            ),
+            else_=0
+        ).label('percentual_problematicas')
+    ).join(User, User.id == problematic_rondas_subquery.c.supervisor_id).filter(User.is_supervisor == True)
+
+    # Ordena pelo percentual de problematicas (menor é melhor), depois pelo total de rondas (mais rondas é melhor em caso de empate)
+    ranking_query = ranking_query.order_by(
+        'percentual_problematicas',
+        problematic_rondas_subquery.c.total_rondas.desc()
+    )
+
+    ranking_data_raw = ranking_query.all()
+
+    # Formata os resultados
+    ranking_final = []
+    for rank in ranking_data_raw:
+        ranking_final.append({
+            'supervisor_nome': rank.username,
+            'total_rondas': rank.total_rondas,
+            'rondas_incompletas': rank.incompletas_count,
+            'rondas_anomalas_duracao': rank.anomalas_duracao_count,
+            'total_rondas_problematicas': rank.total_problematicas,
+            'percentual_problematicas': round(rank.percentual_problematicas, 2)
+        })
+
+    return ranking_final

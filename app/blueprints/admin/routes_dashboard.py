@@ -1,4 +1,3 @@
-# app/blueprints/admin/routes_dashboard.py
 import logging
 from flask import render_template, redirect, url_for, request
 from flask_login import login_required, current_user
@@ -9,11 +8,11 @@ from . import admin_bp
 from app import db
 from app.decorators.admin_required import admin_required
 from app.models import User, Condominio, LoginHistory, ProcessingHistory
-from app.services.dashboard_service import get_main_dashboard_data, get_ronda_dashboard_data
+# Importar a nova função do dashboard_service
+from app.services.dashboard_service import get_main_dashboard_data, get_ronda_dashboard_data, get_supervisor_ronda_quality_ranking
 
 logger = logging.getLogger(__name__)
 
-# ... (as rotas 'dashboard' e 'dashboard_metrics' continuam iguais) ...
 @admin_bp.route('/')
 @login_required
 @admin_required
@@ -47,6 +46,10 @@ def ronda_dashboard():
     }
 
     context_data = get_ronda_dashboard_data(filters)
+    
+    # NOVO: Obter o ranking de qualidade dos supervisores
+    supervisor_ranking = get_supervisor_ronda_quality_ranking(filters)
+    context_data['supervisor_ranking'] = supervisor_ranking
 
     context_data['title'] = 'Dashboard de Métricas de Rondas'
     context_data['turnos'] = ['Diurno Par', 'Noturno Par', 'Diurno Impar', 'Noturno Impar']

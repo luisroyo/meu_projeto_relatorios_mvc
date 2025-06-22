@@ -7,6 +7,7 @@ from app import db
 from app.models import Condominio, Ronda, User, EscalaMensal
 from app.forms import TestarRondasForm
 from app.services.ronda_logic import processar_log_de_rondas
+from app.services.ronda_logic.processor import MIN_RONDA_DURATION_MINUTES, MAX_RONDA_DURATION_MINUTES # Importar os limites
 from app.decorators.admin_required import admin_required
 import logging
 
@@ -95,11 +96,11 @@ def registrar_ronda():
         
         if condominio_id_sel:
             try:
-                # A lógica de processamento não precisa criar o condomínio, apenas passar o nome
                 nome_condo_para_processar = nome_condominio_outro_str if condominio_id_sel == 'Outro' else dict(form.nome_condominio.choices).get(condominio_id_sel)
                 
                 data_plantao_fmt = data_plantao_obj.strftime('%d/%m/%Y') if data_plantao_obj else None
-                relatorio, total, p_evento, u_evento, duracao = processar_log_de_rondas(
+                # --- ALTERADO: Captura o novo retorno 'rondas_pareadas' ---
+                relatorio, total, p_evento, u_evento, duracao, rondas_pareadas_processadas = processar_log_de_rondas( #
                     log_bruto_rondas_str=log_bruto, nome_condominio_str=nome_condo_para_processar,
                     data_plantao_manual_str=data_plantao_fmt, escala_plantao_str=escala_plantao_str)
                 
@@ -112,10 +113,10 @@ def registrar_ronda():
         flash('Por favor, corrija os erros no formulário.', 'danger')
 
     return render_template('ronda/relatorio.html',
-                           title=title,
-                           form=form,
-                           relatorio_processado=relatorio_processado_final,
-                           ronda_data_to_save=ronda_data_to_save)
+                            title=title,
+                            form=form,
+                            relatorio_processado=relatorio_processado_final,
+                            ronda_data_to_save=ronda_data_to_save)
 
 
 @ronda_bp.route('/rondas/salvar', methods=['POST'])
@@ -157,7 +158,8 @@ def salvar_ronda():
 
         data_plantao = date.fromisoformat(data_plantao_str)
         
-        relatorio, total, p_evento, u_evento, duracao = processar_log_de_rondas(
+        # --- ALTERADO: Captura o novo retorno 'rondas_pareadas_do_processador' ---
+        relatorio, total, p_evento, u_evento, duracao, rondas_pareadas_do_processador = processar_log_de_rondas( #
             log_bruto_rondas_str=log_bruto, nome_condominio_str=condominio_obj.nome,
             data_plantao_manual_str=data_plantao.strftime('%d/%m/%Y'), escala_plantao_str=escala_plantao)
         
@@ -171,13 +173,44 @@ def salvar_ronda():
             if escala:
                 supervisor_id_para_db = escala.supervisor_id
 
+        # --- NOVO: Lógica para calcular is_incomplete e is_duration_anomalous para a Ronda principal ---
+        is_incomplete_flag = False
+        is_duration_anomalous_flag = False
+
+        if not rondas_pareadas_do_processador and total == 0: # Não encontrou rondas em um log que deveria ter
+            is_incomplete_flag = True
+            is_duration_anomalous_flag = True # Se não há rondas, a duração total é zero ou não aplicável, logo anômala
+
+        for ronda_pareada in rondas_pareadas_do_processador:
+            if ronda_pareada.get('is_incomplete', False): #
+                is_incomplete_flag = True
+            if ronda_pareada.get('is_duration_anomalous', False): #
+                is_duration_anomalous_flag = True
+        
+        # Adicionalmente, verifica a duração total, se a flag já não estiver True
+        if not is_duration_anomalous_flag and duracao is not None:
+            if duracao < MIN_RONDA_DURATION_MINUTES or duracao > MAX_RONDA_DURATION_MINUTES: #
+                is_duration_anomalous_flag = True
+
         if ronda_id: # Atualiza uma ronda existente
             ronda = Ronda.query.get_or_404(ronda_id)
             if not current_user.is_admin and ronda.supervisor_id is not None and ronda.supervisor_id != current_user.id:
-                 return jsonify({'success': False, 'message': 'Você não tem permissão para alterar esta ronda.'}), 403
+                return jsonify({'success': False, 'message': 'Você não tem permissão para alterar esta ronda.'}), 403
 
-            ronda.log_ronda_bruto, ronda.relatorio_processado, ronda.condominio_id, ronda.data_plantao_ronda, ronda.escala_plantao, ronda.turno_ronda, ronda.supervisor_id, ronda.total_rondas_no_log, ronda.primeiro_evento_log_dt, ronda.ultimo_evento_log_dt, ronda.duracao_total_rondas_minutos, ronda.data_hora_fim = \
-                log_bruto, relatorio, condominio_obj.id, data_plantao, escala_plantao, turno_ronda, supervisor_id_para_db, total, p_evento, u_evento, duracao, datetime.now(timezone.utc)
+            ronda.log_ronda_bruto = log_bruto
+            ronda.relatorio_processado = relatorio
+            ronda.condominio_id = condominio_obj.id
+            ronda.data_plantao_ronda = data_plantao
+            ronda.escala_plantao = escala_plantao
+            ronda.turno_ronda = turno_ronda
+            ronda.supervisor_id = supervisor_id_para_db
+            ronda.total_rondas_no_log = total
+            ronda.primeiro_evento_log_dt = p_evento
+            ronda.ultimo_evento_log_dt = u_evento
+            ronda.duracao_total_rondas_minutos = duracao
+            ronda.data_hora_fim = datetime.now(timezone.utc)
+            ronda.is_incomplete = is_incomplete_flag # NOVO
+            ronda.is_duration_anomalous = is_duration_anomalous_flag # NOVO
             
             mensagem_sucesso = 'Ronda atualizada com sucesso!'
         else: # Cria uma nova ronda
@@ -192,11 +225,22 @@ def salvar_ronda():
             # --- FIM DA CORREÇÃO ---
             
             ronda = Ronda(
-                data_hora_inicio=p_evento or datetime.now(timezone.utc), data_hora_fim=datetime.now(timezone.utc),
-                log_ronda_bruto=log_bruto, relatorio_processado=relatorio, condominio_id=condominio_obj.id,
-                escala_plantao=escala_plantao, data_plantao_ronda=data_plantao, turno_ronda=turno_ronda,
-                user_id=current_user.id, supervisor_id=supervisor_id_para_db, total_rondas_no_log=total,
-                primeiro_evento_log_dt=p_evento, ultimo_evento_log_dt=u_evento, duracao_total_rondas_minutos=duracao
+                data_hora_inicio=p_evento or datetime.now(timezone.utc),
+                data_hora_fim=datetime.now(timezone.utc),
+                log_ronda_bruto=log_bruto,
+                relatorio_processado=relatorio,
+                condominio_id=condominio_obj.id,
+                escala_plantao=escala_plantao,
+                data_plantao_ronda=data_plantao,
+                turno_ronda=turno_ronda,
+                user_id=current_user.id,
+                supervisor_id=supervisor_id_para_db,
+                total_rondas_no_log=total,
+                primeiro_evento_log_dt=p_evento,
+                ultimo_evento_log_dt=u_evento,
+                duracao_total_rondas_minutos=duracao,
+                is_incomplete=is_incomplete_flag, # NOVO
+                is_duration_anomalous=is_duration_anomalous_flag # NOVO
             )
             db.session.add(ronda)
             mensagem_sucesso = 'Ronda registrada com sucesso!'
@@ -221,7 +265,13 @@ def listar_rondas():
     data_fim_filter_str = request.args.get('data_fim')
     turno_filter = request.args.get('turno')
     status_ronda_filter = request.args.get('status')
+    
+    # Adicionar filtros para os novos campos
+    is_incomplete_filter = request.args.get('is_incomplete', type=str)
+    is_duration_anomalous_filter = request.args.get('is_duration_anomalous', type=str)
+
     query = Ronda.query.options(db.joinedload(Ronda.condominio_obj), db.joinedload(Ronda.criador), db.joinedload(Ronda.supervisor))
+    
     if condominio_filter:
         condominio_obj = Condominio.query.filter(func.lower(Condominio.nome) == func.lower(condominio_filter)).first()
         query = query.filter(Ronda.condominio_id == condominio_obj.id) if condominio_obj else query.filter(literal(False))
@@ -233,6 +283,18 @@ def listar_rondas():
         query = query.filter(Ronda.data_hora_fim.is_(None))
     elif status_ronda_filter == 'finalizada':
         query = query.filter(Ronda.data_hora_fim.isnot(None))
+    
+    # Aplicar filtros para os novos campos
+    if is_incomplete_filter is not None and is_incomplete_filter.lower() == 'true':
+        query = query.filter(Ronda.is_incomplete == True)
+    elif is_incomplete_filter is not None and is_incomplete_filter.lower() == 'false':
+        query = query.filter(Ronda.is_incomplete == False)
+    
+    if is_duration_anomalous_filter is not None and is_duration_anomalous_filter.lower() == 'true':
+        query = query.filter(Ronda.is_duration_anomalous == True)
+    elif is_duration_anomalous_filter is not None and is_duration_anomalous_filter.lower() == 'false':
+        query = query.filter(Ronda.is_duration_anomalous == False)
+
     if data_inicio_filter_str:
         try:
             data_inicio = datetime.strptime(data_inicio_filter_str, '%Y-%m-%d').date()
@@ -243,18 +305,41 @@ def listar_rondas():
             data_fim = datetime.strptime(data_fim_filter_str, '%Y-%m-%d').date()
             query = query.filter(Ronda.data_plantao_ronda <= data_fim)
         except ValueError: flash('Formato de Data de Fim inválido. Use AAAA-MM-DD.', 'danger')
+    
     if not current_user.is_admin:
         query = query.filter(or_(Ronda.supervisor_id == current_user.id, Ronda.supervisor_id.is_(None)))
+    
     rondas_pagination = query.order_by(Ronda.data_plantao_ronda.desc(), Ronda.data_hora_inicio.desc()).paginate(page=page, per_page=10)
+    
     all_condominios = Condominio.query.order_by(Condominio.nome).all()
     all_supervisors = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
     all_turnos = ['Diurno Par', 'Noturno Par', 'Diurno Impar', 'Noturno Impar']
     all_statuses = [{'value': '', 'label': '-- Todos --'}, {'value': 'em_andamento', 'label': 'Em Andamento'}, {'value': 'finalizada', 'label': 'Finalizada'}]
-    return render_template('ronda/list.html', title='Histórico de Rondas', rondas_pagination=rondas_pagination,
-                           condominios=all_condominios, supervisors=all_supervisors, turnos=all_turnos, statuses=all_statuses,
-                           selected_condominio=condominio_filter, selected_supervisor=supervisor_filter_id,
-                           selected_data_inicio=data_inicio_filter_str, selected_data_fim=data_fim_filter_str,
-                           selected_turno=turno_filter, selected_status=status_ronda_filter)
+    
+    # Opções para os novos filtros booleanos
+    boolean_filter_options = [
+        {'value': '', 'label': '-- Todos --'},
+        {'value': 'true', 'label': 'Sim'},
+        {'value': 'false', 'label': 'Não'}
+    ]
+
+    return render_template('ronda/list.html',
+                            title='Histórico de Rondas',
+                            rondas_pagination=rondas_pagination,
+                            condominios=all_condominios,
+                            supervisors=all_supervisors,
+                            turnos=all_turnos,
+                            statuses=all_statuses,
+                            selected_condominio=condominio_filter,
+                            selected_supervisor=supervisor_filter_id,
+                            selected_data_inicio=data_inicio_filter_str,
+                            selected_data_fim=data_fim_filter_str,
+                            selected_turno=turno_filter,
+                            selected_status=status_ronda_filter,
+                            selected_is_incomplete=is_incomplete_filter, # NOVO
+                            selected_is_duration_anomalous=is_duration_anomalous_filter, # NOVO
+                            boolean_filter_options=boolean_filter_options # NOVO
+                           )
 
 @ronda_bp.route('/rondas/detalhes/<int:ronda_id>')
 @login_required

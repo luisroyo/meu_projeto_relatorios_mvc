@@ -10,6 +10,10 @@ from .utils import normalizar_data_capturada, normalizar_hora_capturada
 
 logger = logging.getLogger(__name__)
 
+# Definir limites para duração anômala (podem ser movidos para config.py se necessário)
+MIN_RONDA_DURATION_MINUTES = 1 # Rondas com duração menor que 1 minuto são anômalas
+MAX_RONDA_DURATION_MINUTES = 180 # Rondas com duração maior que 180 minutos (3 horas) são anômalas
+
 def calcular_intervalo_plantao(data_plantao_str: str, escala_plantao_str: str):
     """
     Calcula o datetime de início e fim do plantão.
@@ -24,7 +28,7 @@ def calcular_intervalo_plantao(data_plantao_str: str, escala_plantao_str: str):
     try:
         data_norm = normalizar_data_capturada(data_plantao_str)
         if not data_norm or len(data_norm.split('/')[2]) != 4:
-                raise ValueError("Data normalizada inválida ou ano não tem 4 dígitos")
+            raise ValueError("Data normalizada inválida ou ano não tem 4 dígitos")
         data_base_dt = datetime.strptime(data_norm, "%d/%m/%Y")
         data_cabecalho = data_norm
     except ValueError as e:
@@ -70,8 +74,8 @@ def processar_log_de_rondas(log_bruto_rondas_str: str,
     logger.info(f"Processando log para: {nome_condominio_str}, Data Plantão: {data_plantao_manual_str}, Escala: {escala_plantao_str}")
     if not log_bruto_rondas_str or not log_bruto_rondas_str.strip():
         logger.warning("Log de ronda bruto está vazio.")
-        # Retorna 5 valores, com 0 para os numéricos
-        return "Nenhum log de ronda fornecido ou log vazio.", 0, None, None, 0
+        # Retorna 6 valores: relatorio, count, primeiro_dt, ultimo_dt, soma_minutos, rondas_pareadas
+        return "Nenhum log de ronda fornecido ou log vazio.", 0, None, None, 0, []
 
     inicio_intervalo_plantao, fim_intervalo_plantao, data_formatada_cabecalho = calcular_intervalo_plantao(data_plantao_manual_str, escala_plantao_str)
 
@@ -163,9 +167,8 @@ def processar_log_de_rondas(log_bruto_rondas_str: str,
         eventos_do_plantao = [ev for ev in eventos_do_plantao if inicio_intervalo_plantao <= ev["datetime_obj"] < fim_intervalo_plantao]
     
     if not eventos_do_plantao:
-        # ... (lógica de mensagem de retorno) ...
-        # Retorna 5 valores
-        return "Nenhum evento de ronda ...", 0, None, None, 0
+        # Retorna 6 valores: relatorio, count, primeiro_dt, ultimo_dt, soma_minutos, rondas_pareadas
+        return "Nenhum evento de ronda ...", 0, None, None, 0, []
 
     eventos_do_plantao.sort(key=lambda x: x["datetime_obj"])
     primeiro_evento_dt = eventos_do_plantao[0]["datetime_obj"]
@@ -173,12 +176,24 @@ def processar_log_de_rondas(log_bruto_rondas_str: str,
 
     logger.info(f"Total de {len(eventos_do_plantao)} eventos encontrados DENTRO do intervalo do plantão.")
 
-    # --- ALTERADO: Recebe 3 valores da função de pareamento ---
     rondas_pareadas, alertas_pareamento, soma_minutos = parear_eventos_ronda(eventos_do_plantao)
 
     if not rondas_pareadas and not alertas_pareamento:
-        # Retorna 5 valores
-        return "Eventos de ronda identificados, mas insuficientes para formar pares ou gerar alertas.", 0, primeiro_evento_dt, ultimo_evento_dt, 0
+        # Retorna 6 valores: relatorio, count, primeiro_dt, ultimo_dt, soma_minutos, rondas_pareadas
+        return "Eventos de ronda identificados, mas insuficientes para formar pares ou gerar alertas.", 0, primeiro_evento_dt, ultimo_evento_dt, 0, []
+
+    # --- NOVO: Adicionar lógica para is_incomplete e is_duration_anomalous ---
+    for ronda in rondas_pareadas:
+        ronda['is_incomplete'] = not (ronda.get("inicio_dt") and ronda.get("termino_dt"))
+        
+        duracao = ronda.get("duracao_minutos")
+        ronda['is_duration_anomalous'] = False
+        if duracao is not None:
+            if duracao < MIN_RONDA_DURATION_MINUTES or duracao > MAX_RONDA_DURATION_MINUTES:
+                ronda['is_duration_anomalous'] = True
+        else: # Se a duração não foi calculada, pode ser considerada anômala
+             ronda['is_duration_anomalous'] = True
+
 
     relatorio_final = formatar_relatorio_rondas(
         nome_condominio_str, data_formatada_cabecalho, escala_plantao_str, 
@@ -187,5 +202,5 @@ def processar_log_de_rondas(log_bruto_rondas_str: str,
     rondas_completas_count = sum(1 for r in rondas_pareadas if r.get("inicio_dt") and r.get("termino_dt"))
     logger.info(f"Relatório para {nome_condominio_str} formatado. {len(eventos_do_plantao)} eventos, {rondas_completas_count} rondas completas.")
     
-    # --- ALTERADO: Retorna 5 valores, incluindo a soma dos minutos ---
-    return relatorio_final, rondas_completas_count, primeiro_evento_dt, ultimo_evento_dt, soma_minutos
+    # --- ALTERADO: Retorna 6 valores, incluindo a lista de rondas_pareadas ---
+    return relatorio_final, rondas_completas_count, primeiro_evento_dt, ultimo_evento_dt, soma_minutos, rondas_pareadas

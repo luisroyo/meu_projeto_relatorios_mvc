@@ -117,6 +117,10 @@ class Ronda(db.Model):
     # Adicionado 'name' para a chave estrangeira
     supervisor_id = db.Column(db.Integer, db.ForeignKey('user.id', name='fk_ronda_supervisor_id'), nullable=True, index=True)
 
+    # Novos campos para qualidade dos dados e anomalias
+    is_incomplete = db.Column(db.Boolean, default=False, nullable=False)
+    is_duration_anomalous = db.Column(db.Boolean, default=False, nullable=False)
+
     def __repr__(self):
         supervisor_nome = self.supervisor.username if self.supervisor else "N/A"
         criador_nome = self.criador.username if self.criador else "N/A"

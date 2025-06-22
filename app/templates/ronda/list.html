@@ -10,7 +10,7 @@
 
     <div class="card shadow-sm mb-4">
         <div class="card-header">
-            <h5 class="mb-0">Filtros de Ronda</h5>
+            <h5 class="mb-0"><i class="bi bi-filter"></i> Filtros de Ronda</h5>
         </div>
         <div class="card-body">
             <form method="GET" action="{{ url_for('ronda.listar_rondas') }}" class="row g-3">
@@ -57,6 +57,24 @@
                     <label for="data_fim" class="form-label">Data Fim:</label>
                     <input type="date" class="form-control" id="data_fim" name="data_fim" value="{{ selected_data_fim or '' }}">
                 </div>
+                {# NOVO: Filtro para Ronda Incompleta #}
+                <div class="col-md-4">
+                    <label for="is_incomplete" class="form-label">Ronda Incompleta?</label>
+                    <select class="form-select" id="is_incomplete" name="is_incomplete">
+                        {% for option in boolean_filter_options %}
+                            <option value="{{ option.value }}" {% if selected_is_incomplete == option.value %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {# NOVO: Filtro para Duração Anômala #}
+                <div class="col-md-4">
+                    <label for="is_duration_anomalous" class="form-label">Duração Anômala?</label>
+                    <select class="form-select" id="is_duration_anomalous" name="is_duration_anomalous">
+                        {% for option in boolean_filter_options %}
+                            <option value="{{ option.value }}" {% if selected_is_duration_anomalous == option.value %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <div class="col-12">
                     <button type="submit" class="btn btn-primary me-2"><i class="bi bi-filter me-1"></i>Aplicar Filtros</button>
                     <a href="{{ url_for('ronda.listar_rondas') }}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Limpar Filtros</a>
@@ -78,7 +96,10 @@
                     <th>Supervisor</th>
                     <th>Início Ronda</th>
                     <th>Fim Ronda</th>
+                    <th>Duração (min)</th> {# Adicionada coluna de duração #}
                     <th>Status</th>
+                    <th class="text-center">Incompleta?</th> {# NOVO: Cabeçalho #}
+                    <th class="text-center">Duração Anômala?</th> {# NOVO: Cabeçalho #}
                     <th class="text-center">Ações</th>
                 </tr>
             </thead>
@@ -91,13 +112,29 @@
                     <td>{{ ronda.turno_ronda or 'N/A' }}</td>
                     <td>{{ ronda.criador.username if ronda.criador else 'N/A' }}</td>
                     <td>{{ ronda.supervisor.username if ronda.supervisor else 'N/A' }}</td>
-                    <td>{{ ronda.data_hora_inicio | localtime }}</td>
-                    <td>{{ ronda.data_hora_fim | localtime }}</td>
+                    <td>{{ ronda.primeiro_evento_log_dt | localtime }}</td> {# Alterado para usar primeiro_evento_log_dt #}
+                    <td>{{ ronda.ultimo_evento_log_dt | localtime }}</td> {# Alterado para usar ultimo_evento_log_dt #}
+                    <td>{{ ronda.duracao_total_rondas_minutos if ronda.duracao_total_rondas_minutos is not none else 'N/A' }}</td> {# Exibe a duração total #}
                     <td>
                         {% if ronda.data_hora_fim %}
                             <span class="badge bg-success">Finalizada</span>
                         {% else %}
                             <span class="badge bg-info text-dark">Em Andamento</span>
+                        {% endif %}
+                    </td>
+                    {# NOVO: Células para os status de Incompleta e Duração Anômala #}
+                    <td class="text-center">
+                        {% if ronda.is_incomplete %}
+                            <i class="bi bi-x-circle-fill text-danger" title="Sim"></i>
+                        {% else %}
+                            <i class="bi bi-check-circle-fill text-success" title="Não"></i>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if ronda.is_duration_anomalous %}
+                            <i class="bi bi-x-circle-fill text-danger" title="Sim"></i>
+                        {% else %}
+                            <i class="bi bi-check-circle-fill text-success" title="Não"></i>
                         {% endif %}
                     </td>
                     <td class="text-center">
@@ -123,10 +160,12 @@
 
     {% if rondas_pagination %}
     <div class="mt-4">
-         {{ render_pagination(rondas_pagination, 'ronda.listar_rondas', 
-            condominio=selected_condominio, supervisor=selected_supervisor, 
-            data_inicio=selected_data_inicio, data_fim=selected_data_fim, 
-            turno=selected_turno, status=selected_status) }}
+            {{ render_pagination(rondas_pagination, 'ronda.listar_rondas', 
+                condominio=selected_condominio, supervisor=selected_supervisor, 
+                data_inicio=selected_data_inicio, data_fim=selected_data_fim, 
+                turno=selected_turno, status=selected_status,
+                is_incomplete=selected_is_incomplete,
+                is_duration_anomalous=selected_is_duration_anomalous) }}
     </div>
     {% endif %}
 
