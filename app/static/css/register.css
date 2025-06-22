@@ -1,13 +1,26 @@
-/* Estilos base (mobile) */
-.login-container {
-    width: 90%;
-    padding: 20px;
+/* /app/static/css/register.css - CÓDIGO CORRETO */
+
+.register-page-body {
+    background-image: url('../images/login-background.jpg'); /* Reutilizamos a mesma imagem */
+    background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem 0; /* Espaço vertical para formulários longos em telas pequenas */
 }
 
-/* Telas maiores */
-@media (min-width: 576px) { /* Ponto de quebra similar ao 'sm' do Bootstrap */
-    .login-container {
-        max-width: 420px;
-        padding: 30px 40px;
-    }
+.register-page-body .card {
+    max-width: 450px; /* Mesma largura do card de login para consistência */
+    width: 100%;
+    background-color: var(--content-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.register-page-body .card:hover {
+    transform: none;
+    box-shadow: var(--box-shadow);
 }

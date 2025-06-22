@@ -1,78 +1,76 @@
 {% extends "base.html" %}
+{% set full_page_layout = True %}
 
-{% block title %}Criar Conta - Assistente de Relatórios IA{% endblock %}
-
-{# Adiciona uma classe específica ao body para esta página, se necessário para o CSS em register.css #}
+{% block title %}Criar Nova Conta - Assistente IA Seg{% endblock %}
 {% block body_class %}register-page-body{% endblock %}
 
+{% block head_extra %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    {# A coluna pode ser um pouco mais larga que a de login para acomodar mais campos, se necessário #}
-    <div class="col-md-8 col-lg-7 col-xl-6"> 
-        <div class="card shadow-sm">
-            <div class="card-body p-4 p-md-5">
-                <h2 class="card-title text-center mb-4">Criar Nova Conta</h2>
-                {# CORRIGIDO: O action do formulário deve apontar para 'auth.register' #}
-                <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
-                    {{ form.hidden_tag() }}
-                    
-                    <div class="mb-3">
-                        {{ form.username.label(class="form-label") }}
-                        {{ form.username(class="form-control form-control-lg" + (" is-invalid" if form.username.errors else ""), placeholder="Escolha um nome de usuário") }}
-                        {% if form.username.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.username.errors %}
-                                    <span>{{ error }}</span><br>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
+<div class="card">
+    <div class="card-body p-4 p-md-5">
+        <h2 class="card-title text-center fw-bold mb-4">Criar Nova Conta</h2>
+
+        <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.username.label(class="form-label") }}
+                {{ form.username(class="form-control form-control-lg" + (" is-invalid" if form.username.errors else ""), placeholder="Escolha um nome de usuário") }}
+                {% if form.username.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.username.errors %}
+                            <span>{{ error }}</span><br>
+                        {% endfor %}
                     </div>
-                    
-                    <div class="mb-3">
-                        {{ form.email.label(class="form-label") }}
-                        {{ form.email(class="form-control form-control-lg" + (" is-invalid" if form.email.errors else ""), placeholder="Seu melhor e-mail") }}
-                        {% if form.email.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.email.errors %}
-                                    <span>{{ error }}</span><br>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control form-control-lg" + (" is-invalid" if form.password.errors else ""), placeholder="Crie uma senha forte") }}
-                        {% if form.password.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.password.errors %}
-                                    <span>{{ error }}</span><br>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.confirm_password.label(class="form-label") }}
-                        {{ form.confirm_password(class="form-control form-control-lg" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Confirme sua senha") }}
-                        {% if form.confirm_password.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.confirm_password.errors %}
-                                    <span>{{ error }}</span><br>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="d-grid mb-3 mt-4"> {# mt-4 para um pouco de espaço antes do botão #}
-                        {{ form.submit(class="btn btn-primary btn-lg") }}
-                    </div>
-                </form>
-                <div class="text-center mt-4">
-                    {# Este link já estava correto #}
-                    <p class="mb-0">Já tem uma conta? <a href="{{ url_for('auth.login') }}">Faça login aqui</a></p>
-                </div>
+                {% endif %}
             </div>
+
+            <div class="mb-3">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control form-control-lg" + (" is-invalid" if form.email.errors else ""), placeholder="Seu melhor e-mail") }}
+                {% if form.email.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.email.errors %}
+                            <span>{{ error }}</span><br>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.password.label(class="form-label") }}
+                {{ form.password(class="form-control form-control-lg" + (" is-invalid" if form.password.errors else ""), placeholder="Crie uma senha forte") }}
+                {% if form.password.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.password.errors %}
+                            <span>{{ error }}</span><br>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.confirm_password.label(class="form-label") }}
+                {{ form.confirm_password(class="form-control form-control-lg" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Confirme sua senha") }}
+                {% if form.confirm_password.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.confirm_password.errors %}
+                            <span>{{ error }}</span><br>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="d-grid mb-3 mt-4">
+                {{ form.submit(class="btn btn-primary btn-lg w-100") }}
+            </div>
+        </form>
+
+        <div class="text-center text-muted-custom">
+            Já tem uma conta? <a href="{{ url_for('auth.login') }}" class="fw-bold">Faça login aqui</a>
         </div>
     </div>
 </div>
