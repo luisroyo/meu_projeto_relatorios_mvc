@@ -8,8 +8,8 @@ from . import admin_bp
 from app import db
 from app.decorators.admin_required import admin_required
 from app.models import User, Condominio, LoginHistory, ProcessingHistory
-# Importar a nova função do dashboard_service
-from app.services.dashboard_service import get_main_dashboard_data, get_ronda_dashboard_data, get_supervisor_ronda_quality_ranking
+# Importar as novas funções do dashboard_service
+from app.services.dashboard_service import get_main_dashboard_data, get_ronda_dashboard_data, get_supervisor_ronda_quality_ranking, get_ronda_anomalies_report # NOVO IMPORT
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +47,13 @@ def ronda_dashboard():
 
     context_data = get_ronda_dashboard_data(filters)
     
-    # NOVO: Obter o ranking de qualidade dos supervisores
+    # Obter o ranking de qualidade dos supervisores
     supervisor_ranking = get_supervisor_ronda_quality_ranking(filters)
     context_data['supervisor_ranking'] = supervisor_ranking
+
+    # NOVO: Obter o relatório de anomalias
+    ronda_anomalies_report = get_ronda_anomalies_report(filters) # NOVO
+    context_data['ronda_anomalies_report'] = ronda_anomalies_report # NOVO
 
     context_data['title'] = 'Dashboard de Métricas de Rondas'
     context_data['turnos'] = ['Diurno Par', 'Noturno Par', 'Diurno Impar', 'Noturno Impar']

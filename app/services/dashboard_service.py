@@ -1,6 +1,6 @@
 # app/services/dashboard_service.py
 from flask import flash
-from sqlalchemy import func, and_, cast, Float, case
+from sqlalchemy import func, and_, or_, cast, Float, case # Importar 'or_' para combinar condições
 from datetime import datetime, timedelta, timezone
 
 from app import db
@@ -265,3 +265,58 @@ def get_supervisor_ronda_quality_ranking(filters=None):
         })
 
     return ranking_final
+
+def get_ronda_anomalies_report(filters=None):
+    """
+    Busca rondas que apresentam anomalias: não encerradas, incompletas ou com duração anômala.
+    """
+    if filters is None:
+        filters = {}
+
+    turno_filter = filters.get('turno')
+    supervisor_id_filter = filters.get('supervisor_id')
+    condominio_id_filter = filters.get('condominio_id')
+    data_inicio_str = filters.get('data_inicio_str')
+    data_fim_str = filters.get('data_fim_str')
+
+    data_inicio, data_fim = None, None
+    try:
+        if data_inicio_str:
+            data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%d').date()
+        if data_fim_str:
+            data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
+    except ValueError:
+        # Flash message handled by the caller if this is part of a web request
+        pass # Or logger.warning("Invalid date format for anomaly report filters.")
+
+    query = Ronda.query.options(db.joinedload(Ronda.condominio_obj), db.joinedload(Ronda.criador), db.joinedload(Ronda.supervisor))
+
+    # Aplica os filtros gerais
+    if turno_filter:
+        query = query.filter(Ronda.turno_ronda == turno_filter)
+    if supervisor_id_filter:
+        query = query.filter(Ronda.supervisor_id == supervisor_id_filter)
+    if condominio_id_filter:
+        query = query.filter(Ronda.condominio_id == condominio_id_filter)
+    if data_inicio:
+        query = query.filter(Ronda.data_plantao_ronda >= data_inicio)
+    if data_fim:
+        query = query.filter(Ronda.data_plantao_ronda <= data_fim)
+
+    # Filtra por anomalias:
+    # 1. Rondas iniciadas e não encerradas (data_hora_fim é nula)
+    # 2. Rondas marcadas como incompletas
+    # 3. Rondas marcadas com duração anômala
+    query = query.filter(
+        or_(
+            Ronda.data_hora_fim.is_(None),
+            Ronda.is_incomplete == True,
+            Ronda.is_duration_anomalous == True
+        )
+    )
+
+    # Ordena para melhor visualização no relatório
+    query = query.order_by(Ronda.data_plantao_ronda.desc(), Ronda.data_hora_inicio.desc())
+
+    # Retorna os objetos Ronda encontrados
+    return query.all()
