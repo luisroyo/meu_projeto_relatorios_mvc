@@ -1,4 +1,3 @@
-# app/__init__.py
 import os
 import logging
 from datetime import datetime as dt, timezone
@@ -90,7 +89,7 @@ def create_app():
 
     # --- Registro de Blueprints e Comandos ---
     with app_instance.app_context():
-        from . import models
+        from . import models # Importar models para que SQLAlchemy possa encontrá-los
         from app.blueprints.main.routes import main_bp
         app_instance.register_blueprint(main_bp)
         from app.blueprints.auth.routes import auth_bp
@@ -101,9 +100,10 @@ def create_app():
         app_instance.register_blueprint(ronda_bp, url_prefix='/ronda')
 
     from . import commands
-    app_instance.cli.add_command(commands.seed_db_command)
-    # --- CORREÇÃO APLICADA AQUI: Registra o novo comando ---
-    app_instance.cli.add_command(commands.assign_supervisors_command)
+    # REMOVIDO: app_instance.cli.add_command(commands.seed_db_command)
+    # REMOVIDO: app_instance.cli.add_command(commands.assign_supervisors_command)
+    # NOVO: Chamar a função init_app de commands para registrar todos os comandos
+    commands.init_app(app_instance) # CORREÇÃO APLICADA AQUI
 
     @app_instance.context_processor
     def inject_current_year():

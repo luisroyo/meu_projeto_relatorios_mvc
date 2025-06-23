@@ -103,8 +103,6 @@ class Ronda(db.Model):
     escala_plantao = db.Column(db.String(100), nullable=True)
     data_plantao_ronda = db.Column(db.Date, nullable=True, index=True)
 
-    # user_id: o usuário que CRIOU a ronda
-    # Adicionado 'name' para a chave estrangeira
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', name='fk_ronda_criador_id'), nullable=False, index=True)
 
     total_rondas_no_log = db.Column(db.Integer, nullable=True, default=0)
@@ -113,13 +111,13 @@ class Ronda(db.Model):
 
     duracao_total_rondas_minutos = db.Column(db.Integer, default=0)
 
-    # NOVO CAMPO: supervisor_id para o usuário supervisor
-    # Adicionado 'name' para a chave estrangeira
     supervisor_id = db.Column(db.Integer, db.ForeignKey('user.id', name='fk_ronda_supervisor_id'), nullable=True, index=True)
 
-    # Novos campos para qualidade dos dados e anomalias
     is_incomplete = db.Column(db.Boolean, default=False, nullable=False)
     is_duration_anomalous = db.Column(db.Boolean, default=False, nullable=False)
+
+    # Relacionamento com RondaSegmento
+    ronda_segments = db.relationship('RondaSegmento', backref='parent_ronda', lazy='dynamic', cascade="all, delete-orphan")
 
     def __repr__(self):
         supervisor_nome = self.supervisor.username if self.supervisor else "N/A"
@@ -131,6 +129,29 @@ class Ronda(db.Model):
             f'Criador: {criador_nome} '
             f'Supervisor: {supervisor_nome} '
             f'Total Rondas: {self.total_rondas_no_log or 0}>'
+        )
+
+class RondaSegmento(db.Model):
+    __tablename__ = 'ronda_segmento'
+    id = db.Column(db.Integer, primary_key=True)
+    
+    ronda_id = db.Column(db.Integer, db.ForeignKey('ronda.id', ondelete='CASCADE'), nullable=False, index=True)
+    
+    # Detalhes do segmento individual da ronda - AGORA NULÁVEIS
+    inicio_dt = db.Column(db.DateTime, nullable=True) # ALTERADO para nullable=True
+    termino_dt = db.Column(db.DateTime, nullable=True)
+    duracao_minutos = db.Column(db.Integer, nullable=False)
+    vtr = db.Column(db.String(50), nullable=True) # Viatura associada ao segmento
+
+    # Flags de qualidade específicas para o segmento
+    is_incomplete_segment = db.Column(db.Boolean, default=False, nullable=False)
+    is_duration_anomalous_segment = db.Column(db.Boolean, default=False, nullable=False)
+
+    def __repr__(self):
+        return (
+            f'<RondaSegmento {self.id} (Ronda:{self.ronda_id}) '
+            f'VTR:{self.vtr} Início:{self.inicio_dt.strftime("%H:%M") if self.inicio_dt else "N/A"} '
+            f'Duração:{self.duracao_minutos}min>'
         )
 
 class ProcessingHistory(db.Model):
@@ -146,7 +167,6 @@ class ProcessingHistory(db.Model):
         status = "Sucesso" if self.success else "Falha"
         return f'<ProcessingHistory {self.id} ({self.processing_type}) by User {self.user_id} - {status}>'
     
-#ADICIONE ESTA NOVA CLASSE NO FINAL DO ARQUIVO
 class EscalaMensal(db.Model):
     __tablename__ = 'escala_mensal'
     id = db.Column(db.Integer, primary_key=True)

@@ -1,10 +1,9 @@
-# app/blueprints/ronda/routes.py
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import desc, func, or_, literal
 from datetime import datetime, date, time, timedelta, timezone
 from app import db
-from app.models import Condominio, Ronda, User, EscalaMensal
+from app.models import Condominio, Ronda, User, EscalaMensal, RondaSegmento # NOVO: Importar RondaSegmento
 from app.forms import TestarRondasForm
 from app.services.ronda_logic import processar_log_de_rondas
 from app.services.ronda_logic.processor import MIN_RONDA_DURATION_MINUTES, MAX_RONDA_DURATION_MINUTES # Importar os limites
@@ -99,8 +98,8 @@ def registrar_ronda():
                 nome_condo_para_processar = nome_condominio_outro_str if condominio_id_sel == 'Outro' else dict(form.nome_condominio.choices).get(condominio_id_sel)
                 
                 data_plantao_fmt = data_plantao_obj.strftime('%d/%m/%Y') if data_plantao_obj else None
-                # --- ALTERADO: Captura o novo retorno 'rondas_pareadas' ---
-                relatorio, total, p_evento, u_evento, duracao, rondas_pareadas_processadas = processar_log_de_rondas( #
+                # Captura o novo retorno 'rondas_pareadas_processadas'
+                relatorio, total, p_evento, u_evento, duracao, rondas_pareadas_processadas = processar_log_de_rondas(
                     log_bruto_rondas_str=log_bruto, nome_condominio_str=nome_condo_para_processar,
                     data_plantao_manual_str=data_plantao_fmt, escala_plantao_str=escala_plantao_str)
                 
@@ -158,8 +157,8 @@ def salvar_ronda():
 
         data_plantao = date.fromisoformat(data_plantao_str)
         
-        # --- ALTERADO: Captura o novo retorno 'rondas_pareadas_do_processador' ---
-        relatorio, total, p_evento, u_evento, duracao, rondas_pareadas_do_processador = processar_log_de_rondas( #
+        # Captura o novo retorno 'rondas_pareadas_do_processador'
+        relatorio, total, p_evento, u_evento, duracao, rondas_pareadas_do_processador = processar_log_de_rondas(
             log_bruto_rondas_str=log_bruto, nome_condominio_str=condominio_obj.nome,
             data_plantao_manual_str=data_plantao.strftime('%d/%m/%Y'), escala_plantao_str=escala_plantao)
         
@@ -173,29 +172,33 @@ def salvar_ronda():
             if escala:
                 supervisor_id_para_db = escala.supervisor_id
 
-        # --- NOVO: Lógica para calcular is_incomplete e is_duration_anomalous para a Ronda principal ---
+        # Lógica para calcular is_incomplete e is_duration_anomalous para a Ronda principal
         is_incomplete_flag = False
         is_duration_anomalous_flag = False
 
-        if not rondas_pareadas_do_processador and total == 0: # Não encontrou rondas em um log que deveria ter
+        if not rondas_pareadas_do_processador and total == 0:
             is_incomplete_flag = True
-            is_duration_anomalous_flag = True # Se não há rondas, a duração total é zero ou não aplicável, logo anômala
+            is_duration_anomalous_flag = True
 
         for ronda_pareada in rondas_pareadas_do_processador:
-            if ronda_pareada.get('is_incomplete', False): #
+            if ronda_pareada.get('is_incomplete', False):
                 is_incomplete_flag = True
-            if ronda_pareada.get('is_duration_anomalous', False): #
+            if ronda_pareada.get('is_duration_anomalous', False):
                 is_duration_anomalous_flag = True
         
         # Adicionalmente, verifica a duração total, se a flag já não estiver True
         if not is_duration_anomalous_flag and duracao is not None:
-            if duracao < MIN_RONDA_DURATION_MINUTES or duracao > MAX_RONDA_DURATION_MINUTES: #
+            if duracao < MIN_RONDA_DURATION_MINUTES or duracao > MAX_RONDA_DURATION_MINUTES:
                 is_duration_anomalous_flag = True
 
         if ronda_id: # Atualiza uma ronda existente
             ronda = Ronda.query.get_or_404(ronda_id)
             if not current_user.is_admin and ronda.supervisor_id is not None and ronda.supervisor_id != current_user.id:
                 return jsonify({'success': False, 'message': 'Você não tem permissão para alterar esta ronda.'}), 403
+            
+            # NOVO: Deletar segmentos antigos antes de atualizar a ronda principal
+            RondaSegmento.query.filter_by(ronda_id=ronda.id).delete() # Garante que segmentos antigos sejam removidos
+            db.session.flush() # Descarrega para o banco para que as novas FKs não falhem
 
             ronda.log_ronda_bruto = log_bruto
             ronda.relatorio_processado = relatorio
@@ -209,8 +212,8 @@ def salvar_ronda():
             ronda.ultimo_evento_log_dt = u_evento
             ronda.duracao_total_rondas_minutos = duracao
             ronda.data_hora_fim = datetime.now(timezone.utc)
-            ronda.is_incomplete = is_incomplete_flag # NOVO
-            ronda.is_duration_anomalous = is_duration_anomalous_flag # NOVO
+            ronda.is_incomplete = is_incomplete_flag
+            ronda.is_duration_anomalous = is_duration_anomalous_flag
             
             mensagem_sucesso = 'Ronda atualizada com sucesso!'
         else: # Cria uma nova ronda
@@ -239,12 +242,27 @@ def salvar_ronda():
                 primeiro_evento_log_dt=p_evento,
                 ultimo_evento_log_dt=u_evento,
                 duracao_total_rondas_minutos=duracao,
-                is_incomplete=is_incomplete_flag, # NOVO
-                is_duration_anomalous=is_duration_anomalous_flag # NOVO
+                is_incomplete=is_incomplete_flag,
+                is_duration_anomalous=is_duration_anomalous_flag
             )
             db.session.add(ronda)
+            db.session.flush() # Garante que a ronda.id esteja disponível antes de criar segmentos
+
             mensagem_sucesso = 'Ronda registrada com sucesso!'
             
+        # NOVO: Salvar RondaSegmento
+        for segment_data in rondas_pareadas_do_processador:
+            segmento = RondaSegmento(
+                ronda_id=ronda.id,
+                inicio_dt=segment_data['datetime_obj'] if segment_data.get('tipo') == 'inicio' else segment_data['inicio_dt'],
+                termino_dt=segment_data['datetime_obj'] if segment_data.get('tipo') == 'termino' else segment_data['termino_dt'],
+                duracao_minutos=segment_data.get('duracao_minutos', 0),
+                vtr=segment_data.get('vtr'),
+                is_incomplete_segment=segment_data.get('is_incomplete', False),
+                is_duration_anomalous_segment=segment_data.get('is_duration_anomalous', False)
+            )
+            db.session.add(segmento)
+
         db.session.commit()
         return jsonify({'success': True, 'message': mensagem_sucesso, 'ronda_id': ronda.id}), 200
 
@@ -336,19 +354,23 @@ def listar_rondas():
                             selected_data_fim=data_fim_filter_str,
                             selected_turno=turno_filter,
                             selected_status=status_ronda_filter,
-                            selected_is_incomplete=is_incomplete_filter, # NOVO
-                            selected_is_duration_anomalous=is_duration_anomalous_filter, # NOVO
-                            boolean_filter_options=boolean_filter_options # NOVO
+                            selected_is_incomplete=is_incomplete_filter,
+                            selected_is_duration_anomalous=is_duration_anomalous_filter,
+                            boolean_filter_options=boolean_filter_options
                            )
 
 @ronda_bp.route('/rondas/detalhes/<int:ronda_id>')
 @login_required
 def detalhes_ronda(ronda_id):
     ronda = Ronda.query.options(db.joinedload(Ronda.criador), db.joinedload(Ronda.condominio_obj), db.joinedload(Ronda.supervisor)).get_or_404(ronda_id)
+    # NOVO: Carregar os segmentos da ronda
+    ronda_segments = RondaSegmento.query.filter_by(ronda_id=ronda.id).order_by(RondaSegmento.inicio_dt).all()
+
+
     if not (current_user.is_admin or current_user.is_supervisor):
         flash("Você não tem permissão para visualizar os detalhes desta ronda.", 'danger')
         return redirect(url_for('ronda.listar_rondas'))
-    return render_template('ronda/details.html', title=f'Detalhes da Ronda #{ronda.id}', ronda=ronda)
+    return render_template('ronda/details.html', title=f'Detalhes da Ronda #{ronda.id}', ronda=ronda, ronda_segments=ronda_segments)
 
 @ronda_bp.route('/rondas/excluir/<int:ronda_id>', methods=['POST', 'DELETE'])
 @login_required
@@ -356,6 +378,8 @@ def detalhes_ronda(ronda_id):
 def excluir_ronda(ronda_id):
     ronda_to_delete = Ronda.query.get_or_404(ronda_id)
     try:
+        # Devido ao cascade="all, delete-orphan" no relacionamento em Ronda,
+        # os RondaSegmento associados serão automaticamente deletados.
         db.session.delete(ronda_to_delete)
         db.session.commit()
         message = f'Ronda {ronda_id} excluída com sucesso.'

@@ -132,7 +132,7 @@
         </div>
     </div>
 
-    {# ... (os gráficos da visão geral continuam iguais) ... #}
+    {# Gráficos da visão geral #}
     <div class="row">
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm">
@@ -175,6 +175,18 @@
                 <div class="card-header">Total de Rondas por Turno</div>
                 <div class="card-body">
                     <canvas id="rondasPorTurnoChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# NOVO: Gráfico de Rondas com Duração Anômala (Baixa Duração) por Condomínio #}
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">Rondas com Duração Anômala (Baixa Duração) por Condomínio</div>
+                <div class="card-body">
+                    <canvas id="rondasBaixaDuracaoChart"></canvas>
                 </div>
             </div>
         </div>
@@ -327,6 +339,9 @@
         renderChart(document.getElementById('rondaActivityChart'), 'bar', {{ ronda_date_labels | tojson }}, {{ ronda_activity_data | tojson }}, 'Total de Rondas por Dia', barColors, barBorders);
         renderChart(document.getElementById('duracaoMediaChart'), 'bar', {{ duracao_condominio_labels | tojson }}, {{ duracao_media_data | tojson }}, 'Duração Média (min)', barColors, barBorders);
         renderChart(document.getElementById('rondasPorTurnoChart'), 'bar', {{ turno_labels | tojson }}, {{ rondas_por_turno_data | tojson }}, '# de Rondas', barColors, barBorders);
+        
+        // NOVO: Renderiza o gráfico de rondas com baixa duração por condomínio
+        renderChart(document.getElementById('rondasBaixaDuracaoChart'), 'bar', {{ condominio_baixa_duracao_labels | tojson }}, {{ rondas_baixa_duracao_data | tojson }}, 'Rondas com Baixa Duração', barColors, barBorders);
 
         const turnoDiaCtx = document.getElementById('rondasPorTurnoDiaChart');
         const dadosDiaDetalhado = {{ dados_dia_detalhado | tojson }};

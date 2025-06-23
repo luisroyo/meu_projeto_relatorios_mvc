@@ -1,10 +1,14 @@
 # app/services/dashboard_service.py
+import logging
 from flask import flash
-from sqlalchemy import func, and_, or_, cast, Float, case # Importar 'or_' para combinar condições
+from sqlalchemy import func, and_, or_, cast, Float, case
 from datetime import datetime, timedelta, timezone
 
 from app import db
 from app.models import User, Ronda, Condominio, LoginHistory, ProcessingHistory
+from app.services.ronda_logic.processor import MIN_RONDA_DURATION_MINUTES # Importa a constante para usar na lógica
+
+logger = logging.getLogger(__name__) # Instancia o logger para este módulo
 
 def get_main_dashboard_data():
     """Busca e processa os dados para o dashboard principal de métricas."""
@@ -88,36 +92,68 @@ def get_ronda_dashboard_data(filters):
             query = query.filter(Ronda.data_plantao_ronda <= data_fim)
         return query
 
-    # ... (consultas existentes para os gráficos principais) ...
-    rondas_por_condominio_q = db.session.query(Condominio.nome, func.sum(Ronda.total_rondas_no_log)).outerjoin(Ronda, Condominio.id == Ronda.condominio_id) #
+    # --- DEBUG: Teste direto para rondas com baixa duração em todo o DB (ou ampla data) ---
+    # Remova ou comente isso após o diagnóstico
+    test_rondas_baixa_duracao_all_db = db.session.query(
+        Condominio.nome,
+        func.count(Ronda.id)
+    ).outerjoin(Ronda, Condominio.id == Ronda.condominio_id).filter(
+        Ronda.is_duration_anomalous == True, # Mantenho essa condição para o teste completo
+        Ronda.duracao_total_rondas_minutos < MIN_RONDA_DURATION_MINUTES
+    ).group_by(Condominio.nome).all()
+    
+    logger.debug(f"DEBUG: Rondas com Baixa Duração (Sem Filtros do Dashboard Aplicados): {test_rondas_baixa_duracao_all_db}")
+    # --- FIM DEBUG TESTE ---
+
+    rondas_por_condominio_q = db.session.query(Condominio.nome, func.sum(Ronda.total_rondas_no_log)).outerjoin(Ronda, Condominio.id == Ronda.condominio_id)
     rondas_por_condominio_q = apply_filters(rondas_por_condominio_q)
     rondas_por_condominio = rondas_por_condominio_q.group_by(Condominio.nome).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
     condominio_labels = [item[0] for item in rondas_por_condominio]
     rondas_por_condominio_data = [item[1] if item[1] is not None else 0 for item in rondas_por_condominio]
 
-    media_expression = cast(func.coalesce(func.sum(Ronda.duracao_total_rondas_minutos), 0), Float) / cast(func.coalesce(func.sum(Ronda.total_rondas_no_log), 1), Float) #
+    media_expression = cast(func.coalesce(func.sum(Ronda.duracao_total_rondas_minutos), 0), Float) / cast(func.coalesce(func.sum(Ronda.total_rondas_no_log), 1), Float)
     duracao_media_q = db.session.query(Condominio.nome, media_expression).outerjoin(Ronda, Ronda.condominio_id == Condominio.id)
     duracao_media_q = apply_filters(duracao_media_q)
     duracao_media_por_condominio_raw = duracao_media_q.group_by(Condominio.nome).order_by(media_expression.desc()).all()
     duracao_condominio_labels = [item[0] for item in duracao_media_por_condominio_raw]
     duracao_media_data = [round(item[1], 2) if item[1] is not None else 0 for item in duracao_media_por_condominio_raw]
 
-    rondas_por_turno_q = db.session.query(Ronda.turno_ronda, func.sum(Ronda.total_rondas_no_log)) #
+    # Contagem de rondas com duração anômala (baixa duração) por condomínio
+    rondas_baixa_duracao_q = db.session.query(
+        Condominio.nome,
+        func.count(Ronda.id)
+    ).outerjoin(Ronda, Condominio.id == Ronda.condominio_id)
+    
+    # AQUI ESTÁ A MUDANÇA PRINCIPAL: Filtra APENAS pelo limite INFERIOR da duração, AGORA INCLUINDO IGUALDADE
+    rondas_baixa_duracao_q = apply_filters(rondas_baixa_duracao_q).filter(
+        Ronda.duracao_total_rondas_minutos <= MIN_RONDA_DURATION_MINUTES # ALTERADO para <=
+    )
+    
+    rondas_baixa_duracao_por_condominio = rondas_baixa_duracao_q.group_by(Condominio.nome).order_by(func.count(Ronda.id).desc()).all()
+    
+    logger.debug(f"Rondas com Baixa Duração por Condomínio (raw): {rondas_baixa_duracao_por_condominio}")
+
+    # Formata os dados para o dashboard
+    condominio_baixa_duracao_labels = [item[0] for item in rondas_baixa_duracao_por_condominio]
+    rondas_baixa_duracao_data = [item[1] if item[1] is not None else 0 for item in rondas_baixa_duracao_por_condominio]
+
+
+    rondas_por_turno_q = db.session.query(Ronda.turno_ronda, func.sum(Ronda.total_rondas_no_log))
     rondas_por_turno_q = apply_filters(rondas_por_turno_q)
-    rondas_por_turno = rondas_por_turno_q.filter(Ronda.turno_ronda.isnot(None), Ronda.total_rondas_no_log.isnot(None)).group_by(Ronda.turno_ronda).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all() #
+    rondas_por_turno = rondas_por_turno_q.filter(Ronda.turno_ronda.isnot(None), Ronda.total_rondas_no_log.isnot(None)).group_by(Ronda.turno_ronda).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
     turno_labels = [item[0] for item in rondas_por_turno]
     rondas_por_turno_data = [item[1] if item[1] is not None else 0 for item in rondas_por_turno]
 
-    rondas_por_supervisor_q = db.session.query(User.username, func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)).outerjoin(Ronda, User.id == Ronda.supervisor_id).filter(User.is_supervisor == True) #
+    rondas_por_supervisor_q = db.session.query(User.username, func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)).outerjoin(Ronda, User.id == Ronda.supervisor_id).filter(User.is_supervisor == True)
     rondas_por_supervisor_q = apply_filters(rondas_por_supervisor_q)
-    rondas_por_supervisor = rondas_por_supervisor_q.group_by(User.username).order_by(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0).desc()).all() #
+    rondas_por_supervisor = rondas_por_supervisor_q.group_by(User.username).order_by(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0).desc()).all()
     supervisor_labels = [item[0] for item in rondas_por_supervisor]
     rondas_por_supervisor_data = [item[1] for item in rondas_por_supervisor]
 
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
-    rondas_por_dia_q = db.session.query(func.date(Ronda.data_plantao_ronda), func.sum(Ronda.total_rondas_no_log)) #
-    rondas_por_dia_q = apply_filters(rondas_por_dia_q).filter(Ronda.total_rondas_no_log.isnot(None)) #
-    rondas_por_dia = rondas_por_dia_q.group_by(func.date(Ronda.data_plantao_ronda)).order_by(func.date(Ronda.data_plantao_ronda)).all() #
+    rondas_por_dia_q = db.session.query(func.date(Ronda.data_plantao_ronda), func.sum(Ronda.total_rondas_no_log))
+    rondas_por_dia_q = apply_filters(rondas_por_dia_q).filter(Ronda.total_rondas_no_log.isnot(None))
+    rondas_por_dia = rondas_por_dia_q.group_by(func.date(Ronda.data_plantao_ronda)).order_by(func.date(Ronda.data_plantao_ronda)).all()
     
     date_start_range = data_inicio if data_inicio else thirty_days_ago.date()
     date_end_range = data_fim if data_fim else datetime.now(timezone.utc).date()
@@ -168,6 +204,8 @@ def get_ronda_dashboard_data(filters):
         'rondas_por_condominio_data': rondas_por_condominio_data,
         'duracao_condominio_labels': duracao_condominio_labels,
         'duracao_media_data': duracao_media_data,
+        'condominio_baixa_duracao_labels': condominio_baixa_duracao_labels,
+        'rondas_baixa_duracao_data': rondas_baixa_duracao_data,
         'turno_labels': turno_labels,
         'rondas_por_turno_data': rondas_por_turno_data,
         'supervisor_labels': supervisor_labels,

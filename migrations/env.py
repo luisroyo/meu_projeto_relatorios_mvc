@@ -96,11 +96,18 @@ def run_migrations_online():
 
     connectable = get_engine()
 
+    # NOVO: Adicionar connect_args para forçar client_encoding='UTF8'
+    # Esta é a melhor forma de passar parâmetros de conexão para psycopg2 via SQLAlchemy/Alembic
+    connect_args = conf_args.get("connect_args", {})
+    connect_args["client_encoding"] = "UTF8"
+    conf_args["connect_args"] = connect_args
+
+
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=get_metadata(),
-            **conf_args
+            **conf_args # conf_args agora inclui connect_args com client_encoding
         )
 
         with context.begin_transaction():
