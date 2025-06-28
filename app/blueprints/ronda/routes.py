@@ -74,12 +74,123 @@ def registrar_ronda():
         form.supervisor_id.data = str(ronda.supervisor_id or 0)
         form.log_bruto_rondas.data = ronda.log_ronda_bruto
         relatorio_processado_final = ronda.relatorio_processado
+
+    if form.validate_on_submit():
+        log_bruto = form.log_bruto_rondas.data
+        data_plantao_obj = form.data_plantao.data
+        escala_plantao_str = form.escala_plantao.data
+        condominio_id_sel = form.nome_condominio.data
+        nome_condominio_outro_str = form.nome_condominio_outro.data
+        
+        try:
+            nome_condo_para_processar = nome_condominio_outro_str if condominio_id_sel == 'Outro' else dict(form.nome_condominio.choices).get(condominio_id_sel)
+            data_plantao_fmt = data_plantao_obj.strftime('%d/%m/%Y') if data_plantao_obj else None
+
+            relatorio, total, p_evento, u_evento, duracao = processar_log_de_rondas(
+                log_bruto_rondas_str=log_bruto,
+                nome_condominio_str=nome_condo_para_processar,
+                data_plantao_manual_str=data_plantao_fmt,
+                escala_plantao_str=escala_plantao_str
+            )
+            relatorio_processado_final = relatorio
+            flash('Relatório de ronda processado. Verifique os dados e salve se estiver correto.', 'info')
+        except Exception as e:
+            flash(f'Erro ao processar o log de rondas: {str(e)}', 'danger')
+    
+    # --- CORREÇÃO ADICIONADA ---
+    # Se o método for POST e a validação falhar, mostra os erros específicos.
+    elif request.method == 'POST':
+        for field, errors in form.errors.items():
+            for error in errors:
+                # Usa o label do campo para uma mensagem mais amigável
+                label = getattr(form, field).label.text
+                flash(f"Erro no campo '{label}': {error}", 'danger')
+    # --- FIM DA CORREÇÃO ---
     
     return render_template('ronda/relatorio.html',
                            title=title,
                            form=form,
                            relatorio_processado=relatorio_processado_final,
                            ronda_data_to_save=ronda_data_to_save)
+
+
+@ronda_bp.route('/rondas/salvar', methods=['POST'])
+@login_required
+def salvar_ronda():
+    """Endpoint AJAX para salvar/atualizar uma ronda. (Usado por relatorio.html)"""
+    if not (current_user.is_admin or current_user.is_supervisor):
+        return jsonify({'success': False, 'message': 'Acesso negado.'}), 403
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Dados não fornecidos.'}), 400
+
+    try:
+        ronda_id = data.get('ronda_id')
+        log_bruto = data.get('log_bruto')
+        condominio_id_str = data.get('condominio_id')
+        nome_condominio_outro = data.get('nome_condominio_outro', '').strip()
+        data_plantao_str = data.get('data_plantao')
+        escala_plantao = data.get('escala_plantao')
+        supervisor_id_manual_str = data.get('supervisor_id')
+        
+        condominio_obj = None
+        if condominio_id_str == 'Outro':
+            if not nome_condominio_outro:
+                return jsonify({'success': False, 'message': 'O nome do condomínio é obrigatório.'}), 400
+            condominio_obj = Condominio.query.filter(func.lower(Condominio.nome) == func.lower(nome_condominio_outro)).first()
+            if not condominio_obj:
+                condominio_obj = Condominio(nome=nome_condominio_outro)
+                db.session.add(condominio_obj)
+                db.session.flush()
+        elif condominio_id_str and condominio_id_str.isdigit():
+            condominio_obj = db.get_or_404(Condominio, int(condominio_id_str))
+        
+        if not all([log_bruto, condominio_obj, data_plantao_str, escala_plantao]):
+            return jsonify({'success': False, 'message': 'Dados essenciais ausentes.'}), 400
+
+        data_plantao = date.fromisoformat(data_plantao_str)
+        
+        relatorio, total, p_evento, u_evento, duracao = processar_log_de_rondas(
+            log_bruto_rondas_str=log_bruto, nome_condominio_str=condominio_obj.nome,
+            data_plantao_manual_str=data_plantao.strftime('%d/%m/%Y'), escala_plantao_str=escala_plantao)
+        
+        turno_ronda = inferir_turno(data_plantao, escala_plantao)
+        
+        supervisor_id_para_db = int(supervisor_id_manual_str) if supervisor_id_manual_str and supervisor_id_manual_str != '0' else None
+        if not supervisor_id_para_db:
+            escala = EscalaMensal.query.filter_by(ano=data_plantao.year, mes=data_plantao.month, nome_turno=turno_ronda).first()
+            if escala:
+                supervisor_id_para_db = escala.supervisor_id
+
+        if ronda_id: # Atualiza
+            ronda = db.get_or_404(Ronda, ronda_id)
+            ronda.log_ronda_bruto, ronda.relatorio_processado, ronda.condominio_id, ronda.data_plantao_ronda, ronda.escala_plantao, ronda.turno_ronda, ronda.supervisor_id, ronda.total_rondas_no_log, ronda.primeiro_evento_log_dt, ronda.ultimo_evento_log_dt, ronda.duracao_total_rondas_minutos = \
+                log_bruto, relatorio, condominio_obj.id, data_plantao, escala_plantao, turno_ronda, supervisor_id_para_db, total, p_evento, u_evento, duracao
+            mensagem_sucesso = 'Ronda atualizada com sucesso!'
+        else: # Cria
+            ronda_existente = Ronda.query.filter_by(condominio_id=condominio_obj.id, data_plantao_ronda=data_plantao, turno_ronda=turno_ronda).first()
+            if ronda_existente:
+                return jsonify({'success': False, 'message': f'Já existe uma ronda para este condomínio, data e turno (ID: {ronda_existente.id}).'}), 409
+            
+            ronda = Ronda(
+                log_ronda_bruto=log_bruto, relatorio_processado=relatorio, condominio_id=condominio_obj.id,
+                escala_plantao=escala_plantao, data_plantao_ronda=data_plantao, turno_ronda=turno_ronda,
+                user_id=current_user.id, supervisor_id=supervisor_id_para_db, total_rondas_no_log=total,
+                primeiro_evento_log_dt=p_evento, ultimo_evento_log_dt=u_evento, duracao_total_rondas_minutos=duracao,
+                data_hora_inicio=datetime.now(timezone.utc)
+            )
+            db.session.add(ronda)
+            mensagem_sucesso = 'Ronda registrada com sucesso!'
+            
+        db.session.commit()
+        return jsonify({'success': True, 'message': mensagem_sucesso, 'ronda_id': ronda.id}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao salvar/finalizar ronda: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro interno ao salvar ronda: {str(e)}'}), 500
+
 
 @ronda_bp.route('/historico', methods=['GET'])
 @login_required
@@ -259,6 +370,38 @@ def registrar_ocorrencia(ronda_id):
         form.relatorio_final.data = ronda.relatorio_processado
 
     return render_template('ocorrencia/form.html', title='Registrar Ocorrência da Ronda #' + str(ronda.id), form=form, ronda=ronda)
+
+@ronda_bp.route('/ocorrencia/editar/<int:ocorrencia_id>', methods=['GET', 'POST'])
+@login_required
+def editar_ocorrencia(ocorrencia_id):
+    """Edita uma ocorrência existente."""
+    ocorrencia = db.get_or_404(Ocorrencia, ocorrencia_id)
+    if not (current_user.is_admin or current_user.id == ocorrencia.registrado_por_user_id):
+        flash('Você não tem permissão para editar esta ocorrência.', 'danger')
+        return redirect(url_for('ronda.detalhes_ocorrencia', ocorrencia_id=ocorrencia.id))
+
+    form = OcorrenciaForm(obj=ocorrencia)
+    form.ocorrencia_tipo_id.choices = [('', '-- Selecione --')] + [(t.id, t.nome) for t in OcorrenciaTipo.query.order_by('nome').all()]
+    form.orgaos_acionados.choices = [(o.id, o.nome) for o in OrgaoPublico.query.order_by('nome').all()]
+    
+    if form.validate_on_submit():
+        ocorrencia.relatorio_final = form.relatorio_final.data
+        ocorrencia.ocorrencia_tipo_id = form.ocorrencia_tipo_id.data
+        ocorrencia.status = form.status.data
+        ocorrencia.endereco_especifico = form.endereco_especifico.data
+        
+        ocorrencia.orgaos_acionados.clear()
+        orgaos_selecionados = OrgaoPublico.query.filter(OrgaoPublico.id.in_(form.orgaos_acionados.data)).all()
+        ocorrencia.orgaos_acionados.extend(orgaos_selecionados)
+
+        db.session.commit()
+        flash('Ocorrência atualizada com sucesso!', 'success')
+        return redirect(url_for('ronda.detalhes_ocorrencia', ocorrencia_id=ocorrencia.id))
+
+    elif request.method == 'GET':
+        form.orgaos_acionados.data = [o.id for o in ocorrencia.orgaos_acionados]
+
+    return render_template('ocorrencia/form.html', title=f'Editar Ocorrência #{ocorrencia.id}', form=form, ronda=ocorrencia.ronda)
 
 @ronda_bp.route('/ocorrencia/detalhes/<int:ocorrencia_id>')
 @login_required
