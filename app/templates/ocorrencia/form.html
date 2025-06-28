@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}{{ title }} - Assistente IA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <form method="POST" action="">
+        {{ form.hidden_tag() }}
+
+        <div class="row g-4">
+            <!-- Coluna da Esquerda: Informações da Ronda -->
+            <div class="col-lg-4">
+                <h4><i class="bi bi-shield-check me-2"></i>Ronda de Origem</h4>
+                <p class="lead">Esta ocorrência será vinculada à ronda abaixo.</p>
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Ronda #{{ ronda.id }}</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <strong>Condomínio:</strong><br>
+                                {{ ronda.condominio_obj.nome if ronda.condominio_obj else 'N/A' }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Data do Plantão:</strong><br>
+                                {{ ronda.data_plantao_ronda.strftime('%d/%m/%Y') if ronda.data_plantao_ronda else 'N/A' }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Turno:</strong><br>
+                                {{ ronda.turno_ronda or 'N/A' }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Supervisor:</strong><br>
+                                {{ ronda.supervisor.username if ronda.supervisor else 'N/A' }}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    O relatório da IA foi pré-carregado no campo ao lado. Revise, corrija e adicione os detalhes necessários para criar o registro oficial.
+                </div>
+            </div>
+
+            <!-- Coluna da Direita: Formulário da Ocorrência -->
+            <div class="col-lg-8">
+                <h4><i class="bi bi-pencil-square me-2"></i>{{ title }}</h4>
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <!-- Relatório Final -->
+                        <div class="mb-3">
+                            {{ render_field(form.relatorio_final, label_visible=true) }}
+                        </div>
+                        
+                        <div class="row g-3">
+                            <!-- Tipo de Ocorrência -->
+                            <div class="col-md-6">
+                                {{ render_field(form.ocorrencia_tipo_id, label_visible=true) }}
+                            </div>
+                            <!-- Status da Ocorrência -->
+                            <div class="col-md-6">
+                                {{ render_field(form.status, label_visible=true) }}
+                            </div>
+                            <!-- Endereço Específico -->
+                            <div class="col-12">
+                                {{ render_field(form.endereco_especifico, label_visible=true) }}
+                            </div>
+                            <!-- Órgãos Acionados -->
+                            <div class="col-12">
+                                {{ render_field(form.orgaos_acionados, label_visible=true) }}
+                                <div class="form-text">
+                                    Segure Ctrl (ou Cmd em Mac) para selecionar mais de um órgão.
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('ronda.detalhes_ronda', ronda_id=ronda.id) }}" class="btn btn-secondary me-3">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle-fill me-1"></i>
+                                {% if 'Editar' in title %}
+                                    Salvar Alterações
+                                {% else %}
+                                    Registrar Ocorrência
+                                {% endif %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

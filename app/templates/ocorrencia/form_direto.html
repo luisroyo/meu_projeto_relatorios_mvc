@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-shield-plus me-2"></i>{{ title }}</h2>
+    <p class="lead">Complete os campos abaixo para salvar o relatório gerado pela IA como um registo oficial.</p>
+
+    <form method="POST" class="row g-4">
+        {# Tokens CSRF para ambos os formulários #}
+        {{ form_ronda.hidden_tag() }}
+        {{ form_ocorrencia.hidden_tag() }}
+
+        {# Campos ocultos para enviar os relatórios para o backend #}
+        <input type="hidden" id="log_bruto_hidden" name="log_bruto_hidden">
+        <input type="hidden" id="relatorio_final_hidden" name="relatorio_final_hidden">
+
+        <!-- Coluna da Esquerda: Dados de Contexto (Ronda) -->
+        <div class="col-lg-5">
+            <h4>1. Contexto da Ocorrência</h4>
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="mb-3">{{ render_field(form_ronda.nome_condominio) }}</div>
+                    <div class="mb-3">{{ render_field(form_ronda.nome_condominio_outro, label_visible=true) }}</div>
+                    <div class="mb-3">{{ render_field(form_ronda.data_plantao) }}</div>
+                    <div class="mb-3">{{ render_field(form_ronda.escala_plantao) }}</div>
+                    <div class="mb-3">{{ render_field(form_ronda.supervisor_id, label_visible=true) }}</div>
+                </div>
+            </div>
+
+            <h4 class="mt-4">Relatório Bruto Original</h4>
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <pre id="display_log_bruto" class="bg-light p-2 border rounded" style="white-space: pre-wrap; word-wrap: break-word; max-height: 200px; overflow-y: auto;">Carregando...</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna da Direita: Detalhes da Ocorrência -->
+        <div class="col-lg-7">
+            <h4>2. Detalhes da Ocorrência Oficial</h4>
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label">Relatório Final (Gerado pela IA)</label>
+                        <textarea id="display_relatorio_final" class="form-control" rows="12" readonly style="background-color: #e9ecef;">Carregando...</textarea>
+                    </div>
+                    <hr>
+                    <div class="mb-3">{{ render_field(form_ocorrencia.ocorrencia_tipo_id) }}</div>
+                    <div class="mb-3">{{ render_field(form_ocorrencia.orgaos_acionados) }}</div>
+                    <div class="mb-3">{{ render_field(form_ocorrencia.status) }}</div>
+                    <div class="mb-3">{{ render_field(form_ocorrencia.endereco_especifico) }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botão de Submissão -->
+        <div class="col-12 text-end mt-4">
+            <a href="{{ url_for('core.index') }}" class="btn btn-secondary me-2"><i class="bi bi-x-circle me-1"></i>Cancelar</a>
+            <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-save-fill me-1"></i>Salvar Ocorrência Oficial</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Pega os dados do localStorage
+    const logBruto = localStorage.getItem('novoLogRondaBruto');
+    const relatorioProcessado = localStorage.getItem('novoRelatorioProcessado');
+
+    if (!logBruto || !relatorioProcessado) {
+        alert("Erro: Dados do relatório não encontrados. Por favor, gere o relatório novamente na página inicial.");
+        window.location.href = "{{ url_for('core.index') }}";
+        return;
+    }
+
+    // Preenche os campos visíveis e os ocultos
+    document.getElementById('display_log_bruto').textContent = logBruto;
+    document.getElementById('log_bruto_hidden').value = logBruto;
+
+    document.getElementById('display_relatorio_final').textContent = relatorioProcessado;
+    document.getElementById('relatorio_final_hidden').value = relatorioProcessado;
+
+    // Não limpa o localStorage aqui, para o caso de o utilizador recarregar a página
+    // A rota backend pode limpar após o sucesso, se desejado, mas não é crítico.
+});
+</script>
+{% endblock %}

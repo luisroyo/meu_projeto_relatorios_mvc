@@ -1,8 +1,51 @@
 // app/static/js/index_page/main.js
 import { CONFIG, DOMElements } from './config.js';
 import { updateCharCount, displayStatus } from './uiHandlers.js';
-// Importe a nova função de reportLogic.js
 import { handleProcessReport, handleClearFields, handleCopyResult, handleSendToWhatsApp } from './reportLogic.js';
+
+/**
+ * Exibe um botão para iniciar o processo de registo de ocorrência oficial.
+ * Esta função é chamada após o relatório da IA ser gerado com sucesso.
+ * @param {string} logBruto O texto original inserido pelo utilizador.
+ * @param {string} relatorioProcessado O texto corrigido pela IA.
+ */
+function exibirBotaoRegistrarOcorrencia(logBruto, relatorioProcessado) {
+    const containerBotoes = document.querySelector('#resultadoProcessamento').parentElement.nextElementSibling;
+    if (!containerBotoes) {
+        console.error("Container de botões não encontrado.");
+        return;
+    }
+
+    // Remove o botão antigo para evitar duplicação
+    const botaoAntigo = document.getElementById('registrarOcorrenciaOficial');
+    if (botaoAntigo) {
+        botaoAntigo.remove();
+    }
+
+    const botaoSalvar = document.createElement('button');
+    botaoSalvar.id = 'registrarOcorrenciaOficial';
+    botaoSalvar.type = 'button';
+    botaoSalvar.className = 'btn btn-success btn-lg w-100 mt-2'; // Cor verde para destacar a ação principal
+    botaoSalvar.innerHTML = '<i class="bi bi-shield-plus me-2"></i>Registrar Ocorrência Oficial';
+    botaoSalvar.setAttribute('data-bs-toggle', 'tooltip');
+    botaoSalvar.setAttribute('data-bs-placement', 'top');
+    botaoSalvar.setAttribute('title', 'Salva este relatório como um registo oficial de ocorrência.');
+
+    botaoSalvar.addEventListener('click', () => {
+        // Guarda os dados na memória do navegador para a próxima página
+        localStorage.setItem('novoLogRondaBruto', logBruto);
+        localStorage.setItem('novoRelatorioProcessado', relatorioProcessado);
+        
+        // Redireciona para o novo formulário unificado que criamos
+        window.location.href = '/ronda/ocorrencia/registrar_direto';
+    });
+
+    containerBotoes.prepend(botaoSalvar); // Adiciona como o primeiro botão na área de resultados
+
+    // Inicializa o tooltip para o novo botão
+    new bootstrap.Tooltip(botaoSalvar);
+}
+
 
 document.addEventListener('DOMContentLoaded', function () {
     function init() {
@@ -28,21 +71,30 @@ document.addEventListener('DOMContentLoaded', function () {
         if (DOMElements.btnLimpar && CONFIG.initialClearButtonHTML) {
              DOMElements.btnLimpar.innerHTML = CONFIG.initialClearButtonHTML;
         }
-        // Para botões de WhatsApp, o HTML já está no template, mas você pode padronizar se quiser:
-        if (DOMElements.btnEnviarWhatsAppResultado && CONFIG.initialWhatsAppButtonHTML) {
-             // DOMElements.btnEnviarWhatsAppResultado.innerHTML = CONFIG.initialWhatsAppButtonHTML;
-        }
-        if (DOMElements.btnEnviarWhatsAppEmail && CONFIG.initialWhatsAppEmailButtonHTML) {
-            // DOMElements.btnEnviarWhatsAppEmail.innerHTML = CONFIG.initialWhatsAppEmailButtonHTML;
-        }
-
-
+        
         if (DOMElements.relatorioBruto) {
             DOMElements.relatorioBruto.addEventListener('input', updateCharCount);
             updateCharCount();
         }
 
-        if(DOMElements.btnProcessar) DOMElements.btnProcessar.addEventListener('click', handleProcessReport);
+        // --- ALTERAÇÃO PRINCIPAL ---
+        // Modificamos o event listener para chamar a nova função após o sucesso.
+        if(DOMElements.btnProcessar) {
+            DOMElements.btnProcessar.addEventListener('click', async () => {
+                // handleProcessReport já mostra o spinner e trata dos status.
+                // Assumimos que ele retorna 'true' em caso de sucesso.
+                const sucesso = await handleProcessReport(); 
+
+                if (sucesso) {
+                    // Se o processamento foi bem-sucedido, pegamos os textos
+                    const relatorioBrutoOriginal = DOMElements.relatorioBruto.value;
+                    const relatorioProcessadoFinal = DOMElements.resultadoProcessamento.value;
+                    
+                    // E chamamos nossa nova função para exibir o botão de registro
+                    exibirBotaoRegistrarOcorrencia(relatorioBrutoOriginal, relatorioProcessadoFinal);
+                }
+            });
+        }
         
         if (DOMElements.btnCopiar) {
             DOMElements.btnCopiar.addEventListener('click', () => handleCopyResult('standard'));
@@ -54,7 +106,6 @@ document.addEventListener('DOMContentLoaded', function () {
             DOMElements.btnCopiarEmail.style.display = 'none';
         }
         
-        // NOVOS EVENT LISTENERS
         if (DOMElements.btnEnviarWhatsAppResultado) {
             DOMElements.btnEnviarWhatsAppResultado.addEventListener('click', () => handleSendToWhatsApp('standard'));
             DOMElements.btnEnviarWhatsAppResultado.style.display = 'none'; 
