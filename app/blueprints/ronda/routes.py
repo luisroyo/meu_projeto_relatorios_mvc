@@ -41,17 +41,17 @@ def inferir_turno(data_plantao_obj, escala_plantao_str):
 
 
 # ==============================================================================
-# ROTAS DE GESTÃO DE RONDAS
+# ROTAS DE GESTÃO DE RONDAS (LEGADO E HISTÓRICO)
 # ==============================================================================
 
 @ronda_bp.route('/registrar', methods=['GET', 'POST'])
 @login_required
 def registrar_ronda():
-    """Exibe a página para registrar/editar uma ronda existente."""
+    """Exibe a página para registrar uma nova ronda manualmente ou editar uma existente."""
     ronda_id = request.args.get('ronda_id', type=int)
     form = TestarRondasForm()
     relatorio_processado_final = None
-    title = "Editar Ronda" if ronda_id else "Registrar Nova Ronda"
+    title = "Editar Ronda" if ronda_id else "Registrar Nova Ronda Manual"
     ronda_data_to_save = {'ronda_id': ronda_id if ronda_id else None}
     
     try:
@@ -126,18 +126,34 @@ def listar_rondas():
         **selected_values
     )
 
-# --- ROTA RESTAURADA ---
 @ronda_bp.route('/detalhes/<int:ronda_id>')
 @login_required
 def detalhes_ronda(ronda_id):
-    """Exibe os detalhes de uma ronda específica."""
+    """Exibe os detalhes de uma ronda específica (contexto da ocorrência)."""
     ronda = db.get_or_404(Ronda, ronda_id)
-    # Permissão para ver os detalhes da ronda (pode ser ajustada)
     if not (current_user.is_admin or (ronda.supervisor and current_user.id == ronda.supervisor.id) or current_user.id == ronda.user_id):
         flash("Você não tem permissão para visualizar os detalhes desta ronda.", 'danger')
         return redirect(url_for('ronda.listar_rondas'))
     return render_template('ronda/details.html', title=f'Detalhes da Ronda #{ronda.id}', ronda=ronda)
 
+@ronda_bp.route('/excluir/<int:ronda_id>', methods=['POST'])
+@login_required
+@admin_required
+def excluir_ronda(ronda_id):
+    """Exclui uma ronda, desde que não tenha ocorrência associada."""
+    ronda = db.get_or_404(Ronda, ronda_id)
+    if ronda.ocorrencia:
+        flash('Não é possível excluir uma ronda que já possui uma ocorrência registrada.', 'danger')
+        return redirect(url_for('ronda.listar_rondas'))
+    try:
+        db.session.delete(ronda)
+        db.session.commit()
+        flash(f'Ronda #{ronda.id} excluída com sucesso.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao excluir ronda {ronda_id}: {e}", exc_info=True)
+        flash(f'Erro ao excluir ronda: {str(e)}', 'danger')
+    return redirect(url_for('ronda.listar_rondas'))
 
 # ==============================================================================
 # ROTAS DE GESTÃO DE OCORRÊNCIAS
@@ -155,21 +171,22 @@ def registrar_ocorrencia_direto():
     try:
         form_ronda.nome_condominio.choices = [('', '-- Selecione --')] + [(str(c.id), c.nome) for c in Condominio.query.order_by(Condominio.nome).all()] + [('Outro', 'Outro')]
         form_ronda.supervisor_id.choices = [('0', '-- Nenhum / Automático --')] + [(s.id, s.username) for s in User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()]
-        form_ocorrencia.ocorrencia_tipo_id.choices = [(t.id, t.nome) for t in OcorrenciaTipo.query.order_by('nome').all()]
+        form_ocorrencia.ocorrencia_tipo_id.choices = [('', '-- Selecione --')] + [(t.id, t.nome) for t in OcorrenciaTipo.query.order_by('nome').all()]
         form_ocorrencia.orgaos_acionados.choices = [(o.id, o.nome) for o in OrgaoPublico.query.order_by('nome').all()]
     except Exception as e:
         logger.error(f"Erro ao carregar dados para o formulário de ocorrência direta: {e}", exc_info=True)
         flash('Erro ao carregar dados de suporte. Tente novamente.', 'danger')
-
-    if form_ronda.validate_on_submit() and form_ocorrencia.validate_on_submit():
+        
+    if request.method == 'POST' and form_ronda.validate() and form_ocorrencia.validate():
         try:
+            log_bruto = form_ronda.log_bruto_rondas.data
+            relatorio_processado = form_ocorrencia.relatorio_final.data
+            
             condominio_id_str = form_ronda.nome_condominio.data
             nome_condominio_outro = form_ronda.nome_condominio_outro.data.strip()
             data_plantao = form_ronda.data_plantao.data
             escala_plantao = form_ronda.escala_plantao.data
-            log_bruto = request.form.get('log_bruto_hidden') 
-            relatorio_processado = request.form.get('relatorio_final_hidden')
-            
+
             condominio_obj = None
             if condominio_id_str == 'Outro':
                 if not nome_condominio_outro:
@@ -187,7 +204,7 @@ def registrar_ocorrencia_direto():
                 log_ronda_bruto=log_bruto, relatorio_processado=relatorio_processado,
                 condominio_id=condominio_obj.id, data_plantao_ronda=data_plantao,
                 escala_plantao=escala_plantao, turno_ronda=inferir_turno(data_plantao, escala_plantao),
-                user_id=current_user.id
+                user_id=current_user.id, data_hora_inicio=datetime.now(timezone.utc)
             )
             db.session.add(nova_ronda)
             db.session.flush()
@@ -222,14 +239,14 @@ def registrar_ocorrencia(ronda_id):
         return redirect(url_for('ronda.detalhes_ocorrencia', ocorrencia_id=ronda.ocorrencia.id))
 
     form = OcorrenciaForm()
-    form.ocorrencia_tipo_id.choices = [(t.id, t.nome) for t in OcorrenciaTipo.query.order_by('nome').all()]
+    form.ocorrencia_tipo_id.choices = [('', '-- Selecione --')] + [(t.id, t.nome) for t in OcorrenciaTipo.query.order_by('nome').all()]
     form.orgaos_acionados.choices = [(o.id, o.nome) for o in OrgaoPublico.query.order_by('nome').all()]
 
     if form.validate_on_submit():
         nova_ocorrencia = Ocorrencia(
             ronda_id=ronda.id, relatorio_final=form.relatorio_final.data,
             ocorrencia_tipo_id=form.ocorrencia_tipo_id.data, status=form.status.data,
-            endereco_especifico=form.ocorrencia.endereco_especifico.data, registrado_por_user_id=current_user.id
+            endereco_especifico=form.endereco_especifico.data, registrado_por_user_id=current_user.id
         )
         orgaos_selecionados = OrgaoPublico.query.filter(OrgaoPublico.id.in_(form.orgaos_acionados.data)).all()
         nova_ocorrencia.orgaos_acionados.extend(orgaos_selecionados)
@@ -243,7 +260,6 @@ def registrar_ocorrencia(ronda_id):
 
     return render_template('ocorrencia/form.html', title='Registrar Ocorrência da Ronda #' + str(ronda.id), form=form, ronda=ronda)
 
-
 @ronda_bp.route('/ocorrencia/detalhes/<int:ocorrencia_id>')
 @login_required
 def detalhes_ocorrencia(ocorrencia_id):
@@ -252,7 +268,7 @@ def detalhes_ocorrencia(ocorrencia_id):
     return render_template('ocorrencia/details.html', title=f'Detalhes da Ocorrência #{ocorrencia.id}', ocorrencia=ocorrencia)
 
 # ==============================================================================
-# ROTAS DE GERENCIAMENTO (CRUD)
+# ROTAS DE GERENCIAMENTO (CRUD E API)
 # ==============================================================================
 @ronda_bp.route('/gerenciamento/tipos_ocorrencia', methods=['GET', 'POST'])
 @login_required
@@ -344,3 +360,49 @@ def excluir_orgao_publico(orgao_id):
         db.session.commit()
         flash('Órgão público excluído com sucesso.', 'success')
     return redirect(url_for('ronda.gerenciar_orgaos_publicos'))
+    
+@ronda_bp.route('/gerenciamento/api/add_tipo_ocorrencia', methods=['POST'])
+@login_required
+@admin_required
+def api_add_tipo_ocorrencia():
+    """Endpoint de API para adicionar um novo tipo de ocorrência dinamicamente."""
+    data = request.json
+    nome = data.get('nome')
+    if not nome:
+        return jsonify({'success': False, 'message': 'O nome é obrigatório.'}), 400
+    existente = OcorrenciaTipo.query.filter(func.lower(OcorrenciaTipo.nome) == func.lower(nome)).first()
+    if existente:
+        return jsonify({'success': False, 'message': 'Este tipo de ocorrência já existe.'}), 409
+    try:
+        novo_tipo = OcorrenciaTipo(nome=nome)
+        db.session.add(novo_tipo)
+        db.session.commit()
+        logger.info(f"Novo tipo de ocorrência '{nome}' adicionado por {current_user.username}.")
+        return jsonify({'success': True, 'id': novo_tipo.id, 'nome': novo_tipo.nome})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao adicionar novo tipo de ocorrência: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Erro interno ao salvar.'}), 500
+
+@ronda_bp.route('/gerenciamento/api/add_orgao_publico', methods=['POST'])
+@login_required
+@admin_required
+def api_add_orgao_publico():
+    """Endpoint de API para adicionar um novo órgão público dinamicamente."""
+    data = request.json
+    nome = data.get('nome')
+    if not nome:
+        return jsonify({'success': False, 'message': 'O nome é obrigatório.'}), 400
+    existente = OrgaoPublico.query.filter(func.lower(OrgaoPublico.nome) == func.lower(nome)).first()
+    if existente:
+        return jsonify({'success': False, 'message': 'Este órgão público já existe.'}), 409
+    try:
+        novo_orgao = OrgaoPublico(nome=nome)
+        db.session.add(novo_orgao)
+        db.session.commit()
+        logger.info(f"Novo órgão público '{nome}' adicionado por {current_user.username}.")
+        return jsonify({'success': True, 'id': novo_orgao.id, 'nome': novo_orgao.nome})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao adicionar novo órgão público: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Erro interno ao salvar.'}), 500

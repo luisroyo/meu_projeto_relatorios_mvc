@@ -22,7 +22,7 @@ cache = Cache()
 csrf = CSRFProtect()
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"] # Limites padrão para a aplicação
+    default_limits=["200 per day", "50 per hour"]
 )
 
 login_manager.login_view = 'auth.login'
@@ -31,8 +31,8 @@ login_manager.login_message_category = 'info'
 
 # --- Configuração de Logging ---
 logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO').upper(),
-                      format='%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] %(message)s',
-                      datefmt='%Y-%m-%d %H:%M:%S')
+                    format='%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
 module_logger = logging.getLogger(__name__)
 
 # --- Carregamento do .ENV ---
@@ -41,46 +41,28 @@ if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
     module_logger.info(f".env carregado de {dotenv_path}")
 else:
-    # Ajuste o log para refletir que ele está procurando o .env e não encontrou
     module_logger.info(f".env não encontrado em {dotenv_path}, usando variáveis de ambiente do sistema se definidas.")
 
 # --- Fábrica de Aplicação ---
 def create_app():
     app_instance = Flask(__name__)
-
-    # Configura WhiteNoise para servir arquivos estáticos em produção
     app_instance.wsgi_app = WhiteNoise(app_instance.wsgi_app, root='app/static/')
 
-    # --- Configurações da Aplicação ---
     app_instance.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
-    
-    # 1. Pega a DATABASE_URL do ambiente.
-    #    Usa 'DATABASE_URL' que é o nome correto da variável no .env e no Render.
-    database_url_from_env = os.getenv('DATABASE_URL') 
-    
-    # >>> LINHA DE DEBUG: Mostra o que a aplicação está lendo da variável de ambiente <<<
-    print(f"DEBUG: DATABASE_URL lida pelo app: {database_url_from_env}")
-    # >>> FIM DA LINHA DE DEBUG <<<
 
-    # Render pode fornecer a URL como "postgres://...". SQLAlchemy prefere "postgresql://...".
-    # Esta linha garante a compatibilidade, aplicada à variável lida.
+    database_url_from_env = os.getenv('DATABASE_URL')
+    print(f"DEBUG: DATABASE_URL lida pelo app: {database_url_from_env}")
+
     if database_url_from_env and database_url_from_env.startswith("postgres://"):
         database_url_from_env = database_url_from_env.replace("postgres://", "postgresql://", 1)
-    
-    # Define o path padrão para SQLite como fallback, caso DATABASE_URL não esteja definida
+
     BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
     default_db_path_sqlite = 'sqlite:///' + os.path.join(BASE_DIR, 'instance', 'site.db')
-
-    # Define a SQLALCHEMY_DATABASE_URI: usa a variável de ambiente processada ou o fallback SQLite
     app_instance.config['SQLALCHEMY_DATABASE_URI'] = database_url_from_env or default_db_path_sqlite
-    
     app_instance.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    # --- Configurações de CSRF e Cookies ---
+
     app_instance.config['WTF_CSRF_ENABLED'] = True
-    
-    # Em um ambiente de produção real, app_instance.debug deve ser False
-    is_production = not app_instance.debug # app_instance.debug é True em dev, False em prod
+    is_production = not app_instance.debug
     app_instance.config['SESSION_COOKIE_SECURE'] = is_production
     app_instance.config['REMEMBER_COOKIE_SECURE'] = is_production
     app_instance.config['SESSION_COOKIE_HTTPONLY'] = is_production
@@ -90,20 +72,31 @@ def create_app():
     app_instance.config['CACHE_TYPE'] = os.getenv('CACHE_TYPE', 'RedisCache')
     app_instance.config['CACHE_DEFAULT_TIMEOUT'] = int(os.getenv('CACHE_DEFAULT_TIMEOUT', 3600))
     app_instance.config['CACHE_REDIS_URL'] = os.getenv('CACHE_REDIS_URL', 'redis://localhost:6379/0')
-    
+
+    # --- Verifica se o Redis está disponível, senão usa SimpleCache ---
+    from redis.exceptions import ConnectionError
+    import redis
+
+    if app_instance.config['CACHE_TYPE'] == 'RedisCache':
+        try:
+            test_redis = redis.from_url(app_instance.config['CACHE_REDIS_URL'])
+            test_redis.ping()
+            module_logger.info("Redis conectado com sucesso.")
+        except (ConnectionError, Exception) as e:
+            module_logger.warning(f"Redis indisponível ({e}), caindo para SimpleCache.")
+            app_instance.config['CACHE_TYPE'] = 'SimpleCache'
+
     # --- Inicialização das Extensões ---
-    # As extensões já são globais, então basta inicializá-las com a instância do app.
     db.init_app(app_instance)
     migrate.init_app(app_instance, db)
     login_manager.init_app(app_instance)
     cache.init_app(app_instance)
     limiter.init_app(app_instance)
     csrf.init_app(app_instance)
-    
-    # --- Definição de Filtros de Template e Context Processors ---
+
+    # --- Filtros e Processadores ---
     @login_manager.user_loader
     def load_user(user_id):
-        # Importa o modelo User aqui dentro do contexto para evitar circular imports
         from .models import User
         return db.session.get(User, int(user_id))
 
@@ -121,31 +114,25 @@ def create_app():
     def inject_current_year():
         return {'SCRIPT_CURRENT_YEAR': dt.now(timezone.utc).year}
 
-    # --- Registro de Blueprints e Comandos CLI ---
-    # Blueprints devem ser importados dentro do app_context ou no nível superior para evitar circular imports se os modelos são usados
-    with app_instance.app_context(): # Usar app_context para garantir que tudo esteja configurado
-        from . import models # Importa os modelos aqui
-        
+    # --- Registro de Blueprints e CLI ---
+    with app_instance.app_context():
+        from . import models
+
         from app.blueprints.main.routes import main_bp
         app_instance.register_blueprint(main_bp)
-        
+
         from app.blueprints.auth.routes import auth_bp
         app_instance.register_blueprint(auth_bp)
-        
+
         from app.blueprints.admin import admin_bp
         app_instance.register_blueprint(admin_bp, url_prefix='/admin')
-        
+
         from app.blueprints.ronda.routes import ronda_bp
         app_instance.register_blueprint(ronda_bp, url_prefix='/ronda')
 
-        # Registro dos Comandos CLI:
-        # Importa o módulo 'commands' e adiciona cada comando individualmente
-        from . import commands 
+        from . import commands
         app_instance.cli.add_command(commands.seed_db_command)
-        # A linha abaixo foi removida pois o comando `seed_ocorrencias_command` não existe mais em `commands.py`
-        # app_instance.cli.add_command(commands.seed_ocorrencias_command) 
         app_instance.cli.add_command(commands.assign_supervisors_command)
 
     module_logger.info("Aplicação Flask completamente configurada e pronta para ser retornada.")
-    
     return app_instance
