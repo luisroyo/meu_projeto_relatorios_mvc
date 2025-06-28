@@ -4,11 +4,49 @@
 {% block content %}
 <div class="container mt-4">
     <h2>{{ title }}</h2>
-    <p class="lead">Detalhes completos do relatório de ronda.</p>
+    <p class="lead">Detalhes completos da ronda e da ocorrência associada.</p>
 
+    <!-- =================================== -->
+    <!-- CARD DA OCORRÊNCIA (SE EXISTIR) -->
+    <!-- =================================== -->
+    {% if ronda.ocorrencia %}
+    <div class="card shadow-sm mb-4 border-primary">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-file-earmark-text-fill me-2"></i>Ocorrência Registrada</h5>
+            <span class="badge bg-light text-primary">{{ ronda.ocorrencia.status }}</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>ID da Ocorrência:</strong> {{ ronda.ocorrencia.id }}</p>
+                    <p><strong>Tipo:</strong> {{ ronda.ocorrencia.tipo.nome if ronda.ocorrencia.tipo else 'N/A' }}</p>
+                    <p><strong>Registrada em:</strong> {{ ronda.ocorrencia.data_ocorrencia | localtime }}</p>
+                    <p><strong>Registrada por:</strong> {{ ronda.ocorrencia.registrado_por.username if ronda.ocorrencia.registrado_por else 'N/A' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Endereço Específico:</strong> {{ ronda.ocorrencia.endereco_especifico or 'Não informado' }}</p>
+                    <p><strong>Órgãos Acionados:</strong>
+                        {% if ronda.ocorrencia.orgaos_acionados %}
+                            {% for orgao in ronda.ocorrencia.orgaos_acionados %}
+                                <span class="badge bg-secondary">{{ orgao.nome }}</span>
+                            {% endfor %}
+                        {% else %}
+                            Nenhum
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <hr>
+            <h6>Relatório Final da Ocorrência</h6>
+            <pre class="bg-light p-3 border rounded" style="white-space: pre-wrap; word-wrap: break-word;">{{ ronda.ocorrencia.relatorio_final }}</pre>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Card de Informações da Ronda -->
     <div class="card shadow-sm mb-4">
         <div class="card-header">
-            <h5 class="mb-0">Informações da Ronda</h5>
+            <h5 class="mb-0"><i class="bi bi-shield-shaded me-2"></i>Informações da Ronda</h5>
         </div>
         <div class="card-body">
             <div class="row">
@@ -16,43 +54,22 @@
                     <p><strong>ID da Ronda:</strong> {{ ronda.id }}</p>
                     <p><strong>Condomínio:</strong> {{ ronda.condominio_obj.nome if ronda.condominio_obj else 'N/A' }}</p>
                     <p><strong>Data do Plantão:</strong> {{ ronda.data_plantao_ronda.strftime('%d/%m/%Y') if ronda.data_plantao_ronda else 'N/A' }}</p>
-                    <p><strong>Escala/Plantão:</strong> {{ ronda.escala_plantao or 'N/A' }}</p>
                     <p><strong>Turno:</strong> {{ ronda.turno_ronda or 'N/A' }}</p>
                 </div>
                 <div class="col-md-6">
-                    <p><strong>Supervisor (Criador):</strong> {{ ronda.criador.username if ronda.criador else 'N/A' }}</p>
-                    <p><strong>Início da Ronda:</strong> {{ ronda.data_hora_inicio.strftime('%d/%m/%Y %H:%M:%S') if ronda.data_hora_inicio else 'N/A' }}</p>
-                    <p><strong>Fim da Ronda:</strong> 
-                        {% if ronda.data_hora_fim %}
-                            {{ ronda.data_hora_fim.strftime('%d/%m/%Y %H:%M:%S') }}
-                        {% else %}
-                            <span class="badge bg-warning text-dark">Em Andamento</span>
-                        {% endif %}
-                    </p>
-                    <p><strong>Status:</strong> 
-                        {% if ronda.data_hora_fim %}
-                            <span class="badge bg-success">Finalizada</span>
-                        {% else %}
-                            <span class="badge bg-info text-dark">Em Andamento</span>
-                        {% endif %}
-                    </p>
+                    <p><strong>Supervisor Responsável:</strong> {{ ronda.supervisor.username if ronda.supervisor else 'Automático' }}</p>
+                    <p><strong>Início (Log):</strong> {{ ronda.primeiro_evento_log_dt | localtime if ronda.primeiro_evento_log_dt else 'N/A' }}</p>
+                    <p><strong>Fim (Log):</strong> {{ ronda.ultimo_evento_log_dt | localtime if ronda.ultimo_evento_log_dt else 'N/A' }}</p>
+                    <p><strong>Duração Total:</strong> {{ ronda.duracao_total_rondas_minutos }} minutos</p>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Card de Relatório Processado pela IA -->
     <div class="card shadow-sm mb-4">
         <div class="card-header">
-            <h5 class="mb-0">Log Bruto da Ronda</h5>
-        </div>
-        <div class="card-body">
-            <pre class="bg-light p-3 border rounded" style="white-space: pre-wrap; word-wrap: break-word;">{{ ronda.log_ronda_bruto }}</pre>
-        </div>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Relatório Processado</h5>
+            <h5 class="mb-0"><i class="bi bi-robot me-2"></i>Relatório Original Processado pela IA</h5>
         </div>
         <div class="card-body">
             {% if ronda.relatorio_processado %}
@@ -63,16 +80,68 @@
         </div>
     </div>
 
-    <div class="mt-4">
+    <!-- Botões de Ação -->
+    <div class="mt-4 d-flex justify-content-between">
         <a href="{{ url_for('ronda.listar_rondas') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar ao Histórico</a>
-        {% if ronda.user_id == current_user.id or current_user.is_admin %}
-        <a href="{{ url_for('ronda.registrar_ronda', ronda_id=ronda.id) }}" class="btn btn-warning ms-2"><i class="bi bi-pencil me-1"></i>Continuar/Editar Ronda</a>
-        <form action="{{ url_for('ronda.excluir_ronda', ronda_id=ronda.id) }}" method="POST" class="d-inline">
-            <button type="submit" class="btn btn-danger ms-2" onclick="return confirm('Tem certeza que deseja excluir esta ronda? Esta ação é irreversível.');">
-                <i class="bi bi-trash me-1"></i>Excluir Ronda
-            </button>
-        </form>
-        {% endif %}
+        
+        <div>
+            {% if ronda.ocorrencia %}
+                <!-- Ações quando já existe uma ocorrência -->
+                <a href="{{ url_for('ronda.editar_ocorrencia', ocorrencia_id=ronda.ocorrencia.id) }}" class="btn btn-primary"><i class="bi bi-pencil-square me-1"></i>Ver / Editar Ocorrência</a>
+            {% else %}
+                <!-- Ações quando NÃO existe ocorrência -->
+                <a href="{{ url_for('ronda.registrar_ocorrencia', ronda_id=ronda.id) }}" class="btn btn-success"><i class="bi bi-megaphone-fill me-1"></i>Registrar Ocorrência</a>
+                <a href="{{ url_for('ronda.registrar_ronda', ronda_id=ronda.id) }}" class="btn btn-warning ms-2"><i class="bi bi-pencil me-1"></i>Editar Dados da Ronda</a>
+                
+                {% if current_user.is_admin %}
+                <button type="button" class="btn btn-danger ms-2" title="Excluir Ronda" 
+                        data-bs-toggle="modal" data-bs-target="#deleteModal" 
+                        data-ronda-id="{{ ronda.id }}">
+                    <i class="bi bi-trash me-1"></i>Excluir Ronda
+                </button>
+                {% endif %}
+            {% endif %}
+        </div>
     </div>
 </div>
+
+<!-- Modal de Exclusão (o mesmo da lista, reaproveitado) -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Tem certeza que deseja excluir esta ronda? Esta ação não pode ser desfeita.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Excluir Ronda</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const deleteModal = document.getElementById('deleteModal');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const rondaId = button.getAttribute('data-ronda-id');
+            const form = deleteModal.querySelector('#deleteForm');
+            // A rota de exclusão já está no seu routes.py
+            form.action = `/ronda/excluir/${rondaId}`; 
+        });
+    }
+});
+</script>
 {% endblock %}

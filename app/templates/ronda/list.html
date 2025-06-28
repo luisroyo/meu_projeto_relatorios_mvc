@@ -6,55 +6,56 @@
 {% block content %}
 <div class="container mt-4">
     <h2>{{ title }}</h2>
-    <p class="lead">Visualize e filtre os relatórios de rondas registrados.</p>
+    <p class="lead">Visualize, filtre e gerencie as rondas e suas ocorrências.</p>
 
+    <!-- Filtros -->
     <div class="card shadow-sm mb-4">
         <div class="card-header">
-            <h5 class="mb-0">Filtros de Ronda</h5>
+            <h5 class="mb-0">Filtros de Busca</h5>
         </div>
         <div class="card-body">
             <form method="GET" action="{{ url_for('ronda.listar_rondas') }}" class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="condominio" class="form-label">Condomínio:</label>
                     <select class="form-select" id="condominio" name="condominio">
-                        <option value="">-- Todos os Condomínios --</option>
+                        <option value="">-- Todos --</option>
                         {% for cond in condominios %}
                             <option value="{{ cond.nome }}" {% if selected_condominio == cond.nome %}selected{% endif %}>{{ cond.nome }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="supervisor" class="form-label">Supervisor:</label>
                     <select class="form-select" id="supervisor" name="supervisor">
-                        <option value="">-- Todos os Supervisores --</option>
+                        <option value="">-- Todos --</option>
                         {% for sup in supervisors %}
                             <option value="{{ sup.id }}" {% if selected_supervisor == sup.id %}selected{% endif %}>{{ sup.username }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="turno" class="form-label">Turno:</label>
                     <select class="form-select" id="turno" name="turno">
-                        <option value="">-- Todos os Turnos --</option>
+                        <option value="">-- Todos --</option>
                         {% for t in turnos %}
                             <option value="{{ t }}" {% if selected_turno == t %}selected{% endif %}>{{ t }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <label for="status" class="form-label">Status:</label>
-                    <select class="form-select" id="status" name="status">
-                        {% for s in statuses %}
-                            <option value="{{ s.value }}" {% if selected_status == s.value %}selected{% endif %}>{{ s.label }}</option>
-                        {% endfor %}
+                <div class="col-md-3">
+                    <label for="status_ocorrencia" class="form-label">Status Ocorrência:</label>
+                    <select class="form-select" id="status_ocorrencia" name="status_ocorrencia">
+                        <option value="" {% if not selected_status_ocorrencia %}selected{% endif %}>-- Todos --</option>
+                        <option value="com_ocorrencia" {% if selected_status_ocorrencia == 'com_ocorrencia' %}selected{% endif %}>Com Ocorrência</option>
+                        <option value="sem_ocorrencia" {% if selected_status_ocorrencia == 'sem_ocorrencia' %}selected{% endif %}>Sem Ocorrência</option>
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <label for="data_inicio" class="form-label">Data Início:</label>
+                <div class="col-md-6">
+                    <label for="data_inicio" class="form-label">Período (Início):</label>
                     <input type="date" class="form-control" id="data_inicio" name="data_inicio" value="{{ selected_data_inicio or '' }}">
                 </div>
-                <div class="col-md-4">
-                    <label for="data_fim" class="form-label">Data Fim:</label>
+                <div class="col-md-6">
+                    <label for="data_fim" class="form-label">Período (Fim):</label>
                     <input type="date" class="form-control" id="data_fim" name="data_fim" value="{{ selected_data_fim or '' }}">
                 </div>
                 <div class="col-12">
@@ -65,20 +66,18 @@
         </div>
     </div>
 
+    <!-- Tabela de Rondas -->
     {% if rondas_pagination.items %}
     <div class="table-responsive">
         <table class="table table-hover table-striped align-middle">
             <thead class="table-dark">
                 <tr>
                     <th>ID</th>
-                    <th>Condomínio</th>
                     <th>Data Plantão</th>
+                    <th>Condomínio</th>
                     <th>Turno</th>
-                    <th>Criado por</th>
                     <th>Supervisor</th>
-                    <th>Início Ronda</th>
-                    <th>Fim Ronda</th>
-                    <th>Status</th>
+                    <th class="text-center">Ocorrência</th>
                     <th class="text-center">Ações</th>
                 </tr>
             </thead>
@@ -86,30 +85,40 @@
                 {% for ronda in rondas_pagination.items %}
                 <tr>
                     <td>{{ ronda.id }}</td>
-                    <td>{{ ronda.condominio_obj.nome if ronda.condominio_obj else 'N/A' }}</td>
                     <td>{{ ronda.data_plantao_ronda.strftime('%d/%m/%Y') if ronda.data_plantao_ronda else 'N/A' }}</td>
+                    <td>{{ ronda.condominio_obj.nome if ronda.condominio_obj else 'N/A' }}</td>
                     <td>{{ ronda.turno_ronda or 'N/A' }}</td>
-                    <td>{{ ronda.criador.username if ronda.criador else 'N/A' }}</td>
                     <td>{{ ronda.supervisor.username if ronda.supervisor else 'N/A' }}</td>
-                    <td>{{ ronda.data_hora_inicio | localtime }}</td>
-                    <td>{{ ronda.data_hora_fim | localtime }}</td>
-                    <td>
-                        {% if ronda.data_hora_fim %}
-                            <span class="badge bg-success">Finalizada</span>
+                    <td class="text-center">
+                        {% if ronda.ocorrencia %}
+                            <span class="badge bg-success">Registrada</span>
                         {% else %}
-                            <span class="badge bg-info text-dark">Em Andamento</span>
+                            <span class="badge bg-secondary">Nenhuma</span>
                         {% endif %}
                     </td>
                     <td class="text-center">
                         <div class="btn-group" role="group" aria-label="Ações da Ronda">
-                            <a href="{{ url_for('ronda.detalhes_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-info" title="Ver Detalhes">
+                            {% if ronda.ocorrencia %}
+                                <a href="{{ url_for('ronda.detalhes_ocorrencia', ocorrencia_id=ronda.ocorrencia.id) }}" class="btn btn-sm btn-primary" title="Ver Ocorrência">
+                                    <i class="bi bi-file-earmark-text-fill"></i>
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('ronda.registrar_ocorrencia', ronda_id=ronda.id) }}" class="btn btn-sm btn-success" title="Registrar Ocorrência">
+                                    <i class="bi bi-megaphone-fill"></i>
+                                </a>
+                            {% endif %}
+                            <a href="{{ url_for('ronda.detalhes_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-info" title="Ver Detalhes da Ronda">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            <a href="{{ url_for('ronda.registrar_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-warning" title="Editar Ronda">
-                                <i class="bi bi-pencil"></i>
-                            </a>
+                            {% if not ronda.ocorrencia %}
+                                <a href="{{ url_for('ronda.registrar_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-warning" title="Editar Ronda">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            {% endif %}
                             {% if current_user.is_admin %}
-                            <button type="button" class="btn btn-sm btn-danger" title="Excluir" onclick="confirmDeleteRonda({{ ronda.id }});">
+                            <button type="button" class="btn btn-sm btn-danger" title="Excluir Ronda"
+                                    data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                    data-ronda-id="{{ ronda.id }}">
                                 <i class="bi bi-trash"></i>
                             </button>
                             {% endif %}
@@ -121,12 +130,13 @@
         </table>
     </div>
 
+    <!-- Paginação -->
     {% if rondas_pagination %}
     <div class="mt-4">
-         {{ render_pagination(rondas_pagination, 'ronda.listar_rondas', 
-            condominio=selected_condominio, supervisor=selected_supervisor, 
-            data_inicio=selected_data_inicio, data_fim=selected_data_fim, 
-            turno=selected_turno, status=selected_status) }}
+        {# --- CORREÇÃO APLICADA AQUI --- #}
+        {# Passa o dicionário 'filter_params' para o argumento 'query_params' da macro #}
+        {{ render_pagination(rondas_pagination, 'ronda.listar_rondas',
+           query_params=filter_params) }}
     </div>
     {% endif %}
 
@@ -137,40 +147,43 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Modal de Exclusão -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Tem certeza de que deseja excluir esta ronda? Esta ação não pode ser desfeita.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Excluir Ronda</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
-    {{ super() }}
-    <script>
-        const csrfToken = '{{ csrf_token() }}';
-
-        function confirmDeleteRonda(rondaId) {
-            if (confirm('Tem certeza que deseja excluir esta ronda? Esta ação é irreversível.')) {
-                deleteRonda(rondaId);
-            }
-        }
-
-        async function deleteRonda(rondaId) {
-            try {
-                const response = await fetch(`/ronda/rondas/excluir/${rondaId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRFToken': csrfToken,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    alert(result.message);
-                    window.location.reload();
-                } else {
-                    alert('Erro: ' + result.message);
-                }
-            } catch (error) {
-                console.error('Erro ao excluir ronda:', error);
-                alert('Erro de comunicação ao excluir ronda.');
-            }
-        }
-    </script>
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const deleteModal = document.getElementById('deleteModal');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const rondaId = button.getAttribute('data-ronda-id');
+            const form = deleteModal.querySelector('#deleteForm');
+            form.action = `/ronda/excluir/${rondaId}`;
+        });
+    }
+});
+</script>
 {% endblock %}

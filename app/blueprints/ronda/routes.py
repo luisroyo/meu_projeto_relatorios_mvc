@@ -1,11 +1,12 @@
 # app/blueprints/ronda/routes.py
+
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
-from sqlalchemy import desc, func, or_, literal
-from datetime import datetime, date, time, timedelta, timezone
+from sqlalchemy import desc, func, or_
+from datetime import datetime, date, timezone
 from app import db
-from app.models import Condominio, Ronda, User, EscalaMensal
-from app.forms import TestarRondasForm
+from app.models import Condominio, Ronda, User, EscalaMensal, Ocorrencia, OcorrenciaTipo, OrgaoPublico
+from app.forms import TestarRondasForm, OcorrenciaForm, OcorrenciaTipoForm, OrgaoPublicoForm
 from app.services.ronda_logic import processar_log_de_rondas
 from app.decorators.admin_required import admin_required
 import logging
@@ -14,14 +15,17 @@ logger = logging.getLogger(__name__)
 
 ronda_bp = Blueprint('ronda', __name__, template_folder='templates')
 
+# ==============================================================================
+# FUNÇÕES AUXILIARES
+# ==============================================================================
 
 def inferir_turno(data_plantao_obj, escala_plantao_str):
     """Infere o turno da ronda com base na data do plantão e na escala."""
     turno_ronda_base = "Indefinido"
     escala_lower = escala_plantao_str.lower() if escala_plantao_str else ""
-    if "18h às 06h" in escala_lower or "18h as 6h" in escala_lower or "noturno" in escala_lower or "noite" in escala_lower:
+    if "18h às 06h" in escala_lower or "noturno" in escala_lower:
         turno_ronda_base = "Noturno"
-    elif "06h às 18h" in escala_lower or "6h as 18h" in escala_lower or "diurno" in escala_lower or "dia" in escala_lower:
+    elif "06h às 18h" in escala_lower or "diurno" in escala_lower:
         turno_ronda_base = "Diurno"
     else:
         current_hour_utc = datetime.now(timezone.utc).hour
@@ -29,260 +33,314 @@ def inferir_turno(data_plantao_obj, escala_plantao_str):
             turno_ronda_base = "Diurno"
         else:
             turno_ronda_base = "Noturno"
+    
     if data_plantao_obj and turno_ronda_base != "Indefinido":
-        if data_plantao_obj.day % 2 == 0:
-            return f"{turno_ronda_base} Par"
-        else:
-            return f"{turno_ronda_base} Impar"
-    return escala_plantao_str if escala_plantao_str else "N/A - Turno Indefinido"
+        return f"{turno_ronda_base} {'Par' if data_plantao_obj.day % 2 == 0 else 'Impar'}"
+    
+    return escala_plantao_str or "N/A - Turno Indefinido"
 
+
+# ==============================================================================
+# ROTAS DE GESTÃO DE RONDAS
+# ==============================================================================
 
 @ronda_bp.route('/registrar', methods=['GET', 'POST'])
 @login_required
 def registrar_ronda():
-    """Exibe a página para registrar/editar e lida com o POST do botão 'Processar'."""
-    ronda_id_existente = request.args.get('ronda_id', type=int)
-    if request.method == 'POST':
-        ronda_id_from_form = request.form.get('ronda_id_input', type=int)
-        if ronda_id_from_form:
-            ronda_id_existente = ronda_id_from_form
-            
+    """Exibe a página para registrar/editar uma ronda existente."""
+    ronda_id = request.args.get('ronda_id', type=int)
     form = TestarRondasForm()
     relatorio_processado_final = None
-    ronda_data_to_save = {}
-    title = "Editar Ronda" if ronda_id_existente else "Registrar Ronda"
-
+    title = "Editar Ronda" if ronda_id else "Registrar Nova Ronda"
+    ronda_data_to_save = {'ronda_id': ronda_id if ronda_id else None}
+    
     try:
         condominios_db = Condominio.query.order_by(Condominio.nome).all()
         form.nome_condominio.choices = [('', '-- Selecione --')] + [(str(c.id), c.nome) for c in condominios_db] + [('Outro', 'Outro')]
-        
         supervisores_db = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
         form.supervisor_id.choices = [('0', '-- Nenhum / Automático --')] + [(s.id, s.username) for s in supervisores_db]
     except Exception as e:
         logger.error(f"Erro ao carregar dados para o formulário de ronda: {e}", exc_info=True)
         flash('Erro ao carregar dados. Tente novamente.', 'danger')
 
-    if ronda_id_existente and request.method == 'GET':
-        ronda = Ronda.query.get_or_404(ronda_id_existente)
-        if not (current_user.is_admin or current_user.is_supervisor):
+    if ronda_id and request.method == 'GET':
+        ronda = db.get_or_404(Ronda, ronda_id)
+        if not (current_user.is_admin or (ronda.supervisor and current_user.id == ronda.supervisor.id)):
             flash("Você não tem permissão para editar esta ronda.", 'danger')
             return redirect(url_for('ronda.listar_rondas'))
-
         form.nome_condominio.data = str(ronda.condominio_id)
         form.data_plantao.data = ronda.data_plantao_ronda
         form.escala_plantao.data = ronda.escala_plantao
-        form.supervisor_id.data = ronda.supervisor_id or 0
+        form.supervisor_id.data = str(ronda.supervisor_id or 0)
         form.log_bruto_rondas.data = ronda.log_ronda_bruto
-        
-        ronda_data_to_save['ronda_id'] = ronda.id
         relatorio_processado_final = ronda.relatorio_processado
-
-    if request.method == 'POST' and form.validate_on_submit():
-        log_bruto = form.log_bruto_rondas.data
-        data_plantao_obj = form.data_plantao.data
-        escala_plantao_str = form.escala_plantao.data
-        condominio_id_sel = form.nome_condominio.data
-        nome_condominio_outro_str = form.nome_condominio_outro.data
-        supervisor_id_sel = form.supervisor_id.data
-        condominio_obj = None
-
-        if condominio_id_sel == 'Outro':
-            if not nome_condominio_outro_str.strip():
-                flash('Se "Outro" é selecionado, o nome do condomínio deve ser fornecido.', 'danger')
-            else:
-                # Lógica para popular o campo do formulário para o re-render
-                form.nome_condominio_outro.data = nome_condominio_outro_str
-        
-        if condominio_id_sel:
-            try:
-                # A lógica de processamento não precisa criar o condomínio, apenas passar o nome
-                nome_condo_para_processar = nome_condominio_outro_str if condominio_id_sel == 'Outro' else dict(form.nome_condominio.choices).get(condominio_id_sel)
-                
-                data_plantao_fmt = data_plantao_obj.strftime('%d/%m/%Y') if data_plantao_obj else None
-                relatorio, total, p_evento, u_evento, duracao = processar_log_de_rondas(
-                    log_bruto_rondas_str=log_bruto, nome_condominio_str=nome_condo_para_processar,
-                    data_plantao_manual_str=data_plantao_fmt, escala_plantao_str=escala_plantao_str)
-                
-                relatorio_processado_final = relatorio
-                flash('Relatório de ronda processado. Verifique os dados e salve se estiver correto.', 'info')
-            except Exception as e:
-                flash(f'Erro ao processar o log de rondas: {str(e)}', 'danger')
-                
-    elif request.method == 'POST':
-        flash('Por favor, corrija os erros no formulário.', 'danger')
-
+    
     return render_template('ronda/relatorio.html',
                            title=title,
                            form=form,
                            relatorio_processado=relatorio_processado_final,
                            ronda_data_to_save=ronda_data_to_save)
 
-
-@ronda_bp.route('/rondas/salvar', methods=['POST'])
-@login_required
-def salvar_ronda():
-    """
-    Rota única para criar ou atualizar uma ronda, com verificação de duplicidade.
-    """
-    if not (current_user.is_admin or current_user.is_supervisor):
-        return jsonify({'success': False, 'message': 'Acesso negado.'}), 403
-
-    data = request.get_json()
-    if not data:
-        return jsonify({'success': False, 'message': 'Dados não fornecidos.'}), 400
-
-    ronda_id = data.get('ronda_id')
-    log_bruto = data.get('log_bruto')
-    condominio_id_str = data.get('condominio_id')
-    nome_condominio_outro = data.get('nome_condominio_outro', '').strip()
-    data_plantao_str = data.get('data_plantao')
-    escala_plantao = data.get('escala_plantao')
-    supervisor_id_manual_str = data.get('supervisor_id')
-
-    try:
-        condominio_obj = None
-        if condominio_id_str == 'Outro':
-            if not nome_condominio_outro:
-                return jsonify({'success': False, 'message': 'O nome do condomínio é obrigatório ao selecionar "Outro".'}), 400
-            condominio_obj = Condominio.query.filter(func.lower(Condominio.nome) == func.lower(nome_condominio_outro)).first()
-            if not condominio_obj:
-                condominio_obj = Condominio(nome=nome_condominio_outro)
-                db.session.add(condominio_obj)
-                db.session.commit()
-        elif condominio_id_str and condominio_id_str.isdigit():
-            condominio_obj = Condominio.query.get(int(condominio_id_str))
-        
-        if not all([log_bruto, condominio_obj, data_plantao_str, escala_plantao]):
-            return jsonify({'success': False, 'message': 'Dados essenciais ausentes.'}), 400
-
-        data_plantao = date.fromisoformat(data_plantao_str)
-        
-        relatorio, total, p_evento, u_evento, duracao = processar_log_de_rondas(
-            log_bruto_rondas_str=log_bruto, nome_condominio_str=condominio_obj.nome,
-            data_plantao_manual_str=data_plantao.strftime('%d/%m/%Y'), escala_plantao_str=escala_plantao)
-        
-        turno_ronda = inferir_turno(data_plantao, escala_plantao)
-        
-        supervisor_id_para_db = None
-        if supervisor_id_manual_str and supervisor_id_manual_str != '0':
-            supervisor_id_para_db = int(supervisor_id_manual_str)
-        else:
-            escala = EscalaMensal.query.filter_by(ano=data_plantao.year, mes=data_plantao.month, nome_turno=turno_ronda).first()
-            if escala:
-                supervisor_id_para_db = escala.supervisor_id
-
-        if ronda_id: # Atualiza uma ronda existente
-            ronda = Ronda.query.get_or_404(ronda_id)
-            if not current_user.is_admin and ronda.supervisor_id is not None and ronda.supervisor_id != current_user.id:
-                 return jsonify({'success': False, 'message': 'Você não tem permissão para alterar esta ronda.'}), 403
-
-            ronda.log_ronda_bruto, ronda.relatorio_processado, ronda.condominio_id, ronda.data_plantao_ronda, ronda.escala_plantao, ronda.turno_ronda, ronda.supervisor_id, ronda.total_rondas_no_log, ronda.primeiro_evento_log_dt, ronda.ultimo_evento_log_dt, ronda.duracao_total_rondas_minutos, ronda.data_hora_fim = \
-                log_bruto, relatorio, condominio_obj.id, data_plantao, escala_plantao, turno_ronda, supervisor_id_para_db, total, p_evento, u_evento, duracao, datetime.now(timezone.utc)
-            
-            mensagem_sucesso = 'Ronda atualizada com sucesso!'
-        else: # Cria uma nova ronda
-            # --- INÍCIO DA CORREÇÃO: VERIFICAÇÃO DE DUPLICIDADE ---
-            ronda_existente = Ronda.query.filter_by(
-                condominio_id=condominio_obj.id,
-                data_plantao_ronda=data_plantao,
-                turno_ronda=turno_ronda
-            ).first()
-            if ronda_existente:
-                return jsonify({'success': False, 'message': f'Já existe uma ronda para este condomínio, data e turno (ID: {ronda_existente.id}).'}), 409
-            # --- FIM DA CORREÇÃO ---
-            
-            ronda = Ronda(
-                data_hora_inicio=p_evento or datetime.now(timezone.utc), data_hora_fim=datetime.now(timezone.utc),
-                log_ronda_bruto=log_bruto, relatorio_processado=relatorio, condominio_id=condominio_obj.id,
-                escala_plantao=escala_plantao, data_plantao_ronda=data_plantao, turno_ronda=turno_ronda,
-                user_id=current_user.id, supervisor_id=supervisor_id_para_db, total_rondas_no_log=total,
-                primeiro_evento_log_dt=p_evento, ultimo_evento_log_dt=u_evento, duracao_total_rondas_minutos=duracao
-            )
-            db.session.add(ronda)
-            mensagem_sucesso = 'Ronda registrada com sucesso!'
-            
-        db.session.commit()
-        return jsonify({'success': True, 'message': mensagem_sucesso, 'ronda_id': ronda.id}), 200
-
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Erro ao salvar/finalizar ronda: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': f'Erro interno ao salvar ronda: {str(e)}'}), 500
-
-
-# As rotas /historico, /detalhes e /excluir permanecem as mesmas e não precisam de alteração
-@ronda_bp.route('/rondas/historico', methods=['GET'])
+@ronda_bp.route('/historico', methods=['GET'])
 @login_required
 def listar_rondas():
+    """Exibe o histórico de rondas com filtros."""
     page = request.args.get('page', 1, type=int)
-    condominio_filter = request.args.get('condominio')
-    supervisor_filter_id = request.args.get('supervisor', type=int)
-    data_inicio_filter_str = request.args.get('data_inicio')
-    data_fim_filter_str = request.args.get('data_fim')
-    turno_filter = request.args.get('turno')
-    status_ronda_filter = request.args.get('status')
-    query = Ronda.query.options(db.joinedload(Ronda.condominio_obj), db.joinedload(Ronda.criador), db.joinedload(Ronda.supervisor))
-    if condominio_filter:
-        condominio_obj = Condominio.query.filter(func.lower(Condominio.nome) == func.lower(condominio_filter)).first()
-        query = query.filter(Ronda.condominio_id == condominio_obj.id) if condominio_obj else query.filter(literal(False))
-    if supervisor_filter_id:
-        query = query.filter(Ronda.supervisor_id == supervisor_filter_id)
-    if turno_filter:
-        query = query.filter(Ronda.turno_ronda == turno_filter)
-    if status_ronda_filter == 'em_andamento':
-        query = query.filter(Ronda.data_hora_fim.is_(None))
-    elif status_ronda_filter == 'finalizada':
-        query = query.filter(Ronda.data_hora_fim.isnot(None))
-    if data_inicio_filter_str:
-        try:
-            data_inicio = datetime.strptime(data_inicio_filter_str, '%Y-%m-%d').date()
-            query = query.filter(Ronda.data_plantao_ronda >= data_inicio)
-        except ValueError: flash('Formato de Data de Início inválido. Use AAAA-MM-DD.', 'danger')
-    if data_fim_filter_str:
-        try:
-            data_fim = datetime.strptime(data_fim_filter_str, '%Y-%m-%d').date()
-            query = query.filter(Ronda.data_plantao_ronda <= data_fim)
-        except ValueError: flash('Formato de Data de Fim inválido. Use AAAA-MM-DD.', 'danger')
+    
+    filter_params = {
+        'condominio': request.args.get('condominio'),
+        'supervisor': request.args.get('supervisor', type=int),
+        'data_inicio': request.args.get('data_inicio'),
+        'data_fim': request.args.get('data_fim'),
+        'turno': request.args.get('turno'),
+        'status_ocorrencia': request.args.get('status_ocorrencia')
+    }
+    active_filter_params = {k: v for k, v in filter_params.items() if v is not None and v != ''}
+    
+    query = Ronda.query.options(db.joinedload(Ronda.condominio_obj), db.joinedload(Ronda.supervisor), db.joinedload(Ronda.ocorrencia))
+
+    if active_filter_params.get('condominio'):
+        query = query.join(Condominio).filter(Condominio.nome == active_filter_params['condominio'])
+    if active_filter_params.get('supervisor'):
+        query = query.filter(Ronda.supervisor_id == active_filter_params['supervisor'])
+    if active_filter_params.get('status_ocorrencia') == 'com_ocorrencia':
+        query = query.filter(Ronda.ocorrencia.has())
+    elif active_filter_params.get('status_ocorrencia') == 'sem_ocorrencia':
+        query = query.filter(Ronda.ocorrencia.is_(None))
+
     if not current_user.is_admin:
         query = query.filter(or_(Ronda.supervisor_id == current_user.id, Ronda.supervisor_id.is_(None)))
-    rondas_pagination = query.order_by(Ronda.data_plantao_ronda.desc(), Ronda.data_hora_inicio.desc()).paginate(page=page, per_page=10)
-    all_condominios = Condominio.query.order_by(Condominio.nome).all()
-    all_supervisors = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
-    all_turnos = ['Diurno Par', 'Noturno Par', 'Diurno Impar', 'Noturno Impar']
-    all_statuses = [{'value': '', 'label': '-- Todos --'}, {'value': 'em_andamento', 'label': 'Em Andamento'}, {'value': 'finalizada', 'label': 'Finalizada'}]
-    return render_template('ronda/list.html', title='Histórico de Rondas', rondas_pagination=rondas_pagination,
-                           condominios=all_condominios, supervisors=all_supervisors, turnos=all_turnos, statuses=all_statuses,
-                           selected_condominio=condominio_filter, selected_supervisor=supervisor_filter_id,
-                           selected_data_inicio=data_inicio_filter_str, selected_data_fim=data_fim_filter_str,
-                           selected_turno=turno_filter, selected_status=status_ronda_filter)
+    
+    rondas_pagination = query.order_by(Ronda.data_plantao_ronda.desc(), Ronda.id.desc()).paginate(page=page, per_page=10)
+    
+    selected_values = {f"selected_{key}": val for key, val in active_filter_params.items()}
 
-@ronda_bp.route('/rondas/detalhes/<int:ronda_id>')
+    return render_template(
+        'ronda/list.html', 
+        title='Histórico de Rondas', 
+        rondas_pagination=rondas_pagination,
+        filter_params=active_filter_params,
+        condominios=Condominio.query.order_by(Condominio.nome).all(),
+        supervisors=User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all(),
+        turnos=['Diurno Par', 'Noturno Par', 'Diurno Impar', 'Noturno Impar'],
+        **selected_values
+    )
+
+# --- ROTA RESTAURADA ---
+@ronda_bp.route('/detalhes/<int:ronda_id>')
 @login_required
 def detalhes_ronda(ronda_id):
-    ronda = Ronda.query.options(db.joinedload(Ronda.criador), db.joinedload(Ronda.condominio_obj), db.joinedload(Ronda.supervisor)).get_or_404(ronda_id)
-    if not (current_user.is_admin or current_user.is_supervisor):
+    """Exibe os detalhes de uma ronda específica."""
+    ronda = db.get_or_404(Ronda, ronda_id)
+    # Permissão para ver os detalhes da ronda (pode ser ajustada)
+    if not (current_user.is_admin or (ronda.supervisor and current_user.id == ronda.supervisor.id) or current_user.id == ronda.user_id):
         flash("Você não tem permissão para visualizar os detalhes desta ronda.", 'danger')
         return redirect(url_for('ronda.listar_rondas'))
     return render_template('ronda/details.html', title=f'Detalhes da Ronda #{ronda.id}', ronda=ronda)
 
-@ronda_bp.route('/rondas/excluir/<int:ronda_id>', methods=['POST', 'DELETE'])
+
+# ==============================================================================
+# ROTAS DE GESTÃO DE OCORRÊNCIAS
+# ==============================================================================
+
+@ronda_bp.route('/ocorrencia/registrar_direto', methods=['GET', 'POST'])
+@login_required
+def registrar_ocorrencia_direto():
+    """Exibe um formulário unificado para criar uma Ronda e uma Ocorrência 
+    a partir do texto processado na página inicial.
+    """
+    form_ronda = TestarRondasForm() 
+    form_ocorrencia = OcorrenciaForm()
+
+    try:
+        form_ronda.nome_condominio.choices = [('', '-- Selecione --')] + [(str(c.id), c.nome) for c in Condominio.query.order_by(Condominio.nome).all()] + [('Outro', 'Outro')]
+        form_ronda.supervisor_id.choices = [('0', '-- Nenhum / Automático --')] + [(s.id, s.username) for s in User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()]
+        form_ocorrencia.ocorrencia_tipo_id.choices = [(t.id, t.nome) for t in OcorrenciaTipo.query.order_by('nome').all()]
+        form_ocorrencia.orgaos_acionados.choices = [(o.id, o.nome) for o in OrgaoPublico.query.order_by('nome').all()]
+    except Exception as e:
+        logger.error(f"Erro ao carregar dados para o formulário de ocorrência direta: {e}", exc_info=True)
+        flash('Erro ao carregar dados de suporte. Tente novamente.', 'danger')
+
+    if form_ronda.validate_on_submit() and form_ocorrencia.validate_on_submit():
+        try:
+            condominio_id_str = form_ronda.nome_condominio.data
+            nome_condominio_outro = form_ronda.nome_condominio_outro.data.strip()
+            data_plantao = form_ronda.data_plantao.data
+            escala_plantao = form_ronda.escala_plantao.data
+            log_bruto = request.form.get('log_bruto_hidden') 
+            relatorio_processado = request.form.get('relatorio_final_hidden')
+            
+            condominio_obj = None
+            if condominio_id_str == 'Outro':
+                if not nome_condominio_outro:
+                    flash('O nome do condomínio é obrigatório ao selecionar "Outro".', 'danger')
+                    return redirect(url_for('ronda.registrar_ocorrencia_direto'))
+                condominio_obj = Condominio.query.filter(func.lower(Condominio.nome) == func.lower(nome_condominio_outro)).first()
+                if not condominio_obj:
+                    condominio_obj = Condominio(nome=nome_condominio_outro)
+                    db.session.add(condominio_obj)
+                    db.session.flush()
+            else:
+                condominio_obj = db.get_or_404(Condominio, int(condominio_id_str))
+            
+            nova_ronda = Ronda(
+                log_ronda_bruto=log_bruto, relatorio_processado=relatorio_processado,
+                condominio_id=condominio_obj.id, data_plantao_ronda=data_plantao,
+                escala_plantao=escala_plantao, turno_ronda=inferir_turno(data_plantao, escala_plantao),
+                user_id=current_user.id
+            )
+            db.session.add(nova_ronda)
+            db.session.flush()
+
+            nova_ocorrencia = Ocorrencia(
+                ronda_id=nova_ronda.id, relatorio_final=relatorio_processado,
+                ocorrencia_tipo_id=form_ocorrencia.ocorrencia_tipo_id.data, status=form_ocorrencia.status.data,
+                endereco_especifico=form_ocorrencia.endereco_especifico.data, registrado_por_user_id=current_user.id
+            )
+            orgaos_selecionados = OrgaoPublico.query.filter(OrgaoPublico.id.in_(form_ocorrencia.orgaos_acionados.data)).all()
+            nova_ocorrencia.orgaos_acionados.extend(orgaos_selecionados)
+            db.session.add(nova_ocorrencia)
+
+            db.session.commit()
+            flash('Ocorrência oficial registrada com sucesso!', 'success')
+            return redirect(url_for('ronda.detalhes_ocorrencia', ocorrencia_id=nova_ocorrencia.id))
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erro ao salvar ocorrência direta: {e}", exc_info=True)
+            flash(f"Ocorreu um erro ao salvar: {e}", 'danger')
+
+    return render_template('ocorrencia/form_direto.html', title="Registrar Ocorrência Oficial", form_ronda=form_ronda, form_ocorrencia=form_ocorrencia)
+
+@ronda_bp.route('/ocorrencia/registrar/<int:ronda_id>', methods=['GET', 'POST'])
+@login_required
+def registrar_ocorrencia(ronda_id):
+    """Registra uma nova ocorrência a partir de uma ronda JÁ EXISTENTE."""
+    ronda = db.get_or_404(Ronda, ronda_id)
+    if ronda.ocorrencia:
+        flash('Esta ronda já possui uma ocorrência registrada.', 'warning')
+        return redirect(url_for('ronda.detalhes_ocorrencia', ocorrencia_id=ronda.ocorrencia.id))
+
+    form = OcorrenciaForm()
+    form.ocorrencia_tipo_id.choices = [(t.id, t.nome) for t in OcorrenciaTipo.query.order_by('nome').all()]
+    form.orgaos_acionados.choices = [(o.id, o.nome) for o in OrgaoPublico.query.order_by('nome').all()]
+
+    if form.validate_on_submit():
+        nova_ocorrencia = Ocorrencia(
+            ronda_id=ronda.id, relatorio_final=form.relatorio_final.data,
+            ocorrencia_tipo_id=form.ocorrencia_tipo_id.data, status=form.status.data,
+            endereco_especifico=form.ocorrencia.endereco_especifico.data, registrado_por_user_id=current_user.id
+        )
+        orgaos_selecionados = OrgaoPublico.query.filter(OrgaoPublico.id.in_(form.orgaos_acionados.data)).all()
+        nova_ocorrencia.orgaos_acionados.extend(orgaos_selecionados)
+        db.session.add(nova_ocorrencia)
+        db.session.commit()
+        flash('Ocorrência registrada com sucesso!', 'success')
+        return redirect(url_for('ronda.detalhes_ocorrencia', ocorrencia_id=nova_ocorrencia.id))
+    
+    elif request.method == 'GET':
+        form.relatorio_final.data = ronda.relatorio_processado
+
+    return render_template('ocorrencia/form.html', title='Registrar Ocorrência da Ronda #' + str(ronda.id), form=form, ronda=ronda)
+
+
+@ronda_bp.route('/ocorrencia/detalhes/<int:ocorrencia_id>')
+@login_required
+def detalhes_ocorrencia(ocorrencia_id):
+    """Exibe os detalhes de uma ocorrência."""
+    ocorrencia = db.get_or_404(Ocorrencia, ocorrencia_id)
+    return render_template('ocorrencia/details.html', title=f'Detalhes da Ocorrência #{ocorrencia.id}', ocorrencia=ocorrencia)
+
+# ==============================================================================
+# ROTAS DE GERENCIAMENTO (CRUD)
+# ==============================================================================
+@ronda_bp.route('/gerenciamento/tipos_ocorrencia', methods=['GET', 'POST'])
 @login_required
 @admin_required
-def excluir_ronda(ronda_id):
-    ronda_to_delete = Ronda.query.get_or_404(ronda_id)
-    try:
-        db.session.delete(ronda_to_delete)
+def gerenciar_tipos_ocorrencia():
+    """Página para gerenciar os tipos de ocorrência."""
+    form = OcorrenciaTipoForm()
+    if form.validate_on_submit():
+        novo_tipo = OcorrenciaTipo(nome=form.nome.data, descricao=form.descricao.data)
+        db.session.add(novo_tipo)
         db.session.commit()
-        message = f'Ronda {ronda_id} excluída com sucesso.'
-        if request.method == 'DELETE': return jsonify({'success': True, 'message': message}), 200
-        else:
-            flash(message, 'success')
-            return redirect(url_for('ronda.listar_rondas'))
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Erro ao excluir ronda {ronda_id}: {e}", exc_info=True)
-        message = f'Erro ao excluir ronda {ronda_id}: {str(e)}'
-        if request.method == 'DELETE': return jsonify({'success': False, 'message': message}), 500
-        else:
-            flash(message, 'danger')
-            return redirect(url_for('ronda.detalhes_ronda', ronda_id=ronda_id))
+        flash('Novo tipo de ocorrência adicionado!', 'success')
+        return redirect(url_for('ronda.gerenciar_tipos_ocorrencia'))
+    
+    tipos = OcorrenciaTipo.query.order_by('nome').all()
+    return render_template('gerenciamento/tipos_ocorrencia.html', title="Gerenciar Tipos de Ocorrência", form=form, tipos=tipos)
+
+@ronda_bp.route('/gerenciamento/tipos_ocorrencia/editar/<int:tipo_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def editar_tipo_ocorrencia(tipo_id):
+    """Edita um tipo de ocorrência existente."""
+    tipo = db.get_or_404(OcorrenciaTipo, tipo_id)
+    form = OcorrenciaTipoForm(obj=tipo)
+    if form.validate_on_submit():
+        tipo.nome = form.nome.data
+        tipo.descricao = form.descricao.data
+        db.session.commit()
+        flash('Tipo de ocorrência atualizado com sucesso!', 'success')
+        return redirect(url_for('ronda.gerenciar_tipos_ocorrencia'))
+    return render_template('gerenciamento/editar_item.html', form=form, title=f"Editar Tipo: {tipo.nome}", cancel_url=url_for('ronda.gerenciar_tipos_ocorrencia'))
+
+@ronda_bp.route('/gerenciamento/tipos_ocorrencia/excluir/<int:tipo_id>', methods=['POST'])
+@login_required
+@admin_required
+def excluir_tipo_ocorrencia(tipo_id):
+    """Exclui um tipo de ocorrência."""
+    tipo = db.get_or_404(OcorrenciaTipo, tipo_id)
+    if tipo.ocorrencias:
+        flash('Não é possível excluir um tipo que já está em uso por ocorrências existentes.', 'danger')
+    else:
+        db.session.delete(tipo)
+        db.session.commit()
+        flash('Tipo de ocorrência excluído com sucesso.', 'success')
+    return redirect(url_for('ronda.gerenciar_tipos_ocorrencia'))
+
+@ronda_bp.route('/gerenciamento/orgaos_publicos', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def gerenciar_orgaos_publicos():
+    """Página para gerenciar os órgãos públicos."""
+    form = OrgaoPublicoForm()
+    if form.validate_on_submit():
+        novo_orgao = OrgaoPublico(nome=form.nome.data, contato=form.contato.data)
+        db.session.add(novo_orgao)
+        db.session.commit()
+        flash('Novo órgão público adicionado!', 'success')
+        return redirect(url_for('ronda.gerenciar_orgaos_publicos'))
+        
+    orgaos = OrgaoPublico.query.order_by('nome').all()
+    return render_template('gerenciamento/orgaos_publicos.html', title="Gerenciar Órgãos Públicos", form=form, orgaos=orgaos)
+
+@ronda_bp.route('/gerenciamento/orgaos_publicos/editar/<int:orgao_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def editar_orgao_publico(orgao_id):
+    """Edita um órgão público existente."""
+    orgao = db.get_or_404(OrgaoPublico, orgao_id)
+    form = OrgaoPublicoForm(obj=orgao)
+    if form.validate_on_submit():
+        orgao.nome = form.nome.data
+        orgao.contato = form.contato.data
+        db.session.commit()
+        flash('Órgão público atualizado com sucesso!', 'success')
+        return redirect(url_for('ronda.gerenciar_orgaos_publicos'))
+    
+    return render_template('gerenciamento/editar_item_orgao.html', form=form, title=f"Editar Órgão: {orgao.nome}", cancel_url=url_for('ronda.gerenciar_orgaos_publicos'))
+
+@ronda_bp.route('/gerenciamento/orgaos_publicos/excluir/<int:orgao_id>', methods=['POST'])
+@login_required
+@admin_required
+def excluir_orgao_publico(orgao_id):
+    """Exclui um órgão público."""
+    orgao = db.get_or_404(OrgaoPublico, orgao_id)
+    if orgao.ocorrencias:
+        flash('Não é possível excluir um órgão que já está em uso por ocorrências existentes.', 'danger')
+    else:
+        db.session.delete(orgao)
+        db.session.commit()
+        flash('Órgão público excluído com sucesso.', 'success')
+    return redirect(url_for('ronda.gerenciar_orgaos_publicos'))
