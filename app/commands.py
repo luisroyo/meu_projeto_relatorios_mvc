@@ -1,9 +1,9 @@
 # app/commands.py
 import click
-from flask.cli import with_appcontext
-from .models import User, Ronda, EscalaMensal
-from . import db
 import logging
+from flask.cli import with_appcontext
+from .models import User, Ronda, EscalaMensal, TipoOcorrencia # Adicionado TipoOcorrencia
+from . import db
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 @with_appcontext
 def seed_db_command():
     """Cria os usuários administradores e supervisores padrão."""
-    # ... (código existente da função, sem alterações)
     default_users = [
         {"username": "Luis Royo", "email": "luisroyo25@gmail.com", "password": "edu123cs", "is_admin": True, "is_supervisor": True},
         {"username": "Romel / Arnaldo", "email": "romel.arnaldo@example.com", "password": "password123", "is_admin": False, "is_supervisor": True},
@@ -41,10 +40,51 @@ def seed_db_command():
             db.session.rollback()
             logger.error(f"Falha ao criar/atualizar usuário '{user_data['username']}': {e}", exc_info=True)
             click.echo(f"Erro ao processar usuário '{user_data['username']}': {e}")
-            return
+            return # Retorna para evitar commit de sessão inconsistente
     db.session.commit()
     click.echo("Comando de inicialização do banco de dados concluído.")
 
+# --- ADIÇÃO CRÍTICA: COMANDO seed-ocorrencias ---
+@click.command('seed-ocorrencias')
+@with_appcontext
+def seed_ocorrencias_command():
+    """Cria os tipos de ocorrência iniciais no banco de dados."""
+    try:
+        tipos_iniciais = [
+            {'nome': 'Perturbação de Sossego', 'categoria': 'Atendimento ao Público'},
+            {'nome': 'Conflito entre Moradores', 'categoria': 'Atendimento ao Público'},
+            {'nome': 'Orientação Geral', 'categoria': 'Atendimento ao Público'},
+            {'nome': 'Primeiros Socorros', 'categoria': 'Atendimento ao Público'},
+            {'nome': 'Apoio Externo (Polícia/Bombeiros)', 'categoria': 'Segurança Patrimonial'},
+            {'nome': 'Atitude Suspeita', 'categoria': 'Segurança Patrimonial'},
+            {'nome': 'Disparo de Alarme', 'categoria': 'Segurança Patrimonial'},
+            {'nome': 'Vandalismo / Dano ao Patrimônio', 'categoria': 'Segurança Patrimonial'},
+            {'nome': 'Violação de Perímetro', 'categoria': 'Segurança Patrimonial'},
+            {'nome': 'Falha de Equipamento (Câmera, Portão)', 'categoria': 'Operacional'},
+            {'nome': 'Ronda não Conforme', 'categoria': 'Operacional'},
+            {'nome': 'Problema na Escala', 'categoria': 'Operacional'},
+        ]
+        
+        tipos_existentes = {t.nome for t in TipoOcorrencia.query.all()}
+        
+        count = 0
+        for tipo_data in tipos_iniciais:
+            if tipo_data['nome'] not in tipos_existentes:
+                novo_tipo = TipoOcorrencia(nome=tipo_data['nome'], categoria=tipo_data.get('categoria'))
+                db.session.add(novo_tipo)
+                count += 1
+                click.echo(f"Adicionado tipo: {tipo_data['nome']}")
+        
+        if count > 0:
+            db.session.commit()
+            click.echo(f"\n{count} novos tipos de ocorrência foram adicionados com sucesso!")
+        else:
+            click.echo("\nNenhum novo tipo de ocorrência para adicionar. O banco de dados já está populado.")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Falha ao popular tipos de ocorrência: {e}", exc_info=True)
+        click.echo(f"ERRO: A operação falhou. Detalhes: {e}")
+        return # Retorna para evitar commit de sessão inconsistente
 
 # --- VERSÃO FINAL E MAIS PODEROSA DO COMANDO ---
 @click.command('assign-supervisors')
@@ -106,3 +146,4 @@ def assign_supervisors_command():
         db.session.rollback()
         logger.error(f"Falha na atribuição em massa de supervisores: {e}", exc_info=True)
         click.echo(f"ERRO: A operação falhou e foi revertida. Detalhes: {e}")
+
