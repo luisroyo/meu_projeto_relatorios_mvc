@@ -31,8 +31,8 @@ login_manager.login_message_category = 'info'
 
 # --- Configuração de Logging ---
 logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO').upper(),
-                    format='%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
+                      format='%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] %(message)s',
+                      datefmt='%Y-%m-%d %H:%M:%S')
 module_logger = logging.getLogger(__name__)
 
 # --- Carregamento do .ENV ---
@@ -142,7 +142,8 @@ def create_app():
         # Importa o módulo 'commands' e adiciona cada comando individualmente
         from . import commands 
         app_instance.cli.add_command(commands.seed_db_command)
-        app_instance.cli.add_command(commands.seed_ocorrencias_command) # Adicionar este comando também se ele existe em commands.py
+        # A linha abaixo foi removida pois o comando `seed_ocorrencias_command` não existe mais em `commands.py`
+        # app_instance.cli.add_command(commands.seed_ocorrencias_command) 
         app_instance.cli.add_command(commands.assign_supervisors_command)
 
     module_logger.info("Aplicação Flask completamente configurada e pronta para ser retornada.")
