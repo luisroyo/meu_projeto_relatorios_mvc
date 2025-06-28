@@ -8,14 +8,16 @@
     <h2><i class="bi bi-shield-plus me-2"></i>{{ title }}</h2>
     <p class="lead">Complete os campos abaixo para salvar o relatório gerado pela IA como um registo oficial.</p>
 
-    <form method="POST" class="row g-4">
+    <form method="POST" class="row g-4" id="mainOcorrenciaForm">
         {# Tokens CSRF para ambos os formulários #}
         {{ form_ronda.hidden_tag() }}
         {{ form_ocorrencia.hidden_tag() }}
 
-        {# Campos ocultos para enviar os relatórios para o backend #}
-        <input type="hidden" id="log_bruto_hidden" name="log_bruto_hidden">
-        <input type="hidden" id="relatorio_final_hidden" name="relatorio_final_hidden">
+        {# --- CORREÇÃO INÍCIO --- #}
+        {# Os nomes dos campos ocultos agora correspondem aos nomes nos formulários (TestarRondasForm e OcorrenciaForm) #}
+        <input type="hidden" id="log_bruto_rondas" name="log_bruto_rondas">
+        <input type="hidden" id="relatorio_final" name="relatorio_final">
+        {# --- CORREÇÃO FIM --- #}
 
         <!-- Coluna da Esquerda: Dados de Contexto (Ronda) -->
         <div class="col-lg-5">
@@ -48,8 +50,29 @@
                         <textarea id="display_relatorio_final" class="form-control" rows="12" readonly style="background-color: #e9ecef;">Carregando...</textarea>
                     </div>
                     <hr>
-                    <div class="mb-3">{{ render_field(form_ocorrencia.ocorrencia_tipo_id) }}</div>
-                    <div class="mb-3">{{ render_field(form_ocorrencia.orgaos_acionados) }}</div>
+                    <!-- TIPO DE OCORRÊNCIA COM BOTÃO DE ADIÇÃO -->
+                    <div class="mb-3">
+                        <label for="ocorrencia_tipo_id" class="form-label">Tipo da Ocorrência</label>
+                        <div class="input-group">
+                            {{ render_field(form_ocorrencia.ocorrencia_tipo_id, label_visible=false) }}
+                            <button class="btn btn-outline-success" type="button" data-bs-toggle="modal" data-bs-target="#addTipoModal" title="Adicionar Novo Tipo">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- ÓRGÃOS ACIONADOS COM BOTÃO DE ADIÇÃO -->
+                    <div class="mb-3">
+                        <label for="orgaos_acionados" class="form-label">Órgãos Públicos Acionados</label>
+                        <div class="input-group">
+                             {{ render_field(form_ocorrencia.orgaos_acionados, label_visible=false) }}
+                            <button class="btn btn-outline-success" type="button" data-bs-toggle="modal" data-bs-target="#addOrgaoModal" title="Adicionar Novo Órgão">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                         <div class="form-text">
+                            Segure Ctrl (ou Cmd em Mac) para selecionar mais de um órgão.
+                        </div>
+                    </div>
                     <div class="mb-3">{{ render_field(form_ocorrencia.status) }}</div>
                     <div class="mb-3">{{ render_field(form_ocorrencia.endereco_especifico) }}</div>
                 </div>
@@ -58,10 +81,60 @@
 
         <!-- Botão de Submissão -->
         <div class="col-12 text-end mt-4">
-            <a href="{{ url_for('core.index') }}" class="btn btn-secondary me-2"><i class="bi bi-x-circle me-1"></i>Cancelar</a>
+            <a href="{{ url_for('main.index') }}" class="btn btn-secondary me-2"><i class="bi bi-x-circle me-1"></i>Cancelar</a>
             <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-save-fill me-1"></i>Salvar Ocorrência Oficial</button>
         </div>
     </form>
+</div>
+
+<!-- Modal para Adicionar Tipo de Ocorrência -->
+<div class="modal fade" id="addTipoModal" tabindex="-1" aria-labelledby="addTipoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addTipoModalLabel">Adicionar Novo Tipo de Ocorrência</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="tipo-modal-alert"></div>
+        <form id="addTipoForm">
+          <div class="mb-3">
+            <label for="new_tipo_nome" class="form-label">Nome do Tipo*</label>
+            <input type="text" class="form-control" id="new_tipo_nome" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="saveNewTipoBtn">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Adicionar Órgão Público -->
+<div class="modal fade" id="addOrgaoModal" tabindex="-1" aria-labelledby="addOrgaoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addOrgaoModalLabel">Adicionar Novo Órgão Público</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+         <div id="orgao-modal-alert"></div>
+        <form id="addOrgaoForm">
+          <div class="mb-3">
+            <label for="new_orgao_nome" class="form-label">Nome do Órgão*</label>
+            <input type="text" class="form-control" id="new_orgao_nome" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="saveNewOrgaoBtn">Salvar</button>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -69,25 +142,83 @@
 {{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Pega os dados do localStorage
     const logBruto = localStorage.getItem('novoLogRondaBruto');
     const relatorioProcessado = localStorage.getItem('novoRelatorioProcessado');
 
     if (!logBruto || !relatorioProcessado) {
         alert("Erro: Dados do relatório não encontrados. Por favor, gere o relatório novamente na página inicial.");
-        window.location.href = "{{ url_for('core.index') }}";
+        window.location.href = "{{ url_for('main.index') }}";
         return;
     }
 
-    // Preenche os campos visíveis e os ocultos
+    // Preenche os campos visíveis
     document.getElementById('display_log_bruto').textContent = logBruto;
-    document.getElementById('log_bruto_hidden').value = logBruto;
-
     document.getElementById('display_relatorio_final').textContent = relatorioProcessado;
-    document.getElementById('relatorio_final_hidden').value = relatorioProcessado;
 
-    // Não limpa o localStorage aqui, para o caso de o utilizador recarregar a página
-    // A rota backend pode limpar após o sucesso, se desejado, mas não é crítico.
+    // --- CORREÇÃO INÍCIO ---
+    // Preenche os campos ocultos com os IDs e nomes corretos
+    document.getElementById('log_bruto_rondas').value = logBruto;
+    document.getElementById('relatorio_final').value = relatorioProcessado;
+    // --- CORREÇÃO FIM ---
+
+    // Lógica dos modais...
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+    async function saveNewItem(apiUrl, data, selectElement, modalElement, alertElement) {
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.success) {
+                const newOption = new Option(result.nome, result.id, true, true);
+                selectElement.appendChild(newOption);
+                selectElement.dispatchEvent(new Event('change'));
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                modal.hide();
+            } else {
+                alertElement.innerHTML = `<div class="alert alert-danger">${result.message || 'Erro desconhecido.'}</div>`;
+            }
+        } catch (error) {
+            alertElement.innerHTML = `<div class="alert alert-danger">Erro de comunicação. Tente novamente.</div>`;
+            console.error('Erro ao salvar item:', error);
+        }
+    }
+
+    const saveTipoBtn = document.getElementById('saveNewTipoBtn');
+    if(saveTipoBtn){
+        saveTipoBtn.addEventListener('click', () => {
+            const nome = document.getElementById('new_tipo_nome').value;
+            if (!nome.trim()) { alert("O nome do tipo é obrigatório."); return; }
+            saveNewItem(
+                "{{ url_for('ronda.api_add_tipo_ocorrencia') }}",
+                { nome: nome },
+                document.getElementById('ocorrencia_tipo_id'),
+                document.getElementById('addTipoModal'),
+                document.getElementById('tipo-modal-alert')
+            );
+        });
+    }
+
+    const saveOrgaoBtn = document.getElementById('saveNewOrgaoBtn');
+    if(saveOrgaoBtn) {
+        saveOrgaoBtn.addEventListener('click', () => {
+            const nome = document.getElementById('new_orgao_nome').value;
+             if (!nome.trim()) { alert("O nome do órgão é obrigatório."); return; }
+            saveNewItem(
+                "{{ url_for('ronda.api_add_orgao_publico') }}",
+                { nome: nome },
+                document.getElementById('orgaos_acionados'),
+                document.getElementById('addOrgaoModal'),
+                document.getElementById('orgao-modal-alert')
+            );
+        });
+    }
 });
 </script>
 {% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-file-earmark-text-fill me-2"></i>{{ title }}</h2>
+    <p class="lead">Detalhes completos da ocorrência oficial registrada.</p>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Resumo da Ocorrência</h5>
+            <span class="badge bg-light text-primary fs-6">{{ ocorrencia.status }}</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>ID da Ocorrência:</strong> {{ ocorrencia.id }}</p>
+                    <p><strong>Tipo:</strong> {{ ocorrencia.tipo.nome if ocorrencia.tipo else 'N/A' }}</p>
+                    <p><strong>Registrada em:</strong> {{ ocorrencia.data_ocorrencia | localtime }}</p>
+                    <p><strong>Registrada por:</strong> {{ ocorrencia.registrado_por.username if ocorrencia.registrado_por else 'N/A' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Endereço Específico:</strong> {{ ocorrencia.endereco_especifico or 'Não informado' }}</p>
+                    <p><strong>Órgãos Acionados:</strong>
+                        {% if ocorrencia.orgaos_acionados %}
+                            {% for orgao in ocorrencia.orgaos_acionados %}
+                                <span class="badge bg-secondary">{{ orgao.nome }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">Nenhum</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <hr>
+            <h6><strong>Relatório Final Oficial</strong></h6>
+            <pre class="bg-light p-3 border rounded" style="white-space: pre-wrap; word-wrap: break-word;">{{ ocorrencia.relatorio_final }}</pre>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Contexto da Ronda Vinculada</h5>
+        </div>
+        <div class="card-body">
+            <p>Esta ocorrência foi gerada a partir do relatório da <strong>Ronda #{{ ocorrencia.ronda.id }}</strong>.</p>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Condomínio:</strong> {{ ocorrencia.ronda.condominio_obj.nome if ocorrencia.ronda.condominio_obj else 'N/A' }}</p>
+                    <p><strong>Data do Plantão:</strong> {{ ocorrencia.ronda.data_plantao_ronda.strftime('%d/%m/%Y') if ocorrencia.ronda.data_plantao_ronda else 'N/A' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Turno:</strong> {{ ocorrencia.ronda.turno_ronda or 'N/A' }}</p>
+                     <p><strong>Supervisor Responsável:</strong> {{ ocorrencia.ronda.supervisor.username if ocorrencia.ronda.supervisor else 'Automático' }}</p>
+                </div>
+            </div>
+             <hr>
+            <h6><strong>Log Bruto Original</strong></h6>
+             <pre class="bg-light p-3 border rounded" style="white-space: pre-wrap; word-wrap: break-word; max-height: 200px; overflow-y: auto;">{{ ocorrencia.ronda.log_ronda_bruto }}</pre>
+        </div>
+    </div>
+
+     <div class="mt-4">
+        <a href="{{ url_for('ronda.listar_rondas') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar ao Histórico</a>
+        <a href="#" class="btn btn-warning ms-2 disabled"><i class="bi bi-pencil me-1"></i>Editar Ocorrência (Em breve)</a>
+    </div>
+
+</div>
+{% endblock %}
