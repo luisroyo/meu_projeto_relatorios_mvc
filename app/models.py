@@ -43,7 +43,7 @@ class User(UserMixin, db.Model):
     rondas_criadas = db.relationship('Ronda', backref='criador', lazy='dynamic', cascade="all, delete-orphan", foreign_keys='Ronda.user_id')
     processing_history = db.relationship('ProcessingHistory', backref='user', lazy='dynamic', cascade="all, delete-orphan")
     escalas_mensais = db.relationship('EscalaMensal', backref='supervisor', lazy='dynamic')
-    ocorrencias_registradas = db.relationship('Ocorrencia', backref='registrado_por', lazy='dynamic')
+    ocorrencias_registradas = db.relationship('Ocorrencia', backref='registrado_por', lazy='dynamic', foreign_keys='Ocorrencia.registrado_por_user_id') # <<< ALTERAÇÃO: Adicionado foreign_keys para clareza
 
     rondas_supervisionadas = db.relationship(
         'Ronda',
@@ -121,23 +121,19 @@ class Ronda(db.Model):
     log_ronda_bruto = db.Column(db.Text, nullable=False)
     relatorio_processado = db.Column(db.Text, nullable=True)
     
-    # Chaves Estrangeiras
     condominio_id = db.Column(db.Integer, db.ForeignKey('condominio.id'), nullable=True, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', name='fk_ronda_criador_id'), nullable=False, index=True)
     supervisor_id = db.Column(db.Integer, db.ForeignKey('user.id', name='fk_ronda_supervisor_id'), nullable=True, index=True)
     
-    # Detalhes do plantão
     turno_ronda = db.Column(db.String(50), nullable=True, index=True)
     escala_plantao = db.Column(db.String(100), nullable=True)
     data_plantao_ronda = db.Column(db.Date, nullable=True, index=True)
     
-    # Métricas da ronda
     total_rondas_no_log = db.Column(db.Integer, nullable=True, default=0)
     primeiro_evento_log_dt = db.Column(db.DateTime, nullable=True)
     ultimo_evento_log_dt = db.Column(db.DateTime, nullable=True)
     duracao_total_rondas_minutos = db.Column(db.Integer, default=0)
     
-    # Relacionamentos
     condominio_obj = db.relationship('Condominio', backref='rondas')
 
     def __repr__(self):
@@ -212,35 +208,44 @@ ocorrencia_orgaos = db.Table('ocorrencia_orgaos',
     db.Column('orgao_publico_id', db.Integer, db.ForeignKey('orgao_publico.id'), primary_key=True)
 )
 
+# <<< ALTERAÇÃO: Nova tabela de associação para Ocorrência e Colaborador >>>
+ocorrencia_colaboradores = db.Table('ocorrencia_colaboradores',
+    db.Column('ocorrencia_id', db.Integer, db.ForeignKey('ocorrencia.id'), primary_key=True),
+    db.Column('colaborador_id', db.Integer, db.ForeignKey('colaborador.id'), primary_key=True)
+)
+
 class Ocorrencia(db.Model):
     """
-    Modelo principal para registrar uma ocorrência oficial, vinculada a uma ronda.
+    # <<< ALTERAÇÃO: Docstring atualizada para refletir a independência das rondas.
+    Modelo principal para registrar uma ocorrência oficial.
     """
     __tablename__ = 'ocorrencia'
     id = db.Column(db.Integer, primary_key=True)
 
-    # Vínculo com a Ronda original. Cada ronda só pode ter uma ocorrência.
-    ronda_id = db.Column(db.Integer, db.ForeignKey('ronda.id'), unique=True, nullable=False, index=True)
+    # <<< ALTERAÇÃO: O vínculo com a Ronda foi REMOVIDO daqui.
+    # ronda_id = db.Column(db.Integer, db.ForeignKey('ronda.id'), unique=True, nullable=False, index=True)
     
-    # Relatório final, editável, que pode ser iniciado com o texto da IA.
     relatorio_final = db.Column(db.Text, nullable=False)
     
-    # Dados complementares da ocorrência
     data_ocorrencia = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
     status = db.Column(db.String(50), nullable=False, default='Registrada', index=True)
     endereco_especifico = db.Column(db.String(255), nullable=True)
 
-    # Chaves estrangeiras para tipos e usuários
     ocorrencia_tipo_id = db.Column(db.Integer, db.ForeignKey('ocorrencia_tipo.id'), nullable=False, index=True)
     registrado_por_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
 
-    # Relacionamentos
-    ronda = db.relationship('Ronda', backref=db.backref('ocorrencia', uselist=False))
+    # <<< ALTERAÇÃO: O relacionamento com Ronda foi REMOVIDO.
+    # ronda = db.relationship('Ronda', backref=db.backref('ocorrencia', uselist=False))
+    
     tipo = db.relationship('OcorrenciaTipo', backref='ocorrencias')
     
-    # Relacionamento Many-to-Many com OrgaoPublico
+    # Relacionamento Many-to-Many com OrgaoPublico (permanece igual)
     orgaos_acionados = db.relationship('OrgaoPublico', secondary=ocorrencia_orgaos, lazy='subquery',
                                        backref=db.backref('ocorrencias', lazy=True))
+
+    # <<< ALTERAÇÃO: Novo relacionamento Many-to-Many com Colaborador >>>
+    colaboradores_envolvidos = db.relationship('Colaborador', secondary=ocorrencia_colaboradores, lazy='subquery',
+                                               backref=db.backref('ocorrencias_atendidas', lazy=True))
 
     def __repr__(self):
         tipo_nome = self.tipo.nome if self.tipo else "N/A"
