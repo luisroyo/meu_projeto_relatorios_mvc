@@ -97,15 +97,11 @@ def registrar_ronda():
         except Exception as e:
             flash(f'Erro ao processar o log de rondas: {str(e)}', 'danger')
     
-    # --- CORREÇÃO ADICIONADA ---
-    # Se o método for POST e a validação falhar, mostra os erros específicos.
     elif request.method == 'POST':
         for field, errors in form.errors.items():
             for error in errors:
-                # Usa o label do campo para uma mensagem mais amigável
                 label = getattr(form, field).label.text
                 flash(f"Erro no campo '{label}': {error}", 'danger')
-    # --- FIM DA CORREÇÃO ---
     
     return render_template('ronda/relatorio.html',
                            title=title,
@@ -114,7 +110,8 @@ def registrar_ronda():
                            ronda_data_to_save=ronda_data_to_save)
 
 
-@ronda_bp.route('/rondas/salvar', methods=['POST'])
+# ROTA CORRIGIDA (URL e lógica interna)
+@ronda_bp.route('/salvar', methods=['POST'])
 @login_required
 def salvar_ronda():
     """Endpoint AJAX para salvar/atualizar uma ronda. (Usado por relatorio.html)"""
@@ -126,7 +123,18 @@ def salvar_ronda():
         return jsonify({'success': False, 'message': 'Dados não fornecidos.'}), 400
 
     try:
-        ronda_id = data.get('ronda_id')
+        # LÓGICA CORRIGIDA para tratar o ID da ronda
+        ronda_id_raw = data.get('ronda_id')
+        ronda_id = None 
+
+        if ronda_id_raw:
+            try:
+                ronda_id = int(ronda_id_raw)
+                if ronda_id <= 0:
+                    ronda_id = None
+            except (ValueError, TypeError):
+                ronda_id = None
+        
         log_bruto = data.get('log_bruto')
         condominio_id_str = data.get('condominio_id')
         nome_condominio_outro = data.get('nome_condominio_outro', '').strip()
