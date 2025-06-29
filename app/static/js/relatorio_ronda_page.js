@@ -1,4 +1,3 @@
-// app/static/js/relatorio_ronda_page.js
 document.addEventListener('DOMContentLoaded', function() {
     const rondaForm = document.getElementById('rondaForm');
     const nomeCondominioSelect = document.getElementById('nome_condominio_select');
@@ -73,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-            const response = await fetch('/ronda/rondas/salvar', {
+            const response = await fetch('/ronda/salvar', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -82,14 +81,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify(dataToSend)
             });
             const result = await response.json();
+
             if (result.success) {
                 flashMessage(result.message, 'success');
                 if (!dataToSend.ronda_id) {
-                    resetForm();
-                } else {
-                    setTimeout(() => {
-                        window.location.href = `/ronda/rondas/detalhes/${result.ronda_id}`;
-                    }, 1000);
+                    resetForm(); 
                 }
             } else {
                 flashMessage(result.message || 'Ocorreu um erro desconhecido.', 'danger');
@@ -101,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
             salvarRondaBtn.disabled = false;
             salvarRondaBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Salvar';
         }
-    }
+    } // <--- ESTE '}' ESTAVA FALTANDO. Ele fecha a função 'salvarRondaCompleta'.
 
     // --- Inicializadores de eventos ---
     if (nomeCondominioSelect) {
