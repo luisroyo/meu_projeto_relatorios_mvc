@@ -1,4 +1,3 @@
-# app/__init__.py
 import os
 import logging
 from datetime import datetime as dt, timezone
@@ -35,7 +34,7 @@ logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO').upper(),
                     datefmt='%Y-%m-%d %H:%M:%S')
 module_logger = logging.getLogger(__name__)
 
-# --- Carregamento do .ENV ---
+# --- Carregamento do .env ---
 dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
@@ -51,7 +50,7 @@ def create_app():
     app_instance.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
 
     database_url_from_env = os.getenv('DATABASE_URL')
-    print(f"DEBUG: DATABASE_URL lida pelo app: {database_url_from_env}")
+    module_logger.debug(f"DEBUG: DATABASE_URL lida pelo app: {database_url_from_env}")
 
     if database_url_from_env and database_url_from_env.startswith("postgres://"):
         database_url_from_env = database_url_from_env.replace("postgres://", "postgresql://", 1)
@@ -128,7 +127,11 @@ def create_app():
         app_instance.register_blueprint(admin_bp, url_prefix='/admin')
 
         from app.blueprints.ronda.routes import ronda_bp
-        app_instance.register_blueprint(ronda_bp, url_prefix='/ronda')
+        app_instance.register_blueprint(ronda_bp)
+
+        # Registro do blueprint das ocorrências
+        from app.blueprints.ocorrencia.routes import ocorrencia_bp
+        app_instance.register_blueprint(ocorrencia_bp)
 
         from . import commands
         app_instance.cli.add_command(commands.seed_db_command)

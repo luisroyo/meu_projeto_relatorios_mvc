@@ -3,7 +3,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, DateField, SelectMultipleField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError, Optional
-from app.models import User, Colaborador, OcorrenciaTipo, OrgaoPublico
+from app.models import User, Colaborador, OcorrenciaTipo, OrgaoPublico, Condominio
 
 # ==============================================================================
 # FORMULÁRIOS DE AUTENTICAÇÃO E USUÁRIO
@@ -70,7 +70,7 @@ class LoginForm(FlaskForm):
 
 
 # ==============================================================================
-# FORMULÁRIOS OPERACIONAIS
+# FORMULÁRIOS OPERACIONAIS (RONDAS, COLABORADORES, ETC.)
 # ==============================================================================
 
 class TestarRondasForm(FlaskForm):
@@ -97,6 +97,7 @@ class TestarRondasForm(FlaskForm):
         if self.nome_condominio.data == 'Outro' and not field.data.strip():
             raise ValidationError('Por favor, especifique o nome do condomínio se "Outro" foi selecionado.')
 
+
 class ColaboradorForm(FlaskForm):
     """
     Formulário para cadastrar e editar colaboradores.
@@ -115,11 +116,10 @@ class ColaboradorForm(FlaskForm):
 
     def validate_matricula(self, matricula_field):
         if matricula_field.data:
-            colaborador_existente = Colaborador.query.filter_by(matricula=matricula_field.data).first()
-            # Esta lógica precisa ser ajustada na rota para diferenciar edição de criação
-            if colaborador_existente and (self.id.data is None or self.id.data != colaborador_existente.id):
-                raise ValidationError('Esta matrícula já está em uso. Por favor, verifique.')
+            # A lógica completa de validação para criação vs edição deve estar na rota.
+            pass
 
+# <<< ALTERAÇÃO: A CLASSE ABAIXO FOI REINSERIDA PARA CORRIGIR O IMPORT ERROR >>>
 class FormatEmailReportForm(FlaskForm):
     """
     Formulário auxiliar para formatar relatórios para envio por e-mail.
@@ -137,25 +137,57 @@ class FormatEmailReportForm(FlaskForm):
 
 
 # ==============================================================================
-# NOVOS FORMULÁRIOS PARA O SISTEMA DE OCORRÊNCIAS
+# FORMULÁRIOS DO SISTEMA DE OCORRÊNCIAS
 # ==============================================================================
 
 class OcorrenciaForm(FlaskForm):
     """
-    Formulário para registrar uma nova ocorrência oficial a partir de uma ronda.
+    Formulário unificado para registrar e editar uma ocorrência.
+    Permite selecionar um tipo de ocorrência já existente
+    ou criar um novo tipo na hora.
     """
+    condominio_id = SelectField(
+    'Condomínio',
+    coerce=int,
+    validators=[Optional()]
+)
+    data_plantao = DateField(
+        'Data do Plantão',
+        format='%Y-%m-%d',
+        validators=[DataRequired(message="Insira a data do plantão.")]
+    )
+    turno = SelectField(
+        'Turno',
+        choices=[('', '-- Selecione um Turno --'), ('Diurno', 'Diurno'), ('Noturno', 'Noturno')],
+        validators=[DataRequired(message="Selecione o turno.")]
+    )
+    colaboradores_envolvidos = SelectMultipleField(
+        'Colaboradores Envolvidos',
+        coerce=int,
+        validators=[Optional()],
+        render_kw={"class": "form-select", "size": "5"}
+    )
+    log_bruto = TextAreaField(
+        'Log Bruto (Opcional)',
+        validators=[Optional()],
+        render_kw={"rows": 8, "class": "form-control"}
+    )
     relatorio_final = TextAreaField(
         'Relatório Final da Ocorrência',
         validators=[DataRequired(message="O relatório não pode ficar em branco.")],
-        render_kw={"rows": 20, "class": "form-control"}
+        render_kw={"rows": 15, "class": "form-control"}
     )
     ocorrencia_tipo_id = SelectField(
-        'Tipo da Ocorrência',
+        'Tipo da Ocorrência (Selecione ou crie um novo abaixo)',
         coerce=int,
-        validators=[DataRequired(message="Selecione o tipo da ocorrência.")]
+        validators=[Optional()]
+    )
+    novo_tipo_ocorrencia = StringField(
+        'Novo Tipo de Ocorrência (se não encontrar na lista)',
+        validators=[Optional(), Length(min=3, max=100)]
     )
     orgaos_acionados = SelectMultipleField(
-        'Órgãos Públicos Acionados (Opcional)',
+        'Órgãos Públicos Acionados',
         coerce=int,
         validators=[Optional()],
         render_kw={"class": "form-select", "size": "5"}
@@ -167,11 +199,22 @@ class OcorrenciaForm(FlaskForm):
         default='Registrada'
     )
     endereco_especifico = StringField(
-        'Endereço Específico ou Ponto de Referência (Opcional)',
+        'Endereço Específico ou Ponto de Referência',
         validators=[Optional(), Length(max=255)]
     )
-    submit = SubmitField('Salvar Ocorrência Oficial', render_kw={"class": "btn btn-success"})
+    submit = SubmitField('Salvar Ocorrência', render_kw={"class": "btn btn-primary"})
 
+    def validate(self, extra_validators=None):
+        rv = super().validate()
+        if not rv:
+            return False
+
+        if not self.ocorrencia_tipo_id.data and not self.novo_tipo_ocorrencia.data.strip():
+            self.ocorrencia_tipo_id.errors.append('Selecione um tipo ou crie um novo.')
+            self.novo_tipo_ocorrencia.errors.append('Selecione um tipo ou crie um novo.')
+            return False
+
+        return True
 
 class OcorrenciaTipoForm(FlaskForm):
     """

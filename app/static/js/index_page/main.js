@@ -4,9 +4,9 @@ import { updateCharCount, displayStatus } from './uiHandlers.js';
 import { handleProcessReport, handleClearFields, handleCopyResult, handleSendToWhatsApp } from './reportLogic.js';
 
 /**
- * Exibe um botão para iniciar o processo de registo de ocorrência oficial.
+ * Exibe um botão para iniciar o processo de registro de ocorrência oficial.
  * Esta função é chamada após o relatório da IA ser gerado com sucesso.
- * @param {string} logBruto O texto original inserido pelo utilizador.
+ * @param {string} logBruto O texto original inserido pelo usuário.
  * @param {string} relatorioProcessado O texto corrigido pela IA.
  */
 function exibirBotaoRegistrarOcorrencia(logBruto, relatorioProcessado) {
@@ -29,13 +29,13 @@ function exibirBotaoRegistrarOcorrencia(logBruto, relatorioProcessado) {
     botaoSalvar.innerHTML = '<i class="bi bi-shield-plus me-2"></i>Registrar Ocorrência Oficial';
     botaoSalvar.setAttribute('data-bs-toggle', 'tooltip');
     botaoSalvar.setAttribute('data-bs-placement', 'top');
-    botaoSalvar.setAttribute('title', 'Salva este relatório como um registo oficial de ocorrência.');
+    botaoSalvar.setAttribute('title', 'Salva este relatório como um registro oficial de ocorrência.');
 
     botaoSalvar.addEventListener('click', () => {
         // Guarda os dados na memória do navegador para a próxima página
         localStorage.setItem('novoLogRondaBruto', logBruto);
         localStorage.setItem('novoRelatorioProcessado', relatorioProcessado);
-        
+
         // Redireciona para o novo formulário unificado que criamos
         window.location.href = '/ronda/ocorrencia/registrar_direto';
     });
@@ -46,12 +46,11 @@ function exibirBotaoRegistrarOcorrencia(logBruto, relatorioProcessado) {
     new bootstrap.Tooltip(botaoSalvar);
 }
 
-
 document.addEventListener('DOMContentLoaded', function () {
     function init() {
         if (!DOMElements.relatorioBruto || !DOMElements.btnProcessar || !DOMElements.resultadoProcessamento || !DOMElements.statusProcessamento) {
             console.error("index_page/main.js: Um ou mais elementos DOM essenciais não foram encontrados.");
-            if(DOMElements.btnProcessar) DOMElements.btnProcessar.disabled = true;
+            if (DOMElements.btnProcessar) DOMElements.btnProcessar.disabled = true;
             return;
         }
 
@@ -69,9 +68,9 @@ document.addEventListener('DOMContentLoaded', function () {
             DOMElements.btnCopiarEmail.dataset.originalHTML = DOMElements.btnCopiarEmail.innerHTML;
         }
         if (DOMElements.btnLimpar && CONFIG.initialClearButtonHTML) {
-             DOMElements.btnLimpar.innerHTML = CONFIG.initialClearButtonHTML;
+            DOMElements.btnLimpar.innerHTML = CONFIG.initialClearButtonHTML;
         }
-        
+
         if (DOMElements.relatorioBruto) {
             DOMElements.relatorioBruto.addEventListener('input', updateCharCount);
             updateCharCount();
@@ -79,41 +78,41 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // --- ALTERAÇÃO PRINCIPAL ---
         // Modificamos o event listener para chamar a nova função após o sucesso.
-        if(DOMElements.btnProcessar) {
+        if (DOMElements.btnProcessar) {
             DOMElements.btnProcessar.addEventListener('click', async () => {
                 // handleProcessReport já mostra o spinner e trata dos status.
                 // Assumimos que ele retorna 'true' em caso de sucesso.
-                const sucesso = await handleProcessReport(); 
+                const sucesso = await handleProcessReport();
 
                 if (sucesso) {
                     // Se o processamento foi bem-sucedido, pegamos os textos
                     const relatorioBrutoOriginal = DOMElements.relatorioBruto.value;
                     const relatorioProcessadoFinal = DOMElements.resultadoProcessamento.value;
-                    
+
                     // E chamamos nossa nova função para exibir o botão de registro
                     exibirBotaoRegistrarOcorrencia(relatorioBrutoOriginal, relatorioProcessadoFinal);
                 }
             });
         }
-        
+
         if (DOMElements.btnCopiar) {
             DOMElements.btnCopiar.addEventListener('click', () => handleCopyResult('standard'));
             DOMElements.btnCopiar.style.display = 'none';
         }
-        
+
         if (DOMElements.btnCopiarEmail) {
             DOMElements.btnCopiarEmail.addEventListener('click', () => handleCopyResult('email'));
             DOMElements.btnCopiarEmail.style.display = 'none';
         }
-        
+
         if (DOMElements.btnEnviarWhatsAppResultado) {
             DOMElements.btnEnviarWhatsAppResultado.addEventListener('click', () => handleSendToWhatsApp('standard'));
-            DOMElements.btnEnviarWhatsAppResultado.style.display = 'none'; 
+            DOMElements.btnEnviarWhatsAppResultado.style.display = 'none';
         }
-        
+
         if (DOMElements.btnEnviarWhatsAppEmail) {
             DOMElements.btnEnviarWhatsAppEmail.addEventListener('click', () => handleSendToWhatsApp('email'));
-            DOMElements.btnEnviarWhatsAppEmail.style.display = 'none'; 
+            DOMElements.btnEnviarWhatsAppEmail.style.display = 'none';
         }
 
         if (DOMElements.btnLimpar) {
@@ -122,15 +121,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (DOMElements.colunaRelatorioEmail) DOMElements.colunaRelatorioEmail.style.display = 'none';
 
-        if(DOMElements.formatarParaEmailCheckbox && DOMElements.colunaRelatorioEmail){
-            DOMElements.formatarParaEmailCheckbox.addEventListener('change', function(){
+        if (DOMElements.formatarParaEmailCheckbox && DOMElements.colunaRelatorioEmail) {
+            DOMElements.formatarParaEmailCheckbox.addEventListener('change', function () {
                 const showEmailColumn = this.checked;
                 DOMElements.colunaRelatorioEmail.style.display = showEmailColumn ? 'block' : 'none';
                 if (!showEmailColumn) { // Limpa e esconde se desmarcado
-                    if(DOMElements.resultadoEmail) DOMElements.resultadoEmail.value = '';
-                    if(DOMElements.statusProcessamentoEmail) displayStatus('', 'info', 'email'); 
-                    if(DOMElements.btnCopiarEmail) DOMElements.btnCopiarEmail.style.display = 'none';
-                    if(DOMElements.btnEnviarWhatsAppEmail) DOMElements.btnEnviarWhatsAppEmail.style.display = 'none';
+                    if (DOMElements.resultadoEmail) DOMElements.resultadoEmail.value = '';
+                    if (DOMElements.statusProcessamentoEmail) displayStatus('', 'info', 'email');
+                    if (DOMElements.btnCopiarEmail) DOMElements.btnCopiarEmail.style.display = 'none';
+                    if (DOMElements.btnEnviarWhatsAppEmail) DOMElements.btnEnviarWhatsAppEmail.style.display = 'none';
                 }
             });
         }
