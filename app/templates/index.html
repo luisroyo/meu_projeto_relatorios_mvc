@@ -40,11 +40,11 @@
                         <div class="d-grid gap-2 d-md-flex">
                             <button type="button" class="btn btn-primary btn-lg flex-grow-1 flex-md-grow-0"
                                 id="processarRelatorio">
-                                {# O HTML do botão será definido pelo config.js/main.js #}
+                                {# Botão configurado via main.js #}
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-lg flex-grow-1 flex-md-grow-0"
                                 id="limparCampos">
-                                {# O HTML do botão será definido pelo config.js/main.js #}
+                                {# Botão configurado via main.js #}
                             </button>
                         </div>
                     </div>
@@ -66,11 +66,15 @@
                         <textarea class="form-control" id="resultadoProcessamento" rows="15" readonly
                             placeholder="O relatório padrão aparecerá aqui..."></textarea>
                     </div>
-                    <div class="mt-auto">
+                    <div class="mt-auto d-flex flex-column gap-2">
                         <button type="button" class="btn btn-info btn-lg w-100" id="copiarResultado"
                             style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top"
                             title="Copiar Relatório Padrão">
-                            {# O HTML do botão será definido pelo config.js/main.js #}
+                            {# Botão configurado via main.js #}
+                        </button>
+                        <button type="button" class="btn btn-success btn-lg w-100" id="exportarParaRegistro"
+                            title="Exportar relatório para registrar ocorrência">
+                            Exportar para Registro de Ocorrência
                         </button>
                         <button type="button" class="btn btn-success btn-lg w-100 mt-2" id="enviarWhatsAppResultado"
                             style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top"
@@ -99,7 +103,7 @@
                         <button type="button" class="btn btn-success btn-lg w-100" id="copiarResultadoEmail"
                             style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top"
                             title="Copiar Relatório para E-mail">
-                            {# O HTML do botão será definido pelo config.js/main.js #}
+                            {# Botão configurado via main.js #}
                         </button>
                         <button type="button" class="btn btn-success btn-lg w-100 mt-2" id="enviarWhatsAppEmail"
                             style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top"
@@ -129,5 +133,25 @@
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     })
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const btnExportar = document.getElementById('exportarParaRegistro');
+        if (btnExportar) {
+            btnExportar.addEventListener('click', function () {
+                const relatorio = document.getElementById('resultadoProcessamento').value.trim();
+                if (!relatorio) {
+                    alert('Não há relatório para exportar.');
+                    return;
+                }
+                let textoParaEnviar = relatorio;
+                if (textoParaEnviar.length > 3000) {
+                    textoParaEnviar = textoParaEnviar.slice(0, 3000) + '...';
+                }
+                const url = new URL('{{ url_for("ocorrencia.registrar_ocorrencia") }}', window.location.origin);
+                url.searchParams.set('relatorio_final', textoParaEnviar);
+                window.location.href = url.toString();
+            });
+        }
+    });
 </script>
 {% endblock %}

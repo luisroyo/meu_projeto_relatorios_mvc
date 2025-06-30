@@ -1,37 +1,28 @@
-{# app/templates/_pagination_helper.html (Versão compatível com Jinja2 antigo) #}
+{# app/templates/_pagination_helper.html #}
 
-{% macro render_pagination(pagination, endpoint, query_params={}) %}
-{# 
-    - A macro agora aceita 'query_params', um dicionário que contém todos os filtros ativos.
-    - Esta abordagem é compatível com todas as versões do Jinja2.
-#}
-<nav aria-label="Page navigation">
+{# <<< ALTERAÇÃO: A macro agora espera um argumento nomeado 'query_params' >>> #}
+{% macro render_pagination(pagination_obj, endpoint, query_params={}) %}
+<nav aria-label="Navegação das páginas">
     <ul class="pagination justify-content-center">
-        {# Link para a Página Anterior - Unpacking o dicionário aqui funciona #}
-        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for(endpoint, page=pagination.prev_num, **query_params) if pagination.has_prev else '#' }}">Anterior</a>
+        {# Botão 'Anterior' #}
+        <li class="page-item {% if not pagination_obj.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for(endpoint, page=pagination_obj.prev_num, **query_params) if pagination_obj.has_prev else '#' }}">Anterior</a>
         </li>
 
-        {# Links dos Números das Páginas #}
-        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {# Links das Páginas #}
+        {% for page_num in pagination_obj.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
             {% if page_num %}
-                {% if pagination.page == page_num %}
-                    <li class="page-item active" aria-current="page">
-                        <span class="page-link">{{ page_num }}</span>
-                    </li>
-                {% else %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for(endpoint, page=page_num, **query_params) }}">{{ page_num }}</a>
-                    </li>
-                {% endif %}
+                <li class="page-item {% if page_num == pagination_obj.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for(endpoint, page=page_num, **query_params) }}">{{ page_num }}</a>
+                </li>
             {% else %}
                 <li class="page-item disabled"><span class="page-link">...</span></li>
             {% endif %}
         {% endfor %}
 
-        {# Link para a Próxima Página #}
-        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for(endpoint, page=pagination.next_num, **query_params) if pagination.has_next else '#' }}">Próxima</a>
+        {# Botão 'Próxima' #}
+        <li class="page-item {% if not pagination_obj.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for(endpoint, page=pagination_obj.next_num, **query_params) if pagination_obj.has_next else '#' }}">Próxima</a>
         </li>
     </ul>
 </nav>
