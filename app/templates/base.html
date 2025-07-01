@@ -51,6 +51,11 @@
               <li><a class="dropdown-item {% if request.endpoint == 'admin.ronda_dashboard' %}active{% endif %}"
                   href="{{ url_for('admin.ronda_dashboard') }}"><i class="bi bi-bar-chart-line me-2"></i>Métricas de
                   Rondas</a></li>
+              
+              {# --- LINHA ADICIONADA --- #}
+              <li><a class="dropdown-item {% if request.endpoint == 'admin.ocorrencia_dashboard' %}active{% endif %}"
+                  href="{{ url_for('admin.ocorrencia_dashboard') }}"><i class="bi bi-exclamation-triangle me-2"></i>Métricas de Ocorrências</a></li>
+
               <li>
                 <hr class="dropdown-divider">
               </li>

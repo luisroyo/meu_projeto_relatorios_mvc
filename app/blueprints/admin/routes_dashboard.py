@@ -3,14 +3,13 @@ import logging
 from flask import render_template, redirect, url_for, request
 from flask_login import login_required, current_user
 from sqlalchemy import func
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
 from . import admin_bp
 from app import db
 from app.decorators.admin_required import admin_required
-# CORREÇÃO: Adicionado o modelo Ronda à lista de imports
-from app.models import User, Condominio, LoginHistory, ProcessingHistory, Ronda
-from app.services.dashboard_service import get_main_dashboard_data, get_ronda_dashboard_data
+from app.models import User, Condominio, LoginHistory, ProcessingHistory, Ronda, Ocorrencia, OcorrenciaTipo
+from app.services.dashboard_service import get_main_dashboard_data, get_ronda_dashboard_data, get_ocorrencia_dashboard_data
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +18,7 @@ logger = logging.getLogger(__name__)
 @login_required
 @admin_required
 def dashboard():
+    """ Rota principal do painel admin, redireciona para as métricas gerais. """
     return redirect(url_for('admin.dashboard_metrics'))
 
 
@@ -26,9 +26,10 @@ def dashboard():
 @login_required
 @admin_required
 def dashboard_metrics():
+    """ Exibe o dashboard com métricas gerais do sistema. """
     logger.info(f"Admin '{current_user.username}' acessou o dashboard de métricas.")
     context_data = get_main_dashboard_data()
-    context_data['title'] = 'Dashboard de Métricas'
+    context_data['title'] = 'Dashboard de Métricas Gerais'
     return render_template('admin/dashboard.html', **context_data)
 
 
@@ -36,6 +37,7 @@ def dashboard_metrics():
 @login_required
 @admin_required
 def ronda_dashboard():
+    """ Exibe o dashboard de métricas e análises de Rondas. """
     logger.info(f"Admin '{current_user.username}' acessou o dashboard de rondas.")
     
     filters = {
@@ -50,35 +52,43 @@ def ronda_dashboard():
     context_data = get_ronda_dashboard_data(filters)
 
     context_data['title'] = 'Dashboard de Métricas de Rondas'
+    
+    # Popula os dropdowns de filtros
     context_data['turnos'] = ['Diurno Par', 'Noturno Par', 'Diurno Impar', 'Noturno Impar']
     context_data['supervisors'] = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
+    context_data['condominios'] = Condominio.query.join(Ronda).distinct().order_by(Condominio.nome).all()
     
-    condominios_com_rondas = Condominio.query.join(Ronda).distinct().order_by(Condominio.nome).all()
-    context_data['condominios'] = condominios_com_rondas
+    # MELHORIA: Simplifica a passagem dos filtros selecionados para o template
+    context_data.update({f'selected_{key}': val for key, val in filters.items()})
     
-    context_data['selected_turno'] = filters['turno']
-    context_data['selected_supervisor_id'] = filters['supervisor_id']
-    context_data['selected_condominio_id'] = filters['condominio_id']
-    context_data['selected_data_inicio'] = filters['data_inicio_str']
-    context_data['selected_data_fim'] = filters['data_fim_str']
-    context_data['selected_data_especifica'] = filters['data_especifica']
-    
-    context_data['data_analise_formatada'] = ''
-    if filters['data_especifica']:
-        try:
-            dt_obj = datetime.strptime(filters['data_especifica'], '%Y-%m-%d')
-            context_data['data_analise_formatada'] = dt_obj.strftime('%d/%m/%Y')
-        except ValueError:
-            pass
-
-    # --- CÓDIGO DE DEBUG NO LOCAL CORRETO ---
-    print("--- DEBUG: LISTA DE CONDOMÍNIOS ENVIADA AO TEMPLATE (RONDA DASHBOARD) ---")
-    if context_data.get('condominios'):
-        for condo in context_data['condominios']:
-            print(f"ID: {condo.id}, Nome: {condo.nome}")
-    else:
-        print("A lista de condomínios está vazia ou não foi definida.")
-    print("----------------------------------------------------------------------")
-    # --- FIM DO DEBUG ---
-
     return render_template('admin/ronda_dashboard.html', **context_data)
+
+
+@admin_bp.route('/ocorrencia_dashboard')
+@login_required
+@admin_required
+def ocorrencia_dashboard():
+    """ Exibe o dashboard de métricas e análises de Ocorrências. """
+    logger.info(f"Admin '{current_user.username}' acessou o dashboard de ocorrências.")
+
+    filters = {
+        'condominio_id': request.args.get('condominio_id', type=int),
+        'tipo_id': request.args.get('tipo_id', type=int),
+        'status': request.args.get('status', ''),
+        'data_inicio_str': request.args.get('data_inicio', ''),
+        'data_fim_str': request.args.get('data_fim', ''),
+    }
+
+    context_data = get_ocorrencia_dashboard_data(filters)
+
+    context_data['title'] = 'Dashboard de Ocorrências'
+
+    # Popula os dropdowns de filtros
+    context_data['condominios'] = Condominio.query.order_by(Condominio.nome).all()
+    context_data['tipos_ocorrencia'] = OcorrenciaTipo.query.order_by(OcorrenciaTipo.nome).all()
+    context_data['status_list'] = ['Abertta', 'Finalizada', 'Em Andamento', 'Cancelada']
+
+    # MELHORIA: Simplifica a passagem dos filtros selecionados para o template
+    context_data.update({f'selected_{key}': val for key, val in filters.items()})
+
+    return render_template('admin/ocorrencia_dashboard.html', **context_data)
