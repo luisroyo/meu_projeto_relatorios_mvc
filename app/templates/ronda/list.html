@@ -68,7 +68,7 @@
                         {% for ronda in rondas_pagination.items %}
                         <tr>
                             <th scope="row">{{ ronda.id }}</th>
-                            <td>{{ ronda.condominio_obj.nome if ronda.condominio_obj else 'N/A' }}</td>
+                            <td>{{ ronda.condominio.nome if ronda.condominio else 'N/A' }}</td>
                             <td>{{ ronda.data_plantao_ronda.strftime('%d/%m/%Y') if ronda.data_plantao_ronda else 'N/A' }}</td>
                             <td><span class="badge bg-secondary">{{ ronda.turno_ronda or 'N/A' }}</span></td>
                             <td>{{ ronda.supervisor.username if ronda.supervisor else 'Automático' }}</td>

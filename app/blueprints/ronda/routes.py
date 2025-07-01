@@ -5,6 +5,7 @@ from datetime import datetime, date, timezone
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import desc, func, or_
+from sqlalchemy.orm import joinedload  # Importe joinedload
 from app import db
 from app.models import Condominio, Ronda, User, EscalaMensal
 from app.forms import TestarRondasForm
@@ -13,14 +14,15 @@ from app.decorators.admin_required import admin_required
 
 logger = logging.getLogger(__name__)
 
+# CORREÇÃO 1: Padronizando o prefixo para '/rondas' (plural), que é mais convencional.
 ronda_bp = Blueprint(
     'ronda',
     __name__,
     template_folder='templates',
-    url_prefix='/rondas'
+    url_prefix='/rondas'  # Usar plural é uma boa prática
 )
 
-# Função para inferir turno da ronda
+# Função para inferir turno da ronda (sem alterações)
 def inferir_turno(data_plantao_obj, escala_plantao_str):
     turno_ronda_base = "Indefinido"
     escala_lower = escala_plantao_str.lower() if escala_plantao_str else ""
@@ -40,7 +42,6 @@ def inferir_turno(data_plantao_obj, escala_plantao_str):
     
     return escala_plantao_str or "N/A - Turno Indefinido"
 
-
 @ronda_bp.route('/registrar', methods=['GET', 'POST'])
 @login_required
 def registrar_ronda():
@@ -48,7 +49,6 @@ def registrar_ronda():
     form = TestarRondasForm()
     relatorio_processado_final = None
     title = "Editar Ronda" if ronda_id else "Registrar Nova Ronda Manual"
-    ronda_data_to_save = {'ronda_id': ronda_id if ronda_id else None}
     
     try:
         condominios_db = Condominio.query.order_by(Condominio.nome).all()
@@ -60,10 +60,13 @@ def registrar_ronda():
         flash('Erro ao carregar dados. Tente novamente.', 'danger')
 
     if ronda_id and request.method == 'GET':
-        ronda = db.get_or_404(Ronda, ronda_id)
+        # CORREÇÃO 2: Carregar a ronda com seus relacionamentos
+        ronda = Ronda.query.options(joinedload(Ronda.condominio), joinedload(Ronda.supervisor)).get_or_404(ronda_id)
+        
         if not (current_user.is_admin or (ronda.supervisor and current_user.id == ronda.supervisor.id)):
             flash("Você não tem permissão para editar esta ronda.", 'danger')
             return redirect(url_for('ronda.listar_rondas'))
+            
         form.nome_condominio.data = str(ronda.condominio_id)
         form.data_plantao.data = ronda.data_plantao_ronda
         form.escala_plantao.data = ronda.escala_plantao
@@ -99,12 +102,13 @@ def registrar_ronda():
                 label = getattr(form, field).label.text
                 flash(f"Erro no campo '{label}': {error}", 'danger')
     
+    # Passando o ID da ronda para o template para uso no JavaScript
+    ronda_data_to_save = {'ronda_id': ronda_id}
     return render_template('ronda/relatorio.html',
                            title=title,
                            form=form,
                            relatorio_processado=relatorio_processado_final,
                            ronda_data_to_save=ronda_data_to_save)
-
 
 @ronda_bp.route('/salvar', methods=['POST'])
 @login_required
@@ -118,14 +122,7 @@ def salvar_ronda():
 
     try:
         ronda_id_raw = data.get('ronda_id')
-        ronda_id = None 
-        if ronda_id_raw:
-            try:
-                ronda_id = int(ronda_id_raw)
-                if ronda_id <= 0:
-                    ronda_id = None
-            except (ValueError, TypeError):
-                ronda_id = None
+        ronda_id = int(ronda_id_raw) if ronda_id_raw and str(ronda_id_raw).isdigit() and int(ronda_id_raw) > 0 else None
         
         log_bruto = data.get('log_bruto')
         condominio_id_str = data.get('condominio_id')
@@ -208,7 +205,6 @@ def salvar_ronda():
         logger.error(f"Erro ao salvar/finalizar ronda: {e}", exc_info=True)
         return jsonify({'success': False, 'message': f'Erro interno ao salvar ronda: {str(e)}'}), 500
 
-
 @ronda_bp.route('/historico', methods=['GET'])
 @login_required
 def listar_rondas():
@@ -223,7 +219,8 @@ def listar_rondas():
     }
     active_filter_params = {k: v for k, v in filter_params.items() if v not in [None, '']}
     
-    query = Ronda.query.options(db.joinedload(Ronda.condominio), db.joinedload(Ronda.supervisor))
+    # CORREÇÃO 3: Simplificando a query para maior clareza e removendo o debug
+    query = Ronda.query.options(joinedload(Ronda.condominio), joinedload(Ronda.supervisor))
 
     if active_filter_params.get('condominio'):
         query = query.join(Condominio).filter(Condominio.nome == active_filter_params['condominio'])
@@ -248,16 +245,17 @@ def listar_rondas():
         **selected_values
     )
 
-
 @ronda_bp.route('/detalhes/<int:ronda_id>')
 @login_required
 def detalhes_ronda(ronda_id):
-    ronda = db.get_or_404(Ronda, ronda_id)
+    # CORREÇÃO 4: Garantindo que os relacionamentos sejam carregados também na página de detalhes
+    ronda = Ronda.query.options(joinedload(Ronda.condominio), joinedload(Ronda.supervisor)).get_or_404(ronda_id)
+    
     if not (current_user.is_admin or (ronda.supervisor and current_user.id == ronda.supervisor.id) or current_user.id == ronda.user_id):
         flash("Você não tem permissão para visualizar os detalhes desta ronda.", 'danger')
         return redirect(url_for('ronda.listar_rondas'))
+        
     return render_template('ronda/details.html', title=f'Detalhes da Ronda #{ronda.id}', ronda=ronda)
-
 
 @ronda_bp.route('/excluir/<int:ronda_id>', methods=['POST'])
 @login_required
@@ -273,5 +271,3 @@ def excluir_ronda(ronda_id):
         logger.error(f"Erro ao excluir ronda {ronda_id}: {e}", exc_info=True)
         flash(f'Erro ao excluir ronda: {str(e)}', 'danger')
     return redirect(url_for('ronda.listar_rondas'))
-
-# Fim do arquivo
