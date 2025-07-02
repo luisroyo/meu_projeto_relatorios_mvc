@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 @admin_bp.route('/')
 @login_required
-@admin_required # Mantido, pois a raiz do admin deve ser protegida
+@admin_required
 def dashboard():
     """ Rota principal do painel admin, redireciona para as métricas gerais. """
     return redirect(url_for('admin.dashboard_metrics'))
@@ -24,10 +24,8 @@ def dashboard():
 
 @admin_bp.route('/dashboard_metrics')
 @login_required
-# @admin_required # REMOVIDO - Agora todos os usuários logados podem ver
 def dashboard_metrics():
     """ Exibe o dashboard com métricas gerais do sistema. """
-    # A linha abaixo pode ser adaptada se você não quiser logar cada acesso
     logger.info(f"Usuário '{current_user.username}' acessou o dashboard de métricas.")
     context_data = get_main_dashboard_data()
     context_data['title'] = 'Dashboard de Métricas Gerais'
@@ -36,7 +34,6 @@ def dashboard_metrics():
 
 @admin_bp.route('/ronda_dashboard')
 @login_required
-# @admin_required # REMOVIDO - Agora todos os usuários logados podem ver
 def ronda_dashboard():
     """ Exibe o dashboard de métricas e análises de Rondas. """
     logger.info(f"Usuário '{current_user.username}' acessou o dashboard de rondas.")
@@ -51,13 +48,10 @@ def ronda_dashboard():
     }
 
     context_data = get_ronda_dashboard_data(filters)
-
     context_data['title'] = 'Dashboard de Métricas de Rondas'
-    
     context_data['turnos'] = ['Diurno Par', 'Noturno Par', 'Diurno Impar', 'Noturno Impar']
     context_data['supervisors'] = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
     context_data['condominios'] = Condominio.query.join(Ronda).distinct().order_by(Condominio.nome).all()
-    
     context_data.update({f'selected_{key}': val for key, val in filters.items()})
     
     return render_template('admin/ronda_dashboard.html', **context_data)
@@ -65,7 +59,6 @@ def ronda_dashboard():
 
 @admin_bp.route('/ocorrencia_dashboard')
 @login_required
-# @admin_required # REMOVIDO - Agora todos os usuários logados podem ver
 def ocorrencia_dashboard():
     """ Exibe o dashboard de métricas e análises de Ocorrências. """
     logger.info(f"Usuário '{current_user.username}' acessou o dashboard de ocorrências.")
@@ -74,17 +67,17 @@ def ocorrencia_dashboard():
         'condominio_id': request.args.get('condominio_id', type=int),
         'tipo_id': request.args.get('tipo_id', type=int),
         'status': request.args.get('status', ''),
+        'supervisor_id': request.args.get('supervisor_id', type=int), # NOVO FILTRO
         'data_inicio_str': request.args.get('data_inicio', ''),
         'data_fim_str': request.args.get('data_fim', ''),
     }
 
     context_data = get_ocorrencia_dashboard_data(filters)
-
     context_data['title'] = 'Dashboard de Ocorrências'
-
     context_data['condominios'] = Condominio.query.order_by(Condominio.nome).all()
     context_data['tipos_ocorrencia'] = OcorrenciaTipo.query.order_by(OcorrenciaTipo.nome).all()
-    context_data['status_list'] = ['Abertta', 'Finalizada', 'Em Andamento', 'Cancelada']
+    context_data['supervisors'] = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all() # NOVO DADO
+    context_data['status_list'] = ['Registrada', 'Em Andamento', 'Concluída', 'Cancelada'] # Corrigido 'Abertta'
 
     context_data.update({f'selected_{key}': val for key, val in filters.items()})
 

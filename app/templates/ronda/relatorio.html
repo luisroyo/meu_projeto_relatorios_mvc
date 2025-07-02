@@ -1,117 +1,205 @@
 {% extends "base.html" %}
-{% block title %}{{ title }} - Assistente de Relatórios IA{% endblock %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block head %}
+{{ super() }}
+<!-- Adicionado para um tratamento mais robusto do token CSRF com AJAX -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+{% endblock %}
+
+{% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-lg-3">
-    <div class="page-header text-center mb-4">
-        <h1><i class="bi bi-card-checklist me-2"></i>{{ title }}</h1>
+<div class="container mt-4 mb-5">
+    <!-- CABEÇALHO DA PÁGINA -->
+    <div class="mb-4">
+        <h2 class="mb-1"><i class="bi bi-pencil-square me-2"></i>{{ title }}</h2>
         <p class="lead text-muted">Insira os dados e o log para gerar um relatório profissional.</p>
     </div>
 
-    <div class="row">
-        <div class="col-12 col-lg-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Dados de Entrada</h5>
+    <div class="row g-4">
+        <!-- COLUNA DA ESQUERDA: DADOS DE ENTRADA -->
+        <div class="col-lg-6 d-flex">
+            <div class="card shadow-sm w-100 d-flex flex-column">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-input-cursor-text me-2 text-primary"></i>Dados de Entrada</h5>
                 </div>
-                <div class="card-body p-4">
-                    <form id="rondaForm" method="POST" action="{{ url_for('ronda.registrar_ronda') }}" novalidate>
+                <div class="card-body p-4 flex-grow-1">
+                    <form method="POST" id="processar-ronda-form" class="d-flex flex-column h-100">
                         {{ form.hidden_tag() }}
-                        <input type="hidden" id="ronda_id_input" name="ronda_id_input" value="{{ ronda_data_to_save.ronda_id if ronda_data_to_save else '' }}">
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.data_plantao.label(class="form-label fw-bold") }}
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
-                                    {{ form.data_plantao(class="form-control", id="data_plantao") }}
+                        <div class="flex-grow-1">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ render_field(form.data_plantao, label_visible=true, label_text="DATA DO PLANTÃO") }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ render_field(form.escala_plantao, label_visible=true, label_text="ESCALA DO PLANTÃO") }}
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.escala_plantao.label(class="form-label fw-bold") }}
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-clock-history"></i></span>
-                                    {{ form.escala_plantao(class="form-select", id="escala_plantao") }}
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ render_field(form.nome_condominio, label_visible=true, label_text="NOME DO CONDOMÍNIO") }}
+                                </div>
+                                 <div class="col-md-6 mb-3">
+                                    {{ render_field(form.supervisor_id, label_visible=true, label_text="SUPERVISOR DA RONDA") }}
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.nome_condominio.label(class="form-label fw-bold") }}
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-building"></i></span>
-                                    {{ form.nome_condominio(class="form-select", id="nome_condominio_select") }}
-                                </div>
+                            <div class="mb-3" id="outro-condominio-field" style="display: none;">
+                                 {{ render_field(form.nome_condominio_outro, label_visible=true, label_text='NOME DO NOVO CONDOMÍNIO') }}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.supervisor_id.label(class="form-label fw-bold") }}
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
-                                    {{ form.supervisor_id(class="form-select", id="supervisor_id_select") }}
-                                </div>
+                            <div class="mb-3">
+                                {{ render_field(form.log_bruto_rondas, label_visible=true, label_text="LOG BRUTO DAS RONDAS", rows="10") }}
                             </div>
                         </div>
-                        
-                        <div id="outro_condominio_div" class="mb-3" style="display: none;">
-                            {{ form.nome_condominio_outro.label(class="form-label fw-bold") }}
-                            {{ form.nome_condominio_outro(class="form-control", id="nome_condominio_outro") }}
-                        </div>
-
-                        <div class="mb-3">
-                            {{ form.log_bruto_rondas.label(class="form-label fw-bold") }}
-                            {{ form.log_bruto_rondas(class="form-control", rows="10", id="log_bruto_rondas") }}
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-gear-wide-connected me-2"></i>Processar Relatório</button>
+                        <div class="d-grid mt-auto">
+                            <!-- CORREÇÃO: Adicionado um ID ao botão para o JavaScript -->
+                            {{ form.submit(class="btn btn-primary btn-lg", id="processar-btn") }}
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        <div class="col-12 col-lg-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Relatório Gerado</h5>
-                </div>
-                <div class="card-body p-4">
+        <!-- COLUNA DA DIREITA: RELATÓRIO GERADO -->
+        <div class="col-lg-6 d-flex">
+            <div class="card shadow-sm w-100 d-flex flex-column">
+                <div class="card-header bg-light border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-file-earmark-check-fill me-2 text-primary"></i>Relatório Gerado</h5>
                     {% if relatorio_processado %}
-                        <div class="text-end mb-3" id="ronda_actions">
-                            <button type="button" class="btn btn-secondary" id="copiarRelatorioRonda" title="Copiar Relatório">
-                                <i class="bi bi-clipboard-check me-1"></i> Copiar
-                            </button>
-                            <button type="button" class="btn btn-success" id="enviarWhatsAppRonda" title="Enviar via WhatsApp">
-                                <i class="bi bi-whatsapp me-1"></i> WhatsApp
-                            </button>
-                            {% if current_user.is_admin or current_user.is_supervisor %}
-                            <button type="button" class="btn btn-primary" id="salvarRonda" title="Salvar Ronda">
-                                <i class="bi bi-check-circle me-1"></i> Salvar
-                            </button>
-                            {% endif %}
-                        </div>
-                
-                        <div class="report-output-container">
-                            <pre id="rondaResultadoTexto" class="p-3 bg-light border rounded">{{ relatorio_processado }}</pre>
-                        </div>
-                
-                    {% else %}
-                        <div class="report-output-container">
-                            <div id="rondaResultadoTexto" class="alert alert-secondary text-center">O relatório processado aparecerá aqui.</div>
-                        </div>
+                    <button id="copiar-relatorio-btn" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-clipboard me-1"></i>Copiar Relatório
+                    </button>
                     {% endif %}
                 </div>
+                <div class="card-body p-4 flex-grow-1">
+                    <pre id="relatorio-gerado-box" class="bg-light p-3 border rounded h-100" style="white-space: pre-wrap; word-wrap: break-word;">{% if relatorio_processado %}{{ relatorio_processado }}{% else %}O relatório processado aparecerá aqui.{% endif %}</pre>
                 </div>
+                {% if relatorio_processado %}
+                <div class="card-footer p-3">
+                    <div class="d-grid">
+                        <button id="salvar-ronda-btn" class="btn btn-success btn-lg">
+                            <i class="bi bi-save-fill me-1"></i>Salvar Ronda no Sistema
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-    {{ super() }}
-    <script>
-        var rondaDataFromServer = {{ ronda_data_to_save | tojson | safe }};
-    </script>
-    <script src="{{ url_for('static', filename='js/relatorio_ronda_page.js') }}"></script>
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configuração e inicialização do Select2
+    const select2Config = {
+        theme: "bootstrap-5",
+        width: '100%'
+    };
+    $('#nome_condominio').select2({ ...select2Config, placeholder: "Selecione um condomínio" });
+    $('#escala_plantao').select2({ ...select2Config, placeholder: "Selecione uma escala" });
+    $('#supervisor_id').select2({ ...select2Config, placeholder: "Selecione ou deixe automático", allowClear: true });
+
+    // Lógica para exibir o campo "Outro Condomínio"
+    const condominioSelect = document.getElementById('nome_condominio');
+    const outroCondominioField = document.getElementById('outro-condominio-field');
+    if (condominioSelect) {
+        $(condominioSelect).on('change', function() {
+            outroCondominioField.style.display = this.value === 'Outro' ? 'block' : 'none';
+        });
+        if (condominioSelect.value === 'Outro') {
+            outroCondominioField.style.display = 'block';
+        }
+    }
+
+    // CORREÇÃO: Adicionada lógica para o botão de PROCESSAR
+    const processarForm = document.getElementById('processar-ronda-form');
+    if (processarForm) {
+        processarForm.addEventListener('submit', function() {
+            const processarBtn = document.getElementById('processar-btn');
+            if (processarBtn) {
+                processarBtn.disabled = true;
+                processarBtn.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> A processar...';
+            }
+        });
+    }
+
+    // Lógica para o botão de COPIAR
+    const copiarBtn = document.getElementById('copiar-relatorio-btn');
+    if (copiarBtn) {
+        copiarBtn.addEventListener('click', function() {
+            const relatorioBox = document.getElementById('relatorio-gerado-box');
+            const textoParaCopiar = relatorioBox.innerText;
+            navigator.clipboard.writeText(textoParaCopiar).then(() => {
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copiado!';
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-success');
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                    this.classList.remove('btn-success');
+                    this.classList.add('btn-outline-secondary');
+                }, 2000);
+            });
+        });
+    }
+
+    // Lógica para SALVAR a ronda via AJAX com async/await
+    const salvarBtn = document.getElementById('salvar-ronda-btn');
+    if (salvarBtn) {
+        salvarBtn.addEventListener('click', async function() {
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> A salvar...';
+            
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                const form = document.getElementById('processar-ronda-form');
+                const data = {
+                    ronda_id: {{ ronda_data_to_save.ronda_id | tojson }},
+                    log_bruto: form.querySelector('#log_bruto_rondas').value,
+                    condominio_id: form.querySelector('#nome_condominio').value,
+                    nome_condominio_outro: form.querySelector('#nome_condominio_outro').value,
+                    data_plantao: form.querySelector('#data_plantao').value,
+                    escala_plantao: form.querySelector('#escala_plantao').value,
+                    supervisor_id: form.querySelector('#supervisor_id').value
+                };
+
+                const response = await fetch("{{ url_for('ronda.salvar_ronda') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    let errorMsg = `O servidor respondeu com um erro ${response.status}.`;
+                    try {
+                        const errorResult = await response.json();
+                        errorMsg = errorResult.message || errorMsg;
+                    } catch (e) {}
+                    throw new Error(errorMsg);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    window.location.href = "{{ url_for('ronda.detalhes_ronda', ronda_id=0) }}".replace('0', result.ronda_id);
+                } else {
+                    throw new Error(result.message || 'O servidor retornou um erro, mas não especificou o motivo.');
+                }
+
+            } catch (error) {
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-save-fill me-1"></i>Salvar Ronda no Sistema';
+                console.error('Erro ao salvar a ronda:', error);
+                alert('Falha ao salvar a ronda: ' + (error.message || 'Verifique a consola para mais detalhes.'));
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

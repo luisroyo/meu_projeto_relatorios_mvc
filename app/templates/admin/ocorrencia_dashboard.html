@@ -1,262 +1,207 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% from "_form_helpers.html" import render_field %}
 
-{% block title %}{{ title }} - Assistente IA{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <h1 class="h3 mb-4 text-gray-800">{{ title }}</h1>
+<div class="container-fluid mt-4">
+    <!-- CABEÇALHO -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="bi bi-bar-chart-line-fill me-2"></i>{{ title }}</h2>
+    </div>
 
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Filtros</h6>
+    <!-- SEÇÃO DE FILTROS -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom d-flex align-items-center">
+            <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filtros</h5>
         </div>
         <div class="card-body">
             <form method="GET" action="{{ url_for('admin.ocorrencia_dashboard') }}">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
                         <label for="condominio_id" class="form-label">Condomínio</label>
                         <select name="condominio_id" id="condominio_id" class="form-select">
                             <option value="">Todos</option>
-                            {% for condominio in condominios %}
-                                <option value="{{ condominio.id }}" {% if condominio.id == selected_condominio_id %}selected{% endif %}>
-                                    {{ condominio.nome }}
-                                </option>
+                            {% for c in condominios %}
+                            <option value="{{ c.id }}" {% if selected_condominio_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
                             {% endfor %}
                         </select>
                     </div>
-
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-3">
                         <label for="tipo_id" class="form-label">Tipo de Ocorrência</label>
                         <select name="tipo_id" id="tipo_id" class="form-select">
                             <option value="">Todos</option>
-                            {% for tipo in tipos_ocorrencia %}
-                                <option value="{{ tipo.id }}" {% if tipo.id == selected_tipo_id %}selected{% endif %}>
-                                    {{ tipo.nome }}
-                                </option>
+                            {% for t in tipos_ocorrencia %}
+                            <option value="{{ t.id }}" {% if selected_tipo_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
                             {% endfor %}
                         </select>
                     </div>
-
-                    <div class="col-md-2 mb-3">
+                    <!-- NOVO FILTRO DE SUPERVISOR -->
+                    <div class="col-md-3">
+                        <label for="supervisor_id" class="form-label">Supervisor</label>
+                        <select name="supervisor_id" id="supervisor_id" class="form-select">
+                            <option value="">Todos</option>
+                            {% for s in supervisors %}
+                            <option value="{{ s.id }}" {% if selected_supervisor_id == s.id %}selected{% endif %}>{{ s.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
                         <label for="status" class="form-label">Status</label>
                         <select name="status" id="status" class="form-select">
                             <option value="">Todos</option>
                             {% for s in status_list %}
-                                <option value="{{ s }}" {% if s == selected_status %}selected{% endif %}>
-                                    {{ s }}
-                                </option>
+                            <option value="{{ s }}" {% if selected_status == s %}selected{% endif %}>{{ s }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                </div>
-                <div class="row">
-                     <div class="col-md-3 mb-3">
+                    <div class="col-md-3">
                         <label for="data_inicio" class="form-label">Data de Início</label>
-                        <input type="date" name="data_inicio" id="data_inicio" class="form-control" value="{{ selected_data_inicio }}">
+                        <input type="date" name="data_inicio" id="data_inicio" value="{{ selected_data_inicio_str }}" class="form-control">
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-3">
                         <label for="data_fim" class="form-label">Data de Fim</label>
-                        <input type="date" name="data_fim" id="data_fim" class="form-control" value="{{ selected_data_fim }}">
+                        <input type="date" name="data_fim" id="data_fim" value="{{ selected_data_fim_str }}" class="form-control">
                     </div>
-                </div>
-                <div class="mt-2">
-                    <button type="submit" class="btn btn-primary">Filtrar</button>
-                    <a href="{{ url_for('admin.ocorrencia_dashboard') }}" class="btn btn-secondary">Limpar Filtros</a>
+                    <div class="col-md-auto">
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-1"></i>Filtrar</button>
+                    </div>
+                    <div class="col-md-auto">
+                        <a href="{{ url_for('admin.ocorrencia_dashboard') }}" class="btn btn-outline-secondary w-100">Limpar</a>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
+    <!-- SEÇÃO DE KPIs -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center h-100">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total de Ocorrências (no período)</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_ocorrencias }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-list fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Total de Ocorrências</h6>
+                    <p class="card-text fs-1 fw-bold text-primary">{{ total_ocorrencias }}</p>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center h-100">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Ocorrências Abertas (no período)</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ ocorrencias_abertas }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-folder-open fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Ocorrências Abertas</h6>
+                    <p class="card-text fs-1 fw-bold text-warning">{{ ocorrencias_abertas }}</p>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center h-100">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tipo Mais Comum</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ tipo_mais_comum }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-star fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Tipo Mais Comum</h6>
+                    <p class="card-text fs-4 fw-bold text-info">{{ tipo_mais_comum }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-xl-6 col-lg-6">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Ocorrências por Tipo</h6>
-                </div>
+    <!-- SEÇÃO DE GRÁFICOS -->
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header">Ocorrências por Tipo</div>
                 <div class="card-body">
-                    <div class="chart-area">
-                        <canvas id="ocorrenciasPorTipoChart"></canvas>
-                    </div>
+                    <canvas id="ocorrenciasPorTipoChart"></canvas>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-6 col-lg-6">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Ocorrências por Condomínio</h6>
-                </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header">Ocorrências por Condomínio</div>
                 <div class="card-body">
-                    <div class="chart-area">
-                        <canvas id="ocorrenciasPorCondominioChart"></canvas>
-                    </div>
+                    <canvas id="ocorrenciasPorCondominioChart"></canvas>
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="row">
         <div class="col-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Evolução Diária de Ocorrências</h6>
-                </div>
+            <div class="card shadow-sm">
+                <div class="card-header">Evolução Diária de Ocorrências</div>
                 <div class="card-body">
-                    <div class="chart-area">
-                        <canvas id="evolucaoDiariaChart"></canvas>
-                    </div>
+                    <canvas id="evolucaoOcorrenciasChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock content %}
+{% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Cores padrão para os gráficos
-    const primaryColor = '#4e73df';
-    const primaryColorTransparent = 'rgba(78, 115, 223, 0.2)';
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    };
 
-    // 1. Gráfico de Ocorrências por Tipo
+    // Gráfico: Ocorrências por Tipo
     const ctxTipo = document.getElementById('ocorrenciasPorTipoChart').getContext('2d');
     new Chart(ctxTipo, {
         type: 'bar',
         data: {
-            labels: {{ tipo_labels|tojson }},
+            labels: {{ tipo_labels | tojson }},
             datasets: [{
-                label: 'Total de Ocorrências',
-                data: {{ ocorrencias_por_tipo_data|tojson }},
-                backgroundColor: primaryColor,
-                borderColor: primaryColor,
+                label: 'Nº de Ocorrências',
+                data: {{ ocorrencias_por_tipo_data | tojson }},
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
                 borderWidth: 1
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
-        }
+        options: chartOptions
     });
 
-    // 2. Gráfico de Ocorrências por Condomínio
-    const ctxCondominio = document.getElementById('ocorrenciasPorCondominioChart').getContext('2d');
-    new Chart(ctxCondominio, {
+    // Gráfico: Ocorrências por Condomínio
+    const ctxCondo = document.getElementById('ocorrenciasPorCondominioChart').getContext('2d');
+    new Chart(ctxCondo, {
         type: 'bar',
         data: {
-            labels: {{ condominio_labels|tojson }},
+            labels: {{ condominio_labels | tojson }},
             datasets: [{
-                label: 'Total de Ocorrências',
-                data: {{ ocorrencias_por_condominio_data|tojson }},
-                backgroundColor: '#1cc88a',
-                borderColor: '#1cc88a',
+                label: 'Nº de Ocorrências',
+                data: {{ ocorrencias_por_condominio_data | tojson }},
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
                 borderWidth: 1
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
-        }
+        options: chartOptions
     });
 
-    // 3. Gráfico de Evolução Diária de Ocorrências
-    const ctxEvolucao = document.getElementById('evolucaoDiariaChart').getContext('2d');
+    // Gráfico: Evolução Diária
+    const ctxEvolucao = document.getElementById('evolucaoOcorrenciasChart').getContext('2d');
     new Chart(ctxEvolucao, {
         type: 'line',
         data: {
-            labels: {{ evolucao_date_labels|tojson }},
+            labels: {{ evolucao_date_labels | tojson }},
             datasets: [{
                 label: 'Ocorrências Registradas',
-                data: {{ evolucao_ocorrencia_data|tojson }},
-                fill: true,
-                backgroundColor: primaryColorTransparent,
-                borderColor: primaryColor,
+                data: {{ evolucao_ocorrencia_data | tojson }},
+                fill: false,
+                borderColor: 'rgb(255, 99, 132)',
                 tension: 0.1
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
+        options: chartOptions
     });
 });
 </script>
-{% endblock scripts %}
+{% endblock %}

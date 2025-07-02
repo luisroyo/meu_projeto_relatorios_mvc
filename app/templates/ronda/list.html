@@ -4,94 +4,111 @@
 {% block title %}Histórico de Rondas{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-lg-3">
-    <div class="page-header text-center mb-4">
-        <h1><i class="bi bi-shield-check me-2"></i>Histórico de Rondas</h1>
-        <p class="lead text-muted">Visualize todas as rondas registradas no sistema.</p>
+<div class="container mt-4">
+    <!-- CABEÇALHO DA PÁGINA -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-list-task me-2"></i>{{ title }}</h2>
+            <p class="lead text-muted mb-0">Visualize todas as rondas registradas no sistema.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('ronda.registrar_ronda') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Registrar Nova Ronda
+            </a>
+        </div>
     </div>
 
-    <!-- Seção de Filtros -->
+    <!-- SEÇÃO DE FILTROS -->
     <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom d-flex align-items-center">
+            <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filtros</h5>
+        </div>
         <div class="card-body">
-            <form method="get" class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label for="condominio" class="form-label">Condomínio</label>
-                    <select name="condominio" id="condominio" class="form-select">
-                        <option value="">Todos</option>
-                        {% for c in condominios %}
-                        <option value="{{ c.nome }}" {% if filter_params.condominio == c.nome %}selected{% endif %}>{{ c.nome }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="supervisor" class="form-label">Supervisor</label>
-                    <select name="supervisor" id="supervisor" class="form-select">
-                        <option value="">Todos</option>
-                         {% for s in supervisors %}
-                        <option value="{{ s.id }}" {% if filter_params.supervisor == s.id %}selected{% endif %}>{{ s.username }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="turno" class="form-label">Turno</label>
-                    <select name="turno" id="turno" class="form-select">
-                        <option value="">Todos</option>
-                        {% for t in turnos %}
-                        <option value="{{ t }}" {% if filter_params.turno == t %}selected{% endif %}>{{ t }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-primary">Filtrar</button>
-                    <a href="{{ url_for('ronda.listar_rondas') }}" class="btn btn-secondary">Limpar</a>
+            <form method="GET" action="{{ url_for('ronda.listar_rondas') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label for="condominio" class="form-label">Condomínio</label>
+                        <select name="condominio" id="condominio" class="form-select">
+                            <option value="">Todos</option>
+                            {% for c in condominios %}
+                            <option value="{{ c.nome }}" {% if filter_params.condominio == c.nome %}selected{% endif %}>{{ c.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="supervisor" class="form-label">Supervisor</label>
+                        <select name="supervisor" id="supervisor" class="form-select">
+                            <option value="">Todos</option>
+                            {% for s in supervisors %}
+                            <option value="{{ s.id }}" {% if filter_params.supervisor == s.id %}selected{% endif %}>{{ s.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="turno" class="form-label">Turno</label>
+                        <select name="turno" id="turno" class="form-select">
+                            <option value="">Todos</option>
+                            {% for t in turnos %}
+                            <option value="{{ t }}" {% if filter_params.turno == t %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i>Filtrar</button>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{{ url_for('ronda.listar_rondas') }}" class="btn btn-outline-secondary">Limpar</a>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- TABELA DE RESULTADOS -->
     <div class="card shadow-sm">
-        <div class="card-body">
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-striped table-hover">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th scope="col">#ID</th>
-                            <th scope="col">Condomínio</th>
-                            <th scope="col">Data Plantão</th>
-                            <th scope="col">Turno</th>
-                            <th scope="col">Supervisor</th>
-                            <th scope="col">Rondas no Log</th>
-                            <th scope="col">Ações</th>
+                            <th>#ID</th>
+                            <th>Condomínio</th>
+                            <th>Data Plantão</th>
+                            <th>Turno</th>
+                            <th>Supervisor</th>
+                            <th class="text-center">Rondas no Log</th>
+                            <th class="text-end">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for ronda in rondas_pagination.items %}
                         <tr>
-                            <th scope="row">{{ ronda.id }}</th>
+                            <td>{{ ronda.id }}</td>
                             <td>{{ ronda.condominio.nome if ronda.condominio else 'N/A' }}</td>
                             <td>{{ ronda.data_plantao_ronda.strftime('%d/%m/%Y') if ronda.data_plantao_ronda else 'N/A' }}</td>
                             <td><span class="badge bg-secondary">{{ ronda.turno_ronda or 'N/A' }}</span></td>
                             <td>{{ ronda.supervisor.username if ronda.supervisor else 'Automático' }}</td>
-                            <td>{{ ronda.total_rondas_no_log or 0 }}</td>
-                            <td>
-                                <a href="{{ url_for('ronda.detalhes_ronda', ronda_id=ronda.id) }}" class="btn btn-info btn-sm" title="Ver Detalhes">
+                            <td class="text-center">{{ ronda.total_rondas_no_log or 0 }}</td>
+                            <td class="text-end text-nowrap">
+                                <a href="{{ url_for('ronda.detalhes_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-outline-primary" title="Ver Detalhes">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="{{ url_for('ronda.registrar_ronda', ronda_id=ronda.id) }}" class="btn btn-warning btn-sm" title="Editar Ronda">
+                                <a href="{{ url_for('ronda.registrar_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-outline-warning ms-1" title="Editar Ronda">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                
-                                <form action="{{ url_for('ronda.excluir_ronda', ronda_id=ronda.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta ronda? Esta ação não pode ser desfeita.');">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-danger btn-sm" title="Excluir Ronda">
+                                {% if current_user.is_admin %}
+                                <form action="{{ url_for('ronda.excluir_ronda', ronda_id=ronda.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta ronda?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger ms-1" title="Excluir Ronda">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
+                                {% endif %}
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="7" class="text-center">Nenhuma ronda encontrada.</td>
+                            <td colspan="7" class="text-center p-4 text-muted">Nenhuma ronda encontrada com os filtros aplicados.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -100,7 +117,7 @@
         </div>
         {% if rondas_pagination.pages > 1 %}
         <div class="card-footer">
-             {{ render_pagination(rondas_pagination, 'ronda.listar_rondas', query_params=filter_params) }}
+            {{ render_pagination(rondas_pagination, 'ronda.listar_rondas', query_params=filter_params) }}
         </div>
         {% endif %}
     </div>
