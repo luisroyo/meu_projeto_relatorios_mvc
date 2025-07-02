@@ -41,13 +41,11 @@ class User(UserMixin, db.Model):
     escalas_mensais = db.relationship('EscalaMensal', backref='supervisor', lazy='dynamic')
     ocorrencias_registradas = db.relationship('Ocorrencia', backref='registrado_por', lazy='dynamic', foreign_keys='Ocorrencia.registrado_por_user_id')
 
-    rondas_supervisionadas = db.relationship(
-        'Ronda',
-        backref='supervisor',
-        lazy='dynamic',
-        cascade="all, delete-orphan",
-        primaryjoin="User.id == Ronda.supervisor_id"
-    )
+    # Relação supervisionada de rondas - backref criado em Ronda.supervisor
+    # Remove a definição direta para evitar conflito
+
+    # Relação supervisionada de ocorrências - backref criado em Ocorrencia.supervisor
+    # Remove a definição direta para evitar conflito
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -59,6 +57,7 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return f'<User {self.username}>'
+
 
 class LoginHistory(db.Model):
     __tablename__ = 'login_history'
@@ -75,6 +74,7 @@ class LoginHistory(db.Model):
         status = "Sucesso" if self.success else f"Falha ({self.failure_reason or ''})"
         return f'<LoginHistory ID:{self.id} UserID:{self.user_id or "N/A"} @{self.timestamp.strftime("%Y-%m-%d %H:%M")}>'
 
+
 class Colaborador(db.Model):
     __tablename__ = 'colaborador'
     id = db.Column(db.Integer, primary_key=True)
@@ -89,6 +89,7 @@ class Colaborador(db.Model):
     def __repr__(self):
         return f'<Colaborador {self.id}: {self.nome_completo}>'
 
+
 class Condominio(db.Model):
     __tablename__ = 'condominio'
     id = db.Column(db.Integer, primary_key=True)
@@ -96,6 +97,7 @@ class Condominio(db.Model):
 
     def __repr__(self):
         return f'<Condominio {self.nome}>'
+
 
 class Ronda(db.Model):
     __tablename__ = 'ronda'
@@ -120,10 +122,13 @@ class Ronda(db.Model):
 
     condominio = db.relationship('Condominio', backref='rondas')
 
+    supervisor = db.relationship('User', foreign_keys=[supervisor_id], backref='rondas_supervisionadas')
+
     def __repr__(self):
         supervisor_nome = self.supervisor.username if self.supervisor else "N/A"
         criador_nome = self.criador.username if self.criador else "N/A"
         return f'<Ronda {self.id} em {self.data_hora_inicio.strftime("%d/%m/%Y")}>'
+
 
 class ProcessingHistory(db.Model):
     __tablename__ = 'processing_history'
@@ -137,6 +142,7 @@ class ProcessingHistory(db.Model):
     def __repr__(self):
         status = "Sucesso" if self.success else "Falha"
         return f'<ProcessingHistory {self.id} ({self.processing_type}) by User {self.user_id} - {status}>'
+
 
 class EscalaMensal(db.Model):
     __tablename__ = 'escala_mensal'
@@ -152,6 +158,7 @@ class EscalaMensal(db.Model):
         supervisor_nome = self.supervisor.username if self.supervisor else "N/A"
         return f'<EscalaMensal {self.mes}/{self.ano} - {self.nome_turno} -> {supervisor_nome}>'
 
+
 # ==============================================================================
 # NOVOS MODELOS PARA O SISTEMA DE OCORRÊNCIAS
 # ==============================================================================
@@ -165,6 +172,7 @@ class OcorrenciaTipo(db.Model):
     def __repr__(self):
         return f'<OcorrenciaTipo {self.nome}>'
 
+
 class OrgaoPublico(db.Model):
     __tablename__ = 'orgao_publico'
     id = db.Column(db.Integer, primary_key=True)
@@ -174,17 +182,20 @@ class OrgaoPublico(db.Model):
     def __repr__(self):
         return f'<OrgaoPublico {self.nome}>'
 
+
 # Associação Many-to-Many Ocorrencia <-> OrgaoPublico
 ocorrencia_orgaos = db.Table('ocorrencia_orgaos',
     db.Column('ocorrencia_id', db.Integer, db.ForeignKey('ocorrencia.id'), primary_key=True),
     db.Column('orgao_publico_id', db.Integer, db.ForeignKey('orgao_publico.id'), primary_key=True)
 )
 
+
 # Associação Many-to-Many Ocorrencia <-> Colaborador
 ocorrencia_colaboradores = db.Table('ocorrencia_colaboradores',
     db.Column('ocorrencia_id', db.Integer, db.ForeignKey('ocorrencia.id'), primary_key=True),
     db.Column('colaborador_id', db.Integer, db.ForeignKey('colaborador.id'), primary_key=True)
 )
+
 
 class Ocorrencia(db.Model):
     __tablename__ = 'ocorrencia'
@@ -200,6 +211,8 @@ class Ocorrencia(db.Model):
     ocorrencia_tipo_id = db.Column(db.Integer, db.ForeignKey('ocorrencia_tipo.id'), nullable=False, index=True)
     registrado_por_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
 
+    supervisor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
+
     condominio = db.relationship('Condominio', backref='ocorrencias')
     tipo = db.relationship('OcorrenciaTipo', backref='ocorrencias')
 
@@ -208,6 +221,8 @@ class Ocorrencia(db.Model):
 
     colaboradores_envolvidos = db.relationship('Colaborador', secondary=ocorrencia_colaboradores, lazy='subquery',
                                                backref=db.backref('ocorrencias_atendidas', lazy=True))
+
+    supervisor = db.relationship('User', foreign_keys=[supervisor_id], backref='ocorrencias_supervisionadas')
 
     def __repr__(self):
         tipo_nome = self.tipo.nome if self.tipo else "N/A"
