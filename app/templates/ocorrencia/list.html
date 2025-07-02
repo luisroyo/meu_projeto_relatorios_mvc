@@ -28,8 +28,9 @@
                 <td>{{ ocorrencia.data_ocorrencia | localtime }}</td>
                 <td>
                     <span class="badge 
-                        {% if ocorrencia.status == 'Aberto' %}bg-warning text-dark
-                        {% elif ocorrencia.status == 'Fechado' %}bg-success
+                        {% if ocorrencia.status == 'Registrada' %}bg-warning text-dark
+                        {% elif ocorrencia.status == 'Em Andamento' %}bg-info text-white
+                        {% elif ocorrencia.status == 'Concluída' %}bg-success
                         {% else %}bg-secondary
                         {% endif %}">
                         {{ ocorrencia.status }}
@@ -41,7 +42,7 @@
                     <a href="{{ url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-sm btn-primary">
                         <i class="bi bi-eye"></i> Ver
                     </a>
-                    {% if current_user.is_admin or current_user.id == ocorrencia.registrado_por_user_id %}
+                    {% if current_user.is_admin or current_user.id == ocorrencia.registrado_por_id %}
                     <a href="{{ url_for('ocorrencia.editar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-sm btn-warning">
                         <i class="bi bi-pencil"></i> Editar
                     </a>

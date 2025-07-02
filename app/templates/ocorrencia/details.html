@@ -19,6 +19,7 @@
                     <p><strong>Tipo:</strong> {{ ocorrencia.tipo.nome if ocorrencia.tipo else 'N/A' }}</p>
                     <p><strong>Registrada em:</strong> {{ ocorrencia.data_ocorrencia | localtime }}</p>
                     <p><strong>Registrada por:</strong> {{ ocorrencia.registrado_por.username if ocorrencia.registrado_por else 'N/A' }}</p>
+                    <p><strong>Supervisor:</strong> {{ ocorrencia.supervisor.nome_completo if ocorrencia.supervisor else 'N/A' }}</p>
                     <p><strong>Condomínio:</strong> {{ ocorrencia.condominio.nome if ocorrencia.condominio else 'N/A' }}</p>
                     <p><strong>Data do Plantão:</strong> {{ ocorrencia.data_plantao.strftime('%d/%m/%Y') if ocorrencia.data_plantao else 'N/A' }}</p>
                     <p><strong>Turno:</strong> {{ ocorrencia.turno or 'N/A' }}</p>

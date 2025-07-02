@@ -1,5 +1,3 @@
-# app/forms.py
-
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, DateField, SelectMultipleField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError, Optional
@@ -156,6 +154,11 @@ class OcorrenciaForm(FlaskForm):
         choices=[('', '-- Selecione um Turno --'), ('Diurno', 'Diurno'), ('Noturno', 'Noturno')],
         validators=[DataRequired(message="Selecione o turno.")]
     )
+    supervisor_id = SelectField(
+        'Supervisor',
+        coerce=int,
+        validators=[Optional()]
+    )
     colaboradores_envolvidos = SelectMultipleField(
         'Colaboradores Envolvidos',
         coerce=int,
@@ -192,10 +195,6 @@ class OcorrenciaForm(FlaskForm):
         choices=[('Registrada', 'Registrada'), ('Em Andamento', 'Em Andamento'), ('Concluída', 'Concluída')],
         validators=[DataRequired(message="Selecione um status.")],
         default='Registrada'
-    )
-    endereco_especifico = StringField(
-        'Endereço Específico ou Ponto de Referência',
-        validators=[Optional(), Length(max=255)]
     )
     submit = SubmitField('Salvar Ocorrência', render_kw={"class": "btn btn-primary"})
 
