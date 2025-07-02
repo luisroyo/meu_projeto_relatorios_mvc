@@ -22,6 +22,9 @@
                         <div class="mb-3">
                             {{ render_field(form.condominio_id, label_visible=true, label_text="CONDOMÍNIO") }}
                         </div>
+                        <div class="mb-3">
+                            {{ render_field(form.supervisor_id, label_visible=true, label_text="SUPERVISOR") }}
+                        </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 {{ render_field(form.data_plantao, label_visible=true, label_text="DATA DO PLANTÃO") }}
@@ -45,7 +48,7 @@
                             {{ render_field(form.colaboradores_envolvidos, label_visible=true, label_text="COLABORADORES ENVOLVIDOS") }}
                         </div>
                         <div class="mb-3">
-                           {{ render_field(form.orgaos_acionados, label_visible=true, label_text="ÓRGÃOS PÚBLICOS ACIONADOS") }}
+                            {{ render_field(form.orgaos_acionados, label_visible=true, label_text="ÓRGÃOS PÚBLICOS ACIONADOS") }}
                         </div>
                     </div>
                 </div>
@@ -82,6 +85,14 @@
 {{ super() }}
 <script>
     $(document).ready(function() {
+        // Inicializa o Select2 para Supervisor
+        $('#supervisor_id').select2({
+            theme: "bootstrap-5",
+            placeholder: "Selecione um supervisor",
+            allowClear: true,
+            width: '100%'
+        });
+
         // Inicializa o Select2 para Colaboradores
         $('#colaboradores_envolvidos').select2({
             theme: "bootstrap-5",

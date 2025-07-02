@@ -1,11 +1,10 @@
 # app/blueprints/ocorrencia/routes.py
 
 import logging
-# Adicione jsonify para criar respostas em JSON para os modais
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 from app import db
-from app.models import Ocorrencia, OcorrenciaTipo, Colaborador, OrgaoPublico, Condominio
+from app.models import Ocorrencia, OcorrenciaTipo, Colaborador, OrgaoPublico, Condominio, User
 from app.forms import OcorrenciaForm
 
 logger = logging.getLogger(__name__)
@@ -23,6 +22,10 @@ def populate_ocorrencia_form_choices(form):
     form.orgaos_acionados.choices = [(o.id, o.nome) for o in OrgaoPublico.query.order_by('nome').all()]
     form.colaboradores_envolvidos.choices = [(col.id, col.nome_completo) for col in Colaborador.query.filter_by(status='Ativo').order_by('nome_completo').all()]
 
+    # NOVO: adiciona lista de supervisores no campo supervisor_id do form
+    supervisores = User.query.filter_by(is_supervisor=True).order_by(User.username).all()
+    form.supervisor_id.choices = [(0, '-- Selecione um Supervisor --')] + [(s.id, s.username) for s in supervisores]
+
 @ocorrencia_bp.route('/historico')
 @login_required
 def listar_ocorrencias():
@@ -30,7 +33,8 @@ def listar_ocorrencias():
     query = Ocorrencia.query.options(
         db.joinedload(Ocorrencia.tipo),
         db.joinedload(Ocorrencia.registrado_por),
-        db.joinedload(Ocorrencia.condominio)
+        db.joinedload(Ocorrencia.condominio),
+        db.joinedload(Ocorrencia.supervisor)
     ).order_by(Ocorrencia.data_ocorrencia.desc())
     ocorrencias_pagination = query.paginate(page=page, per_page=15, error_out=False)
     return render_template(
@@ -45,15 +49,12 @@ def registrar_ocorrencia():
     form = OcorrenciaForm()
     populate_ocorrencia_form_choices(form)
 
-    # Lógica para preencher com dados via GET continua útil
     relatorio_get = request.args.get('relatorio_final')
     if relatorio_get and request.method == 'GET':
         form.relatorio_final.data = relatorio_get
 
     if form.validate_on_submit():
         try:
-            # A lógica para novo tipo de ocorrência foi mantida, mas poderia
-            # ser refatorada para usar um modal como os outros, para consistência.
             if form.novo_tipo_ocorrencia.data:
                 tipo_existente = OcorrenciaTipo.query.filter_by(nome=form.novo_tipo_ocorrencia.data.strip()).first()
                 if tipo_existente:
@@ -66,15 +67,20 @@ def registrar_ocorrencia():
             else:
                 tipo_ocorrencia_id = form.ocorrencia_tipo_id.data
 
+            # pega o supervisor_id do form, se for zero, trata como None
+            supervisor_id = form.supervisor_id.data
+            if supervisor_id == 0:
+                supervisor_id = None
+
             nova_ocorrencia = Ocorrencia(
                 condominio_id=form.condominio_id.data,
-                data_ocorrencia=form.data_plantao.data, # Corrigido para usar data_plantao
-                turno=form.turno.data, # Adicionado o campo turno
+                data_ocorrencia=form.data_plantao.data,
+                turno=form.turno.data,
                 relatorio_final=form.relatorio_final.data,
                 status=form.status.data,
-                # O campo endereco_especifico foi removido
                 ocorrencia_tipo_id=tipo_ocorrencia_id,
-                registrado_por_user_id=current_user.id
+                registrado_por_user_id=current_user.id,
+                supervisor_id=supervisor_id
             )
 
             if form.orgaos_acionados.data:
@@ -126,7 +132,6 @@ def editar_ocorrencia(ocorrencia_id):
 
     if form.validate_on_submit():
         try:
-            # Lógica para novo tipo mantida
             if form.novo_tipo_ocorrencia.data:
                 tipo_existente = OcorrenciaTipo.query.filter_by(nome=form.novo_tipo_ocorrencia.data.strip()).first()
                 if tipo_existente:
@@ -144,8 +149,13 @@ def editar_ocorrencia(ocorrencia_id):
             ocorrencia.turno = form.turno.data
             ocorrencia.relatorio_final = form.relatorio_final.data
             ocorrencia.status = form.status.data
-            # Campos removidos: log_bruto e endereco_especifico
             ocorrencia.ocorrencia_tipo_id = tipo_ocorrencia_id
+
+            # atualiza supervisor
+            supervisor_id = form.supervisor_id.data
+            if supervisor_id == 0:
+                supervisor_id = None
+            ocorrencia.supervisor_id = supervisor_id
 
             ocorrencia.orgaos_acionados.clear()
             ocorrencia.colaboradores_envolvidos.clear()
@@ -169,6 +179,7 @@ def editar_ocorrencia(ocorrencia_id):
     elif request.method == 'GET':
         form.orgaos_acionados.data = [o.id for o in ocorrencia.orgaos_acionados]
         form.colaboradores_envolvidos.data = [c.id for c in ocorrencia.colaboradores_envolvidos]
+        form.supervisor_id.data = ocorrencia.supervisor_id or 0  # Preenche o supervisor no form na edição
 
     return render_template('ocorrencia/form_direto.html', title=f'Editar Ocorrência #{ocorrencia.id}', form=form)
 
@@ -191,7 +202,6 @@ def add_orgao_publico():
         novo_orgao = OrgaoPublico(nome=nome_orgao)
         db.session.add(novo_orgao)
         db.session.commit()
-        # Retorna os dados do novo órgão para o JavaScript
         return jsonify({
             'success': True,
             'id': novo_orgao.id,
@@ -206,7 +216,6 @@ def add_orgao_publico():
 @login_required
 def add_colaborador():
     data = request.get_json()
-    # Adapte os campos conforme seu modelo de Colaborador
     if not data or not data.get('nome_completo'):
         return jsonify({'success': False, 'message': 'O nome do colaborador é obrigatório.'}), 400
 
@@ -216,12 +225,9 @@ def add_colaborador():
          return jsonify({'success': False, 'message': 'Este colaborador já existe.'}), 409
 
     try:
-        # Assumindo que seu modelo Colaborador precisa apenas de nome_completo para ser criado.
-        # Se precisar de outros campos, eles devem vir no JSON do request.
-        novo_colaborador = Colaborador(nome_completo=nome_colaborador, status='Ativo') # Ex: status padrão 'Ativo'
+        novo_colaborador = Colaborador(nome_completo=nome_colaborador, status='Ativo')
         db.session.add(novo_colaborador)
         db.session.commit()
-        # Retorna os dados do novo colaborador para o JavaScript
         return jsonify({
             'success': True,
             'id': novo_colaborador.id,
