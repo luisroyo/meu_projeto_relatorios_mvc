@@ -1,6 +1,6 @@
 import os
 import logging
-from datetime import datetime as dt, timezone
+from datetime import datetime, date, timezone
 from dotenv import load_dotenv
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -97,21 +97,33 @@ def create_app():
     @login_manager.user_loader
     def load_user(user_id):
         from .models import User
-        return db.session.get(User, int(user_id))
+        try:
+            return db.session.get(User, int(user_id))
+        except Exception as e:
+            module_logger.error(f"Erro ao carregar usuário {user_id}: {e}")
+            return None
 
     @app_instance.template_filter('localtime')
     def localtime_filter(dt_obj):
         if dt_obj is None:
             return "N/A"
+
         local_tz = pytz.timezone('America/Sao_Paulo')
+
+        # Se for date, converte para datetime meia-noite
+        if isinstance(dt_obj, date) and not isinstance(dt_obj, datetime):
+            dt_obj = datetime(dt_obj.year, dt_obj.month, dt_obj.day)
+
+        # Se datetime sem timezone, assume UTC
         if dt_obj.tzinfo is None:
             dt_obj = pytz.utc.localize(dt_obj)
+
         local_dt = dt_obj.astimezone(local_tz)
         return local_dt.strftime('%d/%m/%Y %H:%M:%S')
 
     @app_instance.context_processor
     def inject_current_year():
-        return {'SCRIPT_CURRENT_YEAR': dt.now(timezone.utc).year}
+        return {'SCRIPT_CURRENT_YEAR': datetime.now(timezone.utc).year}
 
     # --- Registro de Blueprints e CLI ---
     with app_instance.app_context():
@@ -129,7 +141,6 @@ def create_app():
         from app.blueprints.ronda.routes import ronda_bp
         app_instance.register_blueprint(ronda_bp)
 
-        # Registro do blueprint das ocorrências
         from app.blueprints.ocorrencia.routes import ocorrencia_bp
         app_instance.register_blueprint(ocorrencia_bp)
 
