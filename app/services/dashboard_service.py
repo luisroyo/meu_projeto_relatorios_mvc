@@ -172,6 +172,7 @@ def get_ocorrencia_dashboard_data(filters):
     condominio_id_filter = filters.get('condominio_id')
     tipo_id_filter = filters.get('tipo_id')
     status_filter = filters.get('status')
+    supervisor_id_filter = filters.get('supervisor_id') # NOVO FILTRO
     data_inicio_str = filters.get('data_inicio_str')
     data_fim_str = filters.get('data_fim_str')
 
@@ -192,17 +193,19 @@ def get_ocorrencia_dashboard_data(filters):
             query = query.filter(Ocorrencia.ocorrencia_tipo_id == tipo_id_filter)
         if status_filter:
             query = query.filter(Ocorrencia.status == status_filter)
+        if supervisor_id_filter: # NOVO FILTRO APLICADO
+            query = query.filter(Ocorrencia.supervisor_id == supervisor_id_filter)
         if data_inicio:
-            # CORRIGIDO: Alterado de data_ocorrencia para data_hora_ocorrencia
             query = query.filter(Ocorrencia.data_hora_ocorrencia >= data_inicio)
         if data_fim:
-            # CORRIGIDO: Alterado de data_ocorrencia para data_hora_ocorrencia
             query = query.filter(Ocorrencia.data_hora_ocorrencia <= data_fim)
         return query
 
     base_kpi_query = db.session.query(func.count(Ocorrencia.id))
     total_ocorrencias = apply_ocorrencia_filters(base_kpi_query).scalar() or 0
-    abertas_kpi_query = base_kpi_query.filter(Ocorrencia.status == 'Abertta')
+    
+    # Corrigido 'Abertta' para 'Registrada' ou 'Em Andamento'
+    abertas_kpi_query = base_kpi_query.filter(Ocorrencia.status.in_(['Registrada', 'Em Andamento']))
     ocorrencias_abertas = apply_ocorrencia_filters(abertas_kpi_query).scalar() or 0
 
     ocorrencias_por_tipo_q = db.session.query(OcorrenciaTipo.nome, func.count(Ocorrencia.id)).join(Ocorrencia, OcorrenciaTipo.id == Ocorrencia.ocorrencia_tipo_id)
@@ -219,10 +222,8 @@ def get_ocorrencia_dashboard_data(filters):
     condominio_labels = [item[0] for item in ocorrencias_por_condominio]
     ocorrencias_por_condominio_data = [item[1] for item in ocorrencias_por_condominio]
 
-    # CORRIGIDO: Alterado de data_ocorrencia para data_hora_ocorrencia
     ocorrencias_por_dia_q = db.session.query(func.date(Ocorrencia.data_hora_ocorrencia), func.count(Ocorrencia.id))
     ocorrencias_por_dia_q = apply_ocorrencia_filters(ocorrencias_por_dia_q)
-    # CORRIGIDO: Alterado de data_ocorrencia para data_hora_ocorrencia
     ocorrencias_por_dia = ocorrencias_por_dia_q.group_by(func.date(Ocorrencia.data_hora_ocorrencia)).order_by(func.date(Ocorrencia.data_hora_ocorrencia)).all()
 
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)

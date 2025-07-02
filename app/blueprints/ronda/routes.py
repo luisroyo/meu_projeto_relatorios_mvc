@@ -143,6 +143,11 @@ def salvar_ronda():
             log_bruto_rondas_str=log_bruto, nome_condominio_str=condominio_obj.nome,
             data_plantao_manual_str=data_plantao.strftime('%d/%m/%Y'), escala_plantao_str=escala_plantao)
         
+        # --- CORREÇÃO APLICADA AQUI ---
+        # Validação para impedir o salvamento de rondas sem eventos válidos.
+        if total == 0:
+            return jsonify({'success': False, 'message': 'Não foi possível salvar: Nenhum evento de ronda válido foi encontrado no log fornecido.'}), 400
+
         turno_ronda = inferir_turno(data_plantao, escala_plantao)
         
         supervisor_id_para_db = int(supervisor_id_manual_str) if supervisor_id_manual_str and supervisor_id_manual_str != '0' else None
