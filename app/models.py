@@ -1,8 +1,10 @@
+# app/models.py
 from datetime import datetime, timezone, date
 from app import db, login_manager
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging
+from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +21,21 @@ def load_user(user_id):
         return None
 
 # ==============================================================================
-# MODELOS EXISTENTES
+# TABELAS DE ASSOCIAÇÃO
+# ==============================================================================
+
+ocorrencia_orgaos = db.Table('ocorrencia_orgaos',
+    db.Column('ocorrencia_id', db.Integer, db.ForeignKey('ocorrencia.id'), primary_key=True),
+    db.Column('orgao_publico_id', db.Integer, db.ForeignKey('orgao_publico.id'), primary_key=True)
+)
+
+ocorrencia_colaboradores = db.Table('ocorrencia_colaboradores',
+    db.Column('ocorrencia_id', db.Integer, db.ForeignKey('ocorrencia.id'), primary_key=True),
+    db.Column('colaborador_id', db.Integer, db.ForeignKey('colaborador.id'), primary_key=True)
+)
+
+# ==============================================================================
+# MODELOS PRINCIPAIS
 # ==============================================================================
 
 class User(UserMixin, db.Model):
@@ -38,14 +54,12 @@ class User(UserMixin, db.Model):
     login_history = db.relationship('LoginHistory', backref='user', lazy='dynamic', cascade="all, delete-orphan")
     rondas_criadas = db.relationship('Ronda', backref='criador', lazy='dynamic', cascade="all, delete-orphan", foreign_keys='Ronda.user_id')
     processing_history = db.relationship('ProcessingHistory', backref='user', lazy='dynamic', cascade="all, delete-orphan")
-    escalas_mensais = db.relationship('EscalaMensal', backref='supervisor', lazy='dynamic')
+    escalas_mensais = db.relationship('EscalaMensal', backref='supervisor_escala', lazy='dynamic')
     ocorrencias_registradas = db.relationship('Ocorrencia', backref='registrado_por', lazy='dynamic', foreign_keys='Ocorrencia.registrado_por_user_id')
-
-    # Relação supervisionada de rondas - backref criado em Ronda.supervisor
-    # Remove a definição direta para evitar conflito
-
-    # Relação supervisionada de ocorrências - backref criado em Ocorrencia.supervisor
-    # Remove a definição direta para evitar conflito
+    
+    # Relações de supervisão
+    ocorrencias_supervisionadas = db.relationship('Ocorrencia', backref='supervisor', lazy='dynamic', foreign_keys='Ocorrencia.supervisor_id')
+    rondas_supervisionadas = db.relationship('Ronda', backref='supervisor', lazy='dynamic', foreign_keys='Ronda.supervisor_id')
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -57,7 +71,6 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return f'<User {self.username}>'
-
 
 class LoginHistory(db.Model):
     __tablename__ = 'login_history'
@@ -74,7 +87,6 @@ class LoginHistory(db.Model):
         status = "Sucesso" if self.success else f"Falha ({self.failure_reason or ''})"
         return f'<LoginHistory ID:{self.id} UserID:{self.user_id or "N/A"} @{self.timestamp.strftime("%Y-%m-%d %H:%M")}>'
 
-
 class Colaborador(db.Model):
     __tablename__ = 'colaborador'
     id = db.Column(db.Integer, primary_key=True)
@@ -89,7 +101,6 @@ class Colaborador(db.Model):
     def __repr__(self):
         return f'<Colaborador {self.id}: {self.nome_completo}>'
 
-
 class Condominio(db.Model):
     __tablename__ = 'condominio'
     id = db.Column(db.Integer, primary_key=True)
@@ -98,7 +109,6 @@ class Condominio(db.Model):
     def __repr__(self):
         return f'<Condominio {self.nome}>'
 
-
 class Ronda(db.Model):
     __tablename__ = 'ronda'
     id = db.Column(db.Integer, primary_key=True)
@@ -106,15 +116,12 @@ class Ronda(db.Model):
     data_hora_fim = db.Column(db.DateTime, nullable=True)
     log_ronda_bruto = db.Column(db.Text, nullable=False)
     relatorio_processado = db.Column(db.Text, nullable=True)
-
-    condominio_id = db.Column(db.Integer, db.ForeignKey('condominio.id'), nullable=False, index=True)  # obrigatório
+    condominio_id = db.Column(db.Integer, db.ForeignKey('condominio.id'), nullable=False, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', name='fk_ronda_criador_id'), nullable=False, index=True)
     supervisor_id = db.Column(db.Integer, db.ForeignKey('user.id', name='fk_ronda_supervisor_id'), nullable=True, index=True)
-
     turno_ronda = db.Column(db.String(50), nullable=True, index=True)
     escala_plantao = db.Column(db.String(100), nullable=True)
     data_plantao_ronda = db.Column(db.Date, nullable=True, index=True)
-
     total_rondas_no_log = db.Column(db.Integer, nullable=True, default=0)
     primeiro_evento_log_dt = db.Column(db.DateTime, nullable=True)
     ultimo_evento_log_dt = db.Column(db.DateTime, nullable=True)
@@ -122,13 +129,10 @@ class Ronda(db.Model):
 
     condominio = db.relationship('Condominio', backref='rondas')
 
-    supervisor = db.relationship('User', foreign_keys=[supervisor_id], backref='rondas_supervisionadas')
-
     def __repr__(self):
         supervisor_nome = self.supervisor.username if self.supervisor else "N/A"
         criador_nome = self.criador.username if self.criador else "N/A"
         return f'<Ronda {self.id} em {self.data_hora_inicio.strftime("%d/%m/%Y")}>'
-
 
 class ProcessingHistory(db.Model):
     __tablename__ = 'processing_history'
@@ -143,7 +147,6 @@ class ProcessingHistory(db.Model):
         status = "Sucesso" if self.success else "Falha"
         return f'<ProcessingHistory {self.id} ({self.processing_type}) by User {self.user_id} - {status}>'
 
-
 class EscalaMensal(db.Model):
     __tablename__ = 'escala_mensal'
     id = db.Column(db.Integer, primary_key=True)
@@ -155,13 +158,8 @@ class EscalaMensal(db.Model):
     __table_args__ = (db.UniqueConstraint('ano', 'mes', 'nome_turno', name='_ano_mes_turno_uc'),)
 
     def __repr__(self):
-        supervisor_nome = self.supervisor.username if self.supervisor else "N/A"
+        supervisor_nome = self.supervisor_escala.username if self.supervisor_escala else "N/A"
         return f'<EscalaMensal {self.mes}/{self.ano} - {self.nome_turno} -> {supervisor_nome}>'
-
-
-# ==============================================================================
-# NOVOS MODELOS PARA O SISTEMA DE OCORRÊNCIAS
-# ==============================================================================
 
 class OcorrenciaTipo(db.Model):
     __tablename__ = 'ocorrencia_tipo'
@@ -172,7 +170,6 @@ class OcorrenciaTipo(db.Model):
     def __repr__(self):
         return f'<OcorrenciaTipo {self.nome}>'
 
-
 class OrgaoPublico(db.Model):
     __tablename__ = 'orgao_publico'
     id = db.Column(db.Integer, primary_key=True)
@@ -182,50 +179,35 @@ class OrgaoPublico(db.Model):
     def __repr__(self):
         return f'<OrgaoPublico {self.nome}>'
 
-
-# Associação Many-to-Many Ocorrencia <-> OrgaoPublico
-ocorrencia_orgaos = db.Table('ocorrencia_orgaos',
-    db.Column('ocorrencia_id', db.Integer, db.ForeignKey('ocorrencia.id'), primary_key=True),
-    db.Column('orgao_publico_id', db.Integer, db.ForeignKey('orgao_publico.id'), primary_key=True)
-)
-
-
-# Associação Many-to-Many Ocorrencia <-> Colaborador
-ocorrencia_colaboradores = db.Table('ocorrencia_colaboradores',
-    db.Column('ocorrencia_id', db.Integer, db.ForeignKey('ocorrencia.id'), primary_key=True),
-    db.Column('colaborador_id', db.Integer, db.ForeignKey('colaborador.id'), primary_key=True)
-)
-
-
 class Ocorrencia(db.Model):
     __tablename__ = 'ocorrencia'
     id = db.Column(db.Integer, primary_key=True)
-
     relatorio_final = db.Column(db.Text, nullable=False)
-    data_ocorrencia = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
+    
+    # --- CORREÇÃO 1: Unificado data e hora com valor padrão para o servidor ---
+    data_hora_ocorrencia = db.Column(db.DateTime, nullable=False, server_default=func.now(), index=True)
+    
+    turno = db.Column(db.String(50), nullable=True)
     status = db.Column(db.String(50), nullable=False, default='Registrada', index=True)
     endereco_especifico = db.Column(db.String(255), nullable=True)
+    data_criacao = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    data_modificacao = db.Column(db.DateTime, onupdate=lambda: datetime.now(timezone.utc))
 
-    condominio_id = db.Column(db.Integer, db.ForeignKey('condominio.id'), nullable=True, index=True)  # OPCIONAL
-
+    condominio_id = db.Column(db.Integer, db.ForeignKey('condominio.id'), nullable=True, index=True)
     ocorrencia_tipo_id = db.Column(db.Integer, db.ForeignKey('ocorrencia_tipo.id'), nullable=False, index=True)
     registrado_por_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
-
-    supervisor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
+    
+    # --- CORREÇÃO 2: Adicionada a coluna supervisor_id ---
+    supervisor_id = db.Column(db.Integer, db.ForeignKey('user.id', name='fk_ocorrencia_supervisor_id'), nullable=True, index=True)
 
     condominio = db.relationship('Condominio', backref='ocorrencias')
     tipo = db.relationship('OcorrenciaTipo', backref='ocorrencias')
-
-    orgaos_acionados = db.relationship('OrgaoPublico', secondary=ocorrencia_orgaos, lazy='subquery',
-                                       backref=db.backref('ocorrencias', lazy=True))
-
-    colaboradores_envolvidos = db.relationship('Colaborador', secondary=ocorrencia_colaboradores, lazy='subquery',
-                                               backref=db.backref('ocorrencias_atendidas', lazy=True))
-
-    supervisor = db.relationship('User', foreign_keys=[supervisor_id], backref='ocorrencias_supervisionadas')
+    
+    orgaos_acionados = db.relationship('OrgaoPublico', secondary=ocorrencia_orgaos, lazy='subquery', backref=db.backref('ocorrencias_acionadas', lazy=True))
+    colaboradores_envolvidos = db.relationship('Colaborador', secondary=ocorrencia_colaboradores, lazy='subquery', backref=db.backref('ocorrencias_atendidas', lazy=True))
 
     def __repr__(self):
         tipo_nome = self.tipo.nome if self.tipo else "N/A"
-        data_str = self.data_ocorrencia.strftime('%d/%m/%Y')
+        data_str = self.data_hora_ocorrencia.strftime('%d/%m/%Y %H:%M')
         cond_nome = self.condominio.nome if self.condominio else "Sem Condomínio"
         return f'<Ocorrencia {self.id} - {tipo_nome} em {data_str} ({cond_nome})>'

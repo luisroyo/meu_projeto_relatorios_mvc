@@ -27,7 +27,7 @@
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                {{ render_field(form.data_plantao, label_visible=true, label_text="DATA DO PLANTÃO") }}
+                                {{ render_field(form.data_hora_ocorrencia, label_visible=true, label_text="DATA E HORA DA OCORRÊNCIA") }}
                             </div>
                             <div class="col-md-6 mb-3">
                                 {{ render_field(form.turno, label_visible=true, label_text="TURNO") }}
@@ -40,6 +40,9 @@
                     <div class="card-body p-4">
                         <div class="mb-3">
                             {{ render_field(form.ocorrencia_tipo_id, label_visible=true, label_text="TIPO DA OCORRÊNCIA") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ render_field(form.endereco_especifico, label_visible=true, label_text="ENDEREÇO ESPECÍFICO (OPCIONAL)") }}
                         </div>
                         <div class="mb-3">
                             {{ render_field(form.status, label_visible=true, label_text="STATUS") }}
@@ -93,7 +96,7 @@
             width: '100%'
         });
 
-        // Inicializa o Select2 para Colaboradores
+        // CORREÇÃO: A inicialização do Select2 foi REATIVADA para estilizar o campo.
         $('#colaboradores_envolvidos').select2({
             theme: "bootstrap-5",
             placeholder: "Selecione um ou mais colaboradores",

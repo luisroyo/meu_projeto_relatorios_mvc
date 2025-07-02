@@ -35,29 +35,37 @@ logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO').upper(),
 module_logger = logging.getLogger(__name__)
 
 # --- Carregamento do .env ---
-dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+# Ajusta caminho para carregar .env da raiz do projeto (um nível acima de 'app/')
+dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')
+dotenv_path = os.path.abspath(dotenv_path)
+
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
     module_logger.info(f".env carregado de {dotenv_path}")
+    module_logger.info(f"DATABASE_URL após carregar .env: {os.getenv('DATABASE_URL')}")
 else:
-    module_logger.info(f".env não encontrado em {dotenv_path}, usando variáveis de ambiente do sistema se definidas.")
+    module_logger.warning(f".env não encontrado em {dotenv_path}, usando variáveis de ambiente do sistema se definidas.")
 
 # --- Fábrica de Aplicação ---
 def create_app():
     app_instance = Flask(__name__)
     app_instance.wsgi_app = WhiteNoise(app_instance.wsgi_app, root='app/static/')
 
+    # SECRET_KEY deve estar no .env para produção, senão gera aleatório
     app_instance.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
 
     database_url_from_env = os.getenv('DATABASE_URL')
     module_logger.debug(f"DEBUG: DATABASE_URL lida pelo app: {database_url_from_env}")
 
+    # Corrige prefixo 'postgres://' para 'postgresql://', exigência SQLAlchemy
     if database_url_from_env and database_url_from_env.startswith("postgres://"):
         database_url_from_env = database_url_from_env.replace("postgres://", "postgresql://", 1)
 
-    BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-    default_db_path_sqlite = 'sqlite:///' + os.path.join(BASE_DIR, 'instance', 'site.db')
-    app_instance.config['SQLALCHEMY_DATABASE_URI'] = database_url_from_env or default_db_path_sqlite
+    # IMPORTANTÍSSIMO: NÃO usar fallback para banco local para evitar confusão
+    if not database_url_from_env:
+        raise RuntimeError("DATABASE_URL não definido no .env ou nas variáveis de ambiente!")
+
+    app_instance.config['SQLALCHEMY_DATABASE_URI'] = database_url_from_env
     app_instance.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     app_instance.config['WTF_CSRF_ENABLED'] = True
@@ -110,11 +118,9 @@ def create_app():
 
         local_tz = pytz.timezone('America/Sao_Paulo')
 
-        # Se for date, converte para datetime meia-noite
         if isinstance(dt_obj, date) and not isinstance(dt_obj, datetime):
             dt_obj = datetime(dt_obj.year, dt_obj.month, dt_obj.day)
 
-        # Se datetime sem timezone, assume UTC
         if dt_obj.tzinfo is None:
             dt_obj = pytz.utc.localize(dt_obj)
 

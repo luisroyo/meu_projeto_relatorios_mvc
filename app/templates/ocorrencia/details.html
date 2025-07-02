@@ -17,43 +17,41 @@
                 <div class="col-md-6">
                     <p><strong>ID da Ocorrência:</strong> {{ ocorrencia.id }}</p>
                     <p><strong>Tipo:</strong> {{ ocorrencia.tipo.nome if ocorrencia.tipo else 'N/A' }}</p>
-                    <p><strong>Registrada em:</strong> {{ ocorrencia.data_ocorrencia | localtime }}</p>
+                    <p><strong>Data e Hora da Ocorrência:</strong> {{ ocorrencia.data_hora_ocorrencia | localtime }}</p>
                     <p><strong>Registrada por:</strong> {{ ocorrencia.registrado_por.username if ocorrencia.registrado_por else 'N/A' }}</p>
-                    <p><strong>Supervisor:</strong> {{ ocorrencia.supervisor.nome_completo if ocorrencia.supervisor else 'N/A' }}</p>
+                    <p><strong>Supervisor:</strong> {{ ocorrencia.supervisor.username if ocorrencia.supervisor else 'N/A' }}</p>
                     <p><strong>Condomínio:</strong> {{ ocorrencia.condominio.nome if ocorrencia.condominio else 'N/A' }}</p>
-                    <p><strong>Data do Plantão:</strong> {{ ocorrencia.data_plantao.strftime('%d/%m/%Y') if ocorrencia.data_plantao else 'N/A' }}</p>
                     <p><strong>Turno:</strong> {{ ocorrencia.turno or 'N/A' }}</p>
                 </div>
                 <div class="col-md-6">
                     <p><strong>Endereço Específico:</strong> {{ ocorrencia.endereco_especifico or 'Não informado' }}</p>
-                    <p><strong>Órgãos Acionados:</strong>
+                    <p class="mb-1"><strong>Órgãos Acionados:</strong>
                         {% if ocorrencia.orgaos_acionados %}
                             {% for orgao in ocorrencia.orgaos_acionados %}
-                                <span class="badge bg-info text-dark">{{ orgao.nome }}</span>
+                                <span class="badge bg-info text-dark me-1">{{ orgao.nome }}</span>
                             {% endfor %}
                         {% else %}
                             <span class="text-muted">Nenhum</span>
                         {% endif %}
                     </p>
-                    <p><strong>Colaboradores Envolvidos:</strong>
+                    
+                    <div class="mt-2">
+                        <strong>Colaboradores Envolvidos:</strong>
                         {% if ocorrencia.colaboradores_envolvidos %}
+                            <ul class="list-group list-group-flush">
                             {% for colaborador in ocorrencia.colaboradores_envolvidos %}
-                                <span class="badge bg-secondary">{{ colaborador.nome_completo }}</span>
+                                <li class="list-group-item py-1 ps-0">{{ colaborador.nome_completo }}</li>
                             {% endfor %}
+                            </ul>
                         {% else %}
-                            <span class="text-muted">Nenhum</span>
+                            <p class="text-muted d-inline">Nenhum</p>
                         {% endif %}
-                    </p>
+                    </div>
                 </div>
             </div>
             <hr>
             <h6><strong>Relatório Final Oficial</strong></h6>
             <pre class="bg-light p-3 border rounded" style="white-space: pre-wrap; word-wrap: break-word;">{{ ocorrencia.relatorio_final }}</pre>
-            {% if ocorrencia.log_bruto %}
-            <hr>
-            <h6><strong>Log Bruto Original</strong></h6>
-            <pre class="bg-light p-3 border rounded" style="white-space: pre-wrap; word-wrap: break-word; max-height: 200px; overflow-y: auto;">{{ ocorrencia.log_bruto }}</pre>
-            {% endif %}
         </div>
     </div>
 

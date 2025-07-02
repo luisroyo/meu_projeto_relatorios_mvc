@@ -24,8 +24,14 @@
             {% for ocorrencia in ocorrencias_pagination.items %}
             <tr>
                 <td>{{ ocorrencia.id }}</td>
-                <td>{{ ocorrencia.tipo.nome if ocorrencia.tipo else 'N/A' }}</td>
-                <td>{{ ocorrencia.data_ocorrencia | localtime }}</td>
+                <td>{{ ocorrencia.tipo.nome if ocorrencia.tipo else 'Tipo não definido' }}</td>
+                <td>
+                    {% if ocorrencia.data_hora_ocorrencia %}
+                        {{ ocorrencia.data_hora_ocorrencia | localtime }}
+                    {% else %}
+                        Data não informada
+                    {% endif %}
+                </td>
                 <td>
                     <span class="badge 
                         {% if ocorrencia.status == 'Registrada' %}bg-warning text-dark
@@ -33,16 +39,16 @@
                         {% elif ocorrencia.status == 'Concluída' %}bg-success
                         {% else %}bg-secondary
                         {% endif %}">
-                        {{ ocorrencia.status }}
+                        {{ ocorrencia.status or 'Indefinido' }}
                     </span>
                 </td>
-                <td>{{ ocorrencia.condominio.nome if ocorrencia.condominio else 'N/A' }}</td>
-                <td>{{ ocorrencia.registrado_por.username if ocorrencia.registrado_por else 'N/A' }}</td>
+                <td>{{ ocorrencia.condominio.nome if ocorrencia.condominio else 'Condomínio não informado' }}</td>
+                <td>{{ ocorrencia.registrado_por.username if ocorrencia.registrado_por else 'Não registrado' }}</td>
                 <td>
                     <a href="{{ url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-sm btn-primary">
                         <i class="bi bi-eye"></i> Ver
                     </a>
-                    {% if current_user.is_admin or current_user.id == ocorrencia.registrado_por_id %}
+                    {% if current_user.is_admin or current_user.id == ocorrencia.registrado_por_user_id %}
                     <a href="{{ url_for('ocorrencia.editar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-sm btn-warning">
                         <i class="bi bi-pencil"></i> Editar
                     </a>
@@ -53,7 +59,6 @@
         </tbody>
     </table>
 
-    <!-- Paginação -->
     <nav aria-label="Paginação de Ocorrências">
         <ul class="pagination justify-content-center">
             {% if ocorrencias_pagination.has_prev %}

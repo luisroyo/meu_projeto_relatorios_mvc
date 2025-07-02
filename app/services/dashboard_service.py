@@ -193,9 +193,11 @@ def get_ocorrencia_dashboard_data(filters):
         if status_filter:
             query = query.filter(Ocorrencia.status == status_filter)
         if data_inicio:
-            query = query.filter(Ocorrencia.data_ocorrencia >= data_inicio)
+            # CORRIGIDO: Alterado de data_ocorrencia para data_hora_ocorrencia
+            query = query.filter(Ocorrencia.data_hora_ocorrencia >= data_inicio)
         if data_fim:
-            query = query.filter(Ocorrencia.data_ocorrencia <= data_fim)
+            # CORRIGIDO: Alterado de data_ocorrencia para data_hora_ocorrencia
+            query = query.filter(Ocorrencia.data_hora_ocorrencia <= data_fim)
         return query
 
     base_kpi_query = db.session.query(func.count(Ocorrencia.id))
@@ -217,9 +219,11 @@ def get_ocorrencia_dashboard_data(filters):
     condominio_labels = [item[0] for item in ocorrencias_por_condominio]
     ocorrencias_por_condominio_data = [item[1] for item in ocorrencias_por_condominio]
 
-    ocorrencias_por_dia_q = db.session.query(func.date(Ocorrencia.data_ocorrencia), func.count(Ocorrencia.id))
+    # CORRIGIDO: Alterado de data_ocorrencia para data_hora_ocorrencia
+    ocorrencias_por_dia_q = db.session.query(func.date(Ocorrencia.data_hora_ocorrencia), func.count(Ocorrencia.id))
     ocorrencias_por_dia_q = apply_ocorrencia_filters(ocorrencias_por_dia_q)
-    ocorrencias_por_dia = ocorrencias_por_dia_q.group_by(func.date(Ocorrencia.data_ocorrencia)).order_by(func.date(Ocorrencia.data_ocorrencia)).all()
+    # CORRIGIDO: Alterado de data_ocorrencia para data_hora_ocorrencia
+    ocorrencias_por_dia = ocorrencias_por_dia_q.group_by(func.date(Ocorrencia.data_hora_ocorrencia)).order_by(func.date(Ocorrencia.data_hora_ocorrencia)).all()
 
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     date_start_range = data_inicio if data_inicio else thirty_days_ago.date()
