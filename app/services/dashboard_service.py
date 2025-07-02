@@ -61,6 +61,7 @@ def get_ronda_dashboard_data(filters):
     condominio_id_filter = filters.get('condominio_id')
     data_inicio_str = filters.get('data_inicio_str')
     data_fim_str = filters.get('data_fim_str')
+    data_especifica_str = filters.get('data_especifica', '')
 
     data_inicio, data_fim = None, None
     try:
@@ -85,13 +86,11 @@ def get_ronda_dashboard_data(filters):
             query = query.filter(Ronda.data_plantao_ronda <= data_fim)
         return query
 
-    # --- CONSULTAS PARA GRÁFICOS ---
-    # As consultas para os gráficos permanecem as mesmas, pois já estavam corretas.
     rondas_por_condominio_q = db.session.query(Condominio.nome, func.sum(Ronda.total_rondas_no_log)).join(Ronda, Condominio.id == Ronda.condominio_id)
     rondas_por_condominio_q = apply_filters(rondas_por_condominio_q)
     rondas_por_condominio = rondas_por_condominio_q.group_by(Condominio.nome).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
     condominio_labels = [item[0] for item in rondas_por_condominio]
-    rondas_por_condominio_data = [item[1] if item[1] is not None else 0 for item in rondas_por_condominio]
+    rondas_por_condominio_data = [item[1] or 0 for item in rondas_por_condominio]
 
     media_expression = cast(func.coalesce(func.sum(Ronda.duracao_total_rondas_minutos), 0), Float) / cast(func.coalesce(func.sum(Ronda.total_rondas_no_log), 1), Float)
     duracao_media_q = db.session.query(Condominio.nome, media_expression).join(Ronda, Ronda.condominio_id == Condominio.id)
@@ -104,7 +103,7 @@ def get_ronda_dashboard_data(filters):
     rondas_por_turno_q = apply_filters(rondas_por_turno_q)
     rondas_por_turno = rondas_por_turno_q.group_by(Ronda.turno_ronda).order_by(func.sum(Ronda.total_rondas_no_log).desc()).all()
     turno_labels = [item[0] for item in rondas_por_turno]
-    rondas_por_turno_data = [item[1] if item[1] is not None else 0 for item in rondas_por_turno]
+    rondas_por_turno_data = [item[1] or 0 for item in rondas_por_turno]
     
     rondas_por_supervisor_q = db.session.query(User.username, func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)).outerjoin(Ronda, User.id == Ronda.supervisor_id).filter(User.is_supervisor == True)
     rondas_por_supervisor_q = apply_filters(rondas_por_supervisor_q)
@@ -121,7 +120,7 @@ def get_ronda_dashboard_data(filters):
     date_end_range = data_fim if data_fim else datetime.now(timezone.utc).date()
     ronda_date_labels, ronda_activity_data = [], []
     if (date_end_range - date_start_range).days < 366:
-        rondas_by_date_map = {str(date): count if count is not None else 0 for date, count in rondas_por_dia}
+        rondas_by_date_map = {str(date): count or 0 for date, count in rondas_por_dia}
         current_date = date_start_range
         while current_date <= date_end_range:
             date_str = current_date.strftime('%Y-%m-%d')
@@ -129,7 +128,6 @@ def get_ronda_dashboard_data(filters):
             ronda_activity_data.append(rondas_by_date_map.get(date_str, 0))
             current_date += timedelta(days=1)
 
-    data_especifica_str = filters.get('data_especifica')
     dados_dia_detalhado = {'labels': [], 'data': []}
     dados_tabela_dia = []
     if data_especifica_str:
@@ -142,7 +140,6 @@ def get_ronda_dashboard_data(filters):
         except (ValueError, TypeError):
             flash('Data para análise detalhada em formato inválido.', 'warning')
             
-    # --- MELHORIA: CÁLCULO DOS KPIs DE DESTAQUE ---
     base_kpi_query = apply_filters(db.session.query(Ronda))
     total_rondas = base_kpi_query.with_entities(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)).scalar()
     soma_duracao = base_kpi_query.with_entities(func.coalesce(func.sum(Ronda.duracao_total_rondas_minutos), 0)).scalar()
@@ -150,18 +147,21 @@ def get_ronda_dashboard_data(filters):
     supervisor_mais_ativo = supervisor_labels[0] if supervisor_labels else "N/A"
 
     return {
-        # KPIs adicionados para os cards de destaque
         'total_rondas': total_rondas,
         'duracao_media_geral': duracao_media_geral,
         'supervisor_mais_ativo': supervisor_mais_ativo,
-        
-        # Dados dos gráficos que já existiam
-        'condominio_labels': condominio_labels, 'rondas_por_condominio_data': rondas_por_condominio_data,
-        'duracao_condominio_labels': duracao_condominio_labels, 'duracao_media_data': duracao_media_data,
-        'turno_labels': turno_labels, 'rondas_por_turno_data': rondas_por_turno_data,
-        'supervisor_labels': supervisor_labels, 'rondas_por_supervisor_data': rondas_por_supervisor_data,
-        'ronda_date_labels': ronda_date_labels, 'ronda_activity_data': ronda_activity_data,
-        'dados_dia_detalhado': dados_dia_detalhado, 'dados_tabela_dia': dados_tabela_dia,
+        'condominio_labels': condominio_labels, 
+        'rondas_por_condominio_data': rondas_por_condominio_data,
+        'duracao_condominio_labels': duracao_condominio_labels, 
+        'duracao_media_data': duracao_media_data,
+        'turno_labels': turno_labels, 
+        'rondas_por_turno_data': rondas_por_turno_data,
+        'supervisor_labels': supervisor_labels, 
+        'rondas_por_supervisor_data': rondas_por_supervisor_data,
+        'ronda_date_labels': ronda_date_labels, 
+        'ronda_activity_data': ronda_activity_data,
+        'dados_dia_detalhado': dados_dia_detalhado, 
+        'dados_tabela_dia': dados_tabela_dia,
     }
 
 
@@ -213,7 +213,8 @@ def get_ocorrencia_dashboard_data(filters):
     ocorrencias_por_condominio_q = db.session.query(Condominio.nome, func.count(Ocorrencia.id)).join(Ocorrencia, Condominio.id == Ocorrencia.condominio_id)
     ocorrencias_por_condominio_q = apply_ocorrencia_filters(ocorrencias_por_condominio_q)
     ocorrencias_por_condominio = ocorrencias_por_condominio_q.group_by(Condominio.nome).order_by(func.count(Ocorrencia.id).desc()).all()
-    condominio_labels_ocorrencia = [item[0] for item in ocorrencias_por_condominio]
+    
+    condominio_labels = [item[0] for item in ocorrencias_por_condominio]
     ocorrencias_por_condominio_data = [item[1] for item in ocorrencias_por_condominio]
 
     ocorrencias_por_dia_q = db.session.query(func.date(Ocorrencia.data_ocorrencia), func.count(Ocorrencia.id))
@@ -234,10 +235,13 @@ def get_ocorrencia_dashboard_data(filters):
             current_date += timedelta(days=1)
 
     return {
-        'total_ocorrencias': total_ocorrencias, 'ocorrencias_abertas': ocorrencias_abertas,
-        'tipo_mais_comum': tipo_mais_comum, 'tipo_labels': tipo_labels,
-        'ocorrencias_por_tipo_data': ocorrencias_por_tipo_data, 
-        'condominio_labels_ocorrencia': condominio_labels_ocorrencia, # Renomeado para evitar conflito no template
+        'total_ocorrencias': total_ocorrencias,
+        'ocorrencias_abertas': ocorrencias_abertas,
+        'tipo_mais_comum': tipo_mais_comum,
+        'tipo_labels': tipo_labels,
+        'ocorrencias_por_tipo_data': ocorrencias_por_tipo_data,
+        'condominio_labels': condominio_labels,
         'ocorrencias_por_condominio_data': ocorrencias_por_condominio_data,
-        'evolucao_date_labels': evolucao_date_labels, 'evolucao_ocorrencia_data': evolucao_ocorrencia_data,
+        'evolucao_date_labels': evolucao_date_labels,
+        'evolucao_ocorrencia_data': evolucao_ocorrencia_data,
     }
