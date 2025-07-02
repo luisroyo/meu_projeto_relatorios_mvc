@@ -119,7 +119,6 @@ class ColaboradorForm(FlaskForm):
             # A lógica completa de validação para criação vs edição deve estar na rota.
             pass
 
-# <<< ALTERAÇÃO: A CLASSE ABAIXO FOI REINSERIDA PARA CORRIGIR O IMPORT ERROR >>>
 class FormatEmailReportForm(FlaskForm):
     """
     Formulário auxiliar para formatar relatórios para envio por e-mail.
@@ -146,11 +145,7 @@ class OcorrenciaForm(FlaskForm):
     Permite selecionar um tipo de ocorrência já existente
     ou criar um novo tipo na hora.
     """
-    condominio_id = SelectField(
-    'Condomínio',
-    coerce=int,
-    validators=[Optional()]
-)
+    condominio_id = SelectField('Condomínio', coerce=int, validators=[Optional()])
     data_plantao = DateField(
         'Data do Plantão',
         format='%Y-%m-%d',
@@ -205,7 +200,7 @@ class OcorrenciaForm(FlaskForm):
     submit = SubmitField('Salvar Ocorrência', render_kw={"class": "btn btn-primary"})
 
     def validate(self, extra_validators=None):
-        rv = super().validate()
+        rv = super(OcorrenciaForm, self).validate(extra_validators)
         if not rv:
             return False
 
@@ -255,3 +250,24 @@ class OrgaoPublicoForm(FlaskForm):
         orgao = OrgaoPublico.query.filter_by(nome=nome.data).first()
         if orgao:
             raise ValidationError('Este órgão público já existe.')
+
+# ==============================================================================
+# FORMULÁRIOS DE FERRAMENTAS (NOVA SEÇÃO)
+# ==============================================================================
+
+class AnalisadorForm(FlaskForm):
+    """
+    Formulário para a ferramenta de análise de relatórios na página inicial.
+    """
+    relatorio_bruto = TextAreaField(
+        'Relatório Bruto',
+        validators=[
+            DataRequired(message="O campo do relatório não pode estar vazio."),
+            Length(max=12000, message="O relatório excedeu o limite de 12000 caracteres.")
+        ],
+        render_kw={"rows": "18", "class": "form-control", "placeholder": "Cole o relatório bruto aqui..."}
+    )
+    submit = SubmitField(
+        'Analisar e Corrigir',
+        render_kw={"class": "btn btn-primary btn-lg"}
+    )

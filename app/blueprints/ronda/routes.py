@@ -1,11 +1,9 @@
-# app/blueprints/ronda/routes.py
-
 import logging
 from datetime import datetime, date, timezone
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
-from sqlalchemy import desc, func, or_
-from sqlalchemy.orm import joinedload  # Importe joinedload
+from sqlalchemy import desc, func
+from sqlalchemy.orm import joinedload
 from app import db
 from app.models import Condominio, Ronda, User, EscalaMensal
 from app.forms import TestarRondasForm
@@ -14,15 +12,13 @@ from app.decorators.admin_required import admin_required
 
 logger = logging.getLogger(__name__)
 
-# CORREÇÃO 1: Padronizando o prefixo para '/rondas' (plural), que é mais convencional.
 ronda_bp = Blueprint(
     'ronda',
     __name__,
     template_folder='templates',
-    url_prefix='/rondas'  # Usar plural é uma boa prática
+    url_prefix='/rondas'
 )
 
-# Função para inferir turno da ronda (sem alterações)
 def inferir_turno(data_plantao_obj, escala_plantao_str):
     turno_ronda_base = "Indefinido"
     escala_lower = escala_plantao_str.lower() if escala_plantao_str else ""
@@ -32,10 +28,7 @@ def inferir_turno(data_plantao_obj, escala_plantao_str):
         turno_ronda_base = "Diurno"
     else:
         current_hour_utc = datetime.now(timezone.utc).hour
-        if 6 <= current_hour_utc < 18:
-            turno_ronda_base = "Diurno"
-        else:
-            turno_ronda_base = "Noturno"
+        turno_ronda_base = "Diurno" if 6 <= current_hour_utc < 18 else "Noturno"
     
     if data_plantao_obj and turno_ronda_base != "Indefinido":
         return f"{turno_ronda_base} {'Par' if data_plantao_obj.day % 2 == 0 else 'Impar'}"
@@ -60,7 +53,6 @@ def registrar_ronda():
         flash('Erro ao carregar dados. Tente novamente.', 'danger')
 
     if ronda_id and request.method == 'GET':
-        # CORREÇÃO 2: Carregar a ronda com seus relacionamentos
         ronda = Ronda.query.options(joinedload(Ronda.condominio), joinedload(Ronda.supervisor)).get_or_404(ronda_id)
         
         if not (current_user.is_admin or (ronda.supervisor and current_user.id == ronda.supervisor.id)):
@@ -102,7 +94,6 @@ def registrar_ronda():
                 label = getattr(form, field).label.text
                 flash(f"Erro no campo '{label}': {error}", 'danger')
     
-    # Passando o ID da ronda para o template para uso no JavaScript
     ronda_data_to_save = {'ronda_id': ronda_id}
     return render_template('ronda/relatorio.html',
                            title=title,
@@ -160,7 +151,7 @@ def salvar_ronda():
             if escala:
                 supervisor_id_para_db = escala.supervisor_id
 
-        if ronda_id: # Atualiza
+        if ronda_id:
             ronda = db.get_or_404(Ronda, ronda_id)
             ronda.log_ronda_bruto = log_bruto
             ronda.relatorio_processado = relatorio
@@ -174,7 +165,7 @@ def salvar_ronda():
             ronda.ultimo_evento_log_dt = u_evento
             ronda.duracao_total_rondas_minutos = duracao
             mensagem_sucesso = 'Ronda atualizada com sucesso!'
-        else: # Cria
+        else:
             ronda_existente = Ronda.query.filter_by(condominio_id=condominio_obj.id, data_plantao_ronda=data_plantao, turno_ronda=turno_ronda).first()
             if ronda_existente:
                 return jsonify({'success': False, 'message': f'Já existe uma ronda para este condomínio, data e turno (ID: {ronda_existente.id}).'}), 409
@@ -219,7 +210,6 @@ def listar_rondas():
     }
     active_filter_params = {k: v for k, v in filter_params.items() if v not in [None, '']}
     
-    # CORREÇÃO 3: Simplificando a query para maior clareza e removendo o debug
     query = Ronda.query.options(joinedload(Ronda.condominio), joinedload(Ronda.supervisor))
 
     if active_filter_params.get('condominio'):
@@ -227,9 +217,7 @@ def listar_rondas():
     if active_filter_params.get('supervisor'):
         query = query.filter(Ronda.supervisor_id == active_filter_params['supervisor'])
 
-    if not current_user.is_admin:
-        query = query.filter(or_(Ronda.supervisor_id == current_user.id, Ronda.supervisor_id.is_(None)))
-    
+    # Todos os usuários logados veem tudo
     rondas_pagination = query.order_by(Ronda.data_plantao_ronda.desc(), Ronda.id.desc()).paginate(page=page, per_page=10)
     
     selected_values = {f"selected_{key}": val for key, val in active_filter_params.items()}
@@ -248,13 +236,9 @@ def listar_rondas():
 @ronda_bp.route('/detalhes/<int:ronda_id>')
 @login_required
 def detalhes_ronda(ronda_id):
-    # CORREÇÃO 4: Garantindo que os relacionamentos sejam carregados também na página de detalhes
     ronda = Ronda.query.options(joinedload(Ronda.condominio), joinedload(Ronda.supervisor)).get_or_404(ronda_id)
-    
-    if not (current_user.is_admin or (ronda.supervisor and current_user.id == ronda.supervisor.id) or current_user.id == ronda.user_id):
-        flash("Você não tem permissão para visualizar os detalhes desta ronda.", 'danger')
-        return redirect(url_for('ronda.listar_rondas'))
-        
+
+    # Agora todos os logados podem ver os detalhes
     return render_template('ronda/details.html', title=f'Detalhes da Ronda #{ronda.id}', ronda=ronda)
 
 @ronda_bp.route('/excluir/<int:ronda_id>', methods=['POST'])
