@@ -17,7 +17,7 @@
                 <th>Status</th>
                 <th>Condomínio</th>
                 <th>Registrado por</th>
-                <th>Ações</th>
+                <th class="text-end">Ações</th>
             </tr>
         </thead>
         <tbody>
@@ -44,14 +44,25 @@
                 </td>
                 <td>{{ ocorrencia.condominio.nome if ocorrencia.condominio else 'Condomínio não informado' }}</td>
                 <td>{{ ocorrencia.registrado_por.username if ocorrencia.registrado_por else 'Não registrado' }}</td>
-                <td>
-                    <a href="{{ url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-sm btn-primary">
-                        <i class="bi bi-eye"></i> Ver
+                <td class="text-end text-nowrap">
+                    <a href="{{ url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-sm btn-primary" title="Ver Detalhes">
+                        <i class="bi bi-eye"></i>
                     </a>
+                    
                     {% if current_user.is_admin or current_user.id == ocorrencia.registrado_por_user_id %}
-                    <a href="{{ url_for('ocorrencia.editar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-sm btn-warning">
-                        <i class="bi bi-pencil"></i> Editar
+                    <a href="{{ url_for('ocorrencia.editar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-sm btn-warning ms-1" title="Editar Ocorrência">
+                        <i class="bi bi-pencil"></i>
                     </a>
+                    {% endif %}
+
+                    {% if current_user.is_admin %}
+                    <!-- CORREÇÃO: Adicionado o campo hidden com o token CSRF -->
+                    <form action="{{ url_for('ocorrencia.deletar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta ocorrência? Esta ação não pode ser desfeita.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn btn-sm btn-danger ms-1" title="Excluir Ocorrência">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
                     {% endif %}
                 </td>
             </tr>
@@ -59,6 +70,7 @@
         </tbody>
     </table>
 
+    <!-- Paginação -->
     <nav aria-label="Paginação de Ocorrências">
         <ul class="pagination justify-content-center">
             {% if ocorrencias_pagination.has_prev %}

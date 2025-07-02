@@ -1,7 +1,6 @@
 # app/blueprints/ocorrencia/routes.py
 
 import logging
-# CORREÇÃO: Adicionado imports de timezone e timedelta
 from datetime import datetime, timezone, timedelta
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
@@ -99,15 +98,14 @@ def registrar_ocorrencia():
             else:
                 tipo_ocorrencia_id = form.ocorrencia_tipo_id.data
 
-            # CORREÇÃO DE FUSO HORÁRIO: Converte a data/hora local do formulário para UTC
             naive_datetime = form.data_hora_ocorrencia.data
-            local_timezone = timezone(timedelta(hours=-3)) # Fuso de Brasília (BRT)
+            local_timezone = timezone(timedelta(hours=-3))
             aware_local_datetime = naive_datetime.replace(tzinfo=local_timezone)
             utc_datetime = aware_local_datetime.astimezone(timezone.utc)
 
             nova_ocorrencia = Ocorrencia(
                 condominio_id=form.condominio_id.data,
-                data_hora_ocorrencia=utc_datetime, # Salva a data/hora em UTC
+                data_hora_ocorrencia=utc_datetime,
                 turno=form.turno.data,
                 relatorio_final=form.relatorio_final.data,
                 status=form.status.data,
@@ -176,14 +174,13 @@ def editar_ocorrencia(ocorrencia_id):
             else:
                 tipo_ocorrencia_id = form.ocorrencia_tipo_id.data
 
-            # CORREÇÃO DE FUSO HORÁRIO: Converte a data/hora local do formulário para UTC
             naive_datetime = form.data_hora_ocorrencia.data
-            local_timezone = timezone(timedelta(hours=-3)) # Fuso de Brasília (BRT)
+            local_timezone = timezone(timedelta(hours=-3))
             aware_local_datetime = naive_datetime.replace(tzinfo=local_timezone)
             utc_datetime = aware_local_datetime.astimezone(timezone.utc)
 
             ocorrencia.condominio_id = form.condominio_id.data
-            ocorrencia.data_hora_ocorrencia = utc_datetime # Salva a data/hora em UTC
+            ocorrencia.data_hora_ocorrencia = utc_datetime
             ocorrencia.turno = form.turno.data
             ocorrencia.relatorio_final = form.relatorio_final.data
             ocorrencia.status = form.status.data
@@ -269,3 +266,32 @@ def add_colaborador():
         db.session.rollback()
         logger.error(f"Erro ao adicionar novo colaborador: {e}", exc_info=True)
         return jsonify({'success': False, 'message': 'Erro interno ao salvar o colaborador.'}), 500
+
+# ADICIONADO: Função de deletar no local correto
+@ocorrencia_bp.route('/deletar/<int:ocorrencia_id>', methods=['POST'])
+@login_required
+def deletar_ocorrencia(ocorrencia_id):
+    """
+    Deleta uma ocorrência e seus relacionamentos.
+    """
+    ocorrencia = db.get_or_404(Ocorrencia, ocorrencia_id)
+
+    if not (current_user.is_admin or current_user.id == ocorrencia.registrado_por_user_id):
+        flash('Você não tem permissão para deletar esta ocorrência.', 'danger')
+        return redirect(url_for('ocorrencia.listar_ocorrencias'))
+
+    try:
+        ocorrencia.colaboradores_envolvidos.clear()
+        ocorrencia.orgaos_acionados.clear()
+        
+        db.session.delete(ocorrencia)
+        db.session.commit()
+        
+        flash('Ocorrência deletada com sucesso!', 'success')
+        return redirect(url_for('ocorrencia.listar_ocorrencias'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao deletar a ocorrência: {e}', 'danger')
+        logger.error(f"Erro ao deletar ocorrência {ocorrencia_id}: {e}", exc_info=True)
+        return redirect(url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ocorrencia_id))

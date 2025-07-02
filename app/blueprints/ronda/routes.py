@@ -217,7 +217,6 @@ def listar_rondas():
     if active_filter_params.get('supervisor'):
         query = query.filter(Ronda.supervisor_id == active_filter_params['supervisor'])
 
-    # Todos os usuários logados veem tudo
     rondas_pagination = query.order_by(Ronda.data_plantao_ronda.desc(), Ronda.id.desc()).paginate(page=page, per_page=10)
     
     selected_values = {f"selected_{key}": val for key, val in active_filter_params.items()}
@@ -237,8 +236,6 @@ def listar_rondas():
 @login_required
 def detalhes_ronda(ronda_id):
     ronda = Ronda.query.options(joinedload(Ronda.condominio), joinedload(Ronda.supervisor)).get_or_404(ronda_id)
-
-    # Agora todos os logados podem ver os detalhes
     return render_template('ronda/details.html', title=f'Detalhes da Ronda #{ronda.id}', ronda=ronda)
 
 @ronda_bp.route('/excluir/<int:ronda_id>', methods=['POST'])
