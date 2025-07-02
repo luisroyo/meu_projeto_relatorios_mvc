@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-            const response = await fetch('/ronda/salvar', {
+            const response = await fetch('/rondas/salvar', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
