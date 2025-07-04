@@ -19,9 +19,12 @@ migrate = Migrate()
 login_manager = LoginManager()
 cache = Cache()
 csrf = CSRFProtect()
+
+# 🔧 Limiter agora já recebe storage_uri direto aqui
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri=os.getenv('CACHE_REDIS_URL', 'redis://localhost:6379/0')
 )
 
 login_manager.login_view = 'auth.login'
@@ -35,7 +38,6 @@ logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO').upper(),
 module_logger = logging.getLogger(__name__)
 
 # --- Carregamento do .env ---
-# Ajusta caminho para carregar .env da raiz do projeto (um nível acima de 'app/')
 dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')
 dotenv_path = os.path.abspath(dotenv_path)
 
@@ -51,17 +53,14 @@ def create_app():
     app_instance = Flask(__name__)
     app_instance.wsgi_app = WhiteNoise(app_instance.wsgi_app, root='app/static/')
 
-    # SECRET_KEY deve estar no .env para produção, senão gera aleatório
     app_instance.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
 
     database_url_from_env = os.getenv('DATABASE_URL')
     module_logger.debug(f"DEBUG: DATABASE_URL lida pelo app: {database_url_from_env}")
 
-    # Corrige prefixo 'postgres://' para 'postgresql://', exigência SQLAlchemy
     if database_url_from_env and database_url_from_env.startswith("postgres://"):
         database_url_from_env = database_url_from_env.replace("postgres://", "postgresql://", 1)
 
-    # IMPORTANTÍSSIMO: NÃO usar fallback para banco local para evitar confusão
     if not database_url_from_env:
         raise RuntimeError("DATABASE_URL não definido no .env ou nas variáveis de ambiente!")
 
@@ -79,6 +78,9 @@ def create_app():
     app_instance.config['CACHE_TYPE'] = os.getenv('CACHE_TYPE', 'RedisCache')
     app_instance.config['CACHE_DEFAULT_TIMEOUT'] = int(os.getenv('CACHE_DEFAULT_TIMEOUT', 3600))
     app_instance.config['CACHE_REDIS_URL'] = os.getenv('CACHE_REDIS_URL', 'redis://localhost:6379/0')
+
+    # 🔧 Também setamos a URL para o limiter aqui (redundância segura)
+    app_instance.config['RATELIMIT_STORAGE_URL'] = app_instance.config['CACHE_REDIS_URL']
 
     # --- Verifica se o Redis está disponível, senão usa SimpleCache ---
     from redis.exceptions import ConnectionError
@@ -98,7 +100,7 @@ def create_app():
     migrate.init_app(app_instance, db)
     login_manager.init_app(app_instance)
     cache.init_app(app_instance)
-    limiter.init_app(app_instance)
+    limiter.init_app(app_instance)  # 🔧 Agora usa Redis como backend
     csrf.init_app(app_instance)
 
     # --- Filtros e Processadores ---
