@@ -89,21 +89,30 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Inicializa tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-
-    // --- CORREÇÃO PARA O FEEDBACK "PROCESSANDO..." ---
+    // --- 1. DECLARAÇÃO ÚNICA DOS ELEMENTOS ---
+    // Declare todas as variáveis de elementos aqui em cima, uma única vez.
     const form = document.getElementById('analisador-form');
-    // O botão submit do Flask-WTF tem id 'submit' por padrão
-    const submitButton = document.getElementById('submit'); 
-    
+    const submitButton = document.getElementById('submit');
+    const btnLimpar = document.getElementById('limpar-campos');
+    const btnCopiar = document.getElementById('copiarResultado');
+    const relatorioBrutoEl = document.getElementById('relatorio_bruto');
+    const resultadoEl = document.getElementById('resultadoProcessamento'); // Declarado APENAS AQUI
+    const charCountEl = document.getElementById('charCount');
+
+    // --- 2. INICIALIZAÇÃO DE PLUGINS ---
+    // Inicializa tooltips
+    if (btnCopiar) { // Só inicializa o tooltip se o botão existir
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
+
+    // --- 3. LÓGICA DOS EVENTOS ---
+
+    // Lógica para o feedback "Processando..." no botão de submit
     if (form && submitButton) {
         form.addEventListener('submit', function() {
-            // Verifica se o formulário é válido do lado do cliente antes de mostrar o spinner
-            // (Isso é opcional, pois o backend já valida, mas melhora a UX)
             if (form.checkValidity()) {
                 submitButton.disabled = true;
                 submitButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...`;
@@ -111,36 +120,55 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- LÓGICA PARA O BOTÃO "LIMPAR CAMPOS" ---
-    const btnLimpar = document.getElementById('limpar-campos');
-    const relatorioBrutoEl = document.getElementById('relatorio_bruto');
-    const resultadoEl = document.getElementById('resultadoProcessamento');
-    const charCountEl = document.getElementById('charCount');
-
+    // Lógica para o botão "Limpar Campos"
     if (btnLimpar) {
         btnLimpar.addEventListener('click', function() {
+            // Apenas usamos as variáveis, não as declaramos de novo
             if (relatorioBrutoEl) relatorioBrutoEl.value = '';
             if (resultadoEl) resultadoEl.value = '';
-            if(charCountEl) {
+            if (charCountEl) {
                 charCountEl.textContent = 'Caracteres: 0 / 12000';
             }
         });
     }
     
-    // --- LÓGICA PARA O CONTADOR DE CARACTERES ---
+    // Lógica para o contador de caracteres
     if (relatorioBrutoEl && charCountEl) {
         const updateCharCount = () => {
             charCountEl.textContent = `Caracteres: ${relatorioBrutoEl.value.length} / 12000`;
         };
-        updateCharCount(); // Chama ao carregar a página
-        relatorioBrutoEl.addEventListener('input', updateCharCount); // Chama ao digitar
+        updateCharCount();
+        relatorioBrutoEl.addEventListener('input', updateCharCount);
     }
 
-    // --- LÓGICA PARA O BOTÃO "COPIAR" ---
-    const btnCopiar = document.getElementById('copiarResultado');
-    if (btnCopiar) {
+    // Lógica para o botão "Copiar"
+    if (btnCopiar && resultadoEl) {
+        const tooltip = bootstrap.Tooltip.getInstance(btnCopiar);
         btnCopiar.addEventListener('click', function() {
-            // ... (lógica do botão copiar, sem alterações) ...
+            navigator.clipboard.writeText(resultadoEl.value).then(() => {
+                const originalText = btnCopiar.innerHTML;
+                btnCopiar.innerHTML = '<i class="bi bi-check-lg me-2"></i>Copiado!';
+                
+                if (tooltip) {
+                    tooltip.setContent({ '.tooltip-inner': 'Copiado com sucesso!' });
+                    tooltip.show();
+                }
+
+                setTimeout(() => {
+                    btnCopiar.innerHTML = originalText;
+                    if (tooltip) {
+                        tooltip.setContent({ '.tooltip-inner': 'Copiar o texto corrigido' });
+                        tooltip.hide();
+                    }
+                }, 2000);
+
+            }).catch(err => {
+                console.error('Erro ao copiar texto: ', err);
+                if (tooltip) {
+                    tooltip.setContent({ '.tooltip-inner': 'Erro ao copiar!' });
+                    tooltip.show();
+                }
+            });
         });
     }
 });
