@@ -5,12 +5,10 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- CABEÇALHO -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>{{ title }}</h2>
     </div>
 
-    <!-- SEÇÃO DE FILTROS -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light border-bottom d-flex align-items-center">
             <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filtros do Dashboard</h5>
@@ -64,35 +62,41 @@
         </div>
     </div>
 
-    <!-- SEÇÃO DE KPIs -->
     <div class="row g-4 mb-4">
-        <div class="col-md-4">
+        <div class="col-lg-3 col-md-6">
             <div class="card shadow-sm text-center h-100">
-                <div class="card-body">
-                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Total de Rondas (no período)</h6>
-                    <p class="card-text fs-1 fw-bold text-primary">{{ total_rondas }}</p>
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Total de Rondas</h6>
+                    <p class="card-text fs-1 fw-bold text-primary mb-0">{{ total_rondas }}</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-lg-3 col-md-6">
             <div class="card shadow-sm text-center h-100">
-                <div class="card-body">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Média de Rondas / Dia</h6>
+                    <p class="card-text fs-1 fw-bold text-warning mb-0">{{ media_rondas_dia }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
                     <h6 class="card-subtitle mb-2 text-muted text-uppercase">Duração Média por Ronda</h6>
-                    <p class="card-text fs-1 fw-bold text-success">{{ duracao_media_geral }} min</p>
+                    <p class="card-text fs-1 fw-bold text-success mb-0">{{ duracao_media_geral }} min</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-lg-3 col-md-6">
             <div class="card shadow-sm text-center h-100">
-                <div class="card-body">
+                <div class="card-body d-flex flex-column justify-content-center">
                     <h6 class="card-subtitle mb-2 text-muted text-uppercase">Supervisor Mais Ativo</h6>
-                    <p class="card-text fs-4 fw-bold text-info">{{ supervisor_mais_ativo }}</p>
+                    <p class="card-text fs-4 fw-bold text-info mb-0">{{ supervisor_mais_ativo }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- SEÇÃO DE GRÁFICOS -->
     <div class="row g-4">
         <div class="col-12">
             <div class="card shadow-sm">
@@ -161,7 +165,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    // Gráfico: Evolução Diária de Rondas
     const ctxEvolucao = document.getElementById('evolucaoRondasChart')?.getContext('2d');
     if (ctxEvolucao) {
         new Chart(ctxEvolucao, {
@@ -181,7 +184,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Gráfico: Rondas por Supervisor
     const ctxSupervisor = document.getElementById('rondasPorSupervisorChart')?.getContext('2d');
     if (ctxSupervisor) {
         new Chart(ctxSupervisor, {
@@ -200,7 +202,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Gráfico: Rondas por Condomínio
     const ctxCondo = document.getElementById('rondasPorCondominioChart')?.getContext('2d');
     if (ctxCondo) {
         new Chart(ctxCondo, {
@@ -219,7 +220,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Gráfico: Rondas por Turno (Doughnut)
     const ctxTurno = document.getElementById('rondasPorTurnoChart')?.getContext('2d');
     if (ctxTurno) {
         new Chart(ctxTurno, {
@@ -244,11 +244,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     borderWidth: 1
                 }]
             },
-            options: { ...chartOptions, plugins: { legend: { display: true, position: 'right' } } }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'right' } } }
         });
     }
     
-    // Gráfico: Duração Média por Condomínio
     const ctxDuracao = document.getElementById('duracaoMediaPorCondominioChart')?.getContext('2d');
     if(ctxDuracao) {
         new Chart(ctxDuracao, {
@@ -263,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     borderWidth: 1
                 }]
             },
-            options: { ...chartOptions, indexAxis: 'y' } // Horizontal Bar Chart
+            options: chartOptions
         });
     }
 });

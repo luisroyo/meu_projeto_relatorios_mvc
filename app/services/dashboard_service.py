@@ -1,10 +1,10 @@
 # app/services/dashboard_service.py
 from flask import flash
-from sqlalchemy import func, cast, Float
+from sqlalchemy import func, cast, Float, tuple_
 from datetime import datetime, timedelta, timezone
 
 from app import db
-from app.models import User, Ronda, Condominio, LoginHistory, ProcessingHistory, Ocorrencia, OcorrenciaTipo
+from app.models import User, Ronda, Condominio, LoginHistory, ProcessingHistory, Ocorrencia, OcorrenciaTipo, EscalaMensal
 
 
 def get_main_dashboard_data():
@@ -63,6 +63,9 @@ def get_ronda_dashboard_data(filters):
     data_fim_str = filters.get('data_fim_str')
     data_especifica_str = filters.get('data_especifica', '')
 
+    thirty_days_ago_date = (datetime.now(timezone.utc) - timedelta(days=30)).date()
+    today_date = datetime.now(timezone.utc).date()
+
     data_inicio, data_fim = None, None
     try:
         if data_inicio_str:
@@ -71,19 +74,22 @@ def get_ronda_dashboard_data(filters):
             data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
     except ValueError:
         flash("Formato de data inválido. Use AAAA-MM-DD.", "danger")
-        return {} 
+        return {}
+    
+    # Define o período de datas a ser usado nos filtros e cálculos
+    date_start_range = data_inicio if data_inicio else thirty_days_ago_date
+    date_end_range = data_fim if data_fim else today_date
 
     def apply_filters(query):
+        # Aplica o filtro de data principal em todas as queries
+        query = query.filter(Ronda.data_plantao_ronda.between(date_start_range, date_end_range))
+        
         if turno_filter:
             query = query.filter(Ronda.turno_ronda == turno_filter)
         if supervisor_id_filter:
             query = query.filter(Ronda.supervisor_id == supervisor_id_filter)
         if condominio_id_filter:
             query = query.filter(Ronda.condominio_id == condominio_id_filter)
-        if data_inicio:
-            query = query.filter(Ronda.data_plantao_ronda >= data_inicio)
-        if data_fim:
-            query = query.filter(Ronda.data_plantao_ronda <= data_fim)
         return query
 
     rondas_por_condominio_q = db.session.query(Condominio.nome, func.sum(Ronda.total_rondas_no_log)).join(Ronda, Condominio.id == Ronda.condominio_id)
@@ -92,12 +98,25 @@ def get_ronda_dashboard_data(filters):
     condominio_labels = [item[0] for item in rondas_por_condominio]
     rondas_por_condominio_data = [item[1] or 0 for item in rondas_por_condominio]
 
-    media_expression = cast(func.coalesce(func.sum(Ronda.duracao_total_rondas_minutos), 0), Float) / cast(func.coalesce(func.sum(Ronda.total_rondas_no_log), 1), Float)
-    duracao_media_q = db.session.query(Condominio.nome, media_expression).join(Ronda, Ronda.condominio_id == Condominio.id)
-    duracao_media_q = apply_filters(duracao_media_q)
-    duracao_media_por_condominio_raw = duracao_media_q.group_by(Condominio.nome).order_by(media_expression.desc()).all()
-    duracao_condominio_labels = [item[0] for item in duracao_media_por_condominio_raw]
-    duracao_media_data = [round(item[1], 2) if item[1] is not None else 0 for item in duracao_media_por_condominio_raw]
+    duracao_somas_q = db.session.query(
+        Condominio.nome,
+        func.sum(Ronda.duracao_total_rondas_minutos),
+        func.sum(Ronda.total_rondas_no_log)
+    ).join(Ronda, Condominio.id == Ronda.condominio_id)
+    
+    duracao_somas_q = apply_filters(duracao_somas_q)
+    duracao_somas_raw = duracao_somas_q.group_by(Condominio.nome).all()
+
+    dados_para_ordenar = []
+    for nome, soma_duracao, soma_rondas in duracao_somas_raw:
+        soma_duracao = soma_duracao or 0
+        soma_rondas = soma_rondas or 0
+        media = round(soma_duracao / soma_rondas, 2) if soma_rondas > 0 else 0
+        dados_para_ordenar.append({'condominio': nome, 'media': media})
+
+    dados_ordenados = sorted(dados_para_ordenar, key=lambda item: item['media'], reverse=True)
+    duracao_condominio_labels = [item['condominio'] for item in dados_ordenados]
+    duracao_media_data = [item['media'] for item in dados_ordenados]
 
     rondas_por_turno_q = db.session.query(Ronda.turno_ronda, func.sum(Ronda.total_rondas_no_log)).filter(Ronda.turno_ronda.isnot(None), Ronda.total_rondas_no_log.isnot(None))
     rondas_por_turno_q = apply_filters(rondas_por_turno_q)
@@ -111,13 +130,10 @@ def get_ronda_dashboard_data(filters):
     supervisor_labels = [item[0] for item in rondas_por_supervisor]
     rondas_por_supervisor_data = [item[1] for item in rondas_por_supervisor]
 
-    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     rondas_por_dia_q = db.session.query(func.date(Ronda.data_plantao_ronda), func.sum(Ronda.total_rondas_no_log)).filter(Ronda.total_rondas_no_log.isnot(None))
     rondas_por_dia_q = apply_filters(rondas_por_dia_q)
     rondas_por_dia = rondas_por_dia_q.group_by(func.date(Ronda.data_plantao_ronda)).order_by(func.date(Ronda.data_plantao_ronda)).all()
     
-    date_start_range = data_inicio if data_inicio else thirty_days_ago.date()
-    date_end_range = data_fim if data_fim else datetime.now(timezone.utc).date()
     ronda_date_labels, ronda_activity_data = [], []
     if (date_end_range - date_start_range).days < 366:
         rondas_by_date_map = {str(date): count or 0 for date, count in rondas_por_dia}
@@ -146,10 +162,57 @@ def get_ronda_dashboard_data(filters):
     duracao_media_geral = round(soma_duracao / total_rondas, 2) if total_rondas > 0 else 0
     supervisor_mais_ativo = supervisor_labels[0] if supervisor_labels else "N/A"
 
+    # --- INÍCIO DA CORREÇÃO DA MÉDIA DE RONDAS/DIA ---
+    num_dias_divisor = 0
+    if supervisor_id_filter:
+        # Lógica para contar os dias de trabalho de um supervisor específico
+        meses_anos = set()
+        current_date_for_months = date_start_range
+        while current_date_for_months <= date_end_range:
+            meses_anos.add((current_date_for_months.year, current_date_for_months.month))
+            # Avança para o próximo mês
+            next_month = current_date_for_months.month % 12 + 1
+            next_year = current_date_for_months.year + (current_date_for_months.month // 12)
+            current_date_for_months = current_date_for_months.replace(year=next_year, month=next_month, day=1)
+
+        turnos_supervisor_db = db.session.query(EscalaMensal.nome_turno).filter(
+            EscalaMensal.supervisor_id == supervisor_id_filter,
+            tuple_(EscalaMensal.ano, EscalaMensal.mes).in_(meses_anos)
+        ).distinct().all()
+        turnos_do_supervisor = {turno[0] for turno in turnos_supervisor_db}
+        
+        if turnos_do_supervisor:
+            current_day = date_start_range
+            while current_day <= date_end_range:
+                paridade = 'Par' if current_day.day % 2 == 0 else 'Impar'
+                turno_diurno_do_dia = f"Diurno {paridade}"
+                turno_noturno_do_dia = f"Noturno {paridade}"
+                if turno_diurno_do_dia in turnos_do_supervisor or turno_noturno_do_dia in turnos_do_supervisor:
+                    num_dias_divisor += 1
+                current_day += timedelta(days=1)
+    
+    elif turno_filter:
+        # Lógica para contar os dias de um turno específico
+        current_day = date_start_range
+        while current_day <= date_end_range:
+            paridade = 'Par' if current_day.day % 2 == 0 else 'Impar'
+            if paridade in turno_filter:
+                num_dias_divisor += 1
+            current_day += timedelta(days=1)
+    
+    else:
+        # Lógica padrão: todos os dias no período
+        num_dias_divisor = (date_end_range - date_start_range).days + 1
+    
+    media_rondas_dia = round(total_rondas / num_dias_divisor, 1) if num_dias_divisor > 0 else 0
+    # --- FIM DA CORREÇÃO ---
+
+
     return {
         'total_rondas': total_rondas,
         'duracao_media_geral': duracao_media_geral,
         'supervisor_mais_ativo': supervisor_mais_ativo,
+        'media_rondas_dia': media_rondas_dia,
         'condominio_labels': condominio_labels, 
         'rondas_por_condominio_data': rondas_por_condominio_data,
         'duracao_condominio_labels': duracao_condominio_labels, 
@@ -172,7 +235,7 @@ def get_ocorrencia_dashboard_data(filters):
     condominio_id_filter = filters.get('condominio_id')
     tipo_id_filter = filters.get('tipo_id')
     status_filter = filters.get('status')
-    supervisor_id_filter = filters.get('supervisor_id') # NOVO FILTRO
+    supervisor_id_filter = filters.get('supervisor_id')
     data_inicio_str = filters.get('data_inicio_str')
     data_fim_str = filters.get('data_fim_str')
 
@@ -193,7 +256,7 @@ def get_ocorrencia_dashboard_data(filters):
             query = query.filter(Ocorrencia.ocorrencia_tipo_id == tipo_id_filter)
         if status_filter:
             query = query.filter(Ocorrencia.status == status_filter)
-        if supervisor_id_filter: # NOVO FILTRO APLICADO
+        if supervisor_id_filter: 
             query = query.filter(Ocorrencia.supervisor_id == supervisor_id_filter)
         if data_inicio:
             query = query.filter(Ocorrencia.data_hora_ocorrencia >= data_inicio)
@@ -204,7 +267,6 @@ def get_ocorrencia_dashboard_data(filters):
     base_kpi_query = db.session.query(func.count(Ocorrencia.id))
     total_ocorrencias = apply_ocorrencia_filters(base_kpi_query).scalar() or 0
     
-    # Corrigido 'Abertta' para 'Registrada' ou 'Em Andamento'
     abertas_kpi_query = base_kpi_query.filter(Ocorrencia.status.in_(['Registrada', 'Em Andamento']))
     ocorrencias_abertas = apply_ocorrencia_filters(abertas_kpi_query).scalar() or 0
 
@@ -226,8 +288,8 @@ def get_ocorrencia_dashboard_data(filters):
     ocorrencias_por_dia_q = apply_ocorrencia_filters(ocorrencias_por_dia_q)
     ocorrencias_por_dia = ocorrencias_por_dia_q.group_by(func.date(Ocorrencia.data_hora_ocorrencia)).order_by(func.date(Ocorrencia.data_hora_ocorrencia)).all()
 
-    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
-    date_start_range = data_inicio if data_inicio else thirty_days_ago.date()
+    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).date()
+    date_start_range = data_inicio if data_inicio else thirty_days_ago
     date_end_range = data_fim if data_fim else datetime.now(timezone.utc).date()
     evolucao_date_labels, evolucao_ocorrencia_data = [], []
     if (date_end_range - date_start_range).days < 366:

@@ -143,8 +143,6 @@ def salvar_ronda():
             log_bruto_rondas_str=log_bruto, nome_condominio_str=condominio_obj.nome,
             data_plantao_manual_str=data_plantao.strftime('%d/%m/%Y'), escala_plantao_str=escala_plantao)
         
-        # --- CORREÇÃO APLICADA AQUI ---
-        # Validação para impedir o salvamento de rondas sem eventos válidos.
         if total == 0:
             return jsonify({'success': False, 'message': 'Não foi possível salvar: Nenhum evento de ronda válido foi encontrado no log fornecido.'}), 400
 
@@ -221,6 +219,23 @@ def listar_rondas():
         query = query.join(Condominio).filter(Condominio.nome == active_filter_params['condominio'])
     if active_filter_params.get('supervisor'):
         query = query.filter(Ronda.supervisor_id == active_filter_params['supervisor'])
+
+    # --- CORREÇÃO APLICADA AQUI ---
+    # Adicionada a lógica para filtrar por data de início e fim.
+    if active_filter_params.get('data_inicio'):
+        try:
+            data_inicio_obj = date.fromisoformat(active_filter_params['data_inicio'])
+            query = query.filter(Ronda.data_plantao_ronda >= data_inicio_obj)
+        except (ValueError, TypeError):
+            flash('Formato de data de início inválido.', 'warning')
+    
+    if active_filter_params.get('data_fim'):
+        try:
+            data_fim_obj = date.fromisoformat(active_filter_params['data_fim'])
+            query = query.filter(Ronda.data_plantao_ronda <= data_fim_obj)
+        except (ValueError, TypeError):
+            flash('Formato de data de fim inválido.', 'warning')
+    # --- FIM DA CORREÇÃO ---
 
     rondas_pagination = query.order_by(Ronda.data_plantao_ronda.desc(), Ronda.id.desc()).paginate(page=page, per_page=10)
     
