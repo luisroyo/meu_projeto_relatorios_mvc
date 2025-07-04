@@ -6,7 +6,6 @@
     <h2>{{ title }}</h2>
     <p class="lead">Detalhes completos da ronda.</p>
 
-    <!-- Card de Informações da Ronda -->
     <div class="card shadow-sm mb-4">
         <div class="card-header">
             <h5 class="mb-0"><i class="bi bi-shield-shaded me-2"></i>Informações da Ronda</h5>
@@ -15,7 +14,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <p><strong>ID da Ronda:</strong> {{ ronda.id }}</p>
-                    <p><strong>Condomínio:</strong> {{ ronda.condominio_obj.nome if ronda.condominio_obj else 'N/A' }}</p>
+                    <p><strong>Condomínio:</strong> {{ ronda.condominio.nome if ronda.condominio else 'N/A' }}</p>
                     <p><strong>Data do Plantão:</strong> {{ ronda.data_plantao_ronda.strftime('%d/%m/%Y') if ronda.data_plantao_ronda else 'N/A' }}</p>
                     <p><strong>Turno:</strong> {{ ronda.turno_ronda or 'N/A' }}</p>
                 </div>
@@ -29,7 +28,6 @@
         </div>
     </div>
 
-    <!-- Card de Relatório Processado pela IA -->
     <div class="card shadow-sm mb-4">
         <div class="card-header">
             <h5 class="mb-0"><i class="bi bi-robot me-2"></i>Relatório Original Processado pela IA</h5>
@@ -43,15 +41,11 @@
         </div>
     </div>
 
-    <!-- Botões de Ação -->
     <div class="mt-4 d-flex justify-content-between">
         <a href="{{ url_for('ronda.listar_rondas') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar ao Histórico</a>
 
         <div>
             {# 
-            <!-- REMOVIDO: Link para registrar ocorrência porque o blueprint 'ocorrencia' não existe mais -->
-            <!-- Reative ou ajuste se implementar novamente -->
-
             {%# if ronda.ocorrencia %}
                 <a href="{{ url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ronda.ocorrencia.id) }}" class="btn btn-primary"><i class="bi bi-eye me-1"></i>Ver Ocorrência</a>
             {% else %}
@@ -72,7 +66,6 @@
     </div>
 </div>
 
-<!-- Modal Exclusão -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -105,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const button = event.relatedTarget;
             const rondaId = button.getAttribute('data-ronda-id');
             const form = deleteModal.querySelector('#deleteForm');
-            form.action = `/rondas/excluir/${rondaId}`;  // CORRIGIDO: /rondas no plural, que bate com o blueprint
+            form.action = `/rondas/excluir/${rondaId}`;
         });
     }
 });
