@@ -63,8 +63,11 @@ def get_ronda_dashboard_data(filters):
     data_fim_str = filters.get('data_fim_str')
     data_especifica_str = filters.get('data_especifica', '')
 
-    thirty_days_ago_date = (datetime.now(timezone.utc) - timedelta(days=30)).date()
-    today_date = datetime.now(timezone.utc).date()
+    today = datetime.now(timezone.utc).date()
+    
+    # Calculate the first and last day of the current month
+    first_day_of_current_month = today.replace(day=1)
+    last_day_of_current_month = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
 
     data_inicio, data_fim = None, None
     try:
@@ -77,8 +80,10 @@ def get_ronda_dashboard_data(filters):
         return {}
     
     # Define o período de datas a ser usado nos filtros e cálculos
-    date_start_range = data_inicio if data_inicio else thirty_days_ago_date
-    date_end_range = data_fim if data_fim else today_date
+    # Se nem data_inicio_str nem data_fim_str foram passados, usa o mês atual como padrão.
+    # Caso contrário, usa os valores passados (que podem ter sido definidos pelo filtro de mês em routes_dashboard.py)
+    date_start_range = data_inicio if data_inicio_str else first_day_of_current_month
+    date_end_range = data_fim if data_fim_str else last_day_of_current_month
 
     def apply_filters(query):
         # Aplica o filtro de data principal em todas as queries
@@ -225,6 +230,8 @@ def get_ronda_dashboard_data(filters):
         'ronda_activity_data': ronda_activity_data,
         'dados_dia_detalhado': dados_dia_detalhado, 
         'dados_tabela_dia': dados_tabela_dia,
+        'selected_data_inicio_str': date_start_range.strftime('%Y-%m-%d'), 
+        'selected_data_fim_str': date_end_range.strftime('%Y-%m-%d') 
     }
 
 
@@ -239,6 +246,11 @@ def get_ocorrencia_dashboard_data(filters):
     data_inicio_str = filters.get('data_inicio_str')
     data_fim_str = filters.get('data_fim_str')
 
+    today = datetime.now(timezone.utc).date()
+    # Calculate the first and last day of the current month
+    first_day_of_current_month = today.replace(day=1)
+    last_day_of_current_month = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+
     data_inicio, data_fim = None, None
     try:
         if data_inicio_str:
@@ -249,6 +261,13 @@ def get_ocorrencia_dashboard_data(filters):
         flash("Formato de data inválido. Use AAAA-MM-DD.", "danger")
         return {}
 
+    # Default to current month if no dates are provided
+    # Se nem data_inicio_str nem data_fim_str foram passados, usa o mês atual como padrão.
+    # Caso contrário, usa os valores passados (que podem ter sido definidos pelo filtro de mês em routes_dashboard.py)
+    date_start_range = data_inicio if data_inicio_str else first_day_of_current_month
+    date_end_range = data_fim if data_fim_str else last_day_of_current_month
+
+
     def apply_ocorrencia_filters(query):
         if condominio_id_filter:
             query = query.filter(Ocorrencia.condominio_id == condominio_id_filter)
@@ -258,10 +277,9 @@ def get_ocorrencia_dashboard_data(filters):
             query = query.filter(Ocorrencia.status == status_filter)
         if supervisor_id_filter: 
             query = query.filter(Ocorrencia.supervisor_id == supervisor_id_filter)
-        if data_inicio:
-            query = query.filter(Ocorrencia.data_hora_ocorrencia >= data_inicio)
-        if data_fim:
-            query = query.filter(Ocorrencia.data_hora_ocorrencia <= data_fim)
+        # Usa date_start_range e date_end_range que já consideram o filtro de mês ou o default do mês atual
+        query = query.filter(Ocorrencia.data_hora_ocorrencia >= date_start_range)
+        query = query.filter(Ocorrencia.data_hora_ocorrencia <= date_end_range)
         return query
 
     base_kpi_query = db.session.query(func.count(Ocorrencia.id))
@@ -288,9 +306,6 @@ def get_ocorrencia_dashboard_data(filters):
     ocorrencias_por_dia_q = apply_ocorrencia_filters(ocorrencias_por_dia_q)
     ocorrencias_por_dia = ocorrencias_por_dia_q.group_by(func.date(Ocorrencia.data_hora_ocorrencia)).order_by(func.date(Ocorrencia.data_hora_ocorrencia)).all()
 
-    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).date()
-    date_start_range = data_inicio if data_inicio else thirty_days_ago
-    date_end_range = data_fim if data_fim else datetime.now(timezone.utc).date()
     evolucao_date_labels, evolucao_ocorrencia_data = [], []
     if (date_end_range - date_start_range).days < 366:
         ocorrencias_map = {str(date): count for date, count in ocorrencias_por_dia}
@@ -311,4 +326,6 @@ def get_ocorrencia_dashboard_data(filters):
         'ocorrencias_por_condominio_data': ocorrencias_por_condominio_data,
         'evolucao_date_labels': evolucao_date_labels,
         'evolucao_ocorrencia_data': evolucao_ocorrencia_data,
+        'selected_data_inicio_str': date_start_range.strftime('%Y-%m-%d'),
+        'selected_data_fim_str': date_end_range.strftime('%Y-%m-%d')
     }

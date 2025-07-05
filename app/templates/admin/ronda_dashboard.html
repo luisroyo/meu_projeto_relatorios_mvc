@@ -7,6 +7,10 @@
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>{{ title }}</h2>
+        {# Adicionado para exibir a descrição do mês/período, se aplicável #}
+        {% if current_month_description %}
+        <span class="badge bg-primary fs-6 ms-3">{{ current_month_description }}</span>
+        {% endif %}
     </div>
 
     <div class="card shadow-sm mb-4">
@@ -43,6 +47,18 @@
                             {% endfor %}
                         </select>
                     </div>
+                    
+                    {# NOVO FILTRO DE MÊS #}
+                    <div class="col-md-3">
+                        <label for="mes" class="form-label">Mês</label>
+                        <select name="mes" id="mes" class="form-select">
+                            <option value="">Todos</option>
+                            {% for m in meses_do_ano %}
+                            <option value="{{ m.id }}" {% if selected_mes == m.id %}selected{% endif %}>{{ m.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
                     <div class="col-md-3">
                         <label for="data_inicio" class="form-label">Data de Início</label>
                         <input type="date" name="data_inicio" id="data_inicio" value="{{ selected_data_inicio_str }}" class="form-control">
