@@ -5,12 +5,13 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- CABEÇALHO -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0"><i class="bi bi-bar-chart-line-fill me-2"></i>{{ title }}</h2>
+        {% if current_month_description %}
+        <span class="badge bg-primary fs-6 ms-3">{{ current_month_description }}</span>
+        {% endif %}
     </div>
 
-    <!-- SEÇÃO DE FILTROS -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light border-bottom d-flex align-items-center">
             <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filtros</h5>
@@ -36,7 +37,6 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <!-- NOVO FILTRO DE SUPERVISOR -->
                     <div class="col-md-3">
                         <label for="supervisor_id" class="form-label">Supervisor</label>
                         <select name="supervisor_id" id="supervisor_id" class="form-select">
@@ -55,6 +55,17 @@
                             {% endfor %}
                         </select>
                     </div>
+                    
+                    <div class="col-md-3">
+                        <label for="mes" class="form-label">Mês</label>
+                        <select name="mes" id="mes" class="form-select">
+                            <option value="">Todos</option>
+                            {% for m in meses_do_ano %}
+                            <option value="{{ m.id }}" {% if selected_mes == m.id %}selected{% endif %}>{{ m.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
                     <div class="col-md-3">
                         <label for="data_inicio" class="form-label">Data de Início</label>
                         <input type="date" name="data_inicio" id="data_inicio" value="{{ selected_data_inicio_str }}" class="form-control">
@@ -74,7 +85,6 @@
         </div>
     </div>
 
-    <!-- SEÇÃO DE KPIs -->
     <div class="row g-4 mb-4">
         <div class="col-md-4">
             <div class="card shadow-sm text-center h-100">
@@ -102,7 +112,6 @@
         </div>
     </div>
 
-    <!-- SEÇÃO DE GRÁFICOS -->
     <div class="row g-4">
         <div class="col-lg-6">
             <div class="card shadow-sm">
