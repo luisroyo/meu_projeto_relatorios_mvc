@@ -16,7 +16,7 @@
                 <th>Data</th>
                 <th>Status</th>
                 <th>Condomínio</th>
-                <th>Registrado por</th>
+                <th>Supervisor Responsável</th>
                 <th class="text-end">Ações</th>
             </tr>
         </thead>
@@ -43,7 +43,7 @@
                     </span>
                 </td>
                 <td>{{ ocorrencia.condominio.nome if ocorrencia.condominio else 'Condomínio não informado' }}</td>
-                <td>{{ ocorrencia.registrado_por.username if ocorrencia.registrado_por else 'Não registrado' }}</td>
+                <td>{{ ocorrencia.supervisor.username if ocorrencia.supervisor else 'Supervisor não atribuído' }}</td>
                 <td class="text-end text-nowrap">
                     <a href="{{ url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-sm btn-primary" title="Ver Detalhes">
                         <i class="bi bi-eye"></i>
@@ -56,7 +56,6 @@
                     {% endif %}
 
                     {% if current_user.is_admin %}
-                    <!-- CORREÇÃO: Adicionado o campo hidden com o token CSRF -->
                     <form action="{{ url_for('ocorrencia.deletar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta ocorrência? Esta ação não pode ser desfeita.');">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="btn btn-sm btn-danger ms-1" title="Excluir Ocorrência">
@@ -70,7 +69,6 @@
         </tbody>
     </table>
 
-    <!-- Paginação -->
     <nav aria-label="Paginação de Ocorrências">
         <ul class="pagination justify-content-center">
             {% if ocorrencias_pagination.has_prev %}
