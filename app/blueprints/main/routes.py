@@ -17,7 +17,7 @@ def _get_patrimonial_service():
     return g.patrimonial_service
 
 @main_bp.route('/', methods=['GET', 'POST'])
-@limiter.limit("20 per hour")
+@limiter.limit("200 per hour")
 @login_required
 def index():
     form = AnalisadorForm()
