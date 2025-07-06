@@ -73,10 +73,12 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* CORREÇÃO APLICADA AQUI */
 main.container {
     flex-grow: 1;
     padding-top: 2rem;
     padding-bottom: 3rem;
+    max-width: 1280px; /* Limita a largura do conteúdo em telas grandes */
 }
 
 /* MODIFICADO - Hierarquia de títulos mais clara */
@@ -142,7 +144,6 @@ a:hover {
     border: 1px solid var(--border-color);
 }
 
-/* Estilo para o Logo no Navbar */
 /* Estilo para o Logo no Navbar (com !important para garantir a aplicação) */
 .navbar-brand img {
     height: 40px !important; /* Tamanho final para bom destaque */
@@ -154,8 +155,6 @@ a:hover {
     font-size: 1.2rem;
     color: var(--text-muted-custom);
 }
-
-/* ADICIONE ESTAS NOVAS REGRAS PARA BOTÕES */
 
 /* Estilo Base para botões principais */
 .btn-primary {
@@ -177,7 +176,6 @@ a:hover {
 }
 
 /* Cards */
-/* Localize a regra .card e adicione a transição */
 .card {
     border: 1px solid var(--border-color);
     box-shadow: var(--box-shadow);
@@ -187,7 +185,6 @@ a:hover {
     transition: all 0.2s ease-in-out; /* ADICIONADO - Para animar hover */
 }
 
-/* ADICIONE esta nova regra para o efeito de hover no card */
 .card:hover {
     transform: translateY(-4px);
     box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
@@ -201,7 +198,7 @@ a:hover {
     font-weight: 500;
     font-size: 1.1rem;
 }
-/* Localize a regra .card-body e aumente o padding */
+
 .card-body {
     padding: 2rem; /* MODIFICADO - Aumentamos de 1.5rem para 2rem */
     color: var(--text-color);
