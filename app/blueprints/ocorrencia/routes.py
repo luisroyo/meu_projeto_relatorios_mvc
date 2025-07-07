@@ -45,23 +45,75 @@ def pode_editar_ocorrencia(f):
     return decorated_function
 
 
+# ---------------- INÍCIO DA FUNÇÃO ATUALIZADA ----------------
 @ocorrencia_bp.route('/historico')
 @login_required
 def listar_ocorrencias():
+    """ Rota para listar todas as ocorrências com filtros e paginação. """
     page = request.args.get('page', 1, type=int)
+
+    # Obter os parâmetros de filtro da URL
+    selected_status = request.args.get('status', '')
+    selected_condominio_id = request.args.get('condominio_id', type=int)
+    selected_supervisor_id = request.args.get('supervisor_id', type=int)
+    selected_data_inicio = request.args.get('data_inicio', '')
+    selected_data_fim = request.args.get('data_fim', '')
+
+    # Construir a consulta base, mantendo a otimização de consulta
     query = Ocorrencia.query.options(
         db.joinedload(Ocorrencia.tipo),
         db.joinedload(Ocorrencia.registrado_por),
         db.joinedload(Ocorrencia.condominio),
         db.joinedload(Ocorrencia.supervisor)
-    ).order_by(Ocorrencia.data_hora_ocorrencia.desc())
+    )
 
+    # Aplicar os filtros na consulta, se eles existirem
+    if selected_status:
+        query = query.filter(Ocorrencia.status == selected_status)
+    if selected_condominio_id:
+        query = query.filter(Ocorrencia.condominio_id == selected_condominio_id)
+    if selected_supervisor_id:
+        query = query.filter(Ocorrencia.supervisor_id == selected_supervisor_id)
+    if selected_data_inicio:
+        try:
+            data_inicio_obj = datetime.strptime(selected_data_inicio, '%Y-%m-%d')
+            query = query.filter(Ocorrencia.data_hora_ocorrencia >= data_inicio_obj)
+        except ValueError:
+            flash('Formato de data de início inválido. Use AAAA-MM-DD.', 'danger')
+    if selected_data_fim:
+        try:
+            data_fim_obj = datetime.strptime(selected_data_fim, '%Y-%m-%d')
+            query = query.filter(Ocorrencia.data_hora_ocorrencia < data_fim_obj + timedelta(days=1))
+        except ValueError:
+            flash('Formato de data de fim inválido. Use AAAA-MM-DD.', 'danger')
+
+    # Ordenar e paginar os resultados
+    query = query.order_by(Ocorrencia.data_hora_ocorrencia.desc())
     ocorrencias_pagination = query.paginate(page=page, per_page=15, error_out=False)
+
+    # Preparar dados para os menus de seleção (dropdowns) do formulário de filtro
+    condominios = Condominio.query.order_by(Condominio.nome).all()
+    supervisors = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
+    status_list = ['Registrada', 'Em Andamento', 'Concluída', 'Cancelada']
+
+    # Manter os argumentos de filtro na URL da paginação, exceto o número da página
+    filter_args = {k: v for k, v in request.args.items() if k != 'page'}
+
     return render_template(
         'ocorrencia/list.html',
         title='Histórico de Ocorrências',
-        ocorrencias_pagination=ocorrencias_pagination
+        ocorrencias_pagination=ocorrencias_pagination,
+        condominios=condominios,
+        supervisors=supervisors,
+        status_list=status_list,
+        selected_status=selected_status,
+        selected_condominio_id=selected_condominio_id,
+        selected_supervisor_id=selected_supervisor_id,
+        selected_data_inicio=selected_data_inicio,
+        selected_data_fim=selected_data_fim,
+        filter_args=filter_args
     )
+# ---------------- FIM DA FUNÇÃO ATUALIZADA ----------------
 
 
 @ocorrencia_bp.route('/registrar', methods=['GET', 'POST'])
@@ -266,6 +318,7 @@ def add_colaborador():
         db.session.rollback()
         logger.error(f"Erro ao adicionar novo colaborador: {e}", exc_info=True)
         return jsonify({'success': False, 'message': 'Erro interno ao salvar o colaborador.'}), 500
+
 
 # ADICIONADO: Função de deletar no local correto
 @ocorrencia_bp.route('/deletar/<int:ocorrencia_id>', methods=['POST'])
