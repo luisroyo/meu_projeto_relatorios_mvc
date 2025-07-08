@@ -5,6 +5,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import func
 from datetime import datetime, timedelta
 import locale # Import locale for month name
+from app.utils.date_utils import parse_date_range
 
 from . import admin_bp
 from app import db

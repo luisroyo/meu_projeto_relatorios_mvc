@@ -1,4 +1,4 @@
-# app/blueprints/admin/routes.py
+# app/blueprints/admin/routes_user.py
 import logging
 from flask import (
     render_template, redirect, url_for, flash,
