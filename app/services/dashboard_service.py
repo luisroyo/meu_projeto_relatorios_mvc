@@ -162,8 +162,53 @@ def get_ronda_dashboard_data(filters):
     duracao_media_geral = round(soma_duracao / total_rondas, 2) if total_rondas > 0 else 0
     supervisor_mais_ativo = supervisor_labels[0] if supervisor_labels else "N/A"
 
-    num_dias_divisor = (date_end_range - date_start_range).days + 1
+    # --- INÍCIO DA LÓGICA CORRIGIDA E MELHORADA PARA MÉDIA DE RONDAS/DIA ---
+    num_dias_divisor = 0
+    if supervisor_id_filter:
+        # Lógica para contar os dias de trabalho de um supervisor específico
+        meses_anos = set()
+        current_date_for_months = date_start_range
+        while current_date_for_months <= date_end_range:
+            meses_anos.add((current_date_for_months.year, current_date_for_months.month))
+            # Avança para o próximo mês
+            next_month_year = current_date_for_months.year + (current_date_for_months.month // 12)
+            next_month = current_date_for_months.month % 12 + 1
+            current_date_for_months = current_date_for_months.replace(year=next_month_year, month=next_month, day=1)
+
+        turnos_supervisor_db = db.session.query(EscalaMensal.nome_turno).filter(
+            EscalaMensal.supervisor_id == supervisor_id_filter,
+            tuple_(EscalaMensal.ano, EscalaMensal.mes).in_(meses_anos)
+        ).distinct().all()
+        turnos_do_supervisor = {turno[0] for turno in turnos_supervisor_db}
+        
+        if turnos_do_supervisor:
+            current_day = date_start_range
+            while current_day <= date_end_range:
+                paridade = 'Par' if current_day.day % 2 == 0 else 'Impar'
+                turno_diurno_do_dia = f"Diurno {paridade}"
+                turno_noturno_do_dia = f"Noturno {paridade}"
+                
+                # Conta o dia se o supervisor trabalha em qualquer um dos turnos do dia (Diurno ou Noturno)
+                if turno_diurno_do_dia in turnos_do_supervisor or turno_noturno_do_dia in turnos_do_supervisor:
+                    num_dias_divisor += 1
+                current_day += timedelta(days=1)
+    
+    elif turno_filter:
+        # Lógica para contar os dias de um turno específico
+        current_day = date_start_range
+        while current_day <= date_end_range:
+            paridade = 'Par' if current_day.day % 2 == 0 else 'Impar'
+            if paridade in turno_filter:
+                num_dias_divisor += 1
+            current_day += timedelta(days=1)
+    
+    else:
+        # Lógica padrão: todos os dias no período
+        num_dias_divisor = (date_end_range - date_start_range).days + 1
+    
     media_rondas_dia = round(total_rondas / num_dias_divisor, 1) if num_dias_divisor > 0 else 0
+    # --- FIM DA LÓGICA CORRIGIDA ---
+
 
     return {
         'total_rondas': total_rondas,
@@ -276,7 +321,6 @@ def get_ocorrencia_dashboard_data(filters):
     ultimas_ocorrencias_q = apply_ocorrencia_filters(ultimas_ocorrencias_q)
     ultimas_ocorrencias = ultimas_ocorrencias_q.order_by(Ocorrencia.data_hora_ocorrencia.desc()).limit(10).all()
 
-    # --- INÍCIO DA CORREÇÃO NA CONSULTA TOP 5 COLABORADORES ---
     top_colaboradores_q = db.session.query(
         Colaborador.nome_completo,
         func.count(Ocorrencia.id).label('total_ocorrencias')
@@ -285,7 +329,6 @@ def get_ocorrencia_dashboard_data(filters):
     top_colaboradores_q = apply_ocorrencia_filters(top_colaboradores_q)
 
     top_colaboradores_raw = top_colaboradores_q.group_by(Colaborador.nome_completo).order_by(func.count(Ocorrencia.id).desc()).limit(5).all()
-    # --- FIM DA CORREÇÃO ---
 
     top_colaboradores_labels = [item[0] for item in top_colaboradores_raw]
     top_colaboradores_data = [item[1] for item in top_colaboradores_raw]

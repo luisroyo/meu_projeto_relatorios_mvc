@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, timedelta # Adicionado timedelta
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import desc, func
@@ -220,8 +220,11 @@ def listar_rondas():
     if active_filter_params.get('supervisor'):
         query = query.filter(Ronda.supervisor_id == active_filter_params['supervisor'])
 
-    # --- CORREÇÃO APLICADA AQUI ---
-    # Adicionada a lógica para filtrar por data de início e fim.
+    # --- CORREÇÃO E MELHORIA NOS FILTROS ---
+    if active_filter_params.get('turno'):
+        query = query.filter(Ronda.turno_ronda == active_filter_params['turno'])
+        
+    data_inicio_obj, data_fim_obj = None, None
     if active_filter_params.get('data_inicio'):
         try:
             data_inicio_obj = date.fromisoformat(active_filter_params['data_inicio'])
@@ -235,7 +238,22 @@ def listar_rondas():
             query = query.filter(Ronda.data_plantao_ronda <= data_fim_obj)
         except (ValueError, TypeError):
             flash('Formato de data de fim inválido.', 'warning')
-    # --- FIM DA CORREÇÃO ---
+    
+    # --- INÍCIO DO CÁLCULO DE KPIs ---
+    total_rondas = query.with_entities(func.sum(Ronda.total_rondas_no_log)).scalar() or 0
+    soma_duracao = query.with_entities(func.sum(Ronda.duracao_total_rondas_minutos)).scalar() or 0
+    
+    duracao_media = round(soma_duracao / total_rondas, 2) if total_rondas > 0 else 0
+    
+    media_rondas_dia = "N/A"
+    if data_inicio_obj and data_fim_obj:
+        num_dias = (data_fim_obj - data_inicio_obj).days + 1
+        if num_dias > 0:
+            media_rondas_dia = round(total_rondas / num_dias, 1)
+
+    top_supervisor_q = query.join(User, Ronda.supervisor_id == User.id).group_by(User.username).with_entities(User.username, func.sum(Ronda.total_rondas_no_log)).order_by(func.sum(Ronda.total_rondas_no_log).desc()).first()
+    supervisor_mais_ativo = top_supervisor_q[0] if top_supervisor_q else "N/A"
+    # --- FIM DO CÁLCULO DE KPIs ---
 
     rondas_pagination = query.order_by(Ronda.data_plantao_ronda.desc(), Ronda.id.desc()).paginate(page=page, per_page=10)
     
@@ -249,6 +267,10 @@ def listar_rondas():
         condominios=Condominio.query.order_by(Condominio.nome).all(),
         supervisors=User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all(),
         turnos=['Diurno Par', 'Noturno Par', 'Diurno Impar', 'Noturno Impar'],
+        total_rondas=total_rondas,
+        duracao_media=duracao_media,
+        media_rondas_dia=media_rondas_dia,
+        supervisor_mais_ativo=supervisor_mais_ativo,
         **selected_values
     )
 
