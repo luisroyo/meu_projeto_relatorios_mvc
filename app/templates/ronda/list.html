@@ -17,6 +17,40 @@
         </div>
     </div>
 
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Total de Rondas</h6>
+                    <p class="card-text fs-1 fw-bold text-primary mb-0">{{ total_rondas }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Média de Rondas / Dia</h6>
+                    <p class="card-text fs-1 fw-bold text-warning mb-0">{{ media_rondas_dia }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Duração Média (Min)</h6>
+                    <p class="card-text fs-1 fw-bold text-success mb-0">{{ duracao_media }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Supervisor Mais Ativo</h6>
+                    <p class="card-text fs-4 fw-bold text-info mb-0">{{ supervisor_mais_ativo }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light border-bottom d-flex align-items-center">
             <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filtros</h5>
@@ -98,7 +132,7 @@
                             <td class="text-end text-nowrap">
                                 <a href="{{ url_for('ronda.detalhes_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-outline-primary" title="Ver Detalhes">
                                     <i class="bi bi-eye"></i>
-                                </a>
+                                a>
                                 <a href="{{ url_for('ronda.registrar_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-outline-warning ms-1" title="Editar Ronda">
                                     <i class="bi bi-pencil"></i>
                                 </a>
