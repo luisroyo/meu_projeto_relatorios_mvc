@@ -80,3 +80,6 @@ docs/_build/
 
 # Python virtual environment
 venv/
+
+render.yaml
+Dockerfile
