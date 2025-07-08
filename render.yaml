@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: processador-relatorios-ia
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://processador_relatorios_user:4UR6gPcK0nPHY2FhynjeGS7SsLHzKbjK@dpg-d1ia6uali9vc73fn13dg-a.oregon-postgres.render.com/processador_relatorios_pdc1_vnvb_7nue_nx93
+        
+      - key: REDIS_URL
+        value: rediss://default:ATLtAAIjcDFkOWI1YzViZjg0MWU0NTNmYWUxODZkMzQ2YWEzM2QwYXAxMA@prime-ladybug-13037.upstash.io:6379
