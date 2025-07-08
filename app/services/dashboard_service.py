@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from app import db
 from app.models import User, Ronda, Condominio, LoginHistory, ProcessingHistory, Ocorrencia, OcorrenciaTipo, EscalaMensal, Colaborador
-
+from app.utils.date_utils import parse_date_range
 
 def get_main_dashboard_data():
     """Busca e processa os dados para o dashboard principal de métricas."""
@@ -62,24 +62,8 @@ def get_ronda_dashboard_data(filters):
     data_inicio_str = filters.get('data_inicio_str')
     data_fim_str = filters.get('data_fim_str')
     data_especifica_str = filters.get('data_especifica', '')
-
-    today = datetime.now(timezone.utc).date()
     
-    first_day_of_current_month = today.replace(day=1)
-    last_day_of_current_month = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
-
-    data_inicio, data_fim = None, None
-    try:
-        if data_inicio_str:
-            data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%d').date()
-        if data_fim_str:
-            data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
-    except ValueError:
-        flash("Formato de data inválido. Use AAAA-MM-DD.", "danger")
-        return {}
-    
-    date_start_range = data_inicio if data_inicio_str else first_day_of_current_month
-    date_end_range = data_fim if data_fim_str else last_day_of_current_month
+    date_start_range, date_end_range = parse_date_range(data_inicio_str, data_fim_str)
 
     def apply_filters(query):
         query = query.filter(Ronda.data_plantao_ronda.between(date_start_range, date_end_range))
@@ -243,22 +227,7 @@ def get_ocorrencia_dashboard_data(filters):
     data_inicio_str = filters.get('data_inicio_str')
     data_fim_str = filters.get('data_fim_str')
 
-    today = datetime.now(timezone.utc).date()
-    first_day_of_current_month = today.replace(day=1)
-    last_day_of_current_month = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
-
-    data_inicio, data_fim = None, None
-    try:
-        if data_inicio_str:
-            data_inicio = datetime.strptime(data_inicio_str, '%Y-%m-%d').date()
-        if data_fim_str:
-            data_fim = datetime.strptime(data_fim_str, '%Y-%m-%d').date()
-    except ValueError:
-        flash("Formato de data inválido. Use AAAA-MM-DD.", "danger")
-        return {}
-
-    date_start_range = data_inicio if data_inicio_str else first_day_of_current_month
-    date_end_range = data_fim if data_fim_str else last_day_of_current_month
+    date_start_range, date_end_range = parse_date_range(data_inicio_str, data_fim_str)
 
     def apply_ocorrencia_filters(query):
         if condominio_id_filter:
