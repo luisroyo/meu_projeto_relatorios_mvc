@@ -47,8 +47,9 @@ class User(UserMixin, db.Model):
     is_approved = db.Column(db.Boolean, default=False, nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     is_supervisor = db.Column(db.Boolean, default=False, nullable=False)
-    date_registered = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    last_login = db.Column(db.DateTime, nullable=True)
+    # CORREÇÃO: Adicionado timezone=True
+    date_registered = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    last_login = db.Column(db.DateTime(timezone=True), nullable=True)
 
     # Relacionamentos
     login_history = db.relationship('LoginHistory', backref='user', lazy='dynamic', cascade="all, delete-orphan")
@@ -77,7 +78,8 @@ class LoginHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
     attempted_username = db.Column(db.String(120), nullable=False)
-    timestamp = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
+    # CORREÇÃO: Adicionado timezone=True
+    timestamp = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
     success = db.Column(db.Boolean, nullable=False)
     ip_address = db.Column(db.String(45), nullable=True)
     user_agent = db.Column(db.String(256), nullable=True)
@@ -95,8 +97,9 @@ class Colaborador(db.Model):
     matricula = db.Column(db.String(50), unique=True, nullable=True, index=True)
     data_admissao = db.Column(db.Date, nullable=True)
     status = db.Column(db.String(20), nullable=False, default='Ativo')
-    data_criacao = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    data_modificacao = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    # CORREÇÃO: Adicionado timezone=True
+    data_criacao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    data_modificacao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     def __repr__(self):
         return f'<Colaborador {self.id}: {self.nome_completo}>'
@@ -112,8 +115,9 @@ class Condominio(db.Model):
 class Ronda(db.Model):
     __tablename__ = 'ronda'
     id = db.Column(db.Integer, primary_key=True)
-    data_hora_inicio = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
-    data_hora_fim = db.Column(db.DateTime, nullable=True)
+    # CORREÇÃO: Adicionado timezone=True
+    data_hora_inicio = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    data_hora_fim = db.Column(db.DateTime(timezone=True), nullable=True)
     log_ronda_bruto = db.Column(db.Text, nullable=False)
     relatorio_processado = db.Column(db.Text, nullable=True)
     condominio_id = db.Column(db.Integer, db.ForeignKey('condominio.id'), nullable=False, index=True)
@@ -123,8 +127,9 @@ class Ronda(db.Model):
     escala_plantao = db.Column(db.String(100), nullable=True)
     data_plantao_ronda = db.Column(db.Date, nullable=True, index=True)
     total_rondas_no_log = db.Column(db.Integer, nullable=True, default=0)
-    primeiro_evento_log_dt = db.Column(db.DateTime, nullable=True)
-    ultimo_evento_log_dt = db.Column(db.DateTime, nullable=True)
+    # CORREÇÃO: Adicionado timezone=True
+    primeiro_evento_log_dt = db.Column(db.DateTime(timezone=True), nullable=True)
+    ultimo_evento_log_dt = db.Column(db.DateTime(timezone=True), nullable=True)
     duracao_total_rondas_minutos = db.Column(db.Integer, default=0)
 
     condominio = db.relationship('Condominio', backref='rondas')
@@ -139,7 +144,8 @@ class ProcessingHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     processing_type = db.Column(db.String(50), nullable=False, index=True)
-    timestamp = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
+    # CORREÇÃO: Adicionado timezone=True
+    timestamp = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
     success = db.Column(db.Boolean, nullable=False, default=True)
     error_message = db.Column(db.String(255), nullable=True)
 
@@ -184,20 +190,20 @@ class Ocorrencia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     relatorio_final = db.Column(db.Text, nullable=False)
     
-    # --- CORREÇÃO 1: Unificado data e hora com valor padrão para o servidor ---
-    data_hora_ocorrencia = db.Column(db.DateTime, nullable=False, server_default=func.now(), index=True)
+    # CORREÇÃO: Adicionado timezone=True
+    data_hora_ocorrencia = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
     
     turno = db.Column(db.String(50), nullable=True)
     status = db.Column(db.String(50), nullable=False, default='Registrada', index=True)
     endereco_especifico = db.Column(db.String(255), nullable=True)
-    data_criacao = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    data_modificacao = db.Column(db.DateTime, onupdate=lambda: datetime.now(timezone.utc))
+    # CORREÇÃO: Adicionado timezone=True
+    data_criacao = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    data_modificacao = db.Column(db.DateTime(timezone=True), onupdate=lambda: datetime.now(timezone.utc))
 
     condominio_id = db.Column(db.Integer, db.ForeignKey('condominio.id'), nullable=True, index=True)
     ocorrencia_tipo_id = db.Column(db.Integer, db.ForeignKey('ocorrencia_tipo.id'), nullable=False, index=True)
     registrado_por_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     
-    # --- CORREÇÃO 2: Adicionada a coluna supervisor_id ---
     supervisor_id = db.Column(db.Integer, db.ForeignKey('user.id', name='fk_ocorrencia_supervisor_id'), nullable=True, index=True)
 
     condominio = db.relationship('Condominio', backref='ocorrencias')

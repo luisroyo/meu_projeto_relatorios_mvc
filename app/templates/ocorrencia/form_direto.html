@@ -5,7 +5,6 @@
 
 {% block content %}
 <div class="container mt-4 mb-5">
-    <!-- CABEÇALHO DA PÁGINA -->
     <div class="mb-4">
         <h2 class="mb-1"><i class="bi bi-journal-plus me-2"></i>{{ title }}</h2>
         <p class="lead text-muted">Preencha os campos abaixo para registrar a ocorrência no sistema.</p>
@@ -15,10 +14,8 @@
         {{ form.hidden_tag() }}
 
         <div class="row g-4">
-            <!-- COLUNA DA ESQUERDA: DETALHES -->
             <div class="col-lg-7">
 
-                <!-- CARD: CONTEXTO DA OCORRÊNCIA -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-light border-bottom">
                         <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-geo-alt-fill me-2 text-primary"></i>Contexto da Ocorrência</h5>
@@ -34,7 +31,19 @@
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                {{ render_field(form.data_hora_ocorrencia, label_visible=true, label_text="DATA E HORA DA OCORRÊNCIA") }}
+                                <label for="{{ form.data_hora_ocorrencia.id }}" class="form-label">DATA E HORA DA OCORRÊNCIA</label>
+                                <input type="datetime-local" 
+                                       id="{{ form.data_hora_ocorrencia.id }}" 
+                                       name="{{ form.data_hora_ocorrencia.name }}" 
+                                       class="form-control {% if form.data_hora_ocorrencia.errors %}is-invalid{% endif %}"
+                                       value="{{ form.data_hora_ocorrencia.data | format_for_input }}">
+                                {% if form.data_hora_ocorrencia.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.data_hora_ocorrencia.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
                                 {{ render_field(form.turno, label_visible=true, label_text="TURNO") }}
@@ -43,7 +52,6 @@
                     </div>
                 </div>
 
-                <!-- CARD: DETALHES DO REGISTRO -->
                 <div class="card shadow-sm">
                     <div class="card-header bg-light border-bottom">
                         <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-card-checklist me-2 text-primary"></i>Detalhes do Registro</h5>
@@ -70,10 +78,8 @@
                 </div>
             </div>
 
-            <!-- COLUNA DA DIREITA: RELATÓRIO E AÇÕES -->
             <div class="col-lg-5 d-flex flex-column">
                 
-                <!-- CARD: RELATÓRIO FINAL -->
                 <div class="card shadow-sm flex-grow-1">
                     <div class="card-header bg-light border-bottom">
                         <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-file-earmark-text-fill me-2 text-primary"></i>Relatório Final Oficial</h5>
@@ -83,7 +89,6 @@
                     </div>
                 </div>
 
-                <!-- BOTÕES DE AÇÃO -->
                 <div class="d-flex justify-content-end mt-4">
                     <a href="{{ url_for('ocorrencia.listar_ocorrencias') }}" class="btn btn-outline-secondary btn-lg me-2">
                         <i class="bi bi-x-circle me-1"></i>Cancelar
@@ -107,7 +112,6 @@
 {{ super() }}
 <script>
     $(document).ready(function() {
-        // Aplica o estilo Select2 a todos os campos de seleção para um visual consistente
         const select2Config = {
             theme: "bootstrap-5",
             width: '100%'
