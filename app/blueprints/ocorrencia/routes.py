@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-import pytz  # Importe a biblioteca pytz
+import pytz
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 from functools import wraps
@@ -19,7 +19,7 @@ ocorrencia_bp = Blueprint(
     url_prefix='/ocorrencias'
 )
 
-# Coerce customizado para aceitar '' como None
+# --- Funções Auxiliares (Inalteradas) ---
 def optional_int_coerce(value):
     try:
         return int(value)
@@ -34,7 +34,6 @@ def populate_ocorrencia_form_choices(form):
     form.colaboradores_envolvidos.choices = [(str(col.id), col.nome_completo) for col in Colaborador.query.filter_by(status='Ativo').order_by('nome_completo').all()]
     form.supervisor_id.choices = [('', '-- Selecione um Supervisor --')] + [(str(s.id), s.username) for s in User.query.filter_by(is_supervisor=True, is_approved=True).order_by('username').all()]
 
-# Decorador para controle de permissão de edição da ocorrência
 def pode_editar_ocorrencia(f):
     @wraps(f)
     def decorated_function(ocorrencia_id, *args, **kwargs):
@@ -45,6 +44,7 @@ def pode_editar_ocorrencia(f):
         return f(ocorrencia_id, *args, **kwargs)
     return decorated_function
 
+# --- Rotas (com correções aplicadas na função 'editar_ocorrencia') ---
 
 @ocorrencia_bp.route('/historico')
 @login_required
@@ -149,7 +149,10 @@ def detalhes_ocorrencia(ocorrencia_id):
 @pode_editar_ocorrencia
 def editar_ocorrencia(ocorrencia_id):
     ocorrencia = db.get_or_404(Ocorrencia, ocorrencia_id)
-    form = OcorrenciaForm(obj=ocorrencia)
+    # Passa request.form para o construtor para que os dados do POST sejam processados.
+    form = OcorrenciaForm(request.form)
+    
+    # Sempre define as funções de coerção e popula as opções
     form.condominio_id.coerce = optional_int_coerce
     form.ocorrencia_tipo_id.coerce = optional_int_coerce
     form.supervisor_id.coerce = optional_int_coerce
@@ -159,16 +162,19 @@ def editar_ocorrencia(ocorrencia_id):
 
     if form.validate_on_submit():
         try:
+            # Lógica para tipo de ocorrência
             tipo_ocorrencia_id = form.ocorrencia_tipo_id.data
             if form.novo_tipo_ocorrencia.data:
                 tipo_existente = OcorrenciaTipo.query.filter(OcorrenciaTipo.nome.ilike(form.novo_tipo_ocorrencia.data.strip())).first()
-                if tipo_existente: tipo_ocorrencia_id = tipo_existente.id
+                if tipo_existente:
+                    tipo_ocorrencia_id = tipo_existente.id
                 else:
                     novo_tipo = OcorrenciaTipo(nome=form.novo_tipo_ocorrencia.data.strip())
                     db.session.add(novo_tipo)
                     db.session.flush()
                     tipo_ocorrencia_id = novo_tipo.id
-            
+
+            # Lógica de conversão de fuso horário
             utc_datetime = None
             if form.data_hora_ocorrencia.data:
                 naive_datetime = form.data_hora_ocorrencia.data
@@ -176,22 +182,27 @@ def editar_ocorrencia(ocorrencia_id):
                 aware_local_datetime = local_tz.localize(naive_datetime)
                 utc_datetime = aware_local_datetime.astimezone(pytz.utc)
 
+            # Atribuição explícita de todos os campos ao objeto do banco
             ocorrencia.condominio_id = form.condominio_id.data
+            ocorrencia.supervisor_id = form.supervisor_id.data
             ocorrencia.data_hora_ocorrencia = utc_datetime
             ocorrencia.turno = form.turno.data
-            ocorrencia.relatorio_final = form.relatorio_final.data
+            ocorrencia.ocorrencia_tipo_id = tipo_ocorrencia_id
             ocorrencia.status = form.status.data
             ocorrencia.endereco_especifico = form.endereco_especifico.data
-            ocorrencia.ocorrencia_tipo_id = tipo_ocorrencia_id
-            ocorrencia.supervisor_id = form.supervisor_id.data
-            ocorrencia.orgaos_acionados.clear()
+            ocorrencia.relatorio_final = form.relatorio_final.data
+
+            # Lógica para campos de múltiplos valores
             ocorrencia.colaboradores_envolvidos.clear()
-            if form.orgaos_acionados.data:
-                orgaos = OrgaoPublico.query.filter(OrgaoPublico.id.in_(form.orgaos_acionados.data)).all()
-                ocorrencia.orgaos_acionados.extend(orgaos)
             if form.colaboradores_envolvidos.data:
                 colaboradores = Colaborador.query.filter(Colaborador.id.in_(form.colaboradores_envolvidos.data)).all()
                 ocorrencia.colaboradores_envolvidos.extend(colaboradores)
+
+            ocorrencia.orgaos_acionados.clear()
+            if form.orgaos_acionados.data:
+                orgaos = OrgaoPublico.query.filter(OrgaoPublico.id.in_(form.orgaos_acionados.data)).all()
+                ocorrencia.orgaos_acionados.extend(orgaos)
+            
             db.session.commit()
             flash('Ocorrência atualizada com sucesso!', 'success')
             return redirect(url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ocorrencia.id))
@@ -200,11 +211,21 @@ def editar_ocorrencia(ocorrencia_id):
             flash(f'Erro ao atualizar a ocorrência: {e}', 'danger')
             logger.error(f"Erro ao editar ocorrência {ocorrencia_id}: {e}", exc_info=True)
 
-    if request.method == 'GET':
-        form.orgaos_acionados.data = [str(o.id) for o in ocorrencia.orgaos_acionados]
-        form.colaboradores_envolvidos.data = [str(c.id) for c in ocorrencia.colaboradores_envolvidos]
+    # Lógica para preencher o formulário na requisição GET (se não for um POST bem-sucedido)
+    elif request.method == 'GET':
+        form.condominio_id.data = ocorrencia.condominio_id
+        form.supervisor_id.data = ocorrencia.supervisor_id
+        form.data_hora_ocorrencia.data = ocorrencia.data_hora_ocorrencia
+        form.turno.data = ocorrencia.turno
+        form.ocorrencia_tipo_id.data = ocorrencia.ocorrencia_tipo_id
+        form.status.data = ocorrencia.status
+        form.endereco_especifico.data = ocorrencia.endereco_especifico
+        form.relatorio_final.data = ocorrencia.relatorio_final
+        # Para campos de seleção múltipla, preenche com uma lista de IDs
+        form.colaboradores_envolvidos.data = [c.id for c in ocorrencia.colaboradores_envolvidos]
+        form.orgaos_acionados.data = [o.id for o in ocorrencia.orgaos_acionados]
 
-    return render_template('ocorrencia/form_direto.html', title=f'Editar Ocorrência #{ocorrencia.id}', form=form, ocorrencia_id=ocorrencia.id)
+    return render_template('ocorrencia/form_direto.html', title=f'Editar Ocorrência #{ocorrencia.id}', form=form)
 
 
 @ocorrencia_bp.route('/orgao/add', methods=['POST'])
@@ -261,4 +282,4 @@ def deletar_ocorrencia(ocorrencia_id):
         db.session.rollback()
         flash(f'Erro ao deletar a ocorrência: {e}', 'danger')
         logger.error(f"Erro ao deletar ocorrência {ocorrencia_id}: {e}", exc_info=True)
-        return redirect(url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ocorrencia_id))
+        return redirect(url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ocorrencia.id))
