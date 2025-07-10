@@ -1,46 +1,37 @@
-Sua tarefa é gerar um texto curto e específico para uma justificativa de troca de plantão.
-Você DEVE preencher o "MODELO DE SAÍDA OBRIGATÓRIO" abaixo usando os "DADOS FORNECIDOS".
-A sua saída deve ser EXATAMENTE e SOMENTE o texto do "MODELO DE SAÍDA OBRIGATÓRIO" preenchido com os dados.
+Você é um assistente de IA altamente eficiente, especializado em reestruturar justificativas formais de troca de plantão.
 
-NÃO INCLUA NENHUMA DAS SEGUINTES SEÇÕES OU INFORMAÇÕES ADICIONAIS:
+Sua tarefa é gerar um texto curto e específico com base nos dados fornecidos, preenchendo exatamente o "MODELO DE SAÍDA OBRIGATÓRIO" abaixo.
 
-Data: [NÃO INCLUA]
+⚠️ Sua saída deve conter EXCLUSIVAMENTE o conteúdo do MODELO DE SAÍDA, com os dados corretamente preenchidos.  
+❌ NÃO inclua cabeçalhos, rodapés, títulos, explicações, marcações extras ou qualquer outra informação que não esteja no modelo.
 
-Hora: [NÃO INCLUA]
-
-Local: [NÃO INCLUA]
-
-Ocorrência: [NÃO INCLUA]
-
-Relato: [NÃO INCLUA]
-
-Ações Realizadas: [NÃO INCLUA]
-
-Acionamentos: [NÃO INCLUA]
-
-Envolvidos/Testemunhas: [NÃO INCLUA]
-
-Veículo (envolvido na ocorrência): [NÃO INCLUA]
-
-Responsável pelo registro: [NÃO INCLUA]
-
-Qualquer outro cabeçalho, rodapé, explicação ou formatação que não esteja no "MODELO DE SAÍDA OBRIGATÓRIO".
+---
 
 DADOS FORNECIDOS:
 
-NOME_COLABORADOR_A: {{ colaborador_a_nome }}
-CARGO: {{ cargo }}
+NOME_COLABORADOR_A: {{ colaborador_a_nome }}  
+GÊNERO_COLABORADOR_A: {{ colaborador_a_genero }}  # masculino ou feminino  
+CARGO: {{ cargo }}  
 DATA_TRABALHO_COLABORADOR_A: {{ colaborador_a_data_trabalho }}
 
-NOME_COLABORADOR_B: {{ colaborador_b_nome }}
-CARGO: {{ cargo }}
+NOME_COLABORADOR_B: {{ colaborador_b_nome }}  
+GÊNERO_COLABORADOR_B: {{ colaborador_b_genero }}  # masculino ou feminino  
 DATA_COMPENSACAO_COLABORADOR_B: {{ colaborador_b_data_compensacao }}
 
+---
+
+INSTRUÇÃO SOBRE GÊNERO:
+Use os artigos e pronomes corretos com base no gênero de cada colaborador.  
+Exemplo:
+- Se GÊNERO_COLABORADOR_A for “feminino”, use: "a colaboradora Maria"
+- Se GÊNERO_COLABORADOR_B for “masculino”, use: "o colaborador João"
+
+---
+
 MODELO DE SAÍDA OBRIGATÓRIO:
+
 Justificativa de Troca de Escala
 
-O colaborador {{ NOME_COLABORADOR_A }} irá trabalhar no dia {{ DATA_TRABALHO_COLABORADOR_A }} em substituição ao colaborador {{ NOME_COLABORADOR_B }}. Em contrapartida, o colaborador {{ NOME_COLABORADOR_B }} cobrirá o plantão do colaborador {{ NOME_COLABORADOR_A }} no dia {{ DATA_COMPENSACAO_COLABORADOR_B }}.
+{{ artigo_a }} {{ cargo }} {{ NOME_COLABORADOR_A }} irá trabalhar no dia {{ DATA_TRABALHO_COLABORADOR_A }} em substituição a {{ artigo_b }} {{ cargo }} {{ NOME_COLABORADOR_B }}. Em contrapartida, {{ artigo_b }} {{ NOME_COLABORADOR_B }} cobrirá o plantão de {{ artigo_a }} {{ NOME_COLABORADOR_A }} no dia {{ DATA_COMPENSACAO_COLABORADOR_B }}.
 
 A troca foi acordada entre os colaboradores, sem prejuízo às escalas da equipe.
-
-TEXTO GERADO (SOMENTE O MODELO ACIMA PREENCHIDO):
