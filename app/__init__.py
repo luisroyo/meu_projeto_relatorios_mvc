@@ -2,7 +2,7 @@
 
 import os
 import logging
-from datetime import datetime, date, timezone
+from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -101,11 +101,10 @@ def create_app():
         from app.blueprints.ocorrencia.routes import ocorrencia_bp
         app_instance.register_blueprint(ocorrencia_bp)
         
-        # --- CORREÇÃO: Registrando todos os comandos ---
+        # Registrando os comandos permanentes
         from . import commands
         app_instance.cli.add_command(commands.seed_db_command)
-        app_instance.cli.add_command(commands.assign_supervisors_command)         # --- REGISTRO DO NOVO COMANDO DE CORREÇÃO ---
-        app_instance.cli.add_command(commands.fix_ocorrencias_definitive_command) # <-- REGISTRO DO COMANDO FINAL
+        app_instance.cli.add_command(commands.assign_supervisors_command)
 
     module_logger.info("Aplicação Flask completamente configurada e pronta para ser retornada.")
     return app_instance

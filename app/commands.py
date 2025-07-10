@@ -1,11 +1,11 @@
 # app/commands.py
 
-from datetime import timedelta
 import click
 import logging
+from datetime import timedelta
 import pytz
 from flask.cli import with_appcontext
-from app import db
+from . import db
 from app.models import User, Ronda, Ocorrencia, EscalaMensal
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,9 @@ def seed_db_command():
 @click.command('assign-supervisors')
 @with_appcontext
 def assign_supervisors_command():
-    """Sincroniza TODAS as rondas existentes com as escalas mensais definidas na interface."""
+    """
+    Sincroniza TODAS as rondas existentes com as escalas mensais definidas na interface.
+    """
     click.echo("Iniciando sincronização em massa de supervisores para TODAS as rondas...")
     try:
         periodos_com_rondas = db.session.query(
@@ -129,6 +131,3 @@ def fix_ocorrencias_definitive_command():
             print(f"\nERRO: Falha ao salvar as correções. Nenhuma mudança foi feita. Erro: {e}")
     else:
         print("\nNenhuma ocorrência com fuso horário ('aware') foi encontrada para corrigir.")
-
-
-
