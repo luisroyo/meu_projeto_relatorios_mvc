@@ -1,127 +1,260 @@
-{% extends "base.html" %}
-{% from "_form_helpers.html" import render_field %}
-
-{% block title %}{{ title }}{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% from "_form_helpers.html" import render_field %} {%
+block title %}{{ title }}{% endblock %} {% block content %}
 <div class="container mt-4 mb-5">
-    <div class="mb-4">
-        <h2 class="mb-1"><i class="bi bi-journal-plus me-2"></i>{{ title }}</h2>
-        <p class="lead text-muted">Preencha os campos abaixo para registrar a ocorrência no sistema.</p>
-    </div>
+  <div class="mb-4">
+    <h2 class="mb-1"><i class="bi bi-journal-plus me-2"></i>{{ title }}</h2>
+    <p class="lead text-muted">
+      Preencha os campos abaixo para registrar a ocorrência no sistema.
+    </p>
+  </div>
 
-    <form method="POST" novalidate>
-        {{ form.hidden_tag() }}
+  <form method="POST" novalidate>
+    {{ form.hidden_tag() }}
 
-        <div class="row g-4">
-            <div class="col-lg-7">
-
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-light border-bottom">
-                        <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-geo-alt-fill me-2 text-primary"></i>Contexto da Ocorrência</h5>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ render_field(form.condominio_id, label_visible=true, label_text="CONDOMÍNIO") }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ render_field(form.supervisor_id, label_visible=true, label_text="SUPERVISOR") }}
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.data_hora_ocorrencia.id }}" class="form-label">DATA E HORA DA OCORRÊNCIA</label>
-                                <input type="datetime-local" 
-                                       id="{{ form.data_hora_ocorrencia.id }}" 
-                                       name="{{ form.data_hora_ocorrencia.name }}" 
-                                       class="form-control {% if form.data_hora_ocorrencia.errors %}is-invalid{% endif %}"
-                                       value="{{ form.data_hora_ocorrencia.data | format_for_input }}">
-                                {% if form.data_hora_ocorrencia.errors %}
-                                    <div class="invalid-feedback">
-                                        {% for error in form.data_hora_ocorrencia.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ render_field(form.turno, label_visible=true, label_text="TURNO") }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card shadow-sm">
-                    <div class="card-header bg-light border-bottom">
-                        <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-card-checklist me-2 text-primary"></i>Detalhes do Registro</h5>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ render_field(form.ocorrencia_tipo_id, label_visible=true, label_text="TIPO DA OCORRÊNCIA") }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ render_field(form.status, label_visible=true, label_text="STATUS") }}
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            {{ render_field(form.endereco_especifico, label_visible=true, label_text="ENDEREÇO ESPECÍFICO (OPCIONAL)") }}
-                        </div>
-                        <div class="mb-3">
-                            {{ render_field(form.colaboradores_envolvidos, label_visible=true, label_text="COLABORADORES ENVOLVIDOS") }}
-                        </div>
-                        <div class="mb-3">
-                            {{ render_field(form.orgaos_acionados, label_visible=true, label_text="ÓRGÃOS PÚBLICOS ACIONADOS") }}
-                        </div>
-                    </div>
-                </div>
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-light border-bottom">
+            <h5 class="mb-0 fs-6 fw-bold">
+              <i class="bi bi-geo-alt-fill me-2 text-primary"></i>Contexto da
+              Ocorrência
+            </h5>
+          </div>
+          <div class="card-body p-4">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                {{ render_field(form.condominio_id, label_visible=true,
+                label_text="CONDOMÍNIO") }}
+              </div>
+              <div class="col-md-6 mb-3">
+                {{ render_field(form.supervisor_id, label_visible=true,
+                label_text="SUPERVISOR") }}
+              </div>
             </div>
-
-            <div class="col-lg-5 d-flex flex-column">
-                
-                <div class="card shadow-sm flex-grow-1">
-                    <div class="card-header bg-light border-bottom">
-                        <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-file-earmark-text-fill me-2 text-primary"></i>Relatório Final Oficial</h5>
-                    </div>
-                    <div class="card-body p-3 d-flex">
-                         {{ render_field(form.relatorio_final, label_visible=false, class="form-control h-100 border-0", rows="15", placeholder="Descreva detalhadamente a ocorrência...") }}
-                    </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label
+                  for="{{ form.data_hora_ocorrencia.id }}"
+                  class="form-label"
+                  >DATA E HORA DA OCORRÊNCIA</label
+                >
+                <input
+                  type="datetime-local"
+                  id="{{ form.data_hora_ocorrencia.id }}"
+                  name="{{ form.data_hora_ocorrencia.name }}"
+                  class="form-control {% if form.data_hora_ocorrencia.errors %}is-invalid{% endif %}"
+                  value="{{ form.data_hora_ocorrencia.data | format_for_input if form.data_hora_ocorrencia.data else '' }}"
+                />
+                {% if form.data_hora_ocorrencia.errors %}
+                <div class="invalid-feedback">
+                  {% for error in form.data_hora_ocorrencia.errors %} {{ error
+                  }} {% endfor %}
                 </div>
-
-                <div class="d-flex justify-content-end mt-4">
-                    <a href="{{ url_for('ocorrencia.listar_ocorrencias') }}" class="btn btn-outline-secondary btn-lg me-2">
-                        <i class="bi bi-x-circle me-1"></i>Cancelar
-                    </a>
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="bi bi-save-fill me-1"></i>
-                        {% if 'Editar' in title %}
-                            Salvar Alterações
-                        {% else %}
-                            Registrar Ocorrência
-                        {% endif %}
-                    </button>
-                </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6 mb-3">
+                {# ALTERAÇÃO: Adicionado o id 'turno' para ser encontrado pelo
+                JS #} {{ render_field(form.turno, id="turno",
+                label_visible=true, label_text="TURNO") }}
+              </div>
             </div>
+          </div>
         </div>
-    </form>
+
+        <div class="card shadow-sm">
+          <div class="card-header bg-light border-bottom">
+            <h5 class="mb-0 fs-6 fw-bold">
+              <i class="bi bi-card-checklist me-2 text-primary"></i>Detalhes do
+              Registro
+            </h5>
+          </div>
+          <div class="card-body p-4">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                {{ render_field(form.ocorrencia_tipo_id, label_visible=true,
+                label_text="TIPO DA OCORRÊNCIA") }}
+              </div>
+              <div class="col-md-6 mb-3">
+                {{ render_field(form.status, label_visible=true,
+                label_text="STATUS") }}
+              </div>
+            </div>
+            <div class="mb-3">
+              {{ render_field(form.endereco_especifico, label_visible=true,
+              label_text="ENDEREÇO ESPECÍFICO (OPCIONAL)") }}
+            </div>
+            <div class="mb-3">
+              {{ render_field(form.colaboradores_envolvidos, label_visible=true,
+              label_text="COLABORADORES ENVOLVIDOS") }}
+            </div>
+            <div class="mb-3">
+              {{ render_field(form.orgaos_acionados, label_visible=true,
+              label_text="ÓRGÃOS PÚBLICOS ACIONADOS") }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5 d-flex flex-column">
+        <div class="card shadow-sm flex-grow-1">
+          <div
+            class="card-header bg-light border-bottom d-flex justify-content-between align-items-center"
+          >
+            <h5 class="mb-0 fs-6 fw-bold">
+              <i class="bi bi-file-earmark-text-fill me-2 text-primary"></i
+              >Relatório Final Oficial
+            </h5>
+
+            <button
+              type="button"
+              id="btnAnalisarRelatorio"
+              class="btn btn-sm btn-info"
+            >
+              <i class="bi bi-magic me-1"></i>Analisar e Preencher
+            </button>
+          </div>
+          <div class="card-body p-3 d-flex">
+            {{ render_field(form.relatorio_final, label_visible=false,
+            class="form-control h-100 border-0", rows="15",
+            placeholder="Descreva detalhadamente a ocorrência...") }}
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end mt-4">
+          <a
+            href="{{ url_for('ocorrencia.listar_ocorrencias') }}"
+            class="btn btn-outline-secondary btn-lg me-2"
+          >
+            <i class="bi bi-x-circle me-1"></i>Cancelar
+          </a>
+          <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-save-fill me-1"></i>
+            {% if 'Editar' in title %} Salvar Alterações {% else %} Registrar
+            Ocorrência {% endif %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
 </div>
-{% endblock %}
-
-{% block scripts %}
-{{ super() }}
+{% endblock %} {% block scripts %} {{ super() }}
 <script>
-    $(document).ready(function() {
-        const select2Config = {
-            theme: "bootstrap-5",
-            width: '100%'
-        };
-
-        $('#supervisor_id').select2({ ...select2Config, placeholder: "Selecione um supervisor", allowClear: true });
-        $('#condominio_id').select2({ ...select2Config, placeholder: "Selecione um condomínio" });
-        $('#ocorrencia_tipo_id').select2({ ...select2Config, placeholder: "Selecione um tipo" });
-        $('#colaboradores_envolvidos').select2({ ...select2Config, placeholder: "Selecione um ou mais colaboradores" });
-        $('#orgaos_acionados').select2({ ...select2Config, placeholder: "Selecione um ou mais órgãos" });
+  $(document).ready(function () {
+    // Bloco de inicialização do Select2
+    const select2Config = { theme: "bootstrap-5", width: "100%" };
+    $("#supervisor_id").select2({
+      ...select2Config,
+      placeholder: "Selecione um supervisor",
+      allowClear: true,
     });
+    $("#condominio_id").select2({
+      ...select2Config,
+      placeholder: "Selecione um condomínio",
+    });
+    $("#ocorrencia_tipo_id").select2({
+      ...select2Config,
+      placeholder: "Selecione um tipo",
+    });
+    $("#colaboradores_envolvidos").select2({
+      ...select2Config,
+      placeholder: "Selecione um ou mais colaboradores",
+    });
+    $("#orgaos_acionados").select2({
+      ...select2Config,
+      placeholder: "Selecione um ou mais órgãos",
+    });
+
+    // Função para pegar o relatório do localStorage
+    function popularRelatorioInicial() {
+      const relatorioSalvo = localStorage.getItem("novoRelatorioProcessado");
+      if (relatorioSalvo) {
+        $("#relatorio_final").val(relatorioSalvo);
+        localStorage.removeItem("novoLogRondaBruto");
+        localStorage.removeItem("novoRelatorioProcessado");
+      }
+    }
+    popularRelatorioInicial();
+
+    // --- SCRIPT DE ANÁLISE AUTOMÁTICA ---
+    $("#btnAnalisarRelatorio").on("click", function () {
+      const relatorioTexto = $("#relatorio_final").val();
+      const btn = $(this);
+      if (!relatorioTexto.trim()) {
+        alert("O campo do relatório está vazio.");
+        return;
+      }
+
+      btn
+        .prop("disabled", true)
+        .html(
+          '<span class="spinner-border spinner-border-sm"></span> Analisando...'
+        );
+
+      $.ajax({
+        url: "{{ url_for('ocorrencia.analisar_relatorio') }}",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ texto_relatorio: relatorioTexto }),
+        headers: { "X-CSRFToken": "{{ form.csrf_token._value() }}" },
+        success: function (response) {
+          if (response.sucesso) {
+            const dados = response.dados;
+            console.log("Dados recebidos do backend:", dados);
+
+            // --- ATUALIZAÇÃO DOS CAMPOS ---
+            if (dados.data_hora_ocorrencia) {
+              $("#data_hora_ocorrencia").val(dados.data_hora_ocorrencia);
+            }
+            // NOVO: Preenche o campo de turno
+            if (dados.turno) {
+              $("#turno").val(dados.turno);
+            }
+            if (dados.endereco_especifico) {
+              $("#endereco_especifico").val(dados.endereco_especifico);
+            }
+            if (dados.condominio_id) {
+              $("#condominio_id").val(dados.condominio_id).trigger("change");
+            }
+            if (dados.ocorrencia_tipo_id) {
+              $("#ocorrencia_tipo_id")
+                .val(dados.ocorrencia_tipo_id)
+                .trigger("change");
+            }
+            if (
+              dados.colaboradores_envolvidos &&
+              dados.colaboradores_envolvidos.length > 0
+            ) {
+              $("#colaboradores_envolvidos")
+                .val(dados.colaboradores_envolvidos)
+                .trigger("change");
+            }
+
+            if (Object.keys(dados).length > 0) {
+              alert(
+                "Campos preenchidos com base no relatório. Por favor, revise antes de salvar."
+              );
+            } else {
+              alert(
+                "Análise concluída, mas nenhum dado correspondente foi encontrado para preenchimento automático."
+              );
+            }
+          } else {
+            alert(
+              "Falha na análise: " +
+                (response.message || "Não foi possível extrair dados.")
+            );
+          }
+        },
+        error: function () {
+          alert("Ocorreu um erro de comunicação com o servidor.");
+        },
+        complete: function () {
+          btn
+            .prop("disabled", false)
+            .html('<i class="bi bi-magic me-1"></i>Analisar e Preencher');
+        },
+      });
+    });
+  });
 </script>
 {% endblock %}
