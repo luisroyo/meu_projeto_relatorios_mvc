@@ -102,5 +102,16 @@ MAPA_PALAVRAS_CHAVE_TIPO = {
     "Ocorrências sem registro de B.O": [
         "sem registro de b.o", "não foi lavrado boletim", "ocorrência sem b.o",
         "registro não efetuado", "sem boletim de ocorrência", "não registrado na polícia"
-    ]
+    ],
+    "verificação": [
+    "verificação no local",
+    "checagem", 
+    "nada constatado", 
+    "averiguação", 
+    "foi feita ronda", 
+    "foi feita vistoria", 
+    "verificado sem alteração", 
+    "nada de anormal", 
+    "sem constatação"
+]
 }
