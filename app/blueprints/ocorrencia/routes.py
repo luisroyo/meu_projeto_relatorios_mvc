@@ -21,7 +21,7 @@ ocorrencia_bp = Blueprint(
     url_prefix='/ocorrencias'
 )
 
-# --- Funções Auxiliares (Inalteradas) ---
+# --- Funções Auxiliares ---
 def optional_int_coerce(value):
     try: return int(value)
     except (ValueError, TypeError): return None
@@ -43,7 +43,7 @@ def pode_editar_ocorrencia(f):
         return f(ocorrencia_id, *args, **kwargs)
     return decorated_function
 
-# --- Rotas (Inalteradas, exceto pela correção na função listar_ocorrencias) ---
+# --- Rotas ---
 @ocorrencia_bp.route('/historico')
 @login_required
 def listar_ocorrencias():
@@ -166,26 +166,34 @@ def editar_ocorrencia(ocorrencia_id):
     ocorrencia = db.get_or_404(Ocorrencia, ocorrencia_id)
     form = OcorrenciaForm(obj=ocorrencia)
     populate_ocorrencia_form_choices(form)
-    # Lógica de edição (pode ser expandida depois)
+    
     if form.validate_on_submit():
-        # ...
+        form.populate_obj(ocorrencia)
         db.session.commit()
         flash('Ocorrência atualizada com sucesso!', 'success')
         return redirect(url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ocorrencia.id))
     
     return render_template('ocorrencia/form_direto.html', title=f'Editar Ocorrência #{ocorrencia.id}', form=form)
 
+
 @ocorrencia_bp.route('/deletar/<int:ocorrencia_id>', methods=['POST'])
 @login_required
 def deletar_ocorrencia(ocorrencia_id):
-    # Lógica de exclusão (pode ser expandida depois)
     ocorrencia = db.get_or_404(Ocorrencia, ocorrencia_id)
-    db.session.delete(ocorrencia)
-    db.session.commit()
-    flash('Ocorrência deletada com sucesso.', 'success')
+    if not (current_user.is_admin or current_user.id == ocorrencia.registrado_por_user_id):
+        flash('Você não tem permissão para deletar esta ocorrência.', 'danger')
+        return redirect(url_for('ocorrencia.listar_ocorrencias'))
+    try:
+        db.session.delete(ocorrencia)
+        db.session.commit()
+        flash('Ocorrência deletada com sucesso.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao deletar a ocorrência: {e}', 'danger')
     return redirect(url_for('ocorrencia.listar_ocorrencias'))
 
-# --- ROTA DE ANÁLISE FINAL USANDO O NOVO MÓDULO CLASSIFICADOR ---
+
+# --- ROTA DE ANÁLISE FINAL USANDO O MÓDULO CLASSIFICADOR ---
 @ocorrencia_bp.route('/analisar-relatorio', methods=['POST'])
 @login_required
 def analisar_relatorio():
@@ -218,7 +226,7 @@ def analisar_relatorio():
             else:
                 dados_extraidos['turno'] = 'Diurno'
         except ValueError:
-            pass # Ignora erros de formatação
+            pass 
 
     # 2. LOCAL, ENDEREÇO E CONDOMÍNIO
     print("\n[2] Buscando Local e Condomínio...")
@@ -240,15 +248,9 @@ def analisar_relatorio():
         if condominio_encontrado:
             dados_extraidos['condominio_id'] = condominio_encontrado.id
 
-    # 3. TIPO DA OCORRÊNCIA (AGORA USANDO O NOVO MÓDULO)
+    # 3. TIPO DA OCORRÊNCIA (USANDO O NOVO MÓDULO)
     print("\n[3] Buscando Tipo da Ocorrência (com classificador.py)...")
-    texto_ocorrencia = ""
-    match_ocorrencia_texto = re.search(r"Ocorrência:\s*([^\n\r]+)", texto_limpo, re.IGNORECASE)
-    if match_ocorrencia_texto:
-        texto_ocorrencia = match_ocorrencia_texto.group(1)
-    
-    texto_completo_analise = texto_ocorrencia + " " + texto_limpo
-    nome_tipo_encontrado = classificar_ocorrencia(texto_completo_analise)
+    nome_tipo_encontrado = classificar_ocorrencia(texto_limpo)
     
     if nome_tipo_encontrado:
         print(f"-> Classificador retornou o tipo: '{nome_tipo_encontrado}'")
