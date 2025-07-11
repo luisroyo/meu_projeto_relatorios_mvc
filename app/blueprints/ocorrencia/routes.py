@@ -10,7 +10,7 @@ from functools import wraps
 from app import db
 from app.models import Ocorrencia, OcorrenciaTipo, Colaborador, OrgaoPublico, Condominio, User
 from app.forms import OcorrenciaForm
-from utils.classificador import classificar_ocorrencia
+from app.utils.classificador import classificar_ocorrencia
 
 logger = logging.getLogger(__name__)
 

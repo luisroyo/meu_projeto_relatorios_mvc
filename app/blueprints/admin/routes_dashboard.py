@@ -15,15 +15,20 @@ from app.services.dashboard_service import get_main_dashboard_data, get_ronda_da
 
 logger = logging.getLogger(__name__)
 
-# Set locale for Portuguese month names
-# Try 'pt_BR.UTF-8' first, then 'pt_BR' for broader compatibility
+# --- BLOCO CORRIGIDO ---
+# Tenta definir o locale para Português do Brasil de forma segura.
 try:
+    # Tenta o padrão mais comum e completo primeiro.
     locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
 except locale.Error:
     try:
+        # Tenta um padrão alternativo.
         locale.setlocale(locale.LC_TIME, 'pt_BR')
     except locale.Error:
-        logger.warning("Could not set locale to pt_BR. Month names might not be in Portuguese.")
+        # Se ambos falharem (comum em servidores), imprime um aviso simples no console
+        # durante a inicialização e continua a execução normalmente.
+        print("Aviso: Locale 'pt_BR' não está instalado no sistema. Nomes de meses podem aparecer em inglês.")
+        pass # Evita que a aplicação gere um log de warning.
 
 
 @admin_bp.route('/')
@@ -54,13 +59,12 @@ def ronda_dashboard():
         'turno': request.args.get('turno', ''),
         'supervisor_id': request.args.get('supervisor_id', type=int),
         'condominio_id': request.args.get('condominio_id', type=int),
-        'mes': request.args.get('mes', type=int), # NOVO FILTRO DE MÊS
+        'mes': request.args.get('mes', type=int),
         'data_inicio_str': request.args.get('data_inicio', ''),
         'data_fim_str': request.args.get('data_fim', ''),
         'data_especifica': request.args.get('data_especifica', '')
     }
 
-    # Lógica para tratar o filtro de mês para rondas
     current_year = datetime.now().year
     if filters['mes']:
         try:
@@ -71,7 +75,7 @@ def ronda_dashboard():
                 filters['data_fim_str'] = (datetime(current_year, filters['mes'] + 1, 1) - timedelta(days=1)).strftime('%Y-%m-%d')
         except ValueError:
             flash("Mês inválido selecionado.", "danger")
-            filters['mes'] = None # Reset month filter if invalid
+            filters['mes'] = None
 
     context_data = get_ronda_dashboard_data(filters)
     context_data['title'] = 'Dashboard de Métricas de Rondas'
@@ -79,21 +83,17 @@ def ronda_dashboard():
     context_data['supervisors'] = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
     context_data['condominios'] = Condominio.query.join(Ronda).distinct().order_by(Condominio.nome).all()
     
-    # Gerar lista de meses para o filtro (AGORA PARA RONDAS TAMBÉM)
     meses_do_ano = []
     for i in range(1, 13):
         mes_nome = datetime(current_year, i, 1).strftime('%B').capitalize()
         meses_do_ano.append({'id': i, 'nome': mes_nome})
-    context_data['meses_do_ano'] = meses_do_ano # PASSANDO A LISTA DE MESES
-    context_data['selected_mes'] = filters['mes'] # PASSANDO O MÊS SELECIONADO
+    context_data['meses_do_ano'] = meses_do_ano
+    context_data['selected_mes'] = filters['mes']
 
-    # Atualiza selected_data_inicio_str e selected_data_fim_str com os valores resultantes (do filtro de mês ou default)
     context_data['selected_data_inicio_str'] = filters['data_inicio_str']
     context_data['selected_data_fim_str'] = filters['data_fim_str']
     context_data.update({f'selected_{key}': val for key, val in filters.items()})
 
-
-    # Adicionar a descrição do período ao contexto
     if filters['mes']:
         mes_nome_selecionado = datetime(current_year, filters['mes'], 1).strftime('%B').capitalize()
         context_data['current_month_description'] = f"Referente a {mes_nome_selecionado} de {current_year}"
@@ -103,7 +103,7 @@ def ronda_dashboard():
         current_year_display = current_date_for_display.year
         context_data['current_month_description'] = f"Referente a {current_month_name} de {current_year_display}"
     else:
-        context_data['current_month_description'] = "" # Limpa se houver filtros aplicados
+        context_data['current_month_description'] = ""
     
     return render_template('admin/ronda_dashboard.html', **context_data)
 
@@ -119,12 +119,11 @@ def ocorrencia_dashboard():
         'tipo_id': request.args.get('tipo_id', type=int),
         'status': request.args.get('status', ''),
         'supervisor_id': request.args.get('supervisor_id', type=int),
-        'mes': request.args.get('mes', type=int), # NOVO FILTRO DE MÊS
+        'mes': request.args.get('mes', type=int),
         'data_inicio_str': request.args.get('data_inicio', ''),
         'data_fim_str': request.args.get('data_fim', ''),
     }
 
-    # Lógica para tratar o filtro de mês
     current_year = datetime.now().year
     if filters['mes']:
         try:
@@ -135,7 +134,7 @@ def ocorrencia_dashboard():
                 filters['data_fim_str'] = (datetime(current_year, filters['mes'] + 1, 1) - timedelta(days=1)).strftime('%Y-%m-%d')
         except ValueError:
             flash("Mês inválido selecionado.", "danger")
-            filters['mes'] = None # Reset month filter if invalid
+            filters['mes'] = None
 
     context_data = get_ocorrencia_dashboard_data(filters)
     context_data['title'] = 'Dashboard de Ocorrências'
@@ -144,19 +143,16 @@ def ocorrencia_dashboard():
     context_data['supervisors'] = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
     context_data['status_list'] = ['Registrada', 'Em Andamento', 'Concluída', 'Cancelada']
 
-    # Gerar lista de meses para o filtro
     meses_do_ano = []
     for i in range(1, 13):
         mes_nome = datetime(current_year, i, 1).strftime('%B').capitalize()
         meses_do_ano.append({'id': i, 'nome': mes_nome})
     context_data['meses_do_ano'] = meses_do_ano
     
-    # Atualiza selected_data_inicio_str e selected_data_fim_str com os valores resultantes (do filtro de mês ou default)
     context_data['selected_data_inicio_str'] = filters['data_inicio_str']
     context_data['selected_data_fim_str'] = filters['data_fim_str']
-    context_data['selected_mes'] = filters['mes'] # Passa o mês selecionado para o template
+    context_data['selected_mes'] = filters['mes']
 
-    # Adicionar a descrição do período ao contexto
     if filters['mes']:
         mes_nome_selecionado = datetime(current_year, filters['mes'], 1).strftime('%B').capitalize()
         context_data['current_month_description'] = f"Referente a {mes_nome_selecionado} de {current_year}"
