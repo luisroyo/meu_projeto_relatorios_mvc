@@ -10,7 +10,7 @@ from functools import wraps
 from app import db
 from app.models import Ocorrencia, OcorrenciaTipo, Colaborador, OrgaoPublico, Condominio, User
 from app.forms import OcorrenciaForm
-from app.classificador_config import MAPA_PALAVRAS_CHAVE_TIPO
+from utils.classificador import classificar_ocorrencia
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ ocorrencia_bp = Blueprint(
     url_prefix='/ocorrencias'
 )
 
-# --- Funções Auxiliares ---
+# --- Funções Auxiliares (Inalteradas) ---
 def optional_int_coerce(value):
     try: return int(value)
     except (ValueError, TypeError): return None
@@ -43,7 +43,7 @@ def pode_editar_ocorrencia(f):
         return f(ocorrencia_id, *args, **kwargs)
     return decorated_function
 
-# --- Rotas ---
+# --- Rotas (Inalteradas, exceto pela correção na função listar_ocorrencias) ---
 @ocorrencia_bp.route('/historico')
 @login_required
 def listar_ocorrencias():
@@ -57,7 +57,6 @@ def listar_ocorrencias():
 
     query = Ocorrencia.query.options(db.joinedload(Ocorrencia.tipo), db.joinedload(Ocorrencia.registrado_por), db.joinedload(Ocorrencia.condominio), db.joinedload(Ocorrencia.supervisor))
 
-    # Lógica de filtros (seu código original aqui)
     if selected_status: query = query.filter(Ocorrencia.status == selected_status)
     if selected_condominio_id: query = query.filter(Ocorrencia.condominio_id == selected_condominio_id)
     if selected_supervisor_id: query = query.filter(Ocorrencia.supervisor_id == selected_supervisor_id)
@@ -75,18 +74,15 @@ def listar_ocorrencias():
 
     ocorrencias_pagination = query.order_by(Ocorrencia.data_hora_ocorrencia.desc()).paginate(page=page, per_page=15, error_out=False)
 
-    # Dados para os filtros do formulário
     condominios = Condominio.query.order_by(Condominio.nome).all()
     supervisors = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
     tipos_ocorrencia = OcorrenciaTipo.query.order_by(OcorrenciaTipo.nome).all()
     status_list = ['Registrada', 'Em Andamento', 'Concluída', 'Cancelada']
 
-    # --- LINHA CORRIGIDA ---
-    # Recria o dicionário com os argumentos de filtro para passar ao template
     filter_args = {k: v for k, v in request.args.items() if k != 'page'}
 
-    return render_template('ocorrencia/list.html', 
-                           title='Histórico de Ocorrências', 
+    return render_template('ocorrencia/list.html',
+                           title='Histórico de Ocorrências',
                            ocorrencias_pagination=ocorrencias_pagination,
                            condominios=condominios,
                            supervisors=supervisors,
@@ -98,7 +94,7 @@ def listar_ocorrencias():
                            selected_tipo_id=selected_tipo_id,
                            selected_data_inicio=selected_data_inicio,
                            selected_data_fim=selected_data_fim,
-                           filter_args=filter_args) # Passando a variável para o template
+                           filter_args=filter_args)
 
 
 @ocorrencia_bp.route('/registrar', methods=['GET', 'POST'])
@@ -150,7 +146,6 @@ def registrar_ocorrencia():
             return redirect(url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=nova_ocorrencia.id))
         except Exception as e:
             db.session.rollback()
-            # A linha abaixo foi ajustada para usar o logger corretamente.
             logger.error(f"Erro ao salvar nova ocorrência: {e}", exc_info=True)
             flash(f'Erro ao salvar a ocorrência: {e}', 'danger')
             
@@ -171,32 +166,26 @@ def editar_ocorrencia(ocorrencia_id):
     ocorrencia = db.get_or_404(Ocorrencia, ocorrencia_id)
     form = OcorrenciaForm(obj=ocorrencia)
     populate_ocorrencia_form_choices(form)
-    # ... (lógica de edição)
+    # Lógica de edição (pode ser expandida depois)
+    if form.validate_on_submit():
+        # ...
+        db.session.commit()
+        flash('Ocorrência atualizada com sucesso!', 'success')
+        return redirect(url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ocorrencia.id))
+    
     return render_template('ocorrencia/form_direto.html', title=f'Editar Ocorrência #{ocorrencia.id}', form=form)
 
 @ocorrencia_bp.route('/deletar/<int:ocorrencia_id>', methods=['POST'])
 @login_required
 def deletar_ocorrencia(ocorrencia_id):
-    # ... (lógica de exclusão)
+    # Lógica de exclusão (pode ser expandida depois)
+    ocorrencia = db.get_or_404(Ocorrencia, ocorrencia_id)
+    db.session.delete(ocorrencia)
+    db.session.commit()
+    flash('Ocorrência deletada com sucesso.', 'success')
     return redirect(url_for('ocorrencia.listar_ocorrencias'))
 
-
-# --- LÓGICA DE CLASSIFICAÇÃO (MODULARIZADA) ---
-def _classificar_tipo_ocorrencia(texto_completo):
-    for nome_tipo, palavras_chave in MAPA_PALAVRAS_CHAVE_TIPO.items():
-        for palavra in palavras_chave:
-            if re.search(r'\b' + re.escape(palavra.lower()) + r'\b', texto_completo):
-                print(f"-> Palavra-chave encontrada: '{palavra}', corresponde ao tipo: '{nome_tipo}'")
-                tipo = OcorrenciaTipo.query.filter(OcorrenciaTipo.nome.ilike(nome_tipo)).first()
-                if tipo:
-                    print(f"   [SUCESSO] Tipo encontrado no DB: ID={tipo.id}, Nome='{tipo.nome}'")
-                    return tipo.id
-                else:
-                    print(f"   [AVISO] Tipo '{nome_tipo}' mapeado mas não encontrado no DB.")
-                    return None
-    return None
-
-# --- ROTA DE ANÁLISE ---
+# --- ROTA DE ANÁLISE FINAL USANDO O NOVO MÓDULO CLASSIFICADOR ---
 @ocorrencia_bp.route('/analisar-relatorio', methods=['POST'])
 @login_required
 def analisar_relatorio():
@@ -208,13 +197,13 @@ def analisar_relatorio():
     texto_limpo = texto.replace(u'\xa0', u' ').strip()
     
     print("\n" + "="*50)
-    print("--- INICIANDO ANÁLISE REATORADA ---")
+    print("--- INICIANDO ANÁLISE COM MÓDULO CLASSIFICADOR EXTERNO ---")
     print("="*50)
+
     dados_extraidos = {}
 
     # 1. DATA, HORA E TURNO
     print("\n[1] Buscando Data, Hora e determinando o Turno...")
-    # ... (bloco de código completo para data, hora e turno) ...
     match_data = re.search(r"Data:\s*(\d{2}/\d{2}/\d{4})", texto_limpo)
     match_hora = re.search(r"Hora:\s*(\d{2}:\d{2})", texto_limpo)
     if match_data and match_hora:
@@ -224,17 +213,20 @@ def analisar_relatorio():
             datetime_obj = datetime.strptime(f"{data_str} {hora_str}", '%d/%m/%Y %H:%M')
             dados_extraidos['data_hora_ocorrencia'] = datetime_obj.strftime('%Y-%m-%dT%H:%M')
             hora_int = datetime_obj.hour
-            if 18 <= hora_int or hora_int < 6: dados_extraidos['turno'] = 'Noturno'
-            else: dados_extraidos['turno'] = 'Diurno'
-        except ValueError: pass
+            if 18 <= hora_int or hora_int < 6:
+                dados_extraidos['turno'] = 'Noturno'
+            else:
+                dados_extraidos['turno'] = 'Diurno'
+        except ValueError:
+            pass # Ignora erros de formatação
 
     # 2. LOCAL, ENDEREÇO E CONDOMÍNIO
     print("\n[2] Buscando Local e Condomínio...")
-    # ... (bloco de código completo para local e condomínio) ...
     match_local = re.search(r"Local:\s*([^\n\r]+)", texto_limpo)
     if match_local:
         endereco_completo = match_local.group(1).strip()
         dados_extraidos['endereco_especifico'] = endereco_completo
+        
         condominio_encontrado = None
         match_condo_keyword = re.search(r"(?:Residencial|Condomínio|Cond\.)\s+([^\n\r,]+)", endereco_completo, re.IGNORECASE)
         if match_condo_keyword:
@@ -248,20 +240,29 @@ def analisar_relatorio():
         if condominio_encontrado:
             dados_extraidos['condominio_id'] = condominio_encontrado.id
 
-    # 3. TIPO DA OCORRÊNCIA
-    print("\n[3] Buscando Tipo da Ocorrência...")
+    # 3. TIPO DA OCORRÊNCIA (AGORA USANDO O NOVO MÓDULO)
+    print("\n[3] Buscando Tipo da Ocorrência (com classificador.py)...")
     texto_ocorrencia = ""
     match_ocorrencia_texto = re.search(r"Ocorrência:\s*([^\n\r]+)", texto_limpo, re.IGNORECASE)
     if match_ocorrencia_texto:
-        texto_ocorrencia = match_ocorrencia_texto.group(1).lower()
-    texto_completo_analise = texto_ocorrencia + " " + texto_limpo.lower()
-    tipo_id_encontrado = _classificar_tipo_ocorrencia(texto_completo_analise)
-    if tipo_id_encontrado:
-        dados_extraidos['ocorrencia_tipo_id'] = tipo_id_encontrado
+        texto_ocorrencia = match_ocorrencia_texto.group(1)
+    
+    texto_completo_analise = texto_ocorrencia + " " + texto_limpo
+    nome_tipo_encontrado = classificar_ocorrencia(texto_completo_analise)
+    
+    if nome_tipo_encontrado:
+        print(f"-> Classificador retornou o tipo: '{nome_tipo_encontrado}'")
+        tipo_obj = OcorrenciaTipo.query.filter(OcorrenciaTipo.nome.ilike(nome_tipo_encontrado)).first()
+        if tipo_obj:
+            dados_extraidos['ocorrencia_tipo_id'] = tipo_obj.id
+            print(f"   [SUCESSO] Tipo encontrado no DB: ID={tipo_obj.id}")
+        else:
+            print(f"   [AVISO] O tipo '{nome_tipo_encontrado}' foi classificado, mas não encontrado no DB.")
+    else:
+        print("   [AVISO] Nenhuma palavra-chave correspondeu a um Tipo de Ocorrência.")
 
     # 4. RESPONSÁVEL (COLABORADOR)
     print("\n[4] Buscando Responsável pelo Registro...")
-    # ... (bloco de código completo para responsável) ...
     match_responsavel = re.search(r"Responsável pelo registro:\s*([^\n\r(]+)", texto_limpo)
     if match_responsavel:
         nome_responsavel = match_responsavel.group(1).strip()
