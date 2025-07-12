@@ -1,7 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
-
-<head>
+<html lang="pt-br" data-bs-theme="light"> <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -144,19 +142,19 @@
   {% endif %}
 
   <main class="{% if not full_page_layout %}container mt-4 mb-5 flex-grow-1{% endif %}">
-    {% if not full_page_layout %}
+    
     {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    {% for category, message in messages %}
-    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    {% endfor %}
-    {% endif %}
+      {% if messages %}
+        <div id="flash-messages-container">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category if category in ['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'light', 'dark'] else 'secondary' }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
     {% endwith %}
-    {% endif %}
-
     {% block content %}{% endblock %}
   </main>
 
