@@ -26,6 +26,13 @@ def optional_int_coerce(value):
     try: return int(value)
     except (ValueError, TypeError): return None
 
+def local_to_utc(dt_naive, timezone_str='America/Sao_Paulo'):
+    #"""Converte datetime ingênuo (sem tzinfo) local para datetime UTC com tzinfo."""
+    local_tz = pytz.timezone(timezone_str)
+    aware_local = local_tz.localize(dt_naive)
+    utc_dt = aware_local.astimezone(pytz.utc)
+    return utc_dt
+
 def populate_ocorrencia_form_choices(form):
     form.condominio_id.choices = [('', '-- Selecione um Condomínio --')] + [(str(c.id), c.nome) for c in Condominio.query.order_by('nome').all()]
     form.ocorrencia_tipo_id.choices = [('', '-- Selecione um Tipo --')] + [(str(t.id), t.nome) for t in OcorrenciaTipo.query.order_by('nome').all()]
@@ -166,15 +173,45 @@ def editar_ocorrencia(ocorrencia_id):
     ocorrencia = db.get_or_404(Ocorrencia, ocorrencia_id)
     form = OcorrenciaForm(obj=ocorrencia)
     populate_ocorrencia_form_choices(form)
-    
-    if form.validate_on_submit():
-        form.populate_obj(ocorrencia)
-        db.session.commit()
-        flash('Ocorrência atualizada com sucesso!', 'success')
-        return redirect(url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ocorrencia.id))
-    
-    return render_template('ocorrencia/form_direto.html', title=f'Editar Ocorrência #{ocorrencia.id}', form=form)
 
+    if request.method == 'GET':
+        form.colaboradores_envolvidos.data = [col.id for col in ocorrencia.colaboradores_envolvidos]
+        form.orgaos_acionados.data = [org.id for org in ocorrencia.orgaos_acionados]
+
+    if form.validate_on_submit():
+        try:
+            # Atualiza campos do modelo
+            form.populate_obj(ocorrencia)
+
+            # Converte data/hora para UTC
+            if form.data_hora_ocorrencia.data:
+                ocorrencia.data_hora_ocorrencia = local_to_utc(form.data_hora_ocorrencia.data)
+
+            # Atualiza relacionamentos
+            if form.colaboradores_envolvidos.data:
+                ocorrencia.colaboradores_envolvidos = Colaborador.query.filter(
+                    Colaborador.id.in_(form.colaboradores_envolvidos.data)
+                ).all()
+            else:
+                ocorrencia.colaboradores_envolvidos = []
+
+            if form.orgaos_acionados.data:
+                ocorrencia.orgaos_acionados = OrgaoPublico.query.filter(
+                    OrgaoPublico.id.in_(form.orgaos_acionados.data)
+                ).all()
+            else:
+                ocorrencia.orgaos_acionados = []
+
+            db.session.commit()
+            flash('Ocorrência atualizada com sucesso!', 'success')
+            return redirect(url_for('ocorrencia.detalhes_ocorrencia', ocorrencia_id=ocorrencia.id))
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erro ao atualizar ocorrência: {e}", exc_info=True)
+            flash(f'Erro ao atualizar a ocorrência: {e}', 'danger')
+
+    return render_template('ocorrencia/form_direto.html', title=f'Editar Ocorrência #{ocorrencia.id}', form=form)
 
 @ocorrencia_bp.route('/deletar/<int:ocorrencia_id>', methods=['POST'])
 @login_required
