@@ -180,25 +180,27 @@ def editar_ocorrencia(ocorrencia_id):
 
     if form.validate_on_submit():
         try:
-            # Atualiza campos do modelo
+            colaboradores_ids = form.colaboradores_envolvidos.data or []
+            orgaos_ids = form.orgaos_acionados.data or []
+
+            # Evita passar None, já garantido com or [] acima
+            form.colaboradores_envolvidos.data = []
+            form.orgaos_acionados.data = []
+
             form.populate_obj(ocorrencia)
 
-            # Converte data/hora para UTC
             if form.data_hora_ocorrencia.data:
                 ocorrencia.data_hora_ocorrencia = local_to_utc(form.data_hora_ocorrencia.data)
 
-            # Atualiza relacionamentos
-            if form.colaboradores_envolvidos.data:
-                ocorrencia.colaboradores_envolvidos = Colaborador.query.filter(
-                    Colaborador.id.in_(form.colaboradores_envolvidos.data)
-                ).all()
+            if colaboradores_ids:
+                colaboradores = Colaborador.query.filter(Colaborador.id.in_(colaboradores_ids)).all()
+                ocorrencia.colaboradores_envolvidos = colaboradores
             else:
                 ocorrencia.colaboradores_envolvidos = []
 
-            if form.orgaos_acionados.data:
-                ocorrencia.orgaos_acionados = OrgaoPublico.query.filter(
-                    OrgaoPublico.id.in_(form.orgaos_acionados.data)
-                ).all()
+            if orgaos_ids:
+                orgaos = OrgaoPublico.query.filter(OrgaoPublico.id.in_(orgaos_ids)).all()
+                ocorrencia.orgaos_acionados = orgaos
             else:
                 ocorrencia.orgaos_acionados = []
 
@@ -212,6 +214,8 @@ def editar_ocorrencia(ocorrencia_id):
             flash(f'Erro ao atualizar a ocorrência: {e}', 'danger')
 
     return render_template('ocorrencia/form_direto.html', title=f'Editar Ocorrência #{ocorrencia.id}', form=form)
+
+
 
 @ocorrencia_bp.route('/deletar/<int:ocorrencia_id>', methods=['POST'])
 @login_required
