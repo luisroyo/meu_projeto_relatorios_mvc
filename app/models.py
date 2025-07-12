@@ -5,6 +5,8 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 from sqlalchemy import func
+from sqlalchemy import Table  # já deve estar no topo, mas reforçando
+
 
 logger = logging.getLogger(__name__)
 
@@ -217,3 +219,11 @@ class Ocorrencia(db.Model):
         data_str = self.data_hora_ocorrencia.strftime('%d/%m/%Y %H:%M')
         cond_nome = self.condominio.nome if self.condominio else "Sem Condomínio"
         return f'<Ocorrencia {self.id} - {tipo_nome} em {data_str} ({cond_nome})>'
+
+class VWOcorrenciasDetalhadas(db.Model):
+    __table__ = Table(
+        'vw_ocorrencias_detalhadas',
+        db.metadata,
+        db.Column('id', db.Integer, primary_key=True),  # 👈 Força a chave primária
+        autoload_with=db.engine
+    )
