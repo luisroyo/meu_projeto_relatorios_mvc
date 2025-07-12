@@ -5,72 +5,67 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
         <h2 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>{{ title }}</h2>
-        {# Adicionado para exibir a descrição do mês/período, se aplicável #}
-        {% if current_month_description %}
-        <span class="badge bg-primary fs-6 ms-3">{{ current_month_description }}</span>
+        {% if period_description %}
+        <span class="badge bg-primary fs-6 ms-3 mt-2 mt-md-0">{{ period_description }}</span>
         {% endif %}
     </div>
 
+    <!-- Filtros -->
     <div class="card shadow-sm mb-4">
-        <div class="card-header bg-light border-bottom d-flex align-items-center">
+        <div class="card-header bg-light border-bottom">
             <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filtros do Dashboard</h5>
         </div>
         <div class="card-body">
             <form method="GET" action="{{ url_for('admin.ronda_dashboard') }}">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md-6 col-lg-3">
                         <label for="condominio_id" class="form-label">Condomínio</label>
                         <select name="condominio_id" id="condominio_id" class="form-select">
                             <option value="">Todos</option>
                             {% for c in condominios %}
-                            <option value="{{ c.id }}" {% if selected_condominio_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+                            <option value="{{ c.id }}" {% if selected_filters and selected_filters.condominio_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6 col-lg-3">
                         <label for="supervisor_id" class="form-label">Supervisor</label>
                         <select name="supervisor_id" id="supervisor_id" class="form-select">
                             <option value="">Todos</option>
                             {% for s in supervisors %}
-                            <option value="{{ s.id }}" {% if selected_supervisor_id == s.id %}selected{% endif %}>{{ s.username }}</option>
+                            <option value="{{ s.id }}" {% if selected_filters and selected_filters.supervisor_id == s.id %}selected{% endif %}>{{ s.username }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6 col-lg-3">
                         <label for="turno" class="form-label">Turno</label>
                         <select name="turno" id="turno" class="form-select">
                             <option value="">Todos</option>
                             {% for t in turnos %}
-                            <option value="{{ t }}" {% if selected_turno == t %}selected{% endif %}>{{ t }}</option>
+                            <option value="{{ t }}" {% if selected_filters and selected_filters.turno == t %}selected{% endif %}>{{ t }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    
-                    {# NOVO FILTRO DE MÊS #}
-                    <div class="col-md-3">
+                    <div class="col-md-6 col-lg-3">
                         <label for="mes" class="form-label">Mês</label>
                         <select name="mes" id="mes" class="form-select">
-                            <option value="">Todos</option>
+                            <option value="">Personalizado</option>
                             {% for m in meses_do_ano %}
-                            <option value="{{ m.id }}" {% if selected_mes == m.id %}selected{% endif %}>{{ m.nome }}</option>
+                            <option value="{{ m.id }}" {% if selected_filters and selected_filters.mes == m.id %}selected{% endif %}>{{ m.nome }}</option>
                             {% endfor %}
                         </select>
                     </div>
-
-                    <div class="col-md-3">
+                    <div class="col-md-6 col-lg-3">
                         <label for="data_inicio" class="form-label">Data de Início</label>
-                        <input type="date" name="data_inicio" id="data_inicio" value="{{ selected_data_inicio_str }}" class="form-control">
+                        <input type="date" name="data_inicio" id="data_inicio" value="{{ selected_filters.data_inicio_str if selected_filters else '' }}" class="form-control">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6 col-lg-3">
                         <label for="data_fim" class="form-label">Data de Fim</label>
-                        <input type="date" name="data_fim" id="data_fim" value="{{ selected_data_fim_str }}" class="form-control">
+                        <input type="date" name="data_fim" id="data_fim" value="{{ selected_filters.data_fim_str if selected_filters else '' }}" class="form-control">
                     </div>
-                    <div class="col-md-auto">
-                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-1"></i>Filtrar</button>
-                    </div>
-                    <div class="col-md-auto">
+                    <div class="col-md-12 col-lg-6 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100 me-2"><i class="bi bi-search me-1"></i>Filtrar</button>
                         <a href="{{ url_for('admin.ronda_dashboard') }}" class="btn btn-outline-secondary w-100">Limpar</a>
                     </div>
                 </div>
@@ -78,6 +73,7 @@
         </div>
     </div>
 
+    <!-- Cards de Métricas -->
     <div class="row g-4 mb-4">
         <div class="col-lg-3 col-md-6">
             <div class="card shadow-sm text-center h-100">
@@ -107,50 +103,51 @@
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body d-flex flex-column justify-content-center">
                     <h6 class="card-subtitle mb-2 text-muted text-uppercase">Supervisor Mais Ativo</h6>
-                    <p class="card-text fs-4 fw-bold text-info mb-0">{{ supervisor_mais_ativo }}</p>
+                    <p class="card-text fs-4 fw-bold text-info mb-0">{{ supervisor_mais_ativo or 'N/A' }}</p>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Gráficos -->
     <div class="row g-4">
         <div class="col-12">
             <div class="card shadow-sm">
-                <div class="card-header">Atividade de Rondas ao Longo do Tempo</div>
+                <div class="card-header fw-bold">Atividade de Rondas ao Longo do Tempo</div>
                 <div class="card-body">
-                    <canvas id="evolucaoRondasChart" style="min-height: 250px;"></canvas>
+                    <div id="evolucaoRondasChart" style="height: 400px; width: 100%;"></div>
                 </div>
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="card shadow-sm">
-                <div class="card-header">Total de Rondas por Supervisor</div>
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Total de Rondas por Supervisor</div>
                 <div class="card-body">
-                    <canvas id="rondasPorSupervisorChart"></canvas>
+                    <div id="rondasPorSupervisorChart" style="height: 400px; width: 100%;"></div>
                 </div>
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="card shadow-sm">
-                <div class="card-header">Total de Rondas por Condomínio</div>
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Total de Rondas por Condomínio</div>
                 <div class="card-body">
-                    <canvas id="rondasPorCondominioChart"></canvas>
+                    <div id="rondasPorCondominioChart" style="height: 400px; width: 100%;"></div>
                 </div>
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="card shadow-sm">
-                <div class="card-header">Total de Rondas por Turno</div>
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Total de Rondas por Turno</div>
                 <div class="card-body">
-                    <canvas id="rondasPorTurnoChart"></canvas>
+                    <div id="rondasPorTurnoChart" style="height: 400px; width: 100%;"></div>
                 </div>
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="card shadow-sm">
-                <div class="card-header">Duração Média (min) por Condomínio</div>
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Duração Média (min) por Condomínio</div>
                 <div class="card-body">
-                    <canvas id="duracaoMediaPorCondominioChart"></canvas>
+                    <div id="duracaoMediaPorCondominioChart" style="height: 400px; width: 100%;"></div>
                 </div>
             </div>
         </div>
@@ -160,127 +157,138 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Inclusão da biblioteca ECharts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    precision: 0
-                }
-            }
+    const charts = []; // Armazena instâncias para redimensionamento
+    const defaultColors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
+
+    // Função genérica para exibir mensagem de "Sem Dados"
+    const showNoDataMessage = (elementId) => {
+        const el = document.getElementById(elementId);
+        if (el) {
+            el.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100"><p class="text-muted">Sem dados para exibir.</p></div>';
         }
     };
 
-    const ctxEvolucao = document.getElementById('evolucaoRondasChart')?.getContext('2d');
-    if (ctxEvolucao) {
-        new Chart(ctxEvolucao, {
-            type: 'line',
-            data: {
-                labels: {{ ronda_date_labels | tojson }},
-                datasets: [{
-                    label: 'Rondas Registradas',
-                    data: {{ ronda_activity_data | tojson }},
-                    fill: true,
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                    borderColor: 'rgb(54, 162, 235)',
-                    tension: 0.1
-                }]
-            },
-            options: { ...chartOptions, plugins: { legend: { display: true } } }
-        });
-    }
+    // --- Funções de Renderização de Gráficos ---
 
-    const ctxSupervisor = document.getElementById('rondasPorSupervisorChart')?.getContext('2d');
-    if (ctxSupervisor) {
-        new Chart(ctxSupervisor, {
-            type: 'bar',
-            data: {
-                labels: {{ supervisor_labels | tojson }},
-                datasets: [{
-                    label: 'Nº de Rondas',
-                    data: {{ rondas_por_supervisor_data | tojson }},
-                    backgroundColor: 'rgba(255, 159, 64, 0.6)',
-                    borderColor: 'rgba(255, 159, 64, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: chartOptions
-        });
-    }
+    const renderPieChart = (elementId, title, data) => {
+        const chartDom = document.getElementById(elementId);
+        if (!chartDom || !data || data.every(item => item.value === 0)) {
+            showNoDataMessage(elementId);
+            return;
+        }
+        const myChart = echarts.init(chartDom);
+        const option = {
+            tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+            legend: { orient: 'vertical', left: 'left', top: 'center', type: 'scroll' },
+            series: [{
+                name: 'Rondas',
+                type: 'pie',
+                radius: ['40%', '70%'], // Efeito Donut
+                center: ['65%', '50%'],
+                data: data,
+                emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
+            }],
+            color: defaultColors
+        };
+        myChart.setOption(option);
+        charts.push(myChart);
+    };
 
-    const ctxCondo = document.getElementById('rondasPorCondominioChart')?.getContext('2d');
-    if (ctxCondo) {
-        new Chart(ctxCondo, {
-            type: 'bar',
-            data: {
-                labels: {{ condominio_labels | tojson }},
-                datasets: [{
-                    label: 'Nº de Rondas',
-                    data: {{ rondas_por_condominio_data | tojson }},
-                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: chartOptions
-        });
-    }
+    const renderBarChart = (elementId, labels, values, seriesName, color) => {
+        const chartDom = document.getElementById(elementId);
+        if (!chartDom || !labels || labels.length === 0) {
+            showNoDataMessage(elementId);
+            return;
+        }
+        const myChart = echarts.init(chartDom);
+        const option = {
+            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+            xAxis: { type: 'category', data: labels, axisLabel: { interval: 0, rotate: 30 } },
+            yAxis: { type: 'value' },
+            series: [{
+                name: seriesName,
+                type: 'bar',
+                data: values
+            }],
+            color: [color]
+        };
+        myChart.setOption(option);
+        charts.push(myChart);
+    };
 
-    const ctxTurno = document.getElementById('rondasPorTurnoChart')?.getContext('2d');
-    if (ctxTurno) {
-        new Chart(ctxTurno, {
-            type: 'doughnut',
-            data: {
-                labels: {{ turno_labels | tojson }},
-                datasets: [{
-                    label: 'Rondas por Turno',
-                    data: {{ rondas_por_turno_data | tojson }},
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.6)',
-                        'rgba(54, 162, 235, 0.6)',
-                        'rgba(255, 206, 86, 0.6)',
-                        'rgba(75, 192, 192, 0.6)',
-                    ],
-                    borderColor: [
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(75, 192, 192, 1)',
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'right' } } }
-        });
-    }
+    const renderLineChart = (elementId, labels, values) => {
+        const chartDom = document.getElementById(elementId);
+        if (!chartDom || !labels || labels.length === 0) {
+            showNoDataMessage(elementId);
+            return;
+        }
+        const myChart = echarts.init(chartDom);
+        const option = {
+            tooltip: { trigger: 'axis' },
+            grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+            xAxis: { type: 'category', boundaryGap: false, data: labels },
+            yAxis: { type: 'value' },
+            series: [{
+                name: 'Rondas Registradas',
+                type: 'line',
+                data: values,
+                areaStyle: {},
+                smooth: true
+            }],
+            dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: '2%' }],
+            color: ['#5470c6']
+        };
+        myChart.setOption(option);
+        charts.push(myChart);
+    };
+
+    // --- Preparação e Inicialização dos Gráficos ---
+
+    // Gráfico de Linha: Evolução de Rondas
+    renderLineChart('evolucaoRondasChart', {{ ronda_date_labels | tojson | safe }}, {{ ronda_activity_data | tojson | safe }});
+
+    // Gráfico de Barras: Rondas por Supervisor
+    renderBarChart('rondasPorSupervisorChart', {{ supervisor_labels | tojson | safe }}, {{ rondas_por_supervisor_data | tojson | safe }}, 'Nº de Rondas', '#fac858');
     
-    const ctxDuracao = document.getElementById('duracaoMediaPorCondominioChart')?.getContext('2d');
-    if(ctxDuracao) {
-        new Chart(ctxDuracao, {
-            type: 'bar',
-            data: {
-                labels: {{ duracao_condominio_labels | tojson }},
-                datasets: [{
-                    label: 'Duração Média (min)',
-                    data: {{ duracao_media_data | tojson }},
-                    backgroundColor: 'rgba(153, 102, 255, 0.6)',
-                    borderColor: 'rgba(153, 102, 255, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: chartOptions
-        });
-    }
+    // Gráfico de Barras: Rondas por Condomínio
+    renderBarChart('rondasPorCondominioChart', {{ condominio_labels | tojson | safe }}, {{ rondas_por_condominio_data | tojson | safe }}, 'Nº de Rondas', '#73c0de');
+
+    // Gráfico de Pizza: Rondas por Turno
+    const turnoLabels = {{ turno_labels | tojson | safe }};
+    const turnoData = {{ rondas_por_turno_data | tojson | safe }};
+    const pieData = turnoLabels.map((label, i) => ({ name: label, value: turnoData[i] || 0 }));
+    renderPieChart('rondasPorTurnoChart', 'Rondas por Turno', pieData);
+
+    // Gráfico de Barras: Duração Média por Condomínio
+    renderBarChart('duracaoMediaPorCondominioChart', {{ duracao_condominio_labels | tojson | safe }}, {{ duracao_media_data | tojson | safe }}, 'Duração Média (min)', '#91cc75');
+
+    // --- Lógica Adicional da Página ---
+
+    // Desabilitar campos de data se um mês for selecionado
+    const mesSelect = document.getElementById('mes');
+    const dataInicioInput = document.getElementById('data_inicio');
+    const dataFimInput = document.getElementById('data_fim');
+
+    const toggleDateInputs = () => {
+        const disabled = mesSelect.value !== "";
+        dataInicioInput.disabled = disabled;
+        dataFimInput.disabled = disabled;
+        if (disabled) {
+            dataInicioInput.value = '';
+            dataFimInput.value = '';
+        }
+    };
+    mesSelect.addEventListener('change', toggleDateInputs);
+    toggleDateInputs(); // Executa ao carregar a página
+
+    // Tornar gráficos responsivos
+    window.addEventListener('resize', () => charts.forEach(chart => chart.resize()));
 });
 </script>
 {% endblock %}
