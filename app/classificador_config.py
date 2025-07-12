@@ -16,7 +16,7 @@ MAPA_PALAVRAS_CHAVE_TIPO = {
     "Acidente de trânsito sem vítima": [
         "acidente sem vítima", "colisão sem feridos", "batida de carro", "batida leve", "choque entre veículos",
         "queda de motocicleta", "queda de moto", "queda de motociclista", "colisão entre veiculos",
-        "acidente leve", "carro bateu", "batida sem feridos", "incidente no trânsito"
+        "acidente leve", "carro bateu", "batida sem feridos", "incidente no trânsito", "colisão entre dois veículos"
     ],
     "Tentativa de Roubo": [
         "tentativa de roubo", "tentaram roubar", "tentou roubar", "quase foi roubado",
