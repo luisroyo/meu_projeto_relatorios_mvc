@@ -1,155 +1,317 @@
-{% extends "base.html" %}
-
-{% block title %}{{ title }} - Assistente IA{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}{{ title }} - Assistente IA{%
+endblock %} {% block content %}
 <div class="container-fluid mt-lg-3">
-    <div class="page-header text-center mb-4">
-        <h1><i class="bi bi-speedometer2 me-2"></i>{{ title }}</h1>
-        <p class="lead text-muted">Uma visão geral da atividade e uso da aplicação.</p>
-    </div>
+  <div class="page-header text-center mb-4">
+    <h1><i class="bi bi-speedometer2 me-2"></i>{{ title }}</h1>
+    <p class="lead text-muted">
+      Uma visão geral da atividade e uso da aplicação.
+    </p>
+  </div>
 
-    <div class="row">
-        <div class="col-md-4 col-sm-6 mb-4">
-            <div class="card text-white bg-primary shadow">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="bi bi-people-fill me-2"></i>Usuários Totais</h5>
-                    <p class="card-text fs-2 fw-bold">{{ total_users }}</p>
-                </div>
+  <!-- Cards de Métricas Rápidas -->
+  <div class="row">
+    <div class="col-md-4 col-sm-6 mb-4">
+      <div class="card text-white bg-primary shadow-lg">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="card-title mb-0">Usuários Totais</h5>
+              <p class="card-text fs-2 fw-bold">{{ total_users }}</p>
             </div>
+            <i class="bi bi-people-fill opacity-50" style="font-size: 3rem"></i>
+          </div>
         </div>
-        <div class="col-md-4 col-sm-6 mb-4">
-            <div class="card text-white bg-success shadow">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="bi bi-person-check-fill me-2"></i>Usuários Aprovados</h5>
-                    <p class="card-text fs-2 fw-bold">{{ total_approved_users }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 col-sm-6 mb-4">
-            <div class="card text-white bg-warning shadow">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="bi bi-person-plus-fill me-2"></i>Usuários Pendentes</h5>
-                    <p class="card-text fs-2 fw-bold">{{ total_pending_users }}</p>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+    <div class="col-md-4 col-sm-6 mb-4">
+      <div class="card text-white bg-success shadow-lg">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="card-title mb-0">Usuários Aprovados</h5>
+              <p class="card-text fs-2 fw-bold">{{ total_approved_users }}</p>
+            </div>
+            <i
+              class="bi bi-person-check-fill opacity-50"
+              style="font-size: 3rem"
+            ></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-6 mb-4">
+      <div class="card text-white bg-warning shadow-lg">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="card-title mb-0">Usuários Pendentes</h5>
+              <p class="card-text fs-2 fw-bold">{{ total_pending_users }}</p>
+            </div>
+            <i
+              class="bi bi-person-plus-fill opacity-50"
+              style="font-size: 3rem"
+            ></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <div class="row">
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header">Logins nos Últimos 30 Dias</div>
-                <div class="card-body">
-                    <canvas id="loginStatusChart"></canvas>
-                </div>
-            </div>
+  <!-- Gráficos -->
+  <div class="row">
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header fw-bold">Logins nos Últimos 30 Dias</div>
+        <div class="card-body">
+          <div id="loginStatusChart" style="height: 400px; width: 100%"></div>
         </div>
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header">Relatórios Processados (Últimos 30 Dias)</div>
-                <div class="card-body">
-                    <canvas id="reportStatusChart"></canvas>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
-    <div class="row">
-        <div class="col-12 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header">Atividade Diária (Últimos 30 dias)</div>
-                <div class="card-body">
-                     <canvas id="dailyActivityChart"></canvas>
-                </div>
-            </div>
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header fw-bold">
+          Relatórios Processados (Últimos 30 Dias)
         </div>
-    </div>
-     <div class="row">
-        <div class="col-12 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header">Distribuição de Processamentos por Tipo</div>
-                <div class="card-body">
-                     <canvas id="processingTypesChart"></canvas>
-                </div>
-            </div>
+        <div class="card-body">
+          <div id="reportStatusChart" style="height: 400px; width: 100%"></div>
         </div>
+      </div>
     </div>
+  </div>
 
+  <div class="row">
+    <div class="col-12 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header fw-bold">
+          Atividade Diária (Últimos 30 dias)
+        </div>
+        <div class="card-body">
+          <div id="dailyActivityChart" style="height: 400px; width: 100%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header fw-bold">
+          Distribuição de Processamentos por Tipo
+        </div>
+        <div class="card-body">
+          <div
+            id="processingTypesChart"
+            style="height: 400px; width: 100%"
+          ></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-{% endblock %}
+{% endblock %} {% block scripts %} {{ super() }}
+<!-- Inclusão da biblioteca ECharts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 
-{% block scripts %}
-{{ super() }}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const renderChart = (ctx, type, labels, data, label, backgroundColor, borderColor) => {
-        // Previne a criação de gráficos se não houver dados
-        if (!data || data.length === 0) {
-            ctx.parentNode.innerHTML = '<div class="alert alert-info text-center">Não há dados suficientes para exibir este gráfico.</div>';
-            return;
-        }
-        new Chart(ctx, {
-            type: type,
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: label,
-                    data: data,
-                    backgroundColor: backgroundColor,
-                    borderColor: borderColor,
-                    borderWidth: 1,
-                    tension: 0.1
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: true, scales: type === 'bar' || type === 'line' ? { y: { beginAtZero: true } } : {} }
-        });
+  document.addEventListener('DOMContentLoaded', function () {
+    // Armazena todas as instâncias de gráficos para torná-los responsivos
+    const charts = [];
+
+    // --- Função para renderizar Gráfico de Pizza (Pie Chart) ---
+    const renderPieChart = (elementId, title, data) => {
+      const chartDom = document.getElementById(elementId);
+      if (!chartDom || !data || data.length === 0) {
+        console.warn(`Elemento do gráfico #${elementId} ou dados não encontrados.`);
+        if (chartDom) chartDom.innerHTML = '<p class="text-center text-muted">Sem dados para exibir.</p>';
+        return;
+      }
+      const myChart = echarts.init(chartDom);
+      const option = {
+        title: {
+          text: title,
+          left: 'center',
+          textStyle: {
+            color: '#333',
+            fontWeight: 'normal'
+          }
+        },
+        tooltip: {
+          trigger: 'item',
+          formatter: '{a} <br/>{b}: {c} ({d}%)' // Formato aprimorado da dica
+        },
+        legend: {
+          orient: 'vertical',
+          left: 'left',
+          top: 'center'
+        },
+        series: [{
+          name: title,
+          type: 'pie',
+          radius: '65%', // Raio aumentado
+          center: ['60%', '50%'], // Centralizado para dar espaço à legenda
+          data: data,
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 0, 0, 0.5)'
+            }
+          }
+        }],
+        color: ['#5470C6', '#91CC75', '#EE6666', '#FAC858', '#73C0DE'] // Paleta de cores
+      };
+      myChart.setOption(option);
+      charts.push(myChart); // Adiciona à lista para redimensionamento
     };
 
-    // Gráfico de Status de Login
-    const loginCtx = document.getElementById('loginStatusChart');
-    if(loginCtx) {
-        renderChart(loginCtx, 'doughnut', ['Sucesso', 'Falha'], [{{ successful_logins }}, {{ failed_logins }}], 'Logins', ['rgba(75, 192, 192, 0.5)', 'rgba(255, 99, 132, 0.5)'], ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)']);
-    }
+    // --- Função para renderizar Gráfico de Linha (Line Chart) ---
+    const renderLineChart = (elementId, labels, datasets) => {
+      const chartDom = document.getElementById(elementId);
+      if (!chartDom || !labels || !datasets || datasets.length === 0) {
+        console.warn(`Elemento do gráfico #${elementId} ou dados não encontrados.`);
+        if (chartDom) chartDom.innerHTML = '<p class="text-center text-muted">Sem dados para exibir.</p>';
+        return;
+      }
+      const myChart = echarts.init(chartDom);
+      const option = {
+        tooltip: {
+          trigger: 'axis'
+        },
+        legend: {
+          data: datasets.map(d => d.name),
+          bottom: 10
+        },
+        grid: { // Adiciona preenchimento para evitar que os rótulos sejam cortados
+          left: '3%',
+          right: '4%',
+          bottom: '15%', // Aumentado para dar espaço à legenda e ao dataZoom
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: labels
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: datasets.map(d => ({
+          name: d.name,
+          type: 'line',
+          stack: 'Total', // Empilha as áreas para melhor visualização
+          areaStyle: {},
+          emphasis: {
+            focus: 'series'
+          },
+          data: d.data,
+          smooth: true // Linhas suavizadas
+        })),
+        dataZoom: [ // Adiciona controle de zoom e rolagem
+          {
+            type: 'inside',
+            start: 0,
+            end: 100
+          },
+          {
+            start: 0,
+            end: 100,
+            bottom: '5%'
+          }
+        ],
+        color: ['#5470C6', '#91CC75', '#EE6666', '#FAC858', '#73C0DE']
+      };
+      myChart.setOption(option);
+      charts.push(myChart);
+    };
 
-    // Gráfico de Status de Relatórios
-    const reportCtx = document.getElementById('reportStatusChart');
-    if(reportCtx) {
-        renderChart(reportCtx, 'pie', ['Sucesso', 'Falha'], [{{ successful_reports }}, {{ failed_reports }}], 'Relatórios', ['rgba(54, 162, 235, 0.5)', 'rgba(255, 159, 64, 0.5)'], ['rgba(54, 162, 235, 1)', 'rgba(255, 159, 64, 1)']);
-    }
+    // --- Função para renderizar Gráfico de Barras (Bar Chart) ---
+    const renderBarChart = (elementId, title, labels, values) => {
+      const chartDom = document.getElementById(elementId);
+      if (!chartDom || !labels || !values) {
+        console.warn(`Elemento do gráfico #${elementId} ou dados não encontrados.`);
+        if (chartDom) chartDom.innerHTML = '<p class="text-center text-muted">Sem dados para exibir.</p>';
+        return;
+      }
+      const myChart = echarts.init(chartDom);
+      const option = {
+        title: {
+          text: title,
+          left: 'center',
+          textStyle: {
+            color: '#333',
+            fontWeight: 'normal'
+          }
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: [{
+          type: 'category',
+          data: labels,
+          axisTick: {
+            alignWithLabel: true
+          }
+        }],
+        yAxis: [{
+          type: 'value'
+        }],
+        series: [{
+          name: 'Total',
+          type: 'bar',
+          barWidth: '60%',
+          data: values
+        }],
+        color: ['#73C0DE']
+      };
+      myChart.setOption(option);
+      charts.push(myChart);
+    };
 
-    // Gráfico de Atividade Diária
-    const dailyActivityCtx = document.getElementById('dailyActivityChart');
-    if(dailyActivityCtx) {
-        new Chart(dailyActivityCtx, {
-            type: 'line',
-            data: {
-                labels: {{ date_labels | tojson }},
-                datasets: [{
-                    label: 'Logins por Dia',
-                    data: {{ logins_chart_data | tojson }},
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    fill: true,
-                    tension: 0.2
-                }, {
-                    label: 'Processamentos por Dia',
-                    data: {{ processing_chart_data | tojson }},
-                    borderColor: 'rgba(153, 102, 255, 1)',
-                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                    fill: true,
-                    tension: 0.2
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true } } }
-        });
-    }
+    // --- Inicialização dos Gráficos ---
 
-    // Gráfico de Tipos de Processamento
-    const processingTypesCtx = document.getElementById('processingTypesChart');
-    if(processingTypesCtx) {
-        renderChart(processingTypesCtx, 'bar', {{ processing_types_data.keys() | list | tojson }}, {{ processing_types_data.values() | list | tojson }}, 'Número de Usos', 'rgba(255, 206, 86, 0.5)', 'rgba(255, 206, 86, 1)');
-    }
-});
+    // Gráfico de Pizza: Status de Login
+    renderPieChart("loginStatusChart", "Status de Login", [
+      { value: {{ successful_logins or 0 }}, name: 'Sucesso' },
+      { value: {{ failed_logins or 0 }}, name: 'Falha' }
+    ]);
+
+    // Gráfico de Pizza: Status de Relatórios
+    renderPieChart("reportStatusChart", "Status de Relatórios", [
+      { value: {{ successful_reports or 0 }}, name: 'Sucesso' },
+      { value: {{ failed_reports or 0 }}, name: 'Falha' }
+    ]);
+
+    // Gráfico de Linha: Atividade Diária
+    renderLineChart("dailyActivityChart",
+      {{ date_labels | tojson | safe }},
+      [
+        { name: "Logins por Dia", data: {{ logins_chart_data | tojson | safe }} },
+        { name: "Processamentos por Dia", data: {{ processing_chart_data | tojson | safe }} }
+      ]
+    );
+
+    // Gráfico de Barras: Tipos de Processamento
+    // Convertendo o dicionário do Python para o formato que o ECharts espera
+    const processingData = {{ processing_types_data | tojson | safe }};
+    const processingLabels = Object.keys(processingData);
+    const processingValues = Object.values(processingData);
+    renderBarChart("processingTypesChart", "Tipos de Processamento", processingLabels, processingValues);
+
+    // --- Torna os gráficos responsivos ---
+    window.addEventListener('resize', function () {
+      charts.forEach(chart => {
+        chart.resize();
+      });
+    });
+  });
 </script>
 {% endblock %}
