@@ -1,107 +1,129 @@
-/* app/static/css/style.css - Versão com Cores e Tipografia Refinadas */
+/* app/static/css/style.css - VERSÃO ATUALIZADA E FINAL */
 
 /* -------------------------------------------------------------------------- */
 /* FONTES E ÍCONES                                                            */
 /* -------------------------------------------------------------------------- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css");
 
 /* -------------------------------------------------------------------------- */
 /* VARIÁVEIS GLOBAIS (CORES, FONTES, SOMBRAS, BORDAS)                         */
 /* -------------------------------------------------------------------------- */
 :root {
-    /* Cores Primárias e de Acento */
-    --primary-color: #2563eb;
-    --primary-color-rgb: 37, 99, 235;
-    --accent-color: #10b981;
-    --accent-color-rgb: 16, 185, 129;
+  /* Cores Primárias e de Acento */
+  --primary-color: #2563eb;
+  --primary-color-rgb: 37, 99, 235;
+  --accent-color: #10b981;
+  --accent-color-rgb: 16, 185, 129;
 
-    /* Cores de Feedback (Bootstrap standard) */
-    --bs-danger: #dc3545;
-    --bs-danger-rgb: 220, 53, 69;
-    --bs-success: #198754;
-    --bs-warning: #ffc107;
-    --bs-info: #0dcaf0;
+  /* Cores de Feedback (Bootstrap standard) */
+  --bs-danger: #dc3545;
+  --bs-danger-rgb: 220, 53, 69;
+  --bs-success: #198754;
+  --bs-warning: #ffc107;
+  --bs-info: #0dcaf0;
 
-    /* Fontes */
-    --font-sans-serif: 'Inter', sans-serif;
-    --font-monospace: 'SFMono-Regular', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    
-    /* Bordas e Sombras */
-    --border-radius: 0.5rem;
-    --border-radius-sm: 0.3rem;
-    --box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    
-    /* TEMA CLARO (PADRÃO) */
-    --body-bg: #f5f7fa;
-    --body-bg-image: none;
-    --content-bg: #ffffff;
-    --form-bg: #ffffff;
-    --text-color: #1e293b;
-    --text-muted-custom: #64748b;
-    --border-color: #e2e8f0;
-    --link-color: var(--primary-color);
-    --link-hover-color: #1d4ed8; /* Um tom de azul mais escuro para hover */
-    --result-textarea-bg: #eef2f9;
+  /* Fontes */
+  --font-sans-serif: "Inter", sans-serif;
+  --font-monospace: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+
+  /* Bordas e Sombras */
+  --border-radius: 0.5rem;
+  --border-radius-sm: 0.3rem;
+  --box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+  /* TEMA CLARO (PADRÃO) */
+  --body-bg: #f5f7fa;
+  --body-bg-image: none;
+  --content-bg: #ffffff;
+  --form-bg: #ffffff;
+  --text-color: #1e293b;
+  --text-muted-custom: #64748b;
+  --border-color: #e2e8f0;
+  --link-color: var(--primary-color);
+  --link-hover-color: #1d4ed8; /* Um tom de azul mais escuro para hover */
+  --result-textarea-bg: #eef2f9;
 }
 
 body.dark-theme {
-    /* TEMA ESCURO */
-    --body-bg: #121826;
-    --body-bg-image: linear-gradient(145deg, #121826 0%, #17213a 100%);
-    --content-bg: rgba(28, 35, 51, 0.8);
-    --form-bg: #1c2333; /* Fundo sólido para formulários */
-    --text-color: #e2e8f0;
-    --text-muted-custom: #94a3b8;
-    --border-color: #334155;
-    --link-color: #3b82f6; /* Azul mais claro para bom contraste */
-    --link-hover-color: #60a5fa;
-    --result-textarea-bg: rgba(10, 15, 26, 0.7);
+  /* TEMA ESCURO - VERSÃO REFINADA COM MAIOR CONTRASTE */
+  --body-bg: #111827; /* Um preto-azulado ligeiramente mais padrão */
+  --body-bg-image: none; /* Simplificando o fundo para focar no conteúdo */
+  --content-bg: #1f2937; /* Fundo dos cards um pouco mais claro */
+  --form-bg: #374151; /* Fundo dos formulários mais claro para se destacar */
+  --text-color: #f9fafb; /* Texto principal quase branco para máximo contraste */
+  --text-muted-custom: #d1d5db; /* Texto secundário (labels) bem mais claro */
+  --border-color: #4b5563; /* Bordas mais visíveis */
+  --link-color: #60a5fa; /* Links claros e vibrantes */
+  --link-hover-color: #93c5fd;
+  --result-textarea-bg: #111827;
 }
 
 /* -------------------------------------------------------------------------- */
 /* ESTILOS GLOBAIS                                                            */
 /* -------------------------------------------------------------------------- */
 body {
-    font-family: var(--font-sans-serif);
-    line-height: 1.6; /* MODIFICADO - Adicionado para conforto de leitura */
-    background-color: var(--body-bg);
-    background-image: var(--body-bg-image);
-    color: var(--text-color);
-    transition: background-color 0.3s ease, color 0.3s ease;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-sans-serif);
+  line-height: 1.6;
+  background-color: var(--body-bg);
+  background-image: var(--body-bg-image);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* CORREÇÃO APLICADA AQUI */
 main.container {
-    flex-grow: 1;
-    padding-top: 2rem;
-    padding-bottom: 3rem;
-    max-width: 1280px; /* Limita a largura do conteúdo em telas grandes */
+  flex-grow: 1;
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+  max-width: 1280px;
 }
 
-/* MODIFICADO - Hierarquia de títulos mais clara */
-h1, .h1 { font-weight: 700; color: var(--text-color); letter-spacing: -0.025em; }
-h2, .h2 { font-weight: 600; color: var(--text-color); letter-spacing: -0.02em; }
-h3, .h3 { font-weight: 600; color: var(--text-color); }
-h4, .h4 { font-weight: 500; color: var(--text-color); }
-h5, .h5, h6, .h6 { font-weight: 500; color: var(--text-color); }
+h1,
+.h1 {
+  font-weight: 700;
+  color: var(--text-color);
+  letter-spacing: -0.025em;
+}
+h2,
+.h2 {
+  font-weight: 600;
+  color: var(--text-color);
+  letter-spacing: -0.02em;
+}
+h3,
+.h3 {
+  font-weight: 600;
+  color: var(--text-color);
+}
+h4,
+.h4 {
+  font-weight: 500;
+  color: var(--text-color);
+}
+h5,
+.h5,
+h6,
+.h6 {
+  font-weight: 500;
+  color: var(--text-color);
+}
 
-/* ADICIONADO - Estilo para parágrafos de destaque */
 .lead {
-    font-size: 1.2rem;
-    font-weight: 400;
-    color: var(--text-muted-custom);
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: var(--text-muted-custom);
 }
 
 a {
-    color: var(--link-color);
-    text-decoration: none;
-    transition: color 0.2s ease-in-out;
+  color: var(--link-color);
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
 }
 a:hover {
-    color: var(--link-hover-color);
+  color: var(--link-hover-color);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -110,185 +132,315 @@ a:hover {
 
 /* Navbar */
 .navbar {
-    background-color: var(--content-bg) !important;
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--border-color);
-    box-shadow: none; /* A borda sutil substitui a sombra */
+  background-color: var(--content-bg) !important;
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: none;
 }
-/* Estilos Finais de Destaque para o Logo */
 .navbar-brand {
-    padding-top: 0.25rem;    /* Adiciona espaço vertical */
-    padding-bottom: 0.25rem;
-    font-weight: 700;
-    font-size: 1.5rem;
-    color: var(--text-color) !important;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--text-color) !important;
 }
-
+.navbar-brand img {
+  height: 40px !important;
+  width: auto !important;
+}
 .navbar-nav .nav-link {
-    color: var(--text-muted-custom);
-    font-weight: 500;
-    border-radius: var(--border-radius-sm);
-    transition: background-color 0.2s ease, color 0.2s ease;
+  color: var(--text-muted-custom);
+  font-weight: 500;
+  border-radius: var(--border-radius-sm);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 .navbar-nav .nav-link:hover,
 .navbar-nav .nav-link:focus {
-    color: var(--text-color);
-    background-color: rgba(var(--primary-color-rgb), 0.1);
+  color: var(--text-color);
+  background-color: rgba(var(--primary-color-rgb), 0.1);
 }
 .navbar-nav .nav-link.active {
-    color: var(--primary-color);
-    font-weight: 600;
-    background-color: transparent;
+  color: var(--primary-color);
+  font-weight: 600;
+  background-color: transparent;
 }
 .navbar-toggler {
-    border: 1px solid var(--border-color);
-}
-
-/* Estilo para o Logo no Navbar (com !important para garantir a aplicação) */
-.navbar-brand img {
-    height: 40px !important; /* Tamanho final para bom destaque */
-    width: auto !important;
-}
-
-/* Estilos para Ícones nos Cabeçalhos de Card */
-.card-header .bi {
-    font-size: 1.2rem;
-    color: var(--text-muted-custom);
-}
-
-/* Estilo Base para botões principais */
-.btn-primary {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    font-weight: 500;
-    transition: all 0.2s ease-in-out;
-}
-
-/* Efeito de hover para botões */
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(var(--primary-color-rgb), 0.2);
-}
-
-.btn-primary:hover {
-    background-color: var(--link-hover-color);
-    border-color: var(--link-hover-color);
+  border: 1px solid var(--border-color);
 }
 
 /* Cards */
 .card {
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow);
-    border-radius: var(--border-radius);
-    margin-bottom: 2rem;
-    background-color: var(--content-bg);
-    transition: all 0.2s ease-in-out; /* ADICIONADO - Para animar hover */
+  border: 1px solid var(--border-color);
+  box-shadow: var(--box-shadow);
+  border-radius: var(--border-radius);
+  margin-bottom: 2rem;
+  background-color: var(--content-bg);
+  transition: all 0.2s ease-in-out;
 }
-
 .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -2px rgb(0 0 0 / 0.05);
 }
-
 .card-header {
-    background-color: transparent;
-    color: var(--text-color);
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    font-weight: 500;
-    font-size: 1.1rem;
+  background-color: transparent;
+  color: var(--text-color);
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+.card-header .bi {
+  font-size: 1.2rem;
+  color: var(--text-muted-custom);
+}
+.card-body {
+  padding: 2rem;
+  color: var(--text-color);
 }
 
-.card-body {
-    padding: 2rem; /* MODIFICADO - Aumentamos de 1.5rem para 2rem */
-    color: var(--text-color);
+/* Botões */
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(var(--primary-color-rgb), 0.2);
+}
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+}
+.btn-primary:hover {
+  background-color: var(--link-hover-color);
+  border-color: var(--link-hover-color);
 }
 
 /* Formulários */
 .form-label {
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-    font-size: 0.85rem; /* MODIFICADO */
-    color: var(--text-muted-custom);
-    text-transform: uppercase; /* ADICIONADO */
-    letter-spacing: 0.05em; /* ADICIONADO */
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted-custom);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
-.form-control, .form-select {
-    border-radius: var(--border-radius-sm);
-    border: 1px solid var(--border-color);
-    background-color: var(--form-bg);
-    color: var(--text-color);
-    padding: 0.75rem 1rem;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+.form-control,
+.form-select {
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: var(--form-bg);
+  color: var(--text-color);
+  padding: 0.75rem 1rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 .form-control::placeholder {
-    color: var(--text-muted-custom);
-    opacity: 0.7;
+  color: var(--text-muted-custom);
+  opacity: 0.7;
 }
-.form-control:focus, .form-select:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.25rem rgba(var(--primary-color-rgb), 0.25);
-    background-color: var(--form-bg);
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.25rem rgba(var(--primary-color-rgb), 0.25);
+  background-color: var(--form-bg);
 }
-
-/* Área de Texto de Resultado (somente leitura) */
-#resultadoProcessamento,
-#resultadoEmail,
 textarea:read-only {
-    background-color: var(--result-textarea-bg) !important;
-    border: 1px solid var(--border-color) !important;
-    color: var(--text-color) !important;
-    font-family: var(--font-monospace);
-    font-size: 0.9rem;
-    line-height: 1.6;
-    border-radius: var(--border-radius-sm);
+  background-color: var(--result-textarea-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-color) !important;
+  font-family: var(--font-monospace);
+  font-size: 0.9rem;
 }
 
 /* Tabelas */
 .table {
-    color: var(--text-color);
-    border-color: var(--border-color);
+  color: var(--text-color);
+  border-color: var(--border-color);
 }
-.table th, .table td {
-    border-top: 1px solid var(--border-color);
-    vertical-align: middle;
+.table th,
+.table td {
+  border-top: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+thead.table-light th {
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted-custom);
 }
 .table-hover tbody tr:hover {
-    background-color: rgba(var(--primary-color-rgb), 0.05);
+  background-color: rgba(var(--primary-color-rgb), 0.05);
 }
 
 /* Paginação */
 .pagination .page-link {
-    background-color: var(--content-bg);
-    border-color: var(--border-color);
-    color: var(--link-color);
-    transition: all 0.2s ease;
+  background-color: var(--content-bg);
+  border-color: var(--border-color);
+  color: var(--link-color);
+  transition: all 0.2s ease;
 }
 .pagination .page-link:hover {
-    background-color: var(--border-color);
+  background-color: var(--border-color);
 }
 .pagination .page-item.active .page-link {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    color: #fff;
-}
-
-/* Botão de alternar tema */
-#theme-toggle-button {
-    color: var(--text-muted-custom);
-    background-color: transparent;
-    border: none;
-}
-#theme-toggle-button:hover {
-    color: var(--text-color);
-    background-color: var(--border-color);
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
 }
 
 /* Rodapé */
 footer.footer {
-    background-color: var(--content-bg) !important;
-    padding: 2rem 0;
-    font-size: 0.9rem;
-    color: var(--text-muted-custom);
-    border-top: 1px solid var(--border-color);
+  background-color: var(--content-bg) !important;
+  padding: 2rem 0;
+  font-size: 0.9rem;
+  color: var(--text-muted-custom);
+  border-top: 1px solid var(--border-color);
+}
+
+/* -------------------------------------------------------------------------- */
+/* CUSTOMIZAÇÕES SEMÂNTICAS DO BOOTSTRAP                                      */
+/* -------------------------------------------------------------------------- */
+
+/* Alinha o botão de sucesso com a cor de destaque da marca */
+.btn-success {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: #fff; /* Garante o texto branco para contraste */
+}
+
+/* Define um hover sutil e elegante para o botão de sucesso */
+.btn-success:hover {
+  background-color: #0e9f77; /* Um tom de verde ligeiramente mais escuro */
+  border-color: #0d906b;
+}
+
+/* Alinha o botão de informação ao nosso novo padrão de contorno */
+.btn-info,
+.btn-outline-primary {
+  --bs-btn-color: var(--primary-color);
+  --bs-btn-border-color: var(--primary-color);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--primary-color);
+  --bs-btn-hover-border-color: var(--primary-color);
+}
+
+/* -------------------------------------------------------------------------- */
+/* CORREÇÃO DE ALTA ESPECIFICIDADE PARA TEXTAREAS NO TEMA ESCURO           */
+/* -------------------------------------------------------------------------- */
+body.dark-theme textarea,
+body.dark-theme textarea:read-only {
+  background-color: var(--result-textarea-bg) !important;
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* ================================================================== */
+/* CORREÇÃO DEFINITIVA PARA CAMPOS DE FORMULÁRIO DESABILITADOS/READONLY */
+/* ================================================================== */
+
+/* Esta regra garante que campos não editáveis no tema escuro tenham
+   a aparência correta, sobrescrevendo os padrões agressivos do Bootstrap 
+   para os estados :disabled e [readonly]. */
+body.dark-theme .form-control[readonly],
+body.dark-theme .form-control:disabled,
+body.dark-theme textarea[readonly],
+body.dark-theme textarea:disabled {
+  background-color: var(--result-textarea-bg) !important;
+  color: var(
+    --text-muted-custom
+  ) !important; /* Usamos a cor 'muted' para indicar que não é editável, mas ainda legível */
+  opacity: 1 !important; /* Força o campo a não ficar "desbotado" ou transparente */
+  border-color: var(--border-color) !important;
+}
+
+/* ============================================================ */
+/* CORREÇÕES DE CONTRASTE E LEGIBILIDADE - MODO ESCURO            */
+/* ============================================================ */
+
+/* Garante cor de texto padrão no modo escuro */
+body.dark-theme {
+  color: var(--text-color);
+}
+
+/* Placeholders mais visíveis no modo escuro */
+body.dark-theme .form-control::placeholder {
+  color: var(--text-muted-custom) !important;
+  opacity: 1 !important;
+}
+
+/* Corrige texto fraco em elementos com a classe .text-muted */
+body.dark-theme .text-muted {
+  color: var(--text-muted-custom) !important;
+}
+
+/* Corrige opacidade de campos desabilitados */
+body.dark-theme .form-control[disabled],
+body.dark-theme select[disabled],
+body.dark-theme textarea[disabled],
+body.dark-theme input[disabled] {
+  opacity: 1 !important;
+  color: var(--text-muted-custom) !important;
+}
+
+/* Garante cor correta para inputs e selects no modo escuro */
+body.dark-theme input,
+body.dark-theme select,
+body.dark-theme textarea {
+  color: var(--text-color) !important;
+}
+
+/* Evita que qualquer elemento desabilitado fique transparente */
+body.dark-theme *:disabled {
+  opacity: 1 !important;
+}
+
+/* ============================================================ */
+/* FIM DAS CORREÇÕES                                            */
+/* ============================================================ */
+/* ================================================================== */
+/* BLOCO DE CORREÇÃO DEFINITIVO PARA O TEMA ESCURO (v2)               */
+/* ================================================================== */
+
+/* 1. Garante que TODOS os campos de formulário no tema escuro 
+      usem as cores corretas de fundo, borda e texto. */
+body.dark-theme .form-control,
+body.dark-theme .form-select {
+  background-color: var(--form-bg);
+  color: var(--text-color);
+  border-color: var(--border-color);
+}
+
+/* 2. Estiliza o placeholder dos inputs para ser visível. */
+body.dark-theme .form-control::placeholder {
+  color: var(--text-muted-custom);
+  opacity: 0.7;
+}
+
+/* 3. A REGRA MAIS IMPORTANTE: Força a estilização de campos
+      desabilitados ou apenas leitura, vencendo a regra do Bootstrap. */
+body.dark-theme .form-control[readonly],
+body.dark-theme .form-control:disabled,
+body.dark-theme .form-select[readonly],
+body.dark-theme .form-select:disabled,
+body.dark-theme textarea[readonly],
+body.dark-theme textarea:disabled {
+  background-color: var(--result-textarea-bg) !important;
+  color: var(--text-muted-custom) !important;
+  opacity: 1 !important; /* Anula o efeito de "fade" do Bootstrap */
+}
+
+/* 4. Garante que o texto da tabela seja sempre legível no tema escuro. */
+body.dark-theme .table {
+  color: var(--text-color);
+}
+
+/* Estilo para blocos de texto pré-formatado que se adapta ao tema */
+.themed-pre {
+  background-color: var(--result-textarea-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: 1rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
