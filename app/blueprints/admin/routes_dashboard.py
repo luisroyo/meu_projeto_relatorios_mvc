@@ -6,10 +6,12 @@ from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 
 from app.decorators.admin_required import admin_required
+from app.services.dashboard.main_dashboard import get_main_dashboard_data
+from app.services.dashboard.ocorrencia_dashboard import get_ocorrencia_dashboard_data
 
 from . import admin_bp
 from app.models import User, Condominio, Ronda, Ocorrencia, OcorrenciaTipo
-from app.services.dashboard_service import get_main_dashboard_data, get_ronda_dashboard_data, get_ocorrencia_dashboard_data
+from app.services.dashboard import get_ronda_dashboard_data
 ## [MELHORIA] Importando Enums para popular os filtros do formulário.
 from app.constants import Turnos, OcorrenciaStatus
 
