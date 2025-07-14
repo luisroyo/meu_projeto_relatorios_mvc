@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+        <h2 class="mb-0"><i class="bi bi-calendar-range-fill me-2"></i>{{ title }}</h2>
+        <div class="d-flex flex-wrap justify-content-end">
+            <span class="badge bg-primary fs-6 ms-2 mt-2">Referente ao ano de {{ selected_year }}</span>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom">
+            <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.dashboard_comparativo') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label for="year" class="form-label">Ano</label>
+                        <input type="number" id="year" name="year" class="form-control" value="{{ selected_year }}" min="2020" max="2099" step="1">
+                    </div>
+
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100 me-2"><i class="bi bi-search me-1"></i>Filtrar</button>
+                        <a href="{{ url_for('admin.dashboard_comparativo') }}" class="btn btn-outline-secondary w-100">Limpar</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Evolução Mensal de Rondas</div>
+                <div class="card-body">
+                    <div id="rondasMensalChart" style="height: 400px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Evolução Mensal de Ocorrências</div>
+                <div class="card-body">
+                    <div id="ocorrenciasMensalChart" style="height: 400px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const charts = []; // Armazena instâncias para redimensionamento
+
+    // Função genérica para exibir mensagem de "Sem Dados"
+    const showNoDataMessage = (elementId) => {
+        const el = document.getElementById(elementId);
+        if (el) {
+            el.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100"><p class="text-muted">Sem dados para exibir para este ano.</p></div>';
+        }
+    };
+
+    // Função genérica para renderizar um gráfico de barras
+    const renderBarChart = (elementId, labels, values, chartLabel, color) => {
+        const chartDom = document.getElementById(elementId);
+        // Verifica se há algum valor maior que zero para exibir o gráfico
+        const hasData = values.some(v => v > 0);
+        if (!chartDom || !hasData) {
+            showNoDataMessage(elementId);
+            return;
+        }
+        const myChart = echarts.init(chartDom);
+        const option = {
+            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+            xAxis: { type: 'category', data: labels },
+            yAxis: { type: 'value' },
+            series: [{
+                name: chartLabel,
+                type: 'bar',
+                data: values
+            }],
+            color: [color]
+        };
+        myChart.setOption(option);
+        charts.push(myChart);
+    };
+
+    // --- Preparação e Inicialização dos Gráficos ---
+
+    const monthLabels = {{ month_labels | tojson | safe }};
+
+    // Gráfico de Barras: Evolução Mensal de Rondas
+    renderBarChart(
+        'rondasMensalChart',
+        monthLabels,
+        {{ rondas_data | tojson | safe }},
+        'Total de Rondas',
+        '#5470c6' // Cor azul padrão
+    );
+
+    // Gráfico de Barras: Evolução Mensal de Ocorrências
+    renderBarChart(
+        'ocorrenciasMensalChart',
+        monthLabels,
+        {{ ocorrencias_data | tojson | safe }},
+        'Total de Ocorrências',
+        '#ee6666' // Cor vermelha padrão
+    );
+
+    // Tornar gráficos responsivos
+    window.addEventListener('resize', () => charts.forEach(chart => chart.resize()));
+});
+</script>
+{% endblock %}

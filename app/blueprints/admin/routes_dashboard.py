@@ -6,6 +6,7 @@ from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 
 from app.decorators.admin_required import admin_required
+from app.services.dashboard.comparativo_dashboard import get_monthly_comparison_data
 from app.services.dashboard.main_dashboard import get_main_dashboard_data
 from app.services.dashboard.ocorrencia_dashboard import get_ocorrencia_dashboard_data
 
@@ -198,3 +199,21 @@ def ocorrencia_dashboard():
 
     # A rota agora está muito mais limpa e focada em sua responsabilidade.
     return render_template('admin/ocorrencia_dashboard.html', **context_data)
+
+# --- [NOVO] Rota para o Dashboard Comparativo ---
+@admin_bp.route('/dashboard/comparativo')
+@login_required
+@admin_required
+def dashboard_comparativo():
+    """Exibe a página de análise mensal comparativa de rondas e ocorrências."""
+    logger.info(f"Usuário '{current_user.username}' acessou o dashboard comparativo.")
+    
+    # Pega o ano do parâmetro da URL, ou usa o ano atual como padrão
+    year = request.args.get('year', default=datetime.now().year, type=int)
+    
+    # Busca os dados processados pelo novo serviço
+    data = get_monthly_comparison_data(year)
+    
+    # Adiciona o título e renderiza o novo template com os dados
+    data['title'] = 'Análise Mensal Comparativa'
+    return render_template('admin/dashboard_comparativo.html', **data)

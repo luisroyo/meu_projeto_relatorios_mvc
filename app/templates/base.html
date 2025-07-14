@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="pt-br" data-bs-theme="light"> <head>
+<html lang="pt-br" data-bs-theme="light">
+<head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -75,6 +76,8 @@
                   href="{{ url_for('admin.ronda_dashboard') }}">Métricas de Rondas</a></li>
               <li><a class="dropdown-item {% if request.endpoint == 'admin.ocorrencia_dashboard' %}active{% endif %}"
                   href="{{ url_for('admin.ocorrencia_dashboard') }}">Métricas de Ocorrências</a></li>
+              <li><a class="dropdown-item {% if request.endpoint == 'admin.dashboard_comparativo' %}active{% endif %}"
+                  href="{{ url_for('admin.dashboard_comparativo') }}">Análise Comparativa</a></li>
             </ul>
           </li>
 
