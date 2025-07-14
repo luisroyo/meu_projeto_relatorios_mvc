@@ -2,24 +2,20 @@
 import logging
 from flask import (
     render_template, redirect, url_for, flash,
-    request, jsonify, g
+    request
 )
 from flask_login import login_required, current_user
-from sqlalchemy import func, and_, cast, Float
-from datetime import datetime, timedelta, timezone
 
 from app.services.user_service import delete_user_and_dependencies
 
 from . import admin_bp
 from app import db
-from app.models import User, LoginHistory, Ronda, Colaborador, ProcessingHistory, Condominio, EscalaMensal
+from app.models import User
 from app.decorators.admin_required import admin_required
-from app.forms import FormatEmailReportForm, ColaboradorForm
-from app.services.justificativa_service import JustificativaAtestadoService
-from app.services.justificativa_troca_plantao_service import JustificativaTrocaPlantaoService
 
 logger = logging.getLogger(__name__)
 
+# ... (rotas manage_users, approve_user, revoke_user, toggle_admin permanecem iguais) ...
 @admin_bp.route('/users')
 @login_required
 @admin_required
@@ -28,6 +24,7 @@ def manage_users():
     page = request.args.get('page', 1, type=int)
     users_pagination_obj = User.query.order_by(User.date_registered.desc()).paginate(page=page, per_page=10)
     return render_template('admin/users.html', title='Gerenciar Usuários', users_pagination=users_pagination_obj)
+
 
 @admin_bp.route('/user/<int:user_id>/approve', methods=['POST'])
 @login_required
@@ -39,6 +36,7 @@ def approve_user(user_id):
         db.session.commit()
         flash(f'Usuário {user.username} aprovado com sucesso.', 'success')
     return redirect(url_for('admin.manage_users'))
+
 
 @admin_bp.route('/user/<int:user_id>/revoke', methods=['POST'])
 @login_required
@@ -53,6 +51,7 @@ def revoke_user(user_id):
     else:
         flash('Você não pode revogar sua própria aprovação.', 'danger')
     return redirect(url_for('admin.manage_users'))
+
 
 @admin_bp.route('/user/<int:user_id>/toggle_admin', methods=['POST'])
 @login_required
@@ -71,11 +70,19 @@ def toggle_admin(user_id):
         flash('Você não pode alterar seu próprio status de administrador.', 'warning')
     return redirect(url_for('admin.manage_users'))
 
+
 @admin_bp.route('/user/<int:user_id>/toggle_supervisor', methods=['POST'])
 @login_required
 @admin_required
 def toggle_supervisor(user_id):
     user = User.query.get_or_404(user_id)
+
+    ## [CORREÇÃO] Adicionada verificação para impedir que o usuário altere o próprio status.
+    # Isso torna a função consistente com toggle_admin e revoke_user.
+    if user.id == current_user.id:
+        flash('Você não pode alterar seu próprio status de supervisor.', 'warning')
+        return redirect(url_for('admin.manage_users'))
+
     user.is_supervisor = not user.is_supervisor
     if user.is_supervisor and not user.is_approved:
         user.is_approved = True
@@ -84,6 +91,7 @@ def toggle_supervisor(user_id):
     status = "promovido a supervisor" if user.is_supervisor else "rebaixado de supervisor"
     flash(f'Usuário {user.username} foi {status} com sucesso.', 'success')
     return redirect(url_for('admin.manage_users'))
+
 
 @admin_bp.route('/user/<int:user_id>/delete', methods=['POST'])
 @login_required
@@ -95,11 +103,11 @@ def delete_user(user_id):
 
     # Chama o serviço para realizar a exclusão
     sucesso, mensagem = delete_user_and_dependencies(user_id)
-    
+
     if sucesso:
         flash(mensagem, 'success')
     else:
         logger.error(f"Falha ao deletar usuário ID {user_id}: {mensagem}")
         flash(mensagem, 'danger')
-        
+
     return redirect(url_for('admin.manage_users'))

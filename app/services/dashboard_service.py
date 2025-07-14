@@ -1,11 +1,19 @@
 # app/services/dashboard_service.py
+import logging
 from flask import flash
-from sqlalchemy import func, cast, Float, tuple_
+from sqlalchemy import func, tuple_
 from datetime import datetime, timedelta, timezone
 
 from app import db
-from app.models import User, Ronda, Condominio, LoginHistory, ProcessingHistory, Ocorrencia, OcorrenciaTipo, EscalaMensal, Colaborador
+from app.models import (
+    User, Ronda, Condominio, LoginHistory, ProcessingHistory,
+    Ocorrencia, OcorrenciaTipo, EscalaMensal, Colaborador
+)
 from app.utils.date_utils import parse_date_range
+## [MELHORIA] Importando Enums para uso na lógica de filtros e queries.
+from app.constants import OcorrenciaStatus
+
+logger = logging.getLogger(__name__)
 
 def get_main_dashboard_data():
     """Busca e processa os dados para o dashboard principal de métricas."""
@@ -146,15 +154,12 @@ def get_ronda_dashboard_data(filters):
     duracao_media_geral = round(soma_duracao / total_rondas, 2) if total_rondas > 0 else 0
     supervisor_mais_ativo = supervisor_labels[0] if supervisor_labels else "N/A"
 
-    # --- INÍCIO DA LÓGICA CORRIGIDA E MELHORADA PARA MÉDIA DE RONDAS/DIA ---
     num_dias_divisor = 0
     if supervisor_id_filter:
-        # Lógica para contar os dias de trabalho de um supervisor específico
         meses_anos = set()
         current_date_for_months = date_start_range
         while current_date_for_months <= date_end_range:
             meses_anos.add((current_date_for_months.year, current_date_for_months.month))
-            # Avança para o próximo mês
             next_month_year = current_date_for_months.year + (current_date_for_months.month // 12)
             next_month = current_date_for_months.month % 12 + 1
             current_date_for_months = current_date_for_months.replace(year=next_month_year, month=next_month, day=1)
@@ -172,13 +177,11 @@ def get_ronda_dashboard_data(filters):
                 turno_diurno_do_dia = f"Diurno {paridade}"
                 turno_noturno_do_dia = f"Noturno {paridade}"
                 
-                # Conta o dia se o supervisor trabalha em qualquer um dos turnos do dia (Diurno ou Noturno)
                 if turno_diurno_do_dia in turnos_do_supervisor or turno_noturno_do_dia in turnos_do_supervisor:
                     num_dias_divisor += 1
                 current_day += timedelta(days=1)
     
     elif turno_filter:
-        # Lógica para contar os dias de um turno específico
         current_day = date_start_range
         while current_day <= date_end_range:
             paridade = 'Par' if current_day.day % 2 == 0 else 'Impar'
@@ -187,11 +190,9 @@ def get_ronda_dashboard_data(filters):
             current_day += timedelta(days=1)
     
     else:
-        # Lógica padrão: todos os dias no período
         num_dias_divisor = (date_end_range - date_start_range).days + 1
     
     media_rondas_dia = round(total_rondas / num_dias_divisor, 1) if num_dias_divisor > 0 else 0
-    # --- FIM DA LÓGICA CORRIGIDA ---
 
 
     return {
@@ -246,7 +247,9 @@ def get_ocorrencia_dashboard_data(filters):
     base_kpi_query = db.session.query(Ocorrencia)
     total_ocorrencias = apply_ocorrencia_filters(base_kpi_query).count()
     
-    abertas_kpi_query = base_kpi_query.filter(Ocorrencia.status.in_(['Registrada', 'Em Andamento']))
+    ## [MELHORIA] Usando Enums para a query de ocorrências abertas.
+    status_abertos = [OcorrenciaStatus.REGISTRADA.value, OcorrenciaStatus.EM_ANDAMENTO.value]
+    abertas_kpi_query = base_kpi_query.filter(Ocorrencia.status.in_(status_abertos))
     ocorrencias_abertas = apply_ocorrencia_filters(abertas_kpi_query).count()
 
     ocorrencias_por_tipo_q = db.session.query(OcorrenciaTipo.nome, func.count(Ocorrencia.id)).join(Ocorrencia, OcorrenciaTipo.id == Ocorrencia.ocorrencia_tipo_id)
@@ -302,10 +305,48 @@ def get_ocorrencia_dashboard_data(filters):
     top_colaboradores_labels = [item[0] for item in top_colaboradores_raw]
     top_colaboradores_data = [item[1] for item in top_colaboradores_raw]
 
+    ## [MELHORIA CRÍTICA] A lógica do KPI do supervisor foi movida da rota para o serviço.
+    # O serviço agora é responsável por toda a lógica de dados, mantendo a rota limpa.
+    kpi_supervisor_label = ""
+    kpi_supervisor_name = "N/A"
+
+    if supervisor_id_filter:
+        kpi_supervisor_label = "Supervisor Selecionado"
+        supervisor = User.query.get(supervisor_id_filter)
+        kpi_supervisor_name = supervisor.username if supervisor else 'N/A'
+    else:
+        kpi_supervisor_label = "Supervisor com Mais Ocorrências"
+        try:
+            # A query base já está filtrada por data, condomínio, etc.
+            query = apply_ocorrencia_filters(
+                db.session.query(
+                    Ocorrencia.supervisor_id,
+                    func.count(Ocorrencia.id).label('ocorrencia_count')
+                ).join(
+                    User, Ocorrencia.supervisor_id == User.id
+                ).filter(
+                    User.is_supervisor == True,
+                    Ocorrencia.supervisor_id != None
+                )
+            )
+
+            top_supervisor_data = query.group_by(Ocorrencia.supervisor_id).order_by(func.count(Ocorrencia.id).desc()).first()
+            
+            if top_supervisor_data and top_supervisor_data.supervisor_id:
+                supervisor = User.query.get(top_supervisor_data.supervisor_id)
+                if supervisor:
+                    kpi_supervisor_name = supervisor.username
+            
+        except Exception as e:
+            logger.error(f"Erro ao calcular o supervisor com mais ocorrências: {e}", exc_info=True)
+            kpi_supervisor_name = "Erro ao calcular"
+
     return {
         'total_ocorrencias': total_ocorrencias,
         'ocorrencias_abertas': ocorrencias_abertas,
         'tipo_mais_comum': tipo_mais_comum,
+        'kpi_supervisor_label': kpi_supervisor_label,
+        'kpi_supervisor_name': kpi_supervisor_name,
         'tipo_labels': tipo_labels,
         'ocorrencias_por_tipo_data': ocorrencias_por_tipo_data,
         'condominio_labels': condominio_labels,

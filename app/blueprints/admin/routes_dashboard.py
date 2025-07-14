@@ -1,16 +1,17 @@
 # app/blueprints/admin/routes_dashboard.py
 import logging
+import locale
 from flask import flash, render_template, redirect, url_for, request
 from flask_login import login_required, current_user
-from sqlalchemy import func
 from datetime import datetime, timedelta
-import locale
+
+from app.decorators.admin_required import admin_required
 
 from . import admin_bp
-from app import db
-from app.decorators.admin_required import admin_required
 from app.models import User, Condominio, Ronda, Ocorrencia, OcorrenciaTipo
 from app.services.dashboard_service import get_main_dashboard_data, get_ronda_dashboard_data, get_ocorrencia_dashboard_data
+## [MELHORIA] Importando Enums para popular os filtros do formulário.
+from app.constants import Turnos, OcorrenciaStatus
 
 logger = logging.getLogger(__name__)
 
@@ -48,15 +49,18 @@ def _get_period_description(year, month, start_date_str, end_date_str):
         try:
             return datetime(y, m, 1).strftime('%B').capitalize()
         except Exception:
+            # Fallback para o nome do mês padrão do sistema
             return datetime(y, m, 1).strftime('%B')
 
-    if month:
+    if month and year:
         month_name = get_month_name(year, month)
         return f"Referente a {month_name} de {year}"
     elif start_date_str and end_date_str:
         try:
             start_dt = datetime.strptime(start_date_str, '%Y-%m-%d')
             end_dt = datetime.strptime(end_date_str, '%Y-%m-%d')
+            if start_dt == end_dt:
+                return f"Referente ao dia {start_dt.strftime('%d/%m/%Y')}"
             return f"Período de {start_dt.strftime('%d/%m/%Y')} a {end_dt.strftime('%d/%m/%Y')}"
         except ValueError:
              return "Período de data personalizado"
@@ -102,6 +106,8 @@ def ronda_dashboard():
     """Exibe o dashboard de métricas e análises de Rondas."""
     logger.info(f"Usuário '{current_user.username}' acessou o dashboard de rondas.")
     
+    current_year = datetime.now().year
+    
     filters = {
         'turno': request.args.get('turno', ''),
         'supervisor_id': request.args.get('supervisor_id', type=int),
@@ -112,7 +118,6 @@ def ronda_dashboard():
         'data_especifica': request.args.get('data_especifica', '')
     }
 
-    current_year = datetime.now().year
     if filters['mes'] and not (filters['data_inicio_str'] or filters['data_fim_str']):
         start_date, end_date = _get_date_range_from_month(current_year, filters['mes'])
         if start_date and end_date:
@@ -124,8 +129,10 @@ def ronda_dashboard():
 
     context_data = get_ronda_dashboard_data(filters)
     
+    # --- Preenchendo dados para os filtros do template ---
     context_data['title'] = 'Dashboard de Métricas de Rondas'
-    context_data['turnos'] = ['Diurno Par', 'Noturno Par', 'Diurno Impar', 'Noturno Impar']
+    ## [MELHORIA] Usando o Enum de Turnos para popular a lista do filtro.
+    context_data['turnos'] = [turno.value for turno in Turnos]
     context_data['supervisors'] = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
     context_data['condominios'] = Condominio.query.join(Ronda).distinct().order_by(Condominio.nome).all()
     context_data['meses_do_ano'] = _get_months_of_year(current_year)
@@ -133,7 +140,7 @@ def ronda_dashboard():
     context_data['selected_filters'] = filters
     
     context_data['period_description'] = _get_period_description(
-        current_year, filters['mes'], filters['data_inicio_str'], filters['data_fim_str']
+        current_year, filters['mes'], context_data['selected_data_inicio_str'], context_data['selected_data_fim_str']
     )
     
     return render_template('admin/ronda_dashboard.html', **context_data)
@@ -145,6 +152,8 @@ def ocorrencia_dashboard():
     """Exibe o dashboard de métricas e análises de Ocorrências."""
     logger.info(f"Usuário '{current_user.username}' acessou o dashboard de ocorrências.")
 
+    current_year = datetime.now().year
+
     filters = {
         'condominio_id': request.args.get('condominio_id', type=int),
         'tipo_id': request.args.get('tipo_id', type=int),
@@ -155,7 +164,6 @@ def ocorrencia_dashboard():
         'data_fim_str': request.args.get('data_fim', ''),
     }
 
-    current_year = datetime.now().year
     if filters['mes'] and not (filters['data_inicio_str'] or filters['data_fim_str']):
         start_date, end_date = _get_date_range_from_month(current_year, filters['mes'])
         if start_date and end_date:
@@ -165,82 +173,26 @@ def ocorrencia_dashboard():
             flash("Mês inválido selecionado.", "danger")
             filters['mes'] = None
 
+    ## [MELHORIA CRÍTICA] A rota agora apenas chama o serviço e passa os dados.
+    # Toda a lógica de cálculo de KPIs foi movida para dashboard_service.py.
     context_data = get_ocorrencia_dashboard_data(filters)
 
+    # --- Preenchendo dados para os filtros do template ---
     context_data['title'] = 'Dashboard de Ocorrências'
     context_data['condominios'] = Condominio.query.order_by(Condominio.nome).all()
     context_data['tipos_ocorrencia'] = OcorrenciaTipo.query.order_by(OcorrenciaTipo.nome).all()
     context_data['supervisors'] = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
-    context_data['status_list'] = ['Registrada', 'Em Andamento', 'Concluída', 'Cancelada']
+    ## [MELHORIA] Usando Enum para popular a lista de status.
+    context_data['status_list'] = [status.value for status in OcorrenciaStatus]
     context_data['meses_do_ano'] = _get_months_of_year(current_year)
 
-    # --- INÍCIO DA CORREÇÃO ---
-    context_data['selected_condominio_id'] = filters.get('condominio_id')
-    context_data['selected_tipo_id'] = filters.get('tipo_id')
-    context_data['selected_status'] = filters.get('status')
-    context_data['selected_supervisor_id'] = filters.get('supervisor_id')
-    context_data['selected_mes'] = filters.get('mes')
-    context_data['selected_data_inicio_str'] = filters.get('data_inicio_str')
-    context_data['selected_data_fim_str'] = filters.get('data_fim_str')
+    ## [MELHORIA] Passando o dicionário de filtros diretamente para o template.
+    # Isso simplifica o código e evita atribuições manuais e repetitivas.
+    context_data['selected_filters'] = filters
     
     context_data['period_description'] = _get_period_description(
-        current_year, filters.get('mes'), filters.get('data_inicio_str'), filters.get('data_fim_str')
+        current_year, filters.get('mes'), context_data['selected_data_inicio_str'], context_data['selected_data_fim_str']
     )
 
-    # Lógica para o KPI do supervisor.
-    kpi_supervisor_label = ""
-    kpi_supervisor_name = None
-    selected_supervisor_id = filters.get('supervisor_id')
-
-    if selected_supervisor_id:
-        # Se um supervisor for selecionado, busca o nome dele.
-        kpi_supervisor_label = "Supervisor Selecionado"
-        supervisor = User.query.get(selected_supervisor_id)
-        kpi_supervisor_name = supervisor.username if supervisor else 'N/A'
-    else:
-        # Se nenhum supervisor for selecionado, calcula o com mais ocorrências.
-        kpi_supervisor_label = "Supervisor com Mais Ocorrências"
-        try:
-            query = db.session.query(
-                Ocorrencia.supervisor_id,
-                func.count(Ocorrencia.id).label('ocorrencia_count')
-            ).join(
-                User, Ocorrencia.supervisor_id == User.id
-            ).filter(
-                User.is_supervisor == True,
-                Ocorrencia.supervisor_id != None
-            )
-
-            # Aplica os mesmos filtros da página à query do KPI
-            if filters.get('condominio_id'):
-                query = query.filter(Ocorrencia.condominio_id == filters['condominio_id'])
-            if filters.get('tipo_id'):
-                query = query.filter(Ocorrencia.tipo_id == filters['tipo_id'])
-            if filters.get('status'):
-                query = query.filter(Ocorrencia.status == filters['status'])
-
-            start_date_str = filters.get('data_inicio_str')
-            end_date_str = filters.get('data_fim_str')
-
-            if start_date_str:
-                query = query.filter(Ocorrencia.data_hora_ocorrencia >= datetime.strptime(start_date_str, '%Y-%m-%d'))
-            if end_date_str:
-                end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
-                query = query.filter(Ocorrencia.data_hora_ocorrencia < end_date)
-
-            top_supervisor_data = query.group_by(Ocorrencia.supervisor_id).order_by(func.count(Ocorrencia.id).desc()).first()
-            
-            if top_supervisor_data:
-                supervisor = User.query.get(top_supervisor_data.supervisor_id)
-                if supervisor:
-                    kpi_supervisor_name = supervisor.username
-            
-        except Exception as e:
-            logger.error(f"Erro ao calcular o supervisor com mais ocorrências: {e}")
-            kpi_supervisor_name = None
-    
-    context_data['kpi_supervisor_label'] = kpi_supervisor_label
-    context_data['kpi_supervisor_name'] = kpi_supervisor_name
-    # --- FIM DA CORREÇÃO ---
-
+    # A rota agora está muito mais limpa e focada em sua responsabilidade.
     return render_template('admin/ocorrencia_dashboard.html', **context_data)
