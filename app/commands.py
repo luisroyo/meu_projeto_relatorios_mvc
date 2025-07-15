@@ -229,3 +229,53 @@ def fix_ocorrencias_definitive_command():
         logger.info(
             "Nenhuma ocorrência com fuso horário ('aware') foi encontrada para corrigir."
         )
+
+
+@click.command("check-ocorrencias-data")
+@with_appcontext
+def check_ocorrencias_data_command():
+    """
+    Verifica os dados de ocorrências no banco de dados para debug do dashboard.
+    """
+    from app.models import Ocorrencia
+    
+    logger.info("Verificando dados de ocorrências no banco de dados...")
+    click.echo("--- VERIFICAÇÃO DE DADOS DE OCORRÊNCIAS ---")
+    
+    # Conta total de ocorrências
+    total_ocorrencias = Ocorrencia.query.count()
+    click.echo(f"Total de ocorrências no banco: {total_ocorrencias}")
+    
+    if total_ocorrencias == 0:
+        click.echo("❌ NENHUMA OCORRÊNCIA ENCONTRADA NO BANCO DE DADOS!")
+        click.echo("Este é o motivo pelo qual o gráfico de evolução diária não aparece.")
+        return
+    
+    # Mostra algumas ocorrências de exemplo
+    ocorrencias_exemplo = Ocorrencia.query.order_by(Ocorrencia.data_hora_ocorrencia.desc()).limit(5).all()
+    click.echo(f"\nÚltimas 5 ocorrências:")
+    for oc in ocorrencias_exemplo:
+        click.echo(f"  ID: {oc.id}, Data: {oc.data_hora_ocorrencia}, Status: {oc.status}")
+    
+    # Verifica ocorrências por mês atual
+    from datetime import datetime, timezone
+    hoje = datetime.now(timezone.utc)
+    primeiro_dia_mes = hoje.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    ocorrencias_mes_atual = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia >= primeiro_dia_mes
+    ).count()
+    
+    click.echo(f"\nOcorrências no mês atual ({hoje.strftime('%B/%Y')}): {ocorrencias_mes_atual}")
+    
+    # Verifica ocorrências por dia nos últimos 7 dias
+    from datetime import timedelta
+    sete_dias_atras = hoje - timedelta(days=7)
+    
+    ocorrencias_ultimos_7_dias = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia >= sete_dias_atras
+    ).order_by(Ocorrencia.data_hora_ocorrencia.desc()).all()
+    
+    click.echo(f"\nOcorrências nos últimos 7 dias: {len(ocorrencias_ultimos_7_dias)}")
+    for oc in ocorrencias_ultimos_7_dias:
+        click.echo(f"  {oc.data_hora_ocorrencia.strftime('%d/%m/%Y %H:%M')} - {oc.status}")
