@@ -444,3 +444,69 @@ body.dark-theme .table {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+
+/* --- Dashboard Ocorrências: Modernização Visual --- */
+.kpi-icon {
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.85;
+}
+.kpi-primary { color: #6c63ff; }
+.kpi-warning { color: #ffb300; }
+.kpi-info { color: #00bcd4; }
+.kpi-success { color: #43a047; }
+.kpi-secondary { color: #888; }
+
+.card {
+  border-radius: 1rem;
+  box-shadow: 0 2px 16px 0 rgba(60,72,88,0.08);
+  border: none;
+  transition: box-shadow 0.2s;
+}
+.card:hover {
+  box-shadow: 0 4px 32px 0 rgba(60,72,88,0.16);
+}
+
+.form-select, .form-control {
+  border-radius: 0.5rem;
+  min-height: 2.5rem;
+  font-size: 1rem;
+}
+
+.btn {
+  border-radius: 0.5rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-primary {
+  background: linear-gradient(90deg, #6c63ff 0%, #00bcd4 100%);
+  border: none;
+}
+.btn-primary:hover, .btn-primary:focus {
+  background: linear-gradient(90deg, #00bcd4 0%, #6c63ff 100%);
+}
+.btn-outline-secondary {
+  border: 1.5px solid #6c63ff;
+  color: #6c63ff;
+}
+.btn-outline-secondary:hover, .btn-outline-secondary:focus {
+  background: #6c63ff;
+  color: #fff;
+}
+.badge {
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  padding: 0.5em 1em;
+}
+.table {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.table th, .table td {
+  vertical-align: middle;
+}
+.echarts-tooltip {
+  font-size: 1rem;
+}
+/* --- Fim do bloco de modernização do dashboard --- */

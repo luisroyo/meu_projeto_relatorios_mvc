@@ -73,11 +73,12 @@
         </div>
     </div>
 
-    <!-- Cards de Métricas -->
+    <!-- Cards de Métricas Modernizados -->
     <div class="row g-4 mb-4">
         <div class="col-lg-3 col-md-6">
             <div class="card shadow-sm text-center h-100">
-                <div class="card-body d-flex flex-column justify-content-center">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <span class="kpi-icon kpi-primary"><i class="bi bi-clipboard-data"></i></span>
                     <h6 class="card-subtitle mb-2 text-muted text-uppercase">Total de Rondas</h6>
                     <p class="card-text fs-1 fw-bold text-primary mb-0">{{ total_rondas }}</p>
                 </div>
@@ -85,7 +86,8 @@
         </div>
         <div class="col-lg-3 col-md-6">
             <div class="card shadow-sm text-center h-100">
-                <div class="card-body d-flex flex-column justify-content-center">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <span class="kpi-icon kpi-warning"><i class="bi bi-bar-chart"></i></span>
                     <h6 class="card-subtitle mb-2 text-muted text-uppercase">Média de Rondas / Dia</h6>
                     <p class="card-text fs-1 fw-bold text-warning mb-0">{{ media_rondas_dia }}</p>
                 </div>
@@ -93,7 +95,8 @@
         </div>
         <div class="col-lg-3 col-md-6">
             <div class="card shadow-sm text-center h-100">
-                <div class="card-body d-flex flex-column justify-content-center">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <span class="kpi-icon kpi-success"><i class="bi bi-clock-history"></i></span>
                     <h6 class="card-subtitle mb-2 text-muted text-uppercase">Duração Média por Ronda</h6>
                     <p class="card-text fs-1 fw-bold text-success mb-0">{{ duracao_media_geral }} min</p>
                 </div>
@@ -101,7 +104,8 @@
         </div>
         <div class="col-lg-3 col-md-6">
             <div class="card shadow-sm text-center h-100">
-                <div class="card-body d-flex flex-column justify-content-center">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <span class="kpi-icon kpi-info"><i class="bi bi-person-badge"></i></span>
                     <h6 class="card-subtitle mb-2 text-muted text-uppercase">Supervisor Mais Ativo</h6>
                     <p class="card-text fs-4 fw-bold text-info mb-0">{{ supervisor_mais_ativo or 'N/A' }}</p>
                 </div>
@@ -162,8 +166,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const charts = []; // Armazena instâncias para redimensionamento
-    const defaultColors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
+    const charts = [];
+    const defaultColors = ['#6c63ff', '#00bcd4', '#ffb300', '#43a047', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
 
     // Função genérica para exibir mensagem de "Sem Dados"
     const showNoDataMessage = (elementId) => {
@@ -183,15 +187,22 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         const myChart = echarts.init(chartDom);
         const option = {
-            tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-            legend: { orient: 'vertical', left: 'left', top: 'center', type: 'scroll' },
+            tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)', backgroundColor: '#23272b', textStyle: { color: '#fff' } },
+            legend: { orient: 'vertical', left: 'left', top: 'center', type: 'scroll', textStyle: { color: getComputedStyle(document.body).color } },
             series: [{
                 name: 'Rondas',
                 type: 'pie',
-                radius: ['40%', '70%'], // Efeito Donut
+                radius: ['40%', '70%'],
                 center: ['65%', '50%'],
                 data: data,
-                emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
+                emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } },
+                itemStyle: {
+                  borderRadius: 8,
+                  borderColor: '#fff',
+                  borderWidth: 2,
+                  shadowColor: 'rgba(0,0,0,0.08)',
+                  shadowBlur: 8
+                }
             }],
             color: defaultColors
         };
@@ -199,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function () {
         charts.push(myChart);
     };
 
-    const renderBarChart = (elementId, labels, values, seriesName, color) => {
+    const renderBarChart = (elementId, labels, values, seriesName, color, isHorizontal = false) => {
         const chartDom = document.getElementById(elementId);
         if (!chartDom || !labels || labels.length === 0) {
             showNoDataMessage(elementId);
@@ -207,16 +218,25 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         const myChart = echarts.init(chartDom);
         const option = {
-            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#23272b', textStyle: { color: '#fff' } },
             grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-            xAxis: { type: 'category', data: labels, axisLabel: { interval: 0, rotate: 30 } },
-            yAxis: { type: 'value' },
+            xAxis: isHorizontal ? { type: 'value', boundaryGap: [0, 0.01], axisLabel: { color: getComputedStyle(document.body).color } } : { type: 'category', data: labels, axisLabel: { interval: 0, rotate: 30, color: getComputedStyle(document.body).color } },
+            yAxis: isHorizontal ? { type: 'category', data: labels, axisLabel: { color: getComputedStyle(document.body).color } } : { type: 'value', axisLabel: { color: getComputedStyle(document.body).color } },
             series: [{
                 name: seriesName,
                 type: 'bar',
-                data: values
+                data: values,
+                itemStyle: {
+                  borderRadius: isHorizontal ? [8, 8, 8, 8] : [8, 8, 0, 0],
+                  color: color || '#6c63ff'
+                },
+                emphasis: {
+                  itemStyle: {
+                    color: '#ffb300'
+                  }
+                }
             }],
-            color: [color]
+            color: [color || '#6c63ff']
         };
         myChart.setOption(option);
         charts.push(myChart);
@@ -230,19 +250,27 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         const myChart = echarts.init(chartDom);
         const option = {
-            tooltip: { trigger: 'axis' },
+            tooltip: { trigger: 'axis', backgroundColor: '#23272b', textStyle: { color: '#fff' } },
             grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-            xAxis: { type: 'category', boundaryGap: false, data: labels },
-            yAxis: { type: 'value' },
+            xAxis: { type: 'category', boundaryGap: false, data: labels, axisLabel: { color: getComputedStyle(document.body).color } },
+            yAxis: { type: 'value', axisLabel: { color: getComputedStyle(document.body).color } },
             series: [{
                 name: 'Rondas Registradas',
                 type: 'line',
                 data: values,
-                areaStyle: {},
-                smooth: true
+                areaStyle: {
+                  color: '#6c63ff'
+                },
+                smooth: true,
+                lineStyle: {
+                  width: 4,
+                  color: '#6c63ff'
+                },
+                symbol: 'circle',
+                symbolSize: 10
             }],
             dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: '2%' }],
-            color: ['#5470c6']
+            color: ['#6c63ff']
         };
         myChart.setOption(option);
         charts.push(myChart);
