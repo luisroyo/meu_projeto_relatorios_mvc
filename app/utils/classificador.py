@@ -1,5 +1,6 @@
 # utils/classificador.py
 import unicodedata
+
 from app.classificador_config import MAPA_PALAVRAS_CHAVE_TIPO
 
 

@@ -1,22 +1,25 @@
 # app/blueprints/main/routes.py
 import logging
-from flask import Blueprint, render_template, request, g, flash
-from flask_login import login_required, current_user
 
-from app import limiter, db
+from flask import Blueprint, flash, g, render_template
+from flask_login import current_user, login_required
+
+from app import db, limiter
+from app.forms import AnalisadorForm  # Verifique se este import está correto
 from app.models import ProcessingHistory
 from app.services.patrimonial_report_service import PatrimonialReportService
-from app.forms import AnalisadorForm # Verifique se este import está correto
 
-main_bp = Blueprint('main', __name__)
+main_bp = Blueprint("main", __name__)
 logger = logging.getLogger(__name__)
 
+
 def _get_patrimonial_service():
-    if 'patrimonial_service' not in g:
+    if "patrimonial_service" not in g:
         g.patrimonial_service = PatrimonialReportService()
     return g.patrimonial_service
 
-@main_bp.route('/', methods=['GET', 'POST'])
+
+@main_bp.route("/", methods=["GET", "POST"])
 @limiter.limit("200 per hour")
 @login_required
 def index():
@@ -31,7 +34,9 @@ def index():
         try:
             logger.info(f"Iniciando processamento para '{current_user.username}'.")
             patrimonial_service = _get_patrimonial_service()
-            relatorio_corrigido = patrimonial_service.gerar_relatorio_seguranca(relatorio_bruto)
+            relatorio_corrigido = patrimonial_service.gerar_relatorio_seguranca(
+                relatorio_bruto
+            )
             flash("Relatório processado com sucesso!", "success")
             processing_success = True
 
@@ -42,18 +47,35 @@ def index():
 
         # Salva o histórico (mesma lógica de antes)
         try:
-            history = ProcessingHistory(user_id=current_user.id, processing_type='patrimonial_report', success=processing_success, error_message=processing_error_message)
+            history = ProcessingHistory(
+                user_id=current_user.id,
+                processing_type="patrimonial_report",
+                success=processing_success,
+                error_message=processing_error_message,
+            )
             db.session.add(history)
             db.session.commit()
         except Exception as e_history:
             db.session.rollback()
-            logger.error(f"CRÍTICO: Falha ao salvar histórico: {e_history}", exc_info=True)
+            logger.error(
+                f"CRÍTICO: Falha ao salvar histórico: {e_history}", exc_info=True
+            )
             flash("Erro grave ao registrar a operação.", "danger")
 
         # Ao final do POST, re-renderiza a página com o formulário e o resultado
-        return render_template('index.html', title='Resultado da Análise', form=form, relatorio_corrigido=relatorio_corrigido)
+        return render_template(
+            "index.html",
+            title="Resultado da Análise",
+            form=form,
+            relatorio_corrigido=relatorio_corrigido,
+        )
 
     # Para requisições GET, renderiza a página com o formulário vazio
     # --- PONTO DA CORREÇÃO ---
     # A variável 'form' agora é passada também no GET inicial.
-    return render_template('index.html', title='Analisador de Relatórios IA', form=form, relatorio_corrigido=relatorio_corrigido)
+    return render_template(
+        "index.html",
+        title="Analisador de Relatórios IA",
+        form=form,
+        relatorio_corrigido=relatorio_corrigido,
+    )

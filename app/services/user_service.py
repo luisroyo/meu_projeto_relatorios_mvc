@@ -1,6 +1,7 @@
 # app/services/user_service.py
 from app import db
-from app.models import User, LoginHistory, Ronda, ProcessingHistory
+from app.models import LoginHistory, ProcessingHistory, Ronda, User
+
 
 def delete_user_and_dependencies(user_id):
     """
@@ -16,13 +17,16 @@ def delete_user_and_dependencies(user_id):
         LoginHistory.query.filter_by(user_id=user_to_delete.id).delete()
         Ronda.query.filter_by(user_id=user_to_delete.id).delete()
         ProcessingHistory.query.filter_by(user_id=user_to_delete.id).delete()
-        
+
         # Deleta o usuário
         db.session.delete(user_to_delete)
-        
+
         db.session.commit()
-        return True, f'Usuário {user_to_delete.username} e seus dados foram deletados com sucesso.'
-    
+        return (
+            True,
+            f"Usuário {user_to_delete.username} e seus dados foram deletados com sucesso.",
+        )
+
     except Exception as e:
         db.session.rollback()
-        return False, f'Erro ao deletar usuário: {str(e)}'
+        return False, f"Erro ao deletar usuário: {str(e)}"
