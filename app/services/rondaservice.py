@@ -1,5 +1,7 @@
 import logging
-from .ronda_logic import processar_log_de_rondas # Importa a função principal do subpacote
+
+from .ronda_logic import \
+    processar_log_de_rondas  # Importa a função principal do subpacote
 
 # Este logger é para o arquivo 'rondaservice.py' especificamente,
 # caso você adicione alguma lógica de fachada aqui.
@@ -24,8 +26,11 @@ logger = logging.getLogger(__name__)
 
 # Se você tiver um exemplo de como usá-lo, pode mantê-lo aqui ou movê-lo
 # para um script de teste/demonstração separado.
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
 
     log_exemplo = """
     [10:30, 20/05/2024] VTR 01: Início ronda 10:30
@@ -34,8 +39,10 @@ if __name__ == '__main__':
     nome_condominio = "Condomínio Exemplo Fachada"
     data_plantao = "20/05/2024"
     escala = "Equipe Teste Fachada"
-    
+
     # A chamada usa a função importada de .ronda_logic
-    relatorio = processar_log_de_rondas(log_exemplo, nome_condominio, data_plantao, escala)
+    relatorio = processar_log_de_rondas(
+        log_exemplo, nome_condominio, data_plantao, escala
+    )
     print("\n--- RELATÓRIO (via app.services.rondaservice.py) ---")
     print(relatorio)
