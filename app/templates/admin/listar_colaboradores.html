@@ -4,11 +4,10 @@
 
 {% block content %}
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>{{ title }}</h2>
-        <a href="{{ url_for('admin.adicionar_colaborador') }}" class="btn btn-success">
-            {# Use Bootstrap Icons se for o padrão do seu projeto #}
-            <i class="bi bi-plus-circle-fill"></i> Adicionar Novo Colaborador 
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+        <h2 class="mb-0">{{ title }}</h2>
+        <a href="{{ url_for('admin.adicionar_colaborador') }}" class="btn btn-success d-flex align-items-center gap-2">
+            <i class="bi bi-plus-circle-fill"></i> <span>Adicionar Novo Colaborador</span>
         </a>
     </div>
 
@@ -17,7 +16,7 @@
 
     {% if colaboradores_pagination.items %}
     <div class="table-responsive shadow-sm rounded">
-        <table class="table table-hover table-striped align-middle">
+        <table class="table table-hover table-striped align-middle mb-0">
             <thead class="table-dark">
                 <tr>
                     <th>Nome Completo</th>
@@ -25,7 +24,7 @@
                     <th>Matrícula</th>
                     <th>Status</th>
                     <th>Data Admissão</th>
-                    <th>Ações</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -46,15 +45,13 @@
                         </span>
                     </td>
                     <td>{{ colaborador.data_admissao.strftime('%d/%m/%Y') if colaborador.data_admissao else '--' }}</td>
-                    <td>
+                    <td class="text-center">
                         <a href="{{ url_for('admin.editar_colaborador', colaborador_id=colaborador.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
-                            {# Use Bootstrap Icons se for o padrão #}
-                            <i class="bi bi-pencil-fill"></i> 
+                            <i class="bi bi-pencil-fill"></i>
                         </a>
                         <form method="POST" action="{{ url_for('admin.deletar_colaborador', colaborador_id=colaborador.id) }}" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este colaborador? Esta ação não pode ser desfeita.');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-outline-danger" title="Deletar">
-                                {# Use Bootstrap Icons se for o padrão #}
                                 <i class="bi bi-trash-fill"></i>
                             </button>
                         </form>

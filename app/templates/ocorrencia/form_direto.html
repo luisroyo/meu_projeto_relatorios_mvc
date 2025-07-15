@@ -10,12 +10,12 @@ content %}
     </p>
   </div>
 
-  <form method="POST" novalidate>
+  <form method="POST" novalidate autocomplete="off">
     {{ form.hidden_tag() }}
 
     <div class="row g-4">
       <div class="col-lg-7">
-        <div class="card shadow-sm mb-4">
+        <div class="card shadow-lg animate__animated animate__fadeIn mb-4">
           <div class="card-header bg-light border-bottom">
             <h5 class="mb-0 fs-6 fw-bold">
               <i class="bi bi-geo-alt-fill me-2 text-primary"></i>Contexto da
@@ -24,29 +24,28 @@ content %}
           </div>
           <div class="card-body p-4">
             <div class="row">
-              <div class="col-md-6 mb-3">
-                {{ render_field(form.condominio_id, label_visible=true,
-                label_text="CONDOMÍNIO") }}
+              <div class="col-md-6 mb-3 form-floating">
+                {{ render_field(form.condominio_id, label_visible=false,
+                class="form-select", id="condominio_id") }}
+                <label for="condominio_id">CONDOMÍNIO</label>
               </div>
-              <div class="col-md-6 mb-3">
-                {{ render_field(form.supervisor_id, label_visible=true,
-                label_text="SUPERVISOR") }}
+              <div class="col-md-6 mb-3 form-floating">
+                {{ render_field(form.supervisor_id, label_visible=false,
+                class="form-select", id="supervisor_id") }}
+                <label for="supervisor_id">SUPERVISOR</label>
               </div>
             </div>
             <div class="row">
-              <div class="col-md-6 mb-3">
-                <label
-                  for="{{ form.data_hora_ocorrencia.id }}"
-                  class="form-label"
-                  >DATA E HORA DA OCORRÊNCIA</label
-                >
+              <div class="col-md-6 mb-3 form-floating">
                 <input
                   type="datetime-local"
-                  id="{{ form.data_hora_ocorrencia.id }}"
+                  id="data_hora_ocorrencia"
                   name="{{ form.data_hora_ocorrencia.name }}"
                   class="form-control {% if form.data_hora_ocorrencia.errors %}is-invalid{% endif %}"
                   value="{{ form.data_hora_ocorrencia.data | format_for_input if form.data_hora_ocorrencia.data else '' }}"
+                  placeholder="DATA E HORA DA OCORRÊNCIA"
                 />
+                <label for="data_hora_ocorrencia">DATA E HORA DA OCORRÊNCIA</label>
                 {% if form.data_hora_ocorrencia.errors %}
                 <div class="invalid-feedback">
                   {% for error in form.data_hora_ocorrencia.errors %} {{ error
@@ -54,15 +53,16 @@ content %}
                 </div>
                 {% endif %}
               </div>
-              <div class="col-md-6 mb-3">
-                {{ render_field(form.turno, id="turno", label_visible=true,
-                label_text="TURNO") }}
+              <div class="col-md-6 mb-3 form-floating">
+                {{ render_field(form.turno, label_visible=false,
+                class="form-select", id="turno") }}
+                <label for="turno">TURNO</label>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="card shadow-sm">
+        <div class="card shadow-lg animate__animated animate__fadeIn">
           <div class="card-header bg-light border-bottom">
             <h5 class="mb-0 fs-6 fw-bold">
               <i class="bi bi-card-checklist me-2 text-primary"></i>Detalhes do
@@ -71,33 +71,39 @@ content %}
           </div>
           <div class="card-body p-4">
             <div class="row">
-              <div class="col-md-6 mb-3">
-                {{ render_field(form.ocorrencia_tipo_id, label_visible=true,
-                label_text="TIPO DA OCORRÊNCIA") }}
+              <div class="col-md-6 mb-3 form-floating">
+                {{ render_field(form.ocorrencia_tipo_id, label_visible=false,
+                class="form-select", id="ocorrencia_tipo_id") }}
+                <label for="ocorrencia_tipo_id">TIPO DA OCORRÊNCIA</label>
               </div>
-              <div class="col-md-6 mb-3">
-                {{ render_field(form.status, label_visible=true,
-                label_text="STATUS") }}
+              <div class="col-md-6 mb-3 form-floating">
+                {{ render_field(form.status, label_visible=false,
+                class="form-select", id="status") }}
+                <label for="status">STATUS</label>
               </div>
             </div>
-            <div class="mb-3">
-              {{ render_field(form.endereco_especifico, label_visible=true,
-              label_text="ENDEREÇO ESPECÍFICO (OPCIONAL)") }}
+            <div class="mb-3 form-floating">
+              {{ render_field(form.endereco_especifico, label_visible=false,
+              class="form-control", id="endereco_especifico",
+              placeholder="ENDEREÇO ESPECÍFICO (OPCIONAL)") }}
+              <label for="endereco_especifico">ENDEREÇO ESPECÍFICO (OPCIONAL)</label>
             </div>
-            <div class="mb-3">
-              {{ render_field(form.colaboradores_envolvidos, label_visible=true,
-              label_text="COLABORADORES ENVOLVIDOS") }}
+            <div class="mb-3 form-floating">
+              {{ render_field(form.colaboradores_envolvidos, label_visible=false,
+              class="form-select", id="colaboradores_envolvidos") }}
+              <label for="colaboradores_envolvidos">COLABORADORES ENVOLVIDOS</label>
             </div>
-            <div class="mb-3">
-              {{ render_field(form.orgaos_acionados, label_visible=true,
-              label_text="ÓRGÃOS PÚBLICOS ACIONADOS") }}
+            <div class="mb-3 form-floating">
+              {{ render_field(form.orgaos_acionados, label_visible=false,
+              class="form-select", id="orgaos_acionados") }}
+              <label for="orgaos_acionados">ÓRGÃOS PÚBLICOS ACIONADOS</label>
             </div>
           </div>
         </div>
       </div>
 
       <div class="col-lg-5 d-flex flex-column">
-        <div class="card shadow-sm flex-grow-1">
+        <div class="card shadow-lg animate__animated animate__fadeIn flex-grow-1">
           <div
             class="card-header bg-light border-bottom d-flex justify-content-between align-items-center"
           >
@@ -116,7 +122,8 @@ content %}
           <div class="card-body p-3 d-flex">
             {{ render_field(form.relatorio_final, label_visible=false,
             class="form-control h-100 border-0", rows="15",
-            placeholder="Descreva detalhadamente a ocorrência...") }}
+            placeholder="Descreva detalhadamente a ocorrência...",
+            id="relatorio_final") }}
           </div>
         </div>
 

@@ -5,18 +5,17 @@
 
 {% block content %}
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
         <div>
             <h2 class="mb-1"><i class="bi bi-list-task me-2"></i>{{ title }}</h2>
             <p class="lead text-muted mb-0">Visualize todas as rondas registradas no sistema.</p>
         </div>
         <div>
-            <a href="{{ url_for('ronda.registrar_ronda') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle me-1"></i>Registrar Nova Ronda
+            <a href="{{ url_for('ronda.registrar_ronda') }}" class="btn btn-primary d-flex align-items-center gap-2">
+                <i class="bi bi-plus-circle"></i> <span>Registrar Nova Ronda</span>
             </a>
         </div>
     </div>
-
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light border-bottom d-flex align-items-center">
             <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filtros</h5>
@@ -70,7 +69,6 @@
             </form>
         </div>
     </div>
-
     <div class="card shadow-sm">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -95,20 +93,23 @@
                         <td>{{ ronda.supervisor.username if ronda.supervisor else 'Automático' }}</td>
                         <td class="text-center">{{ ronda.total_rondas_no_log or 0 }}</td>
                         <td class="text-end text-nowrap">
-                            <a href="{{ url_for('ronda.detalhes_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-info" title="Ver Detalhes">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            <a href="{{ url_for('ronda.registrar_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-warning ms-1" title="Editar Ronda">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            {% if current_user.is_admin %}
-                            <form action="{{ url_for('ronda.excluir_ronda', ronda_id=ronda.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta ronda?');">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                <button type="submit" class="btn btn-sm btn-danger ms-1" title="Excluir Ronda">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                            {% endif %}
+                            <div class="btn-group btn-group-sm rounded-pill shadow-sm" role="group" aria-label="Ações da Ronda">
+                                <a href="{{ url_for('ronda.detalhes_ronda', ronda_id=ronda.id) }}" class="btn btn-info rounded-start" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver Detalhes">
+                                    <i class="bi bi-eye fs-5"></i>
+                                </a>
+                                <a href="{{ url_for('ronda.registrar_ronda', ronda_id=ronda.id) }}" class="btn btn-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar Ronda">
+                                    <i class="bi bi-pencil fs-5"></i>
+                                </a>
+                                {% if current_user.is_admin %}
+                                <form action="{{ url_for('ronda.excluir_ronda', ronda_id=ronda.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta ronda?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <button type="submit" class="btn btn-danger rounded-end" data-bs-toggle="tooltip" data-bs-placement="top" title="Excluir Ronda">
+                                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                        <i class="bi bi-trash fs-5"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% else %}
