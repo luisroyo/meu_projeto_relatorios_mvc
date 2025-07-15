@@ -25,6 +25,7 @@ def get_ocorrencia_dashboard_data(filters):
     )
 
     total_ocorrencias = base_kpi_query.count()
+    logger.info(f"Total de ocorrências encontradas: {total_ocorrencias}")
 
     status_abertos = [
         'Registrada',
@@ -63,6 +64,9 @@ def get_ocorrencia_dashboard_data(filters):
     condominio_labels = [item[0] for item in ocorrencias_por_condominio]
     ocorrencias_por_condominio_data = [item[1] for item in ocorrencias_por_condominio]
 
+    # --- DEBUG: Logs para evolução diária ---
+    logger.info(f"Filtros aplicados: {filters}")
+    
     ocorrencias_por_dia_q = db.session.query(
         func.date(Ocorrencia.data_hora_ocorrencia), func.count(Ocorrencia.id)
     )
@@ -74,11 +78,17 @@ def get_ocorrencia_dashboard_data(filters):
         .order_by(func.date(Ocorrencia.data_hora_ocorrencia))
         .all()
     )
+    
+    logger.info(f"Dados de ocorrências por dia: {ocorrencias_por_dia}")
 
     evolucao_date_labels, evolucao_ocorrencia_data = [], []
     date_start_range, date_end_range = parse_date_range(
         filters.get("data_inicio_str"), filters.get("data_fim_str")
     )
+    
+    logger.info(f"Range de datas: {date_start_range} até {date_end_range}")
+    logger.info(f"Dias no range: {(date_end_range - date_start_range).days}")
+    
     if (date_end_range - date_start_range).days < 366:
         evolucao_date_labels = date_utils.generate_date_labels(
             date_start_range, date_end_range
@@ -86,6 +96,11 @@ def get_ocorrencia_dashboard_data(filters):
         evolucao_ocorrencia_data = chart_data.fill_series_with_zeros(
             ocorrencias_por_dia, evolucao_date_labels
         )
+        
+        logger.info(f"Labels de data gerados: {len(evolucao_date_labels)}")
+        logger.info(f"Dados de evolução: {evolucao_ocorrencia_data}")
+        logger.info(f"Primeiros 5 labels: {evolucao_date_labels[:5]}")
+        logger.info(f"Primeiros 5 dados: {evolucao_ocorrencia_data[:5]}")
 
     ultimas_ocorrencias_q = (
         db.session.query(Ocorrencia)

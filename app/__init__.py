@@ -140,6 +140,7 @@ def create_app(
 
         app_instance.cli.add_command(commands.seed_db_command)
         app_instance.cli.add_command(commands.assign_supervisors_command)
+        app_instance.cli.add_command(commands.check_ocorrencias_data_command)
 
     module_logger.info(
         "Aplicação Flask completamente configurada e pronta para ser retornada."
