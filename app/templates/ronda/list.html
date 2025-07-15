@@ -46,9 +46,10 @@
                         <label for="turno" class="form-label">Turno</label>
                         <select name="turno" id="turno" class="form-select">
                             <option value="">Todos</option>
-                            {% for t in turnos %}
-                                <option value="{{ t }}" {% if filter_params.turno == t %}selected{% endif %}>{{ t }}</option>
-                            {% endfor %}
+                            <option value="Noturno Par" {% if filter_params.turno == 'Noturno Par' %}selected{% endif %}>Noturno Par</option>
+                            <option value="Noturno Impar" {% if filter_params.turno == 'Noturno Impar' %}selected{% endif %}>Noturno Impar</option>
+                            <option value="Diurno Par" {% if filter_params.turno == 'Diurno Par' %}selected{% endif %}>Diurno Par</option>
+                            <option value="Diurno Impar" {% if filter_params.turno == 'Diurno Impar' %}selected{% endif %}>Diurno Impar</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -94,7 +95,6 @@
                         <td>{{ ronda.supervisor.username if ronda.supervisor else 'Automático' }}</td>
                         <td class="text-center">{{ ronda.total_rondas_no_log or 0 }}</td>
                         <td class="text-end text-nowrap">
-                            {# MUDANÇA: Usando btn-info para consistência total com outras telas #}
                             <a href="{{ url_for('ronda.detalhes_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-info" title="Ver Detalhes">
                                 <i class="bi bi-eye"></i>
                             </a>
