@@ -11,40 +11,33 @@
     <hr>
 
     <div class="row justify-content-center">
-        <div class="col-lg-10 col-xl-8"> {# Coluna um pouco mais larga para os textareas #}
-            <div class="card shadow-sm">
+        <div class="col-lg-10 col-xl-8">
+            <div class="card shadow-lg animate__animated animate__fadeIn">
                 <div class="card-body p-4">
-                    <form method="POST" action="{{ url_for('admin.format_email_report_tool') }}" novalidate>
-                        {{ form.hidden_tag() }} {# Proteção CSRF #}
-
-                        <div class="mb-3">
-                            {{ form.raw_report.label(class="form-label") }}
-                            {{ form.raw_report(class="form-control form-control-lg" + (" is-invalid" if form.raw_report.errors else ""), rows="12") }}
+                    <form method="POST" action="{{ url_for('admin.format_email_report_tool') }}" novalidate autocomplete="off">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3 form-floating">
+                            {{ form.raw_report(class="form-control form-control-lg" + (" is-invalid" if form.raw_report.errors else ""), rows="12", id="raw_report_textarea", placeholder="Cole aqui o relatório bruto...") }}
+                            <label for="raw_report_textarea">Relatório Bruto</label>
                             {% if form.raw_report.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {% for error in form.raw_report.errors %}
-                                        <span>{{ error }}</span><br>
-                                    {% endfor %}
+                                    {% for error in form.raw_report.errors %}<span>{{ error }}</span><br>{% endfor %}
                                 </div>
                             {% endif %}
                         </div>
-
                         <h6 class="mt-4 mb-3"><i class="bi bi-sliders me-2"></i>Opções de Formatação:</h6>
-                        
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <div class="form-check mb-2">
                                     {{ form.include_greeting(class="form-check-input", id="include_greeting_checkbox") }}
                                     {{ form.include_greeting.label(class="form-check-label", for="include_greeting_checkbox") }}
                                 </div>
-                                <div class="mb-3 ps-4">
-                                    {{ form.custom_greeting.label(class="form-label form-label-sm") }}
-                                    {{ form.custom_greeting(class="form-control form-control-sm" + (" is-invalid" if form.custom_greeting.errors else ""), rows="2", id="custom_greeting_text") }}
+                                <div class="mb-3 ps-4 form-floating">
+                                    {{ form.custom_greeting(class="form-control form-control-sm" + (" is-invalid" if form.custom_greeting.errors else ""), rows="2", id="custom_greeting_text", placeholder="Saudação personalizada...") }}
+                                    <label for="custom_greeting_text">Saudação personalizada</label>
                                     {% if form.custom_greeting.errors %}
                                         <div class="invalid-feedback d-block">
-                                            {% for error in form.custom_greeting.errors %}
-                                                <span>{{ error }}</span><br>
-                                            {% endfor %}
+                                            {% for error in form.custom_greeting.errors %}<span>{{ error }}</span><br>{% endfor %}
                                         </div>
                                     {% endif %}
                                 </div>
@@ -54,20 +47,17 @@
                                     {{ form.include_closing(class="form-check-input", id="include_closing_checkbox") }}
                                     {{ form.include_closing.label(class="form-check-label", for="include_closing_checkbox") }}
                                 </div>
-                                <div class="mb-3 ps-4">
-                                    {{ form.custom_closing.label(class="form-label form-label-sm") }}
-                                    {{ form.custom_closing(class="form-control form-control-sm" + (" is-invalid" if form.custom_closing.errors else ""), rows="2", id="custom_closing_text") }}
+                                <div class="mb-3 ps-4 form-floating">
+                                    {{ form.custom_closing(class="form-control form-control-sm" + (" is-invalid" if form.custom_closing.errors else ""), rows="2", id="custom_closing_text", placeholder="Fecho personalizado...") }}
+                                    <label for="custom_closing_text">Fecho personalizado</label>
                                     {% if form.custom_closing.errors %}
                                         <div class="invalid-feedback d-block">
-                                            {% for error in form.custom_closing.errors %}
-                                                <span>{{ error }}</span><br>
-                                            {% endfor %}
+                                            {% for error in form.custom_closing.errors %}<span>{{ error }}</span><br>{% endfor %}
                                         </div>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
-                        
                         <div class="d-grid mt-4">
                             {{ form.submit(class="btn btn-primary btn-lg") }}
                         </div>

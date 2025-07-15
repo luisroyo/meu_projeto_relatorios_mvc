@@ -2,112 +2,69 @@
 {# MUDANÇA: Importando o macro de status #} {% block title %}{{ title }}{%
 endblock %} {% block content %}
 <div class="container mt-4">
-  <h2><i class="bi bi-file-earmark-text-fill me-2"></i>{{ title }}</h2>
+  <h2 class="mb-3"><i class="bi bi-file-earmark-text-fill me-2"></i>{{ title }}</h2>
   <p class="lead">Detalhes completos da ocorrência oficial registrada.</p>
-
-  <div class="card shadow-sm mb-4">
-    {# MUDANÇA: Cabeçalho padronizado para bg-light, mais limpo e consistente #}
-    <div
-      class="card-header bg-light d-flex justify-content-between align-items-center"
-    >
+  <div class="card shadow-lg animate__animated animate__fadeIn mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
       <h5 class="mb-0 fs-6 fw-bold">Resumo da Ocorrência</h5>
-      {# MUDANÇA: Usando o macro para garantir consistência visual do status #}
       {{ render_status_badge(ocorrencia.status) }}
     </div>
     <div class="card-body">
-      <div class="row">
+      <div class="row g-4">
         <div class="col-md-6">
-          <p><strong>ID da Ocorrência:</strong> {{ ocorrencia.id }}</p>
-          <p>
-            <strong>Tipo:</strong> {{ ocorrencia.tipo.nome if ocorrencia.tipo
-            else 'N/A' }}
-          </p>
-          <p>
-            <strong>Data e Hora da Ocorrência:</strong> {{
-            ocorrencia.data_hora_ocorrencia | localtime }}
-          </p>
-          <p>
-            <strong>Registrada por:</strong> {{
-            ocorrencia.registrado_por.username if ocorrencia.registrado_por else
-            'N/A' }}
-          </p>
-          <p>
-            <strong>Supervisor:</strong> {{ ocorrencia.supervisor.username if
-            ocorrencia.supervisor else 'N/A' }}
-          </p>
-          <p>
-            <strong>Condomínio:</strong> {{ ocorrencia.condominio.nome if
-            ocorrencia.condominio else 'N/A' }}
-          </p>
-          <p><strong>Turno:</strong> {{ ocorrencia.turno or 'N/A' }}</p>
+          <ul class="list-group list-group-flush mb-3">
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>ID da Ocorrência:</strong> {{ ocorrencia.id }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Tipo:</strong> {{ ocorrencia.tipo.nome if ocorrencia.tipo else 'N/A' }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Data e Hora:</strong> {{ ocorrencia.data_hora_ocorrencia | localtime }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Registrada por:</strong> {{ ocorrencia.registrado_por.username if ocorrencia.registrado_por else 'N/A' }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Supervisor:</strong> {{ ocorrencia.supervisor.username if ocorrencia.supervisor else 'N/A' }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Condomínio:</strong> {{ ocorrencia.condominio.nome if ocorrencia.condominio else 'N/A' }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Turno:</strong> {{ ocorrencia.turno or 'N/A' }}</li>
+          </ul>
         </div>
         <div class="col-md-6">
-          <p>
-            <strong>Endereço Específico:</strong> {{
-            ocorrencia.endereco_especifico or 'Não informado' }}
-          </p>
-          <div class="mb-3">
-            <strong>Órgãos Acionados:</strong>
-            <div>
-              {% if ocorrencia.orgaos_acionados %} {% for orgao in
-              ocorrencia.orgaos_acionados %} {# PADRÃO: bg-info é bom para tags
-              informativas #}
-              <span class="badge bg-info text-dark me-1">{{ orgao.nome }}</span>
-              {% endfor %} {% else %}
-              <span class="text-muted">Nenhum</span>
+          <ul class="list-group list-group-flush mb-3">
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Endereço Específico:</strong> {{ ocorrencia.endereco_especifico or 'Não informado' }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1">
+              <strong>Órgãos Acionados:</strong>
+              <span>
+                {% if ocorrencia.orgaos_acionados %}
+                  {% for orgao in ocorrencia.orgaos_acionados %}
+                    <span class="badge bg-info text-dark me-1">{{ orgao.nome }}</span>
+                  {% endfor %}
+                {% else %}
+                  <span class="text-muted">Nenhum</span>
+                {% endif %}
+              </span>
+            </li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1">
+              <strong>Colaboradores Envolvidos:</strong>
+              {% if ocorrencia.colaboradores_envolvidos %}
+                <ul class="list-inline mb-0">
+                  {% for colaborador in ocorrencia.colaboradores_envolvidos %}
+                    <li class="list-inline-item bg-light rounded px-2 py-1 mb-1">{{ colaborador.nome_completo }}</li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <span class="text-muted">Nenhum</span>
               {% endif %}
-            </div>
-          </div>
-
-          <div>
-            <strong>Colaboradores Envolvidos:</strong>
-            {% if ocorrencia.colaboradores_envolvidos %}
-            <ul class="list-group list-group-flush">
-              {% for colaborador in ocorrencia.colaboradores_envolvidos %}
-              <li class="list-group-item py-1 ps-0 bg-transparent border-0">
-                {{ colaborador.nome_completo }}
-              </li>
-              {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-muted d-inline">Nenhum</p>
-            {% endif %}
-          </div>
+            </li>
+          </ul>
         </div>
       </div>
       <hr />
       <h6 class="fw-bold">Relatório Final Oficial</h6>
-      {# MUDANÇA: Usando a nova classe .themed-pre para se adaptar aos temas #}
       <pre class="themed-pre">{{ ocorrencia.relatorio_final }}</pre>
     </div>
   </div>
-
-  <div class="d-flex justify-content-between">
-    {# MUDANÇA: Botão secundário padronizado para btn-outline-secondary #}
-    <a
-      href="{{ url_for('ocorrencia.listar_ocorrencias') }}"
-      class="btn btn-outline-secondary"
-      ><i class="bi bi-arrow-left me-1"></i>Voltar ao Histórico</a
-    >
+  <div class="d-flex justify-content-between flex-wrap gap-2">
+    <a href="{{ url_for('ocorrencia.listar_ocorrencias') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar ao Histórico</a>
     <div>
-      {# PADRÃO: btn-warning para editar está correto #}
-      <a
-        href="{{ url_for('ocorrencia.editar_ocorrencia', ocorrencia_id=ocorrencia.id) }}"
-        class="btn btn-warning"
-        ><i class="bi bi-pencil me-1"></i>Editar Ocorrência</a
-      >
+      <a href="{{ url_for('ocorrencia.editar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-warning"><i class="bi bi-pencil me-1"></i>Editar Ocorrência</a>
       {% if current_user.is_admin %}
-      <form
-        action="{{ url_for('ocorrencia.deletar_ocorrencia', ocorrencia_id=ocorrencia.id) }}"
-        method="POST"
-        class="d-inline"
-        onsubmit="return confirm('Tem certeza que deseja excluir esta ocorrência? Esta ação não pode ser desfeita.');"
-      >
+      <form action="{{ url_for('ocorrencia.deletar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta ocorrência? Esta ação não pode ser desfeita.');">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-        {# PADRÃO: btn-danger para excluir está correto #}
-        <button type="submit" class="btn btn-danger ms-2">
-          <i class="bi bi-trash me-1"></i>Excluir Ocorrência
-        </button>
+        <button type="submit" class="btn btn-danger ms-2"><i class="bi bi-trash me-1"></i>Excluir Ocorrência</button>
       </form>
       {% endif %}
     </div>
