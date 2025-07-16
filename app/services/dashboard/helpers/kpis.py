@@ -219,41 +219,75 @@ def get_ocorrencia_period_info(base_kpi_query, date_start_range, date_end_range)
     """
     Calcula informações adicionais sobre o período de ocorrências para melhorar os KPIs.
     Retorna informações sobre a última data registrada e período real de dados.
+    Garante que as datas nunca extrapolem o range filtrado.
     """
     try:
-        # Busca a primeira e última data registrada no período
+        # Busca a primeira e última data registrada no período (com fallback para o range filtrado)
         primeira_data = base_kpi_query.with_entities(
             func.min(Ocorrencia.data_hora_ocorrencia)
         ).scalar()
-        
         ultima_data = base_kpi_query.with_entities(
             func.max(Ocorrencia.data_hora_ocorrencia)
         ).scalar()
-        
+
+        # Converter para date se for datetime
+        if primeira_data and hasattr(primeira_data, 'date'):
+            primeira_data_date = primeira_data.date()
+        else:
+            primeira_data_date = primeira_data
+        if ultima_data and hasattr(ultima_data, 'date'):
+            ultima_data_date = ultima_data.date()
+        else:
+            ultima_data_date = ultima_data
+
+        # Limita as datas ao range filtrado
+        if primeira_data_date:
+            if primeira_data_date < date_start_range:
+                primeira_data_date = date_start_range
+            elif primeira_data_date > date_end_range:
+                primeira_data_date = date_end_range
+        else:
+            primeira_data_date = date_start_range
+
+        if ultima_data_date:
+            if ultima_data_date > date_end_range:
+                ultima_data_date = date_end_range
+            elif ultima_data_date < date_start_range:
+                ultima_data_date = date_start_range
+        else:
+            ultima_data_date = date_end_range
+
         # Calcula o período real de dados
         periodo_real_dias = 0
-        if primeira_data and ultima_data:
-            periodo_real_dias = (ultima_data.date() - primeira_data.date()).days + 1
-        
-        # Calcula quantos dias do período solicitado têm dados
-        dias_com_dados = base_kpi_query.with_entities(
-            func.count(func.distinct(func.date(Ocorrencia.data_hora_ocorrencia)))
-        ).scalar() or 0
-        
+        if primeira_data_date and ultima_data_date:
+            periodo_real_dias = (ultima_data_date - primeira_data_date).days + 1
+
+        # Corrigir: contar dias distintos com ocorrências dentro do período filtrado
+        dias_com_dados = (
+            base_kpi_query.session.query(
+                func.count(func.distinct(func.date(Ocorrencia.data_hora_ocorrencia)))
+            )
+            .filter(
+                Ocorrencia.data_hora_ocorrencia >= date_start_range,
+                Ocorrencia.data_hora_ocorrencia <= date_end_range
+            )
+            .scalar()
+        ) or 0
+
         return {
-            "primeira_data_registrada": primeira_data,
-            "ultima_data_registrada": ultima_data,
+            "primeira_data_registrada": primeira_data_date,
+            "ultima_data_registrada": ultima_data_date,
             "periodo_real_dias": periodo_real_dias,
             "dias_com_dados": dias_com_dados,
             "periodo_solicitado_dias": (date_end_range - date_start_range).days + 1,
             "cobertura_periodo": round((dias_com_dados / ((date_end_range - date_start_range).days + 1)) * 100, 1) if (date_end_range - date_start_range).days > 0 else 0
         }
-        
+
     except Exception as e:
         logger.error(f"Erro ao calcular informações do período de ocorrências: {e}", exc_info=True)
         return {
-            "primeira_data_registrada": None,
-            "ultima_data_registrada": None,
+            "primeira_data_registrada": date_start_range,
+            "ultima_data_registrada": date_end_range,
             "periodo_real_dias": 0,
             "dias_com_dados": 0,
             "periodo_solicitado_dias": (date_end_range - date_start_range).days + 1,

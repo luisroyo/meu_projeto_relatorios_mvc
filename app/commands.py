@@ -732,3 +732,64 @@ def test_supervisor_specific_command():
     media_junho = round(total_rondas_junho / dias_junho, 1) if dias_junho > 0 else 0
     
     click.echo(f"Junho - Total: {total_rondas_junho}, Dias: {dias_junho}, Média: {media_junho}/dia")
+
+
+@click.command("debug-ocorrencias-mes")
+@click.option('--ano', default=2025, help='Ano para filtrar (default: 2025)')
+@click.option('--mes', default=6, help='Mês para filtrar (default: 6 - junho)')
+@with_appcontext
+def debug_ocorrencias_mes_command(ano, mes):
+    """
+    Executa queries de debug para ocorrências de um mês específico.
+    Lista todas as ocorrências do mês, dias distintos, e verifica se há ocorrências de outros meses sendo incluídas.
+    """
+    from app.models import Ocorrencia
+    from sqlalchemy import extract, func
+    from datetime import date, timedelta
+
+    click.echo(f"--- DEBUG OCORRÊNCIAS PARA {mes:02d}/{ano} ---")
+    data_inicio = date(ano, mes, 1)
+    if mes == 12:
+        data_fim = date(ano + 1, 1, 1) - timedelta(days=1)
+    else:
+        data_fim = date(ano, mes + 1, 1) - timedelta(days=1)
+
+    # 1. Lista todas as ocorrências do mês
+    ocorrencias = (
+        Ocorrencia.query
+        .filter(Ocorrencia.data_hora_ocorrencia >= data_inicio)
+        .filter(Ocorrencia.data_hora_ocorrencia <= data_fim)
+        .order_by(Ocorrencia.data_hora_ocorrencia)
+        .all()
+    )
+    click.echo(f"Total de ocorrências entre {data_inicio} e {data_fim}: {len(ocorrencias)}")
+    for o in ocorrencias:
+        click.echo(f"  ID: {o.id} | Data: {o.data_hora_ocorrencia} | Status: {o.status}")
+
+    # 2. Dias distintos com ocorrências
+    dias_distintos = (
+        Ocorrencia.query
+        .with_entities(func.date(Ocorrencia.data_hora_ocorrencia))
+        .filter(Ocorrencia.data_hora_ocorrencia >= data_inicio)
+        .filter(Ocorrencia.data_hora_ocorrencia <= data_fim)
+        .group_by(func.date(Ocorrencia.data_hora_ocorrencia))
+        .order_by(func.date(Ocorrencia.data_hora_ocorrencia))
+        .all()
+    )
+    click.echo(f"Dias distintos com ocorrências em {mes:02d}/{ano}: {len(dias_distintos)}")
+    for d in dias_distintos:
+        click.echo(f"  Dia: {d[0]}")
+
+    # 3. Ocorrências após o período (para checagem)
+    ocorrencias_julho = (
+        Ocorrencia.query
+        .filter(Ocorrencia.data_hora_ocorrencia > data_fim)
+        .order_by(Ocorrencia.data_hora_ocorrencia)
+        .limit(20)
+        .all()
+    )
+    click.echo(f"Ocorrências após {data_fim} (primeiros 20 registros): {len(ocorrencias_julho)}")
+    for o in ocorrencias_julho:
+        click.echo(f"  ID: {o.id} | Data: {o.data_hora_ocorrencia} | Status: {o.status}")
+
+    click.echo("--- FIM DO DEBUG ---")

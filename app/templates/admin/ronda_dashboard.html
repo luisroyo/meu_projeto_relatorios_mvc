@@ -93,14 +93,6 @@
                                data-bs-placement="top" 
                                title="Soma total de todas as rondas registradas no período selecionado, considerando o campo 'total_rondas_no_log' de cada registro."></i>
                         </div>
-                        {% if comparacao_periodo %}
-                        <div class="d-flex align-items-center gap-1">
-                            <span class="badge bg-{{ comparacao_periodo.status }} fs-6">{{ comparacao_periodo.variacao_percentual }}%</span>
-                            <span class="badge bg-{{ 'success' if comparacao_periodo.dados_atualizados else 'warning' }} fs-6">
-                                <i class="bi bi-{{ 'check-circle' if comparacao_periodo.dados_atualizados else 'exclamation-triangle' }}"></i>
-                            </span>
-                        </div>
-                        {% endif %}
                     </div>
                     <p class="card-text fs-1 fw-bold text-primary mb-0">{{ total_rondas }}</p>
                     {% if comparacao_periodo and comparacao_periodo.variacao_percentual != 0 %}
@@ -212,8 +204,8 @@
                         </div>
                     </div>
                     {% if periodo_info.cobertura_periodo < 100 %}
-                    <div class="mt-3 p-2 bg-warning bg-opacity-10 border border-warning rounded">
-                        <small class="text-warning">
+                    <div class="mt-3 p-2 bg-warning border border-warning rounded">
+                        <small class="text-dark fw-bold">
                             <i class="bi bi-exclamation-triangle me-1"></i>
                             <strong>Nota:</strong> A média de rondas por dia foi calculada considerando apenas os dias que possuem dados registrados ({{ periodo_info.dias_com_dados }} dias), não o período total solicitado.
                         </small>
