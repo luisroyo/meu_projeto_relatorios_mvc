@@ -129,32 +129,10 @@
         </div>
     </div>
 
-    {# O Bloco de Paginação será renderizado aqui, se existir. Adapte conforme sua implementação. #}
+    {# Paginação usando o helper #}
     {% if ocorrencias_pagination.pages > 1 %}
-    <nav aria-label="Paginação de Ocorrências" class="mt-4">
-        <ul class="pagination justify-content-center">
-            {# Link para a página anterior #}
-            <li class="page-item {% if not ocorrencias_pagination.has_prev %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('ocorrencia.listar_ocorrencias', page=ocorrencias_pagination.prev_num, **request.args) if ocorrencias_pagination.has_prev else '#'}}">Anterior</a>
-            </li>
-            {# Links para as páginas #}
-            {% for page_num in ocorrencias_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                {% if page_num %}
-                    {% if ocorrencias_pagination.page == page_num %}
-                        <li class="page-item active" aria-current="page"><span class="page-link">{{ page_num }}</span></li>
-                    {% else %}
-                        <li class="page-item"><a class="page-link" href="{{ url_for('ocorrencia.listar_ocorrencias', page=page_num, **request.args) }}">{{ page_num }}</a></li>
-                    {% endif %}
-                {% else %}
-                    <li class="page-item disabled"><span class="page-link">…</span></li>
-                {% endif %}
-            {% endfor %}
-            {# Link para a próxima página #}
-            <li class="page-item {% if not ocorrencias_pagination.has_next %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('ocorrencia.listar_ocorrencias', page=ocorrencias_pagination.next_num, **request.args) if ocorrencias_pagination.has_next else '#'}}">Próximo</a>
-            </li>
-        </ul>
-    </nav>
+        {% from "_pagination_helper.html" import render_pagination %}
+        {{ render_pagination(ocorrencias_pagination, 'ocorrencia.listar_ocorrencias', query_params=filter_args) }}
     {% endif %}
 
     {% else %}

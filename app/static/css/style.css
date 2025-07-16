@@ -510,3 +510,150 @@ body.dark-theme .table {
   font-size: 1rem;
 }
 /* --- Fim do bloco de modernização do dashboard --- */
+
+/* ================================================================== */
+/* ESTILOS ESPECÍFICOS PARA FORMULÁRIOS DE OCORRÊNCIAS               */
+/* ================================================================== */
+
+/* Melhorias no layout do formulário de ocorrências */
+.form-label {
+  font-weight: 500;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+.form-control,
+.form-select {
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  padding: 0.75rem;
+  font-size: 1rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(var(--primary-color-rgb), 0.25);
+}
+
+/* Área de texto do relatório */
+#relatorio_final {
+  min-height: 400px;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  resize: vertical;
+  border-radius: 0.5rem;
+}
+
+/* Melhorar espaçamento dos campos */
+.form-control,
+.form-select {
+  margin-bottom: 0.5rem;
+}
+
+/* Campos de data e hora */
+input[type="datetime-local"] {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  font-size: 1rem;
+}
+
+/* Select2 customizado */
+.select2-container--bootstrap-5 .select2-selection {
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  padding: 0.75rem;
+  min-height: 3rem;
+}
+
+/* Cards com melhor espaçamento */
+.card {
+  border-radius: 0.75rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* Botões com melhor espaçamento */
+.btn {
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-lg {
+  padding: 0.75rem 1.5rem;
+  font-size: 1.125rem;
+}
+
+/* Select2 customizado */
+.select2-container--bootstrap-5 .select2-selection {
+  height: calc(3.5rem + 2px);
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single {
+  padding: 1rem 0.75rem;
+}
+
+.select2-container--bootstrap-5 .select2-selection--multiple {
+  padding: 0.5rem 0.75rem;
+}
+
+/* Responsividade melhorada */
+@media (max-width: 1200px) {
+  .col-xl-7 {
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .container-fluid {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+  
+  #relatorio_final {
+    min-height: 300px;
+  }
+}
+
+/* Tema escuro para formulários */
+body.dark-theme .form-control,
+body.dark-theme .form-select {
+  background-color: var(--form-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+body.dark-theme .form-label {
+  color: var(--text-color);
+}
+
+body.dark-theme .card {
+  background-color: var(--content-bg);
+  border-color: var(--border-color);
+}
+
+body.dark-theme .card-header {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-bottom-color: var(--border-color);
+}
+
+body.dark-theme #relatorio_final {
+  background-color: var(--form-bg);
+  color: var(--text-color);
+  border-color: var(--border-color);
+}

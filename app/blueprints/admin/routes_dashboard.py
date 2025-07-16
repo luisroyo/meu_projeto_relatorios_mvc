@@ -254,15 +254,52 @@ def ocorrencia_dashboard():
 @login_required
 @admin_required
 def dashboard_comparativo():
-    """Exibe a página de análise mensal comparativa de rondas e ocorrências."""
+    """Exibe o dashboard comparativo de rondas vs ocorrências."""
     logger.info(f"Usuário '{current_user.username}' acessou o dashboard comparativo.")
 
-    # Pega o ano do parâmetro da URL, ou usa o ano atual como padrão
-    year = request.args.get("year", default=datetime.now().year, type=int)
+    # Parâmetros de filtro
+    year = request.args.get("year", type=int) or datetime.now().year
+    comparison_mode = request.args.get("comparison_mode", "all")  # 'all', 'single', 'comparison'
+    
+    # Seleção de meses
+    selected_months = []
+    if comparison_mode == 'single':
+        month = request.args.get("selected_month", type=int)
+        if month and 1 <= month <= 12:
+            selected_months = [month]
+    elif comparison_mode == 'comparison':
+        months_str = request.args.get("selected_months", "")
+        if months_str:
+            try:
+                selected_months = [int(m) for m in months_str.split(',') if 1 <= int(m) <= 12]
+            except ValueError:
+                selected_months = []
 
-    # Busca os dados processados pelo novo serviço
-    data = get_monthly_comparison_data(year)
+    filters = {
+        "condominio_id": request.args.get("condominio_id", type=int),
+        "supervisor_id": request.args.get("supervisor_id", type=int),
+        "turno": request.args.get("turno", ""),
+        "tipo_ocorrencia_id": request.args.get("tipo_ocorrencia_id", type=int),
+        "status": request.args.get("status", ""),
+        "data_inicio_str": request.args.get("data_inicio", ""),
+        "data_fim_str": request.args.get("data_fim", ""),
+    }
 
-    # Adiciona o título e renderiza o novo template com os dados
-    data["title"] = "Análise Mensal Comparativa"
+    # Remove filtros vazios
+    filters = {k: v for k, v in filters.items() if v not in [None, ""]}
+
+    # Busca dados
+    data = get_monthly_comparison_data(
+        year=year, 
+        filters=filters, 
+        selected_months=selected_months,
+        comparison_mode=comparison_mode
+    )
+
+    # Adiciona dados para o template
+    data["title"] = "Dashboard Comparativo: Rondas vs Ocorrências"
+    data["selected_year"] = year
+    data["comparison_mode"] = comparison_mode
+    data["selected_months"] = selected_months
+
     return render_template("admin/dashboard_comparativo.html", **data)

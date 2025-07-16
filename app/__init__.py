@@ -141,6 +141,12 @@ def create_app(
         app_instance.cli.add_command(commands.seed_db_command)
         app_instance.cli.add_command(commands.assign_supervisors_command)
         app_instance.cli.add_command(commands.check_ocorrencias_data_command)
+        app_instance.cli.add_command(commands.check_rondas_monthly_command)
+        app_instance.cli.add_command(commands.test_media_dia_trabalhado_command)
+        app_instance.cli.add_command(commands.investigate_rondas_discrepancy_command)
+        app_instance.cli.add_command(commands.test_media_dias_reais_command)
+        app_instance.cli.add_command(commands.check_supervisor_working_days_command)
+        app_instance.cli.add_command(commands.test_supervisor_specific_command)
 
     module_logger.info(
         "Aplicação Flask completamente configurada e pronta para ser retornada."
