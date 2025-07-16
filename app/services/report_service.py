@@ -97,7 +97,20 @@ class RondaReportService:
             
             # Informações do período
             if filters_info:
-                period_info = f"Período: {filters_info.get('data_inicio', 'N/A')} a {filters_info.get('data_fim', 'N/A')}"
+                # Ajusta datas para formato brasileiro
+                data_inicio = filters_info.get('data_inicio', '')
+                data_fim = filters_info.get('data_fim', '')
+                try:
+                    if data_inicio:
+                        data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').strftime('%d/%m/%Y')
+                except Exception:
+                    pass
+                try:
+                    if data_fim:
+                        data_fim = datetime.strptime(data_fim, '%Y-%m-%d').strftime('%d/%m/%Y')
+                except Exception:
+                    pass
+                period_info = f"Período: {data_inicio} a {data_fim}"
                 period_para = Paragraph(period_info, self.subtitle_style)
                 story.append(period_para)
                 story.append(Spacer(1, 12))
@@ -143,10 +156,27 @@ class RondaReportService:
                 story.append(Paragraph("Informações do Período", self.section_style))
                 periodo = dashboard_data['periodo_info']
                 
+                # Ajusta datas para formato brasileiro
+                primeira_data = periodo.get('primeira_data_registrada')
+                ultima_data = periodo.get('ultima_data_registrada')
+                if primeira_data and isinstance(primeira_data, (datetime,)):
+                    primeira_data = primeira_data.strftime('%d/%m/%Y')
+                elif primeira_data:
+                    try:
+                        primeira_data = datetime.strptime(str(primeira_data), '%Y-%m-%d').strftime('%d/%m/%Y')
+                    except Exception:
+                        pass
+                if ultima_data and isinstance(ultima_data, (datetime,)):
+                    ultima_data = ultima_data.strftime('%d/%m/%Y')
+                elif ultima_data:
+                    try:
+                        ultima_data = datetime.strptime(str(ultima_data), '%Y-%m-%d').strftime('%d/%m/%Y')
+                    except Exception:
+                        pass
                 periodo_data = [
                     ['Informação', 'Valor'],
-                    ['Primeira Data', periodo.get('primeira_data_registrada', 'N/A')],
-                    ['Última Data', periodo.get('ultima_data_registrada', 'N/A')],
+                    ['Primeira Data', primeira_data or 'N/A'],
+                    ['Última Data', ultima_data or 'N/A'],
                     ['Dias com Dados', f"{periodo.get('dias_com_dados', 0)} / {periodo.get('periodo_solicitado_dias', 0)}"],
                     ['Cobertura', f"{periodo.get('cobertura_periodo', 0)}%"]
                 ]
