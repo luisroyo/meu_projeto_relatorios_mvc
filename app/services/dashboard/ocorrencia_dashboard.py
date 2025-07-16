@@ -23,12 +23,20 @@ def get_ocorrencia_dashboard_data(filters):
     data_inicio_str = filters.get("data_inicio_str")
     data_fim_str = filters.get("data_fim_str")
     date_start_range, date_end_range = parse_date_range(data_inicio_str, data_fim_str)
-    
-    # 2. Query base para KPIs
+
+    # Sempre garantir o filtro de datas em todas as queries
+    def add_date_filter(query):
+        return query.filter(
+            Ocorrencia.data_hora_ocorrencia >= date_start_range,
+            Ocorrencia.data_hora_ocorrencia <= date_end_range
+        )
+
+    # 2. Query base para KPIs (com filtro de datas)
     base_kpi_query = db.session.query(Ocorrencia)
     base_kpi_query = ocorrencia_service.apply_ocorrencia_filters(
         base_kpi_query, filters
     )
+    base_kpi_query = add_date_filter(base_kpi_query)
 
     total_ocorrencias = base_kpi_query.count()
     logger.info(f"Total de ocorrências encontradas: {total_ocorrencias}")
@@ -47,6 +55,7 @@ def get_ocorrencia_dashboard_data(filters):
     ocorrencias_por_tipo_q = ocorrencia_service.apply_ocorrencia_filters(
         ocorrencias_por_tipo_q, filters
     )
+    ocorrencias_por_tipo_q = add_date_filter(ocorrencias_por_tipo_q)
     ocorrencias_por_tipo = (
         ocorrencias_por_tipo_q.group_by(OcorrenciaTipo.nome)
         .order_by(func.count(Ocorrencia.id).desc())
@@ -62,6 +71,7 @@ def get_ocorrencia_dashboard_data(filters):
     ocorrencias_por_condominio_q = ocorrencia_service.apply_ocorrencia_filters(
         ocorrencias_por_condominio_q, filters
     )
+    ocorrencias_por_condominio_q = add_date_filter(ocorrencias_por_condominio_q)
     ocorrencias_por_condominio = (
         ocorrencias_por_condominio_q.group_by(Condominio.nome)
         .order_by(func.count(Ocorrencia.id).desc())
@@ -72,26 +82,27 @@ def get_ocorrencia_dashboard_data(filters):
 
     # --- DEBUG: Logs para evolução diária ---
     logger.info(f"Filtros aplicados: {filters}")
-    
+
     ocorrencias_por_dia_q = db.session.query(
         func.date(Ocorrencia.data_hora_ocorrencia), func.count(Ocorrencia.id)
     )
     ocorrencias_por_dia_q = ocorrencia_service.apply_ocorrencia_filters(
         ocorrencias_por_dia_q, filters
     )
+    ocorrencias_por_dia_q = add_date_filter(ocorrencias_por_dia_q)
     ocorrencias_por_dia = (
         ocorrencias_por_dia_q.group_by(func.date(Ocorrencia.data_hora_ocorrencia))
         .order_by(func.date(Ocorrencia.data_hora_ocorrencia))
         .all()
     )
-    
+
     logger.info(f"Dados de ocorrências por dia: {ocorrencias_por_dia}")
 
     evolucao_date_labels, evolucao_ocorrencia_data = [], []
-    
+
     logger.info(f"Range de datas: {date_start_range} até {date_end_range}")
     logger.info(f"Dias no range: {(date_end_range - date_start_range).days}")
-    
+
     if (date_end_range - date_start_range).days < 366:
         evolucao_date_labels = date_utils.generate_date_labels(
             date_start_range, date_end_range
@@ -99,7 +110,7 @@ def get_ocorrencia_dashboard_data(filters):
         evolucao_ocorrencia_data = chart_data.fill_series_with_zeros(
             ocorrencias_por_dia, evolucao_date_labels
         )
-        
+
         logger.info(f"Labels de data gerados: {len(evolucao_date_labels)}")
         logger.info(f"Dados de evolução: {evolucao_ocorrencia_data}")
         logger.info(f"Primeiros 5 labels: {evolucao_date_labels[:5]}")
@@ -114,6 +125,7 @@ def get_ocorrencia_dashboard_data(filters):
     ultimas_ocorrencias_q = ocorrencia_service.apply_ocorrencia_filters(
         ultimas_ocorrencias_q, filters
     )
+    ultimas_ocorrencias_q = add_date_filter(ultimas_ocorrencias_q)
     ultimas_ocorrencias = (
         ultimas_ocorrencias_q.order_by(Ocorrencia.data_hora_ocorrencia.desc())
         .limit(10)
@@ -126,6 +138,7 @@ def get_ocorrencia_dashboard_data(filters):
     top_colaboradores_q = ocorrencia_service.apply_ocorrencia_filters(
         top_colaboradores_q, filters
     )
+    top_colaboradores_q = add_date_filter(top_colaboradores_q)
     top_colaboradores_raw = (
         top_colaboradores_q.group_by(Colaborador.nome_completo)
         .order_by(func.count(Ocorrencia.id).desc())
@@ -149,11 +162,27 @@ def get_ocorrencia_dashboard_data(filters):
     periodo_info = kpis_helper.get_ocorrencia_period_info(
         base_kpi_query, date_start_range, date_end_range
     )
-    
+
     # [NOVO] Comparação com período anterior
     comparacao_periodo = kpis_helper.calculate_ocorrencia_period_comparison(
         base_kpi_query, date_start_range, date_end_range
     )
+
+    # [NOVO] Tempo médio de resolução das ocorrências concluídas
+    ocorrencias_concluidas_q = base_kpi_query.filter(Ocorrencia.status == 'Concluída', Ocorrencia.data_modificacao.isnot(None))
+    tempos_resolucao = [
+        (o.data_modificacao - o.data_hora_ocorrencia).total_seconds() / 60.0
+        for o in ocorrencias_concluidas_q.all()
+        if o.data_modificacao and o.data_hora_ocorrencia and o.data_modificacao > o.data_hora_ocorrencia
+    ]
+    tempo_medio_resolucao_minutos = round(sum(tempos_resolucao) / len(tempos_resolucao), 1) if tempos_resolucao else None
+
+    # [NOVO] Média diária de ocorrências
+    dias_com_dados = periodo_info["dias_com_dados"] if periodo_info and "dias_com_dados" in periodo_info else 0
+    if dias_com_dados > 0:
+        media_diaria_ocorrencias = round(total_ocorrencias / dias_com_dados, 2)
+    else:
+        media_diaria_ocorrencias = None
 
     return {
         "total_ocorrencias": total_ocorrencias,
@@ -170,9 +199,13 @@ def get_ocorrencia_dashboard_data(filters):
         "ultimas_ocorrencias": ultimas_ocorrencias,
         "top_colaboradores_labels": top_colaboradores_labels,
         "top_colaboradores_data": top_colaboradores_data,
-        "selected_data_inicio_str": filters.get("data_inicio", ""),
-        "selected_data_fim_str": filters.get("data_fim", ""),
+        "selected_data_inicio_str": date_start_range.strftime("%Y-%m-%d"),
+        "selected_data_fim_str": date_end_range.strftime("%Y-%m-%d"),
         # [NOVO] Informações detalhadas sobre o período
         "periodo_info": periodo_info,
         "comparacao_periodo": comparacao_periodo,
+        # [NOVO] Tempo médio de resolução
+        "tempo_medio_resolucao_minutos": tempo_medio_resolucao_minutos,
+        # [NOVO] Média diária de ocorrências
+        "media_diaria_ocorrencias": media_diaria_ocorrencias,
     }
