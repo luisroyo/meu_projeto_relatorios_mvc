@@ -7,7 +7,7 @@ from datetime import timedelta
 import click
 from flask.cli import with_appcontext
 
-from app.models import EscalaMensal, Ocorrencia, Ronda, User
+from app.models import EscalaMensal, Ocorrencia, Ronda, User, Condominio
 
 from . import db
 
@@ -793,3 +793,75 @@ def debug_ocorrencias_mes_command(ano, mes):
         click.echo(f"  ID: {o.id} | Data: {o.data_hora_ocorrencia} | Status: {o.status}")
 
     click.echo("--- FIM DO DEBUG ---")
+
+
+@click.command("test-ronda-duplicada")
+@click.argument("condominio_nome")
+@click.argument("data_plantao")
+@click.argument("turno_ronda")
+@with_appcontext
+def test_ronda_duplicada_command(condominio_nome, data_plantao, turno_ronda):
+    """
+    Testa se existe uma ronda para o condomínio, data e turno informados.
+    Exemplo de uso:
+    flask test-ronda-duplicada "AROSA" 2025-07-14 "Noturno Par"
+    """
+    from app.models import Condominio, Ronda
+    from datetime import datetime
+    import click
+
+    cond = Condominio.query.filter_by(nome=condominio_nome).first()
+    if not cond:
+        click.echo(f"Condomínio '{condominio_nome}' não encontrado.")
+        return
+    try:
+        data_dt = datetime.strptime(data_plantao, "%Y-%m-%d").date()
+    except Exception as e:
+        click.echo(f"Data inválida: {e}")
+        return
+    rondas = Ronda.query.filter_by(
+        condominio_id=cond.id,
+        data_plantao_ronda=data_dt,
+        turno_ronda=turno_ronda
+    ).all()
+    if not rondas:
+        click.echo("Nenhuma ronda encontrada para esses parâmetros.")
+    else:
+        click.echo(f"{len(rondas)} ronda(s) encontrada(s):")
+        for r in rondas:
+            click.echo(f"ID: {r.id} | Data: {r.data_plantao_ronda} | Turno: {r.turno_ronda} | Condominio: {cond.nome} | user_id: {r.user_id}")
+
+
+@click.command("listar-rondas-condominio-data")
+@click.argument("condominio_nome")
+@click.argument("data_plantao")
+@with_appcontext
+def listar_rondas_condominio_data_command(condominio_nome, data_plantao):
+    """
+    Lista todas as rondas para o condomínio e data informados, mostrando todos os turnos.
+    Exemplo de uso:
+    flask listar-rondas-condominio-data "AROSA" 2025-07-14
+    """
+    from app.models import Condominio, Ronda
+    from datetime import datetime
+    import click
+
+    cond = Condominio.query.filter_by(nome=condominio_nome).first()
+    if not cond:
+        click.echo(f"Condomínio '{condominio_nome}' não encontrado.")
+        return
+    try:
+        data_dt = datetime.strptime(data_plantao, "%Y-%m-%d").date()
+    except Exception as e:
+        click.echo(f"Data inválida: {e}")
+        return
+    rondas = Ronda.query.filter_by(
+        condominio_id=cond.id,
+        data_plantao_ronda=data_dt
+    ).all()
+    if not rondas:
+        click.echo("Nenhuma ronda encontrada para esses parâmetros.")
+    else:
+        click.echo(f"{len(rondas)} ronda(s) encontrada(s):")
+        for r in rondas:
+            click.echo(f"ID: {r.id} | Data: {r.data_plantao_ronda} | Turno: '{r.turno_ronda}' | Condominio: {cond.nome} | user_id: {r.user_id} | Escala: '{r.escala_plantao}'")

@@ -148,6 +148,8 @@ def create_app(
         app_instance.cli.add_command(commands.check_supervisor_working_days_command)
         app_instance.cli.add_command(commands.test_supervisor_specific_command)
         app_instance.cli.add_command(commands.debug_ocorrencias_mes_command)
+        app_instance.cli.add_command(commands.test_ronda_duplicada_command)
+        app_instance.cli.add_command(commands.listar_rondas_condominio_data_command)
 
     module_logger.info(
         "Aplicação Flask completamente configurada e pronta para ser retornada."
