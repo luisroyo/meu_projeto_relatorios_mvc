@@ -215,6 +215,52 @@ def get_ronda_period_info(base_kpi_query, date_start_range, date_end_range) -> d
         }
 
 
+def get_ocorrencia_period_info(base_kpi_query, date_start_range, date_end_range) -> dict:
+    """
+    Calcula informações adicionais sobre o período de ocorrências para melhorar os KPIs.
+    Retorna informações sobre a última data registrada e período real de dados.
+    """
+    try:
+        # Busca a primeira e última data registrada no período
+        primeira_data = base_kpi_query.with_entities(
+            func.min(Ocorrencia.data_hora_ocorrencia)
+        ).scalar()
+        
+        ultima_data = base_kpi_query.with_entities(
+            func.max(Ocorrencia.data_hora_ocorrencia)
+        ).scalar()
+        
+        # Calcula o período real de dados
+        periodo_real_dias = 0
+        if primeira_data and ultima_data:
+            periodo_real_dias = (ultima_data.date() - primeira_data.date()).days + 1
+        
+        # Calcula quantos dias do período solicitado têm dados
+        dias_com_dados = base_kpi_query.with_entities(
+            func.count(func.distinct(func.date(Ocorrencia.data_hora_ocorrencia)))
+        ).scalar() or 0
+        
+        return {
+            "primeira_data_registrada": primeira_data,
+            "ultima_data_registrada": ultima_data,
+            "periodo_real_dias": periodo_real_dias,
+            "dias_com_dados": dias_com_dados,
+            "periodo_solicitado_dias": (date_end_range - date_start_range).days + 1,
+            "cobertura_periodo": round((dias_com_dados / ((date_end_range - date_start_range).days + 1)) * 100, 1) if (date_end_range - date_start_range).days > 0 else 0
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao calcular informações do período de ocorrências: {e}", exc_info=True)
+        return {
+            "primeira_data_registrada": None,
+            "ultima_data_registrada": None,
+            "periodo_real_dias": 0,
+            "dias_com_dados": 0,
+            "periodo_solicitado_dias": (date_end_range - date_start_range).days + 1,
+            "cobertura_periodo": 0
+        }
+
+
 def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range) -> dict:
     """
     Calcula comparações com o período anterior para mostrar tendências nos KPIs.
@@ -278,6 +324,79 @@ def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range
         
     except Exception as e:
         logger.error(f"Erro ao calcular comparação de períodos: {e}", exc_info=True)
+        return {
+            "total_atual": 0,
+            "total_anterior": 0,
+            "variacao_percentual": 0,
+            "status": "secondary",
+            "status_text": "N/A",
+            "dados_atualizados": False,
+            "ultima_atualizacao": None,
+            "dias_desde_ultima": None
+        }
+
+
+def calculate_ocorrencia_period_comparison(base_kpi_query, date_start_range, date_end_range) -> dict:
+    """
+    Calcula comparações com o período anterior para mostrar tendências nos KPIs de ocorrências.
+    """
+    try:
+        from datetime import timedelta
+        
+        # Calcula o período anterior (mesmo tamanho)
+        periodo_dias = (date_end_range - date_start_range).days + 1
+        anterior_start = date_start_range - timedelta(days=periodo_dias)
+        anterior_end = date_start_range - timedelta(days=1)
+        
+        # Query para o período atual
+        total_atual = base_kpi_query.count()
+        
+        # Query para o período anterior
+        total_anterior = db.session.query(Ocorrencia).filter(
+            Ocorrencia.data_hora_ocorrencia >= anterior_start,
+            Ocorrencia.data_hora_ocorrencia <= anterior_end
+        ).count()
+        
+        # Calcula variação percentual
+        if total_anterior > 0:
+            variacao_percentual = round(((total_atual - total_anterior) / total_anterior) * 100, 1)
+        else:
+            variacao_percentual = 0 if total_atual == 0 else 100
+        
+        # Determina status baseado na variação (para ocorrências, menos é melhor)
+        if variacao_percentual < -10:
+            status = "success"
+            status_text = "Redução"
+        elif variacao_percentual < 10:
+            status = "warning"
+            status_text = "Estável"
+        else:
+            status = "danger"
+            status_text = "Aumento"
+        
+        # Verifica se os dados estão atualizados (última data não é muito antiga)
+        ultima_data = base_kpi_query.with_entities(
+            func.max(Ocorrencia.data_hora_ocorrencia)
+        ).scalar()
+        
+        dados_atualizados = True
+        if ultima_data:
+            dias_desde_ultima = (datetime.now().date() - ultima_data.date()).days
+            dados_atualizados = dias_desde_ultima <= 3  # Considera atualizado se não passou de 3 dias
+        
+        return {
+            "total_atual": total_atual,
+            "total_anterior": total_anterior,
+            "variacao_percentual": variacao_percentual,
+            "status": status,
+            "status_text": status_text,
+            "dados_atualizados": dados_atualizados,
+            "ultima_atualizacao": ultima_data,
+            "dias_desde_ultima": (datetime.now().date() - ultima_data.date()).days if ultima_data else None
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao calcular comparação de períodos de ocorrências: {e}", exc_info=True)
         return {
             "total_atual": 0,
             "total_anterior": 0,
