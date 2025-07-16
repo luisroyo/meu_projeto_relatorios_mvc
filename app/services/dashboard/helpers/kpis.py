@@ -1,6 +1,6 @@
 # app/services/dashboard/helpers/kpis.py
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from sqlalchemy import func, tuple_
 
@@ -45,19 +45,41 @@ def calculate_main_ronda_kpis(base_kpi_query, supervisor_labels: list) -> tuple:
 
 
 def calculate_average_rondas_per_day(
-    total_rondas: int, filters: dict, date_start_range, date_end_range
+    total_rondas: int, filters: dict, date_start_range, date_end_range, base_kpi_query=None
 ) -> float:
     """
     Calcula o número médio de rondas por dia, considerando a escala do supervisor ou o tipo de turno.
+    MELHORIA: Agora considera a última data registrada no sistema, não o total de dias do mês.
     """
     supervisor_id_filter = filters.get("supervisor_id")
     turno_filter = filters.get("turno")
     num_dias_divisor = 0
 
+    # [NOVO] Busca a última data registrada no sistema dentro do período
+    if base_kpi_query:
+        ultima_data_registrada = base_kpi_query.with_entities(
+            func.max(Ronda.data_plantao_ronda)
+        ).scalar()
+    else:
+        # Fallback: busca diretamente na tabela Ronda
+        ultima_data_registrada = db.session.query(
+            func.max(Ronda.data_plantao_ronda)
+        ).filter(
+            Ronda.data_plantao_ronda >= date_start_range,
+            Ronda.data_plantao_ronda <= date_end_range
+        ).scalar()
+    
+    if not ultima_data_registrada:
+        # Se não há dados, retorna 0
+        return 0
+    
+    # [NOVO] Ajusta o date_end_range para a última data registrada
+    date_end_range_real = min(date_end_range, ultima_data_registrada)
+
     if supervisor_id_filter:
         meses_anos = set()
         current_date_for_months = date_start_range
-        while current_date_for_months <= date_end_range:
+        while current_date_for_months <= date_end_range_real:
             meses_anos.add(
                 (current_date_for_months.year, current_date_for_months.month)
             )
@@ -83,7 +105,7 @@ def calculate_average_rondas_per_day(
 
         if turnos_do_supervisor:
             current_day = date_start_range
-            while current_day <= date_end_range:
+            while current_day <= date_end_range_real:
                 paridade = "Par" if current_day.day % 2 == 0 else "Impar"
                 turno_diurno_do_dia = f"Diurno {paridade}"
                 turno_noturno_do_dia = f"Noturno {paridade}"
@@ -97,14 +119,15 @@ def calculate_average_rondas_per_day(
 
     elif turno_filter:
         current_day = date_start_range
-        while current_day <= date_end_range:
+        while current_day <= date_end_range_real:
             paridade = "Par" if current_day.day % 2 == 0 else "Impar"
             if paridade in turno_filter:
                 num_dias_divisor += 1
             current_day += timedelta(days=1)
 
     else:
-        num_dias_divisor = (date_end_range - date_start_range).days + 1
+        # [MELHORADO] Usa a data real até onde há registros
+        num_dias_divisor = (date_end_range_real - date_start_range).days + 1
 
     return round(total_rondas / num_dias_divisor, 1) if num_dias_divisor > 0 else 0
 
@@ -144,3 +167,124 @@ def find_top_ocorrencia_supervisor(filters: dict) -> str:
             f"Erro ao calcular o supervisor com mais ocorrências: {e}", exc_info=True
         )
         return "Erro ao calcular"
+
+
+def get_ronda_period_info(base_kpi_query, date_start_range, date_end_range) -> dict:
+    """
+    Calcula informações adicionais sobre o período de rondas para melhorar os KPIs.
+    Retorna informações sobre a última data registrada e período real de dados.
+    """
+    try:
+        # Busca a primeira e última data registrada no período
+        primeira_data = base_kpi_query.with_entities(
+            func.min(Ronda.data_plantao_ronda)
+        ).scalar()
+        
+        ultima_data = base_kpi_query.with_entities(
+            func.max(Ronda.data_plantao_ronda)
+        ).scalar()
+        
+        # Calcula o período real de dados
+        periodo_real_dias = 0
+        if primeira_data and ultima_data:
+            periodo_real_dias = (ultima_data - primeira_data).days + 1
+        
+        # Calcula quantos dias do período solicitado têm dados
+        dias_com_dados = base_kpi_query.with_entities(
+            func.count(func.distinct(Ronda.data_plantao_ronda))
+        ).scalar() or 0
+        
+        return {
+            "primeira_data_registrada": primeira_data,
+            "ultima_data_registrada": ultima_data,
+            "periodo_real_dias": periodo_real_dias,
+            "dias_com_dados": dias_com_dados,
+            "periodo_solicitado_dias": (date_end_range - date_start_range).days + 1,
+            "cobertura_periodo": round((dias_com_dados / ((date_end_range - date_start_range).days + 1)) * 100, 1) if (date_end_range - date_start_range).days > 0 else 0
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao calcular informações do período: {e}", exc_info=True)
+        return {
+            "primeira_data_registrada": None,
+            "ultima_data_registrada": None,
+            "periodo_real_dias": 0,
+            "dias_com_dados": 0,
+            "periodo_solicitado_dias": (date_end_range - date_start_range).days + 1,
+            "cobertura_periodo": 0
+        }
+
+
+def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range) -> dict:
+    """
+    Calcula comparações com o período anterior para mostrar tendências nos KPIs.
+    """
+    try:
+        # Calcula o período anterior (mesmo tamanho)
+        periodo_dias = (date_end_range - date_start_range).days + 1
+        anterior_start = date_start_range - timedelta(days=periodo_dias)
+        anterior_end = date_start_range - timedelta(days=1)
+        
+        # Query para o período atual
+        total_atual = base_kpi_query.with_entities(
+            func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)
+        ).scalar()
+        
+        # Query para o período anterior
+        total_anterior = db.session.query(
+            func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)
+        ).filter(
+            Ronda.data_plantao_ronda >= anterior_start,
+            Ronda.data_plantao_ronda <= anterior_end
+        ).scalar()
+        
+        # Calcula variação percentual
+        if total_anterior > 0:
+            variacao_percentual = round(((total_atual - total_anterior) / total_anterior) * 100, 1)
+        else:
+            variacao_percentual = 0 if total_atual == 0 else 100
+        
+        # Determina status baseado na variação
+        if variacao_percentual > 10:
+            status = "success"
+            status_text = "Crescimento"
+        elif variacao_percentual > -10:
+            status = "warning"
+            status_text = "Estável"
+        else:
+            status = "danger"
+            status_text = "Queda"
+        
+        # Verifica se os dados estão atualizados (última data não é muito antiga)
+        ultima_data = base_kpi_query.with_entities(
+            func.max(Ronda.data_plantao_ronda)
+        ).scalar()
+        
+        dados_atualizados = True
+        if ultima_data:
+            dias_desde_ultima = (datetime.now().date() - ultima_data).days
+            dados_atualizados = dias_desde_ultima <= 3  # Considera atualizado se não passou de 3 dias
+        
+        return {
+            "total_atual": total_atual,
+            "total_anterior": total_anterior,
+            "variacao_percentual": variacao_percentual,
+            "status": status,
+            "status_text": status_text,
+            "dados_atualizados": dados_atualizados,
+            "ultima_atualizacao": ultima_data,
+            "dias_desde_ultima": (datetime.now().date() - ultima_data).days if ultima_data else None
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao calcular comparação de períodos: {e}", exc_info=True)
+        return {
+            "total_atual": 0,
+            "total_anterior": 0,
+            "variacao_percentual": 0,
+            "status": "secondary",
+            "status_text": "N/A",
+            "dados_atualizados": False,
+            "ultima_atualizacao": None,
+            "dias_desde_ultima": None
+        }
