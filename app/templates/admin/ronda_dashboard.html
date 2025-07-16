@@ -79,7 +79,13 @@
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body d-flex flex-column justify-content-center align-items-center">
                     <span class="kpi-icon kpi-primary"><i class="bi bi-clipboard-data"></i></span>
-                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Total de Rondas</h6>
+                    <div class="d-flex align-items-center">
+                        <h6 class="card-subtitle mb-2 text-muted text-uppercase">Total de Rondas</h6>
+                        <i class="bi bi-question-circle ms-2 text-muted" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Soma total de todas as rondas registradas no período selecionado, considerando o campo 'total_rondas_no_log' de cada registro."></i>
+                    </div>
                     <p class="card-text fs-1 fw-bold text-primary mb-0">{{ total_rondas }}</p>
                 </div>
             </div>
@@ -88,7 +94,13 @@
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body d-flex flex-column justify-content-center align-items-center">
                     <span class="kpi-icon kpi-warning"><i class="bi bi-bar-chart"></i></span>
-                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Média de Rondas / Dia</h6>
+                    <div class="d-flex align-items-center">
+                        <h6 class="card-subtitle mb-2 text-muted text-uppercase">Média de Rondas / Dia</h6>
+                        <i class="bi bi-question-circle ms-2 text-muted" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Média calculada considerando apenas os dias que possuem dados registrados, não o período total. Para supervisores específicos, considera apenas os dias de trabalho na escala 12x36."></i>
+                    </div>
                     <p class="card-text fs-1 fw-bold text-warning mb-0">{{ media_rondas_dia }}</p>
                 </div>
             </div>
@@ -97,7 +109,13 @@
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body d-flex flex-column justify-content-center align-items-center">
                     <span class="kpi-icon kpi-success"><i class="bi bi-clock-history"></i></span>
-                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Duração Média por Ronda</h6>
+                    <div class="d-flex align-items-center">
+                        <h6 class="card-subtitle mb-2 text-muted text-uppercase">Duração Média por Ronda</h6>
+                        <i class="bi bi-question-circle ms-2 text-muted" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Tempo médio em minutos de cada ronda, calculado pela soma total de duração dividida pelo número total de rondas no período."></i>
+                    </div>
                     <p class="card-text fs-1 fw-bold text-success mb-0">{{ duracao_media_geral }} min</p>
                 </div>
             </div>
@@ -106,12 +124,81 @@
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body d-flex flex-column justify-content-center align-items-center">
                     <span class="kpi-icon kpi-info"><i class="bi bi-person-badge"></i></span>
-                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Supervisor Mais Ativo</h6>
+                    <div class="d-flex align-items-center">
+                        <h6 class="card-subtitle mb-2 text-muted text-uppercase">Supervisor Mais Ativo</h6>
+                        <i class="bi bi-question-circle ms-2 text-muted" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Supervisor que registrou o maior número de rondas no período selecionado, baseado no campo 'total_rondas_no_log'."></i>
+                    </div>
                     <p class="card-text fs-4 fw-bold text-info mb-0">{{ supervisor_mais_ativo or 'N/A' }}</p>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- [NOVO] Card Informações do Período -->
+    {% if periodo_info %}
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-info">
+                <div class="card-header bg-info bg-opacity-10 border-info">
+                    <h6 class="mb-0 fw-bold text-info">
+                        <i class="bi bi-info-circle me-2"></i>Informações do Período Analisado
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar-event text-primary me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Primeira Data</small>
+                                    <strong>{% if periodo_info.primeira_data_registrada %}{{ periodo_info.primeira_data_registrada.strftime('%d/%m/%Y') }}{% else %}N/A{% endif %}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar-check text-success me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Última Data</small>
+                                    <strong>{% if periodo_info.ultima_data_registrada %}{{ periodo_info.ultima_data_registrada.strftime('%d/%m/%Y') }}{% else %}N/A{% endif %}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar-day text-warning me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Dias com Dados</small>
+                                    <strong>{{ periodo_info.dias_com_dados }} / {{ periodo_info.periodo_solicitado_dias }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-percent text-info me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Cobertura</small>
+                                    <strong>{{ periodo_info.cobertura_periodo }}%</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if periodo_info.cobertura_periodo < 100 %}
+                    <div class="mt-3 p-2 bg-warning bg-opacity-10 border border-warning rounded">
+                        <small class="text-warning">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            <strong>Nota:</strong> A média de rondas por dia foi calculada considerando apenas os dias que possuem dados registrados ({{ periodo_info.dias_com_dados }} dias), não o período total solicitado.
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Gráficos -->
     <div class="row g-4">
@@ -317,6 +404,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Tornar gráficos responsivos
     window.addEventListener('resize', () => charts.forEach(chart => chart.resize()));
+    
+    // [NOVO] Inicializar tooltips do Bootstrap
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
 });
 </script>
 {% endblock %}
