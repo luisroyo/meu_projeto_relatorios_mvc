@@ -19,6 +19,12 @@ def get_ocorrencia_dashboard_data(filters):
     """
     Busca e processa todos os dados necessários para o dashboard de ocorrências.
     """
+    # 1. Preparação de Filtros
+    data_inicio_str = filters.get("data_inicio_str")
+    data_fim_str = filters.get("data_fim_str")
+    date_start_range, date_end_range = parse_date_range(data_inicio_str, data_fim_str)
+    
+    # 2. Query base para KPIs
     base_kpi_query = db.session.query(Ocorrencia)
     base_kpi_query = ocorrencia_service.apply_ocorrencia_filters(
         base_kpi_query, filters
@@ -82,9 +88,6 @@ def get_ocorrencia_dashboard_data(filters):
     logger.info(f"Dados de ocorrências por dia: {ocorrencias_por_dia}")
 
     evolucao_date_labels, evolucao_ocorrencia_data = [], []
-    date_start_range, date_end_range = parse_date_range(
-        filters.get("data_inicio_str"), filters.get("data_fim_str")
-    )
     
     logger.info(f"Range de datas: {date_start_range} até {date_end_range}")
     logger.info(f"Dias no range: {(date_end_range - date_start_range).days}")
@@ -142,6 +145,16 @@ def get_ocorrencia_dashboard_data(filters):
         kpi_supervisor_label = "Supervisor com Mais Ocorrências"
         kpi_supervisor_name = kpis_helper.find_top_ocorrencia_supervisor(filters)
 
+    # [NOVO] Informações adicionais sobre o período
+    periodo_info = kpis_helper.get_ocorrencia_period_info(
+        base_kpi_query, date_start_range, date_end_range
+    )
+    
+    # [NOVO] Comparação com período anterior
+    comparacao_periodo = kpis_helper.calculate_ocorrencia_period_comparison(
+        base_kpi_query, date_start_range, date_end_range
+    )
+
     return {
         "total_ocorrencias": total_ocorrencias,
         "ocorrencias_abertas": ocorrencias_abertas,
@@ -159,4 +172,7 @@ def get_ocorrencia_dashboard_data(filters):
         "top_colaboradores_data": top_colaboradores_data,
         "selected_data_inicio_str": filters.get("data_inicio", ""),
         "selected_data_fim_str": filters.get("data_fim", ""),
+        # [NOVO] Informações detalhadas sobre o período
+        "periodo_info": periodo_info,
+        "comparacao_periodo": comparacao_periodo,
     }

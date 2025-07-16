@@ -9,8 +9,12 @@
         <h2 class="mb-0"><i class="bi bi-bar-chart-line-fill me-2"></i>{{ title }}</h2>
         <div class="d-flex flex-wrap justify-content-end">
             {% if period_description %}
-            <span class="badge bg-primary fs-6 ms-2 mt-2">{{ period_description }}</span>
+            <span class="badge bg-primary fs-6">{{ period_description }}</span>
             {% endif %}
+            <a href="{{ url_for('admin.export_ocorrencia_dashboard_pdf', **request.args) }}" 
+               class="btn btn-success btn-sm ms-2">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+            </a>
         </div>
     </div>
 
@@ -92,8 +96,33 @@
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body d-flex flex-column justify-content-center align-items-center">
                     <span class="kpi-icon kpi-primary"><i class="bi bi-clipboard-data"></i></span>
-                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Total de Ocorrências</h6>
+                    <div class="d-flex align-items-center justify-content-between w-100 mb-2">
+                        <div class="d-flex align-items-center">
+                            <h6 class="card-subtitle mb-0 text-muted text-uppercase">Total de Ocorrências</h6>
+                            <i class="bi bi-question-circle ms-2 text-muted" 
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="top" 
+                               title="Soma total de todas as ocorrências registradas no período selecionado."></i>
+                        </div>
+                        {% if comparacao_periodo %}
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="badge bg-{{ comparacao_periodo.status }} fs-6">{{ comparacao_periodo.variacao_percentual }}%</span>
+                            <span class="badge bg-{{ 'success' if comparacao_periodo.dados_atualizados else 'warning' }} fs-6">
+                                <i class="bi bi-{{ 'check-circle' if comparacao_periodo.dados_atualizados else 'exclamation-triangle' }}"></i>
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
                     <p class="card-text fs-1 fw-bold text-primary mb-0">{{ total_ocorrencias }}</p>
+                    {% if comparacao_periodo and comparacao_periodo.variacao_percentual != 0 %}
+                    <small class="text-muted">
+                        {% if comparacao_periodo.variacao_percentual < 0 %}
+                        <i class="bi bi-arrow-down text-success"></i> {{ comparacao_periodo.variacao_percentual }}% vs período anterior
+                        {% else %}
+                        <i class="bi bi-arrow-up text-danger"></i> +{{ comparacao_periodo.variacao_percentual }}% vs período anterior
+                        {% endif %}
+                    </small>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -101,7 +130,13 @@
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body d-flex flex-column justify-content-center align-items-center">
                     <span class="kpi-icon kpi-warning"><i class="bi bi-exclamation-circle"></i></span>
-                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Ocorrências Abertas</h6>
+                    <div class="d-flex align-items-center">
+                        <h6 class="card-subtitle mb-2 text-muted text-uppercase">Ocorrências Abertas</h6>
+                        <i class="bi bi-question-circle ms-2 text-muted" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Ocorrências com status 'Registrada' ou 'Em Andamento' que ainda não foram concluídas."></i>
+                    </div>
                     <p class="card-text fs-1 fw-bold text-warning mb-0">{{ ocorrencias_abertas }}</p>
                 </div>
             </div>
@@ -110,7 +145,13 @@
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body d-flex flex-column justify-content-center align-items-center">
                     <span class="kpi-icon kpi-info"><i class="bi bi-bar-chart"></i></span>
-                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">Tipo Mais Comum</h6>
+                    <div class="d-flex align-items-center">
+                        <h6 class="card-subtitle mb-2 text-muted text-uppercase">Tipo Mais Comum</h6>
+                        <i class="bi bi-question-circle ms-2 text-muted" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Tipo de ocorrência que aparece com maior frequência no período selecionado."></i>
+                    </div>
                     <p class="card-text fs-4 fw-bold text-info mb-0">{{ tipo_mais_comum or 'N/A' }}</p>
                 </div>
             </div>
@@ -119,12 +160,81 @@
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body d-flex flex-column justify-content-center align-items-center">
                     <span class="kpi-icon kpi-success"><i class="bi bi-person-badge"></i></span>
-                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">{{ kpi_supervisor_label }}</h6>
+                    <div class="d-flex align-items-center">
+                        <h6 class="card-subtitle mb-2 text-muted text-uppercase">{{ kpi_supervisor_label }}</h6>
+                        <i class="bi bi-question-circle ms-2 text-muted" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Supervisor que registrou o maior número de ocorrências no período selecionado."></i>
+                    </div>
                     <p class="card-text fs-4 fw-bold text-info mb-0">{{ kpi_supervisor_name or 'N/A' }}</p>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- [NOVO] Card Informações do Período -->
+    {% if periodo_info %}
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-info">
+                <div class="card-header bg-info bg-opacity-10 border-info">
+                    <h6 class="mb-0 fw-bold text-info">
+                        <i class="bi bi-info-circle me-2"></i>Informações do Período Analisado
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar-event text-primary me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Primeira Data</small>
+                                    <strong>{% if periodo_info.primeira_data_registrada %}{{ periodo_info.primeira_data_registrada.strftime('%d/%m/%Y') }}{% else %}N/A{% endif %}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar-check text-success me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Última Data</small>
+                                    <strong>{% if periodo_info.ultima_data_registrada %}{{ periodo_info.ultima_data_registrada.strftime('%d/%m/%Y') }}{% else %}N/A{% endif %}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar-day text-warning me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Dias com Dados</small>
+                                    <strong>{{ periodo_info.dias_com_dados }} / {{ periodo_info.periodo_solicitado_dias }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-percent text-info me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Cobertura</small>
+                                    <strong>{{ periodo_info.cobertura_periodo }}%</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if periodo_info.cobertura_periodo < 100 %}
+                    <div class="mt-3 p-2 bg-warning bg-opacity-10 border border-warning rounded">
+                        <small class="text-warning">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            <strong>Nota:</strong> Os dados foram calculados considerando apenas os dias que possuem ocorrências registradas ({{ periodo_info.dias_com_dados }} dias), não o período total solicitado.
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Gráficos -->
     <div class="row g-4">
@@ -383,6 +493,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Tornar gráficos responsivos
     window.addEventListener('resize', () => charts.forEach(chart => chart.resize()));
+    
+    // [NOVO] Inicializar tooltips do Bootstrap
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
 });
 </script>
 {% endblock %}
