@@ -26,13 +26,13 @@ ronda_bp = Blueprint(
 
 def inferir_turno(data_plantao_obj, escala_plantao_str):
     """Inferir se o turno é Noturno Par, Noturno Impar, Diurno Par ou Diurno Impar baseado na escala e paridade do dia."""
-    escala_lower = escala_plantao_str.lower() if escala_plantao_str else ""
+    escala_lower = escala_plantao_str.lower().strip() if escala_plantao_str else ""
     dia = data_plantao_obj.day if data_plantao_obj else datetime.now(timezone.utc).day
     paridade = "Par" if dia % 2 == 0 else "Impar"
-    if "18h" in escala_lower:
-        return f"Noturno {paridade}"
-    elif "06h" in escala_lower:
+    if escala_lower.startswith("06h"):
         return f"Diurno {paridade}"
+    elif escala_lower.startswith("18h"):
+        return f"Noturno {paridade}"
     else:
         # fallback para noturno
         return f"Noturno {paridade}"
