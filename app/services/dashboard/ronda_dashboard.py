@@ -162,7 +162,17 @@ def get_ronda_dashboard_data(filters):
         kpis_helper.calculate_main_ronda_kpis(base_kpi_query, supervisor_labels)
     )
     media_rondas_dia = kpis_helper.calculate_average_rondas_per_day(
-        total_rondas, filters, date_start_range, date_end_range
+        total_rondas, filters, date_start_range, date_end_range, base_kpi_query
+    )
+    
+    # [NOVO] Informações adicionais sobre o período
+    periodo_info = kpis_helper.get_ronda_period_info(
+        base_kpi_query, date_start_range, date_end_range
+    )
+    
+    # [NOVO] Comparação com período anterior
+    comparacao_periodo = kpis_helper.calculate_period_comparison(
+        base_kpi_query, date_start_range, date_end_range
     )
 
     # [REMOVIDO] Blocos de código para calcular KPIs foram extraídos para helpers/kpis.py
@@ -187,4 +197,7 @@ def get_ronda_dashboard_data(filters):
         "dados_tabela_dia": dados_tabela_dia,
         "selected_data_inicio_str": date_start_range.strftime("%Y-%m-%d"),
         "selected_data_fim_str": date_end_range.strftime("%Y-%m-%d"),
+        # [NOVO] Informações detalhadas sobre o período
+        "periodo_info": periodo_info,
+        "comparacao_periodo": comparacao_periodo,
     }
