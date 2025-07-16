@@ -279,3 +279,456 @@ def check_ocorrencias_data_command():
     click.echo(f"\nOcorrências nos últimos 7 dias: {len(ocorrencias_ultimos_7_dias)}")
     for oc in ocorrencias_ultimos_7_dias:
         click.echo(f"  {oc.data_hora_ocorrencia.strftime('%d/%m/%Y %H:%M')} - {oc.status}")
+
+
+@click.command("check-rondas-monthly")
+@with_appcontext
+def check_rondas_monthly_command():
+    """
+    Verifica os dados reais de rondas por mês para debug do dashboard comparativo.
+    """
+    from app.models import Ronda
+    from sqlalchemy import func
+    from datetime import datetime
+    
+    logger.info("Verificando dados reais de rondas por mês...")
+    click.echo("--- VERIFICAÇÃO DE DADOS REAIS DE RONDAS POR MÊS ---")
+    
+    # Verifica o ano atual
+    current_year = datetime.now().year
+    click.echo(f"Ano atual: {current_year}")
+    
+    # Busca dados reais por mês usando a mesma query do dashboard
+    query_result = (
+        db.session.query(
+            func.to_char(Ronda.data_plantao_ronda, "YYYY-MM").label("mes"),
+            func.coalesce(func.sum(Ronda.total_rondas_no_log), 0).label("total")
+        )
+        .filter(func.to_char(Ronda.data_plantao_ronda, "YYYY") == str(current_year))
+        .group_by(func.to_char(Ronda.data_plantao_ronda, "YYYY-MM"))
+        .order_by(func.to_char(Ronda.data_plantao_ronda, "YYYY-MM"))
+        .all()
+    )
+    
+    click.echo(f"\nDados reais de rondas por mês ({current_year}):")
+    for mes, total in query_result:
+        click.echo(f"  {mes}: {total} rondas")
+    
+    # Verifica total geral
+    total_geral = sum(total for _, total in query_result)
+    click.echo(f"\nTotal geral: {total_geral} rondas")
+    
+    # Verifica se há dados sem data_plantao_ronda
+    rondas_sem_data = Ronda.query.filter(Ronda.data_plantao_ronda.is_(None)).count()
+    if rondas_sem_data > 0:
+        click.echo(f"⚠️  ATENÇÃO: {rondas_sem_data} rondas sem data_plantao_ronda!")
+    
+    # Verifica dados por data_hora_inicio (alternativa)
+    query_result_alt = (
+        db.session.query(
+            func.to_char(Ronda.data_hora_inicio, "YYYY-MM").label("mes"),
+            func.coalesce(func.sum(Ronda.total_rondas_no_log), 0).label("total")
+        )
+        .filter(func.to_char(Ronda.data_hora_inicio, "YYYY") == str(current_year))
+        .group_by(func.to_char(Ronda.data_hora_inicio, "YYYY-MM"))
+        .order_by(func.to_char(Ronda.data_hora_inicio, "YYYY-MM"))
+        .all()
+    )
+    
+    click.echo(f"\nDados alternativos (por data_hora_inicio):")
+    for mes, total in query_result_alt:
+        click.echo(f"  {mes}: {total} rondas")
+    
+    total_geral_alt = sum(total for _, total in query_result_alt)
+    click.echo(f"Total geral (alt): {total_geral_alt} rondas")
+
+
+@click.command("test-media-dia-trabalhado")
+@with_appcontext
+def test_media_dia_trabalhado_command():
+    """
+    Testa a nova métrica de média por dia trabalhado considerando escala 12x36.
+    """
+    from app.services.dashboard.comparativo_dashboard import _calculate_working_days_in_period
+    from datetime import datetime, date
+    
+    logger.info("Testando métrica de média por dia trabalhado...")
+    click.echo("--- TESTE DA MÉTRICA DE MÉDIA POR DIA TRABALHADO ---")
+    
+    # Testa para o ano atual
+    current_year = datetime.now().year
+    start_date = date(current_year, 1, 1)
+    end_date = date(current_year, 12, 31)
+    
+    working_days = _calculate_working_days_in_period(start_date, end_date)
+    total_days = (end_date - start_date).days + 1
+    
+    click.echo(f"Ano: {current_year}")
+    click.echo(f"Total de dias no ano: {total_days}")
+    click.echo(f"Dias trabalhados (escala 12x36): {working_days}")
+    click.echo(f"Proporção: {working_days}/{total_days} = {round(working_days/total_days*100, 1)}%")
+    
+    # Testa com dados reais
+    from app.models import Ronda
+    from sqlalchemy import func
+    
+    total_rondas = db.session.query(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)).scalar()
+    
+    media_rondas_dia_trabalhado = round(total_rondas / working_days, 1) if working_days > 0 else 0
+    media_rondas_mes = round(total_rondas / 12, 1) if total_rondas > 0 else 0
+    
+    click.echo(f"\nDados reais:")
+    click.echo(f"Total de rondas: {total_rondas}")
+    click.echo(f"Média por mês (tradicional): {media_rondas_mes}")
+    click.echo(f"Média por dia trabalhado (12x36): {media_rondas_dia_trabalhado}")
+    
+    # Testa para diferentes períodos
+    click.echo(f"\nTestes para diferentes períodos:")
+    
+    # Janeiro 2025
+    jan_start = date(2025, 1, 1)
+    jan_end = date(2025, 1, 31)
+    jan_working = _calculate_working_days_in_period(jan_start, jan_end)
+    click.echo(f"Janeiro 2025: {jan_working} dias trabalhados de 31 dias")
+    
+    # Fevereiro 2025
+    fev_start = date(2025, 2, 1)
+    fev_end = date(2025, 2, 28)
+    fev_working = _calculate_working_days_in_period(fev_start, fev_end)
+    click.echo(f"Fevereiro 2025: {fev_working} dias trabalhados de 28 dias")
+    
+    # Junho 2025 (mês com dados)
+    jun_start = date(2025, 6, 1)
+    jun_end = date(2025, 6, 30)
+    jun_working = _calculate_working_days_in_period(jun_start, jun_end)
+    click.echo(f"Junho 2025: {jun_working} dias trabalhados de 30 dias")
+    
+    # Calcula média de junho
+    rondas_junho = db.session.query(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY-MM") == "2025-06"
+    ).scalar()
+    
+    media_junho_dia_trabalhado = round(rondas_junho / jun_working, 1) if jun_working > 0 else 0
+    click.echo(f"Rondas em junho: {rondas_junho}")
+    click.echo(f"Média de junho por dia trabalhado: {media_junho_dia_trabalhado}")
+
+
+@click.command("investigate-rondas-discrepancy")
+@with_appcontext
+def investigate_rondas_discrepancy_command():
+    """
+    Investiga a discrepância nos dados de rondas entre diferentes queries.
+    """
+    from app.models import Ronda
+    from sqlalchemy import func
+    from datetime import datetime
+    
+    logger.info("Investigando discrepância nos dados de rondas...")
+    click.echo("--- INVESTIGAÇÃO DE DISCREPÂNCIA NOS DADOS DE RONDAS ---")
+    
+    # Query 1: Total geral sem filtro de ano
+    total_geral = db.session.query(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)).scalar()
+    click.echo(f"1. Total geral (sem filtro de ano): {total_geral}")
+    
+    # Query 2: Total por ano atual
+    current_year = datetime.now().year
+    total_ano_atual = db.session.query(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY") == str(current_year)
+    ).scalar()
+    click.echo(f"2. Total ano {current_year}: {total_ano_atual}")
+    
+    # Query 3: Contagem de registros por ano
+    registros_por_ano = db.session.query(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY").label("ano"),
+        func.count(Ronda.id).label("registros"),
+        func.coalesce(func.sum(Ronda.total_rondas_no_log), 0).label("rondas")
+    ).group_by(func.to_char(Ronda.data_plantao_ronda, "YYYY")).order_by("ano").all()
+    
+    click.echo(f"\n3. Dados por ano:")
+    for ano, registros, rondas in registros_por_ano:
+        click.echo(f"   {ano}: {registros} registros, {rondas} rondas")
+    
+    # Query 4: Verificar registros sem data_plantao_ronda
+    registros_sem_data = Ronda.query.filter(Ronda.data_plantao_ronda.is_(None)).count()
+    click.echo(f"\n4. Registros sem data_plantao_ronda: {registros_sem_data}")
+    
+    if registros_sem_data > 0:
+        rondas_sem_data = db.session.query(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)).filter(
+            Ronda.data_plantao_ronda.is_(None)
+        ).scalar()
+        click.echo(f"   Rondas em registros sem data: {rondas_sem_data}")
+    
+    # Query 5: Verificar registros com total_rondas_no_log NULL
+    registros_null_rondas = Ronda.query.filter(Ronda.total_rondas_no_log.is_(None)).count()
+    click.echo(f"\n5. Registros com total_rondas_no_log NULL: {registros_null_rondas}")
+    
+    # Query 6: Verificar registros com total_rondas_no_log = 0
+    registros_zero_rondas = Ronda.query.filter(Ronda.total_rondas_no_log == 0).count()
+    click.echo(f"6. Registros com total_rondas_no_log = 0: {registros_zero_rondas}")
+    
+    # Query 7: Amostra de registros
+    click.echo(f"\n7. Amostra de registros (primeiros 5):")
+    amostra = Ronda.query.limit(5).all()
+    for ronda in amostra:
+        click.echo(f"   ID: {ronda.id}, Data: {ronda.data_plantao_ronda}, Rondas: {ronda.total_rondas_no_log}")
+
+
+@click.command("test-media-dias-reais")
+@with_appcontext
+def test_media_dias_reais_command():
+    """
+    Testa o cálculo de média baseado nos dias reais trabalhados pelos supervisores.
+    """
+    from app.models import Ronda, User
+    from sqlalchemy import func
+    from datetime import datetime
+    
+    logger.info("Testando média baseada em dias reais trabalhados...")
+    click.echo("--- TESTE DE MÉDIA BASEADA EM DIAS REAIS TRABALHADOS ---")
+    
+    current_year = datetime.now().year
+    
+    # 1. Total de rondas no ano
+    total_rondas = db.session.query(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY") == str(current_year)
+    ).scalar()
+    
+    click.echo(f"Total de rondas em {current_year}: {total_rondas}")
+    
+    # 2. Dias únicos trabalhados (por data_plantao_ronda)
+    dias_trabalhados = db.session.query(
+        func.count(func.distinct(Ronda.data_plantao_ronda))
+    ).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY") == str(current_year)
+    ).scalar()
+    
+    click.echo(f"Dias únicos trabalhados: {dias_trabalhados}")
+    
+    # 3. Média por dia real trabalhado
+    media_dia_real = round(total_rondas / dias_trabalhados, 1) if dias_trabalhados > 0 else 0
+    click.echo(f"Média por dia real trabalhado: {media_dia_real}")
+    
+    # 4. Comparação com cálculo teórico (12x36)
+    from app.services.dashboard.comparativo_dashboard import _calculate_working_days_in_period
+    from datetime import date
+    
+    start_date = date(current_year, 1, 1)
+    end_date = date(current_year, 12, 31)
+    dias_teoricos = _calculate_working_days_in_period(start_date, end_date)
+    media_teorica = round(total_rondas / dias_teoricos, 1) if dias_teoricos > 0 else 0
+    
+    click.echo(f"\nComparação:")
+    click.echo(f"Dias teóricos (12x36): {dias_teoricos}")
+    click.echo(f"Dias reais trabalhados: {dias_trabalhados}")
+    click.echo(f"Média teórica: {media_teorica}")
+    click.echo(f"Média real: {media_dia_real}")
+    
+    # 5. Análise por supervisor
+    click.echo(f"\nAnálise por supervisor:")
+    supervisores_dados = db.session.query(
+        User.username,
+        func.count(func.distinct(Ronda.data_plantao_ronda)).label("dias_trabalhados"),
+        func.coalesce(func.sum(Ronda.total_rondas_no_log), 0).label("total_rondas")
+    ).join(Ronda, User.id == Ronda.supervisor_id).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY") == str(current_year)
+    ).group_by(User.username).order_by(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0).desc()).all()
+    
+    for supervisor, dias, rondas in supervisores_dados:
+        media_supervisor = round(rondas / dias, 1) if dias > 0 else 0
+        click.echo(f"  {supervisor}: {dias} dias, {rondas} rondas, {media_supervisor}/dia")
+    
+    # 6. Análise por mês
+    click.echo(f"\nAnálise por mês:")
+    meses_dados = db.session.query(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY-MM").label("mes"),
+        func.count(func.distinct(Ronda.data_plantao_ronda)).label("dias_trabalhados"),
+        func.coalesce(func.sum(Ronda.total_rondas_no_log), 0).label("total_rondas")
+    ).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY") == str(current_year)
+    ).group_by(func.to_char(Ronda.data_plantao_ronda, "YYYY-MM")).order_by("mes").all()
+    
+    for mes, dias, rondas in meses_dados:
+        media_mes = round(rondas / dias, 1) if dias > 0 else 0
+        click.echo(f"  {mes}: {dias} dias, {rondas} rondas, {media_mes}/dia")
+    
+    # 7. Verificar se há dias sem supervisor
+    dias_sem_supervisor = db.session.query(
+        func.count(func.distinct(Ronda.data_plantao_ronda))
+    ).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY") == str(current_year),
+        Ronda.supervisor_id.is_(None)
+    ).scalar()
+    
+    if dias_sem_supervisor > 0:
+        click.echo(f"\n⚠️  Dias sem supervisor: {dias_sem_supervisor}")
+
+
+@click.command("check-supervisor-working-days")
+@with_appcontext
+def check_supervisor_working_days_command():
+    """
+    Verifica exatamente quantos dias cada supervisor trabalhou em um mês específico.
+    """
+    from app.models import Ronda, User
+    from sqlalchemy import func
+    from datetime import datetime
+    
+    logger.info("Verificando dias trabalhados por supervisor...")
+    click.echo("--- VERIFICAÇÃO DE DIAS TRABALHADOS POR SUPERVISOR ---")
+    
+    # Parâmetros
+    year = 2025
+    month = 6  # Junho
+    
+    click.echo(f"Análise para {year}-{month:02d}")
+    
+    # 1. Total de rondas no mês
+    total_rondas_mes = db.session.query(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY-MM") == f"{year}-{month:02d}"
+    ).scalar()
+    
+    click.echo(f"Total de rondas em {year}-{month:02d}: {total_rondas_mes}")
+    
+    # 2. Dias únicos no mês (método atual)
+    dias_unicos_mes = db.session.query(
+        func.count(func.distinct(Ronda.data_plantao_ronda))
+    ).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY-MM") == f"{year}-{month:02d}"
+    ).scalar()
+    
+    click.echo(f"Dias únicos no mês: {dias_unicos_mes}")
+    
+    # 3. Média atual
+    media_atual = round(total_rondas_mes / dias_unicos_mes, 1) if dias_unicos_mes > 0 else 0
+    click.echo(f"Média atual: {media_atual}")
+    
+    # 4. Análise detalhada por supervisor
+    click.echo(f"\nAnálise detalhada por supervisor:")
+    supervisores_detalhado = db.session.query(
+        User.username,
+        func.count(func.distinct(Ronda.data_plantao_ronda)).label("dias_trabalhados"),
+        func.coalesce(func.sum(Ronda.total_rondas_no_log), 0).label("total_rondas"),
+        func.array_agg(func.distinct(Ronda.data_plantao_ronda)).label("datas_trabalhadas")
+    ).join(Ronda, User.id == Ronda.supervisor_id).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY-MM") == f"{year}-{month:02d}"
+    ).group_by(User.username).order_by(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0).desc()).all()
+    
+    for supervisor, dias, rondas, datas in supervisores_detalhado:
+        media_supervisor = round(rondas / dias, 1) if dias > 0 else 0
+        click.echo(f"\n  {supervisor}:")
+        click.echo(f"    Dias trabalhados: {dias}")
+        click.echo(f"    Total de rondas: {rondas}")
+        click.echo(f"    Média: {media_supervisor}/dia")
+        click.echo(f"    Datas: {sorted(datas)}")
+    
+    # 5. Verificar se há registros sem supervisor
+    registros_sem_supervisor = db.session.query(
+        func.count(func.distinct(Ronda.data_plantao_ronda))
+    ).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY-MM") == f"{year}-{month:02d}",
+        Ronda.supervisor_id.is_(None)
+    ).scalar()
+    
+    if registros_sem_supervisor > 0:
+        click.echo(f"\n⚠️  Dias sem supervisor: {registros_sem_supervisor}")
+        
+        # Mostrar datas sem supervisor
+        datas_sem_supervisor = db.session.query(
+            func.distinct(Ronda.data_plantao_ronda)
+        ).filter(
+            func.to_char(Ronda.data_plantao_ronda, "YYYY-MM") == f"{year}-{month:02d}",
+            Ronda.supervisor_id.is_(None)
+        ).all()
+        
+        click.echo(f"    Datas: {[d[0] for d in datas_sem_supervisor]}")
+    
+    # 6. Verificar se há múltiplos registros no mesmo dia
+    click.echo(f"\nVerificando múltiplos registros por dia:")
+    dias_com_multiplos = db.session.query(
+        Ronda.data_plantao_ronda,
+        func.count(Ronda.id).label("registros"),
+        func.coalesce(func.sum(Ronda.total_rondas_no_log), 0).label("rondas")
+    ).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY-MM") == f"{year}-{month:02d}"
+    ).group_by(Ronda.data_plantao_ronda).having(func.count(Ronda.id) > 1).order_by(Ronda.data_plantao_ronda).all()
+    
+    for data, registros, rondas in dias_com_multiplos:
+        click.echo(f"  {data}: {registros} registros, {rondas} rondas")
+
+
+@click.command("test-supervisor-specific")
+@with_appcontext
+def test_supervisor_specific_command():
+    """
+    Testa a correção da média por supervisor específico.
+    """
+    from app.services.dashboard.comparativo_dashboard import _calculate_supervisor_specific_metrics
+    from app.models import User
+    from datetime import datetime
+    
+    logger.info("Testando média específica por supervisor...")
+    click.echo("--- TESTE DE MÉDIA ESPECÍFICA POR SUPERVISOR ---")
+    
+    current_year = datetime.now().year
+    
+    # Busca o supervisor Luis Royo
+    luis_royo = User.query.filter_by(username="Luis Royo").first()
+    if not luis_royo:
+        click.echo("❌ Supervisor 'Luis Royo' não encontrado!")
+        return
+    
+    click.echo(f"Testando para: {luis_royo.username} (ID: {luis_royo.id})")
+    
+    # Simula filtro de supervisor
+    filters = {"supervisor_id": luis_royo.id}
+    
+    # Total de rondas do Luis Royo em 2025
+    from app.models import Ronda
+    from sqlalchemy import func
+    
+    total_rondas_luis = db.session.query(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY") == str(current_year),
+        Ronda.supervisor_id == luis_royo.id
+    ).scalar()
+    
+    click.echo(f"Total de rondas do Luis Royo em {current_year}: {total_rondas_luis}")
+    
+    # Testa a função corrigida
+    media_corrigida, dias_corrigidos = _calculate_supervisor_specific_metrics(
+        total_rondas_luis, filters, current_year
+    )
+    
+    click.echo(f"Dias trabalhados pelo Luis Royo: {dias_corrigidos}")
+    click.echo(f"Média corrigida: {media_corrigida}/dia")
+    
+    # Compara com o cálculo anterior (errado)
+    dias_errado = db.session.query(
+        func.count(func.distinct(Ronda.data_plantao_ronda))
+    ).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY") == str(current_year)
+    ).scalar()
+    
+    media_errada = round(total_rondas_luis / dias_errado, 1) if dias_errado > 0 else 0
+    
+    click.echo(f"\nComparação:")
+    click.echo(f"Método anterior (errado): {media_errada}/dia ({dias_errado} dias)")
+    click.echo(f"Método corrigido: {media_corrigida}/dia ({dias_corrigidos} dias)")
+    
+    # Testa para junho especificamente
+    click.echo(f"\nTeste específico para junho:")
+    
+    total_rondas_junho = db.session.query(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY-MM") == "2025-06",
+        Ronda.supervisor_id == luis_royo.id
+    ).scalar()
+    
+    dias_junho = db.session.query(
+        func.count(func.distinct(Ronda.data_plantao_ronda))
+    ).filter(
+        func.to_char(Ronda.data_plantao_ronda, "YYYY-MM") == "2025-06",
+        Ronda.supervisor_id == luis_royo.id
+    ).scalar()
+    
+    media_junho = round(total_rondas_junho / dias_junho, 1) if dias_junho > 0 else 0
+    
+    click.echo(f"Junho - Total: {total_rondas_junho}, Dias: {dias_junho}, Média: {media_junho}/dia")
