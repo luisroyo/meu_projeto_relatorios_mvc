@@ -70,6 +70,85 @@ class RondaReportService:
             alignment=TA_CENTER
         )
     
+    def _format_filters_section(self, filters_info):
+        """Formata a seção de filtros aplicados."""
+        if not filters_info:
+            return []
+        
+        story = []
+        story.append(Paragraph("Filtros Aplicados", self.section_style))
+        
+        filters_data = [['Filtro', 'Valor']]
+        
+        # Data de início
+        if filters_info.get('data_inicio'):
+            try:
+                data_inicio = datetime.strptime(filters_info['data_inicio'], '%Y-%m-%d').strftime('%d/%m/%Y')
+                filters_data.append(['Data Início', data_inicio])
+            except Exception:
+                filters_data.append(['Data Início', filters_info['data_inicio']])
+        
+        # Data de fim
+        if filters_info.get('data_fim'):
+            try:
+                data_fim = datetime.strptime(filters_info['data_fim'], '%Y-%m-%d').strftime('%d/%m/%Y')
+                filters_data.append(['Data Fim', data_fim])
+            except Exception:
+                filters_data.append(['Data Fim', filters_info['data_fim']])
+        
+        # Supervisor
+        if filters_info.get('supervisor_name'):
+            filters_data.append(['Supervisor', filters_info['supervisor_name']])
+        
+        # Condomínio
+        if filters_info.get('condominio_name'):
+            filters_data.append(['Condomínio', filters_info['condominio_name']])
+        
+        # Turno
+        if filters_info.get('turno'):
+            filters_data.append(['Turno', filters_info['turno']])
+        
+        # Tipo (para ocorrências)
+        if filters_info.get('tipo_name'):
+            filters_data.append(['Tipo', filters_info['tipo_name']])
+        
+        # Status (para ocorrências)
+        if filters_info.get('status'):
+            filters_data.append(['Status', filters_info['status']])
+        
+        # Mês
+        if filters_info.get('mes'):
+            meses = {
+                1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
+                5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
+                9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+            }
+            mes_nome = meses.get(filters_info['mes'], f'Mês {filters_info["mes"]}')
+            filters_data.append(['Mês', mes_nome])
+        
+        # Se não há filtros aplicados
+        if len(filters_data) == 1:
+            filters_data.append(['Nenhum filtro específico', 'Todos os dados'])
+        
+        filters_table = Table(filters_data, colWidths=[2*inch, 4*inch])
+        filters_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightsteelblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ]))
+        
+        story.append(filters_table)
+        story.append(Spacer(1, 20))
+        
+        return story
+    
     def generate_ronda_dashboard_pdf(self, dashboard_data, filters_info=None):
         """
         Gera um relatório PDF com os dados do dashboard de rondas.
@@ -95,31 +174,14 @@ class RondaReportService:
             story.append(title)
             story.append(Spacer(1, 12))
             
-            # Informações do período
-            if filters_info:
-                # Ajusta datas para formato brasileiro
-                data_inicio = filters_info.get('data_inicio', '')
-                data_fim = filters_info.get('data_fim', '')
-                try:
-                    if data_inicio:
-                        data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').strftime('%d/%m/%Y')
-                except Exception:
-                    pass
-                try:
-                    if data_fim:
-                        data_fim = datetime.strptime(data_fim, '%Y-%m-%d').strftime('%d/%m/%Y')
-                except Exception:
-                    pass
-                period_info = f"Período: {data_inicio} a {data_fim}"
-                period_para = Paragraph(period_info, self.subtitle_style)
-                story.append(period_para)
-                story.append(Spacer(1, 12))
-            
             # Data de geração
             generation_date = f"Gerado em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}"
             date_para = Paragraph(generation_date, self.normal_style)
             story.append(date_para)
             story.append(Spacer(1, 20))
+            
+            # Seção de filtros aplicados
+            story.extend(self._format_filters_section(filters_info))
             
             # Seção de KPIs Principais
             story.append(Paragraph("Principais Indicadores (KPIs)", self.section_style))
@@ -306,31 +368,14 @@ class RondaReportService:
             story.append(title)
             story.append(Spacer(1, 12))
             
-            # Informações do período
-            if filters_info:
-                # Ajusta datas para formato brasileiro
-                data_inicio = filters_info.get('data_inicio', '')
-                data_fim = filters_info.get('data_fim', '')
-                try:
-                    if data_inicio:
-                        data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').strftime('%d/%m/%Y')
-                except Exception:
-                    pass
-                try:
-                    if data_fim:
-                        data_fim = datetime.strptime(data_fim, '%Y-%m-%d').strftime('%d/%m/%Y')
-                except Exception:
-                    pass
-                period_info = f"Período: {data_inicio} a {data_fim}"
-                period_para = Paragraph(period_info, self.subtitle_style)
-                story.append(period_para)
-                story.append(Spacer(1, 12))
-            
             # Data de geração
             generation_date = f"Gerado em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}"
             date_para = Paragraph(generation_date, self.normal_style)
             story.append(date_para)
             story.append(Spacer(1, 20))
+            
+            # Seção de filtros aplicados
+            story.extend(self._format_filters_section(filters_info))
             
             # Seção de KPIs Principais
             story.append(Paragraph("Principais Indicadores (KPIs)", self.section_style))

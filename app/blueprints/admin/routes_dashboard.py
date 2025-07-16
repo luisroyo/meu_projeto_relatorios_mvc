@@ -203,13 +203,26 @@ def export_ronda_dashboard_pdf():
         # Busca os dados do dashboard
         dashboard_data = get_ronda_dashboard_data(filters)
         
+        # Busca nomes reais dos filtros aplicados
+        supervisor_name = None
+        condominio_name = None
+        
+        if filters.get("supervisor_id"):
+            supervisor = User.query.get(filters["supervisor_id"])
+            supervisor_name = supervisor.username if supervisor else "N/A"
+        
+        if filters.get("condominio_id"):
+            condominio = Condominio.query.get(filters["condominio_id"])
+            condominio_name = condominio.nome if condominio else "N/A"
+        
         # Prepara informações dos filtros para o relatório
         filters_info = {
             "data_inicio": dashboard_data.get("selected_data_inicio_str", ""),
             "data_fim": dashboard_data.get("selected_data_fim_str", ""),
-            "supervisor": request.args.get("supervisor_id"),
-            "condominio": request.args.get("condominio_id"),
-            "turno": request.args.get("turno", "")
+            "supervisor_name": supervisor_name,
+            "condominio_name": condominio_name,
+            "turno": filters.get("turno", ""),
+            "mes": filters.get("mes")
         }
         
         # Gera o PDF
@@ -262,14 +275,32 @@ def export_ocorrencia_dashboard_pdf():
         # Busca os dados do dashboard
         dashboard_data = get_ocorrencia_dashboard_data(filters)
         
+        # Busca nomes reais dos filtros aplicados
+        supervisor_name = None
+        condominio_name = None
+        tipo_name = None
+        
+        if filters.get("supervisor_id"):
+            supervisor = User.query.get(filters["supervisor_id"])
+            supervisor_name = supervisor.username if supervisor else "N/A"
+        
+        if filters.get("condominio_id"):
+            condominio = Condominio.query.get(filters["condominio_id"])
+            condominio_name = condominio.nome if condominio else "N/A"
+        
+        if filters.get("tipo_id"):
+            tipo = OcorrenciaTipo.query.get(filters["tipo_id"])
+            tipo_name = tipo.nome if tipo else "N/A"
+        
         # Prepara informações dos filtros para o relatório
         filters_info = {
             "data_inicio": dashboard_data.get("selected_data_inicio_str", ""),
             "data_fim": dashboard_data.get("selected_data_fim_str", ""),
-            "supervisor": request.args.get("supervisor_id"),
-            "condominio": request.args.get("condominio_id"),
-            "tipo": request.args.get("tipo_id"),
-            "status": request.args.get("status", "")
+            "supervisor_name": supervisor_name,
+            "condominio_name": condominio_name,
+            "tipo_name": tipo_name,
+            "status": filters.get("status", ""),
+            "mes": filters.get("mes")
         }
         
         # Gera o PDF
