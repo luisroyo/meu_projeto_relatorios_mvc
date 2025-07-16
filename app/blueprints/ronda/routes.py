@@ -29,13 +29,15 @@ def inferir_turno(data_plantao_obj, escala_plantao_str):
     escala_lower = escala_plantao_str.lower().strip() if escala_plantao_str else ""
     dia = data_plantao_obj.day if data_plantao_obj else datetime.now(timezone.utc).day
     paridade = "Par" if dia % 2 == 0 else "Impar"
+    logger.info(f"[DEBUG INFERIR_TURNO] escala_plantao_str='{escala_plantao_str}', escala_lower='{escala_lower}', dia={dia}, paridade={paridade}")
     if escala_lower.startswith("06h"):
-        return f"Diurno {paridade}"
+        turno = f"Diurno {paridade}"
     elif escala_lower.startswith("18h"):
-        return f"Noturno {paridade}"
+        turno = f"Noturno {paridade}"
     else:
-        # fallback para noturno
-        return f"Noturno {paridade}"
+        turno = f"Noturno {paridade}"
+    logger.info(f"[DEBUG INFERIR_TURNO] Retornando turno: '{turno}'")
+    return turno
 
 
 @ronda_bp.route("/registrar", methods=["GET", "POST"])
