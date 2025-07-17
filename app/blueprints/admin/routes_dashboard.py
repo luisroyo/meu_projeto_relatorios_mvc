@@ -3,7 +3,7 @@ import locale
 import logging
 from datetime import datetime, timedelta
 
-from flask import flash, redirect, render_template, request, url_for, send_file
+from flask import flash, redirect, render_template, request, url_for, send_file, make_response
 from flask_login import current_user, login_required
 
 ## [MELHORIA] Importando Enums para popular os filtros do formulário.
@@ -454,3 +454,65 @@ def dashboard_comparativo():
     data["selected_months"] = selected_months
 
     return render_template("admin/dashboard_comparativo.html", **data)
+
+
+@admin_bp.route("/ronda_dashboard/export_pdf_html")
+@login_required
+@admin_required
+def export_ronda_dashboard_pdf_html():
+    """Exporta o dashboard de rondas como PDF estilizado via ReportLab."""
+    logger.info(f"Usuário '{current_user.username}' exportou relatório PDF HTML do dashboard de rondas.")
+    try:
+        current_year = datetime.now().year
+        filters = {
+            "turno": request.args.get("turno", ""),
+            "supervisor_id": request.args.get("supervisor_id", type=int),
+            "condominio_id": request.args.get("condominio_id", type=int),
+            "mes": request.args.get("mes", type=int),
+            "data_inicio_str": request.args.get("data_inicio", ""),
+            "data_fim_str": request.args.get("data_fim", ""),
+            "data_especifica": request.args.get("data_especifica", ""),
+        }
+        if filters["mes"] and not (filters["data_inicio_str"] or filters["data_fim_str"]):
+            start_date, end_date = _get_date_range_from_month(current_year, filters["mes"])
+            if start_date and end_date:
+                filters["data_inicio_str"] = start_date
+                filters["data_fim_str"] = end_date
+        dashboard_data = get_ronda_dashboard_data(filters)
+        
+        # Usar o serviço de relatório existente que já usa ReportLab
+        report_service = RondaReportService()
+        
+        # Preparar informações dos filtros para o relatório
+        filters_info = {}
+        if filters.get("data_inicio_str"):
+            filters_info["data_inicio"] = filters["data_inicio_str"]
+        if filters.get("data_fim_str"):
+            filters_info["data_fim"] = filters["data_fim_str"]
+        if filters.get("supervisor_id"):
+            supervisor = User.query.get(filters["supervisor_id"])
+            if supervisor:
+                filters_info["supervisor_name"] = supervisor.username
+        if filters.get("condominio_id"):
+            condominio = Condominio.query.get(filters["condominio_id"])
+            if condominio:
+                filters_info["condominio_name"] = condominio.nome
+        if filters.get("turno"):
+            filters_info["turno"] = filters["turno"]
+        if filters.get("mes"):
+            filters_info["mes"] = filters["mes"]
+        
+        pdf_data = report_service.generate_ronda_dashboard_pdf(dashboard_data, filters_info)
+        
+        filename = f"relatorio_rondas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        
+        return send_file(
+            pdf_data,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório PDF HTML: {e}", exc_info=True)
+        flash("Erro ao gerar relatório PDF. Tente novamente.", "danger")
+        return redirect(url_for("admin.ronda_dashboard"))

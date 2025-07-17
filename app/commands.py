@@ -148,12 +148,12 @@ def assign_supervisors_command():
                     .filter(
                         db.extract("year", Ronda.data_plantao_ronda) == ano,
                         db.extract("month", Ronda.data_plantao_ronda) == mes,
-                        Ronda.turno_ronda == turno,
+                    Ronda.turno_ronda == turno,
                         Ronda.supervisor_id != supervisor_id,
                     )
                     .update({"supervisor_id": supervisor_id}, synchronize_session=False)
                 )
-
+                
                 if updated_rows > 0:
                     periodo_updated_count += updated_rows
 
