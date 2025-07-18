@@ -15,6 +15,14 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from whitenoise import WhiteNoise
 
+# Carrega variáveis de ambiente do arquivo .env se existir
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # Se python-dotenv não estiver instalado, continua sem carregar .env
+    pass
+
 from config import DevelopmentConfig  # <-- Importa a configuração padrão
 
 # --- Instancia as extensões ---
