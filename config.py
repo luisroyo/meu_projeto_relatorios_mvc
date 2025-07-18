@@ -11,6 +11,7 @@ class DevelopmentConfig(Config):
     """Configuração de desenvolvimento."""
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///dev.db'
+    CACHE_TYPE = 'SimpleCache'
 
 class TestingConfig(Config):
     """Configuração de teste."""

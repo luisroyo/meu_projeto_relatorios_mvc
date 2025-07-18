@@ -1,14 +1,15 @@
 # app/blueprints/auth/routes.py
 
-from datetime import datetime, timezone
+import jwt
+from datetime import datetime, timezone, timedelta
 from urllib.parse import urlsplit
 
 from flask import (Blueprint, current_app, flash, redirect, render_template,
-                   request, url_for)
+                   request, url_for, jsonify)
 from flask_login import current_user, login_user, logout_user
 
 # --- CORREÇÃO: Importar 'limiter' junto com 'db' ---
-from app import db, limiter
+from app import db, limiter, csrf
 from app.forms import LoginForm, RegistrationForm
 from app.models import LoginHistory, User
 
@@ -84,6 +85,38 @@ def login():
             return redirect(next_page)
 
     return render_template("auth/login.html", title="Login", form=form)
+
+
+# --- ROTA DE LOGIN PARA API ---
+@auth_bp.route("/api/login", methods=["POST", "OPTIONS"])
+@csrf.exempt
+def api_login():
+    if request.method == "OPTIONS":
+        # O Flask-CORS normalmente responde automaticamente, mas garantimos status 200
+        return '', 200
+    data = request.get_json() or {}
+    email = data.get("email")
+    password = data.get("password")
+    if not email or not password:
+        return jsonify({"success": False, "message": "Email e senha são obrigatórios."}), 400
+    user = User.query.filter_by(email=email).first()
+    if user and user.check_password(password):
+        if not user.is_approved:
+            return jsonify({"success": False, "message": "Conta ainda não aprovada."}), 403
+        login_user(user)
+        user.last_login = datetime.now(timezone.utc)
+        # Gera o token JWT
+        payload = {
+            "user_id": user.id,
+            "exp": datetime.utcnow() + timedelta(hours=12)
+        }
+        token = jwt.encode(payload, current_app.config["SECRET_KEY"], algorithm="HS256")
+        return jsonify({
+            "token": token,
+            "message": f"Bem-vindo, {user.username}!",
+            "success": True
+        })
+    return jsonify({"success": False, "message": "Credenciais inválidas."}), 401
 
 
 @auth_bp.route("/logout")
