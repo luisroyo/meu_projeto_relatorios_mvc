@@ -52,7 +52,7 @@ function exibirBotaoRegistrarOcorrencia(logBruto, relatorioProcessado) {
   botaoSalvar.addEventListener("click", () => {
     localStorage.setItem("novoLogRondaBruto", logBruto);
     localStorage.setItem("novoRelatorioProcessado", relatorioProcessado);
-    window.location.href = "/ronda/ocorrencia/registrar_direto";
+    window.location.href = "/ocorrencias/registrar";
   });
 
   // Insere o novo botão no topo da pilha de botões de ação.
