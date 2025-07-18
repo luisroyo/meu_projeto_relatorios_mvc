@@ -175,6 +175,17 @@ def registrar_ocorrencia():
                     db.session.add(novo_tipo)
                     db.session.flush()
                     tipo_ocorrencia_id = novo_tipo.id
+            
+            # Validação adicional para garantir que tipo_ocorrencia_id não seja None
+            if not tipo_ocorrencia_id:
+                # Busca um tipo padrão se nenhum foi selecionado
+                tipo_padrao = OcorrenciaTipo.query.filter_by(nome="verificação").first()
+                if not tipo_padrao:
+                    # Cria o tipo padrão se não existir
+                    tipo_padrao = OcorrenciaTipo(nome="verificação")
+                    db.session.add(tipo_padrao)
+                    db.session.flush()
+                tipo_ocorrencia_id = tipo_padrao.id
 
             utc_datetime = None
             if form.data_hora_ocorrencia.data:
@@ -367,6 +378,17 @@ def analisar_relatorio():
         ).first()
         if tipo_obj:
             dados_extraidos["ocorrencia_tipo_id"] = tipo_obj.id
+        else:
+            # Se o tipo não existir no banco, cria um novo
+            novo_tipo = OcorrenciaTipo(nome=nome_tipo_encontrado)
+            db.session.add(novo_tipo)
+            db.session.flush()
+            dados_extraidos["ocorrencia_tipo_id"] = novo_tipo.id
+    else:
+        # Se nenhum tipo for encontrado, usa o tipo padrão
+        tipo_padrao = OcorrenciaTipo.query.filter_by(nome="verificação").first()
+        if tipo_padrao:
+            dados_extraidos["ocorrencia_tipo_id"] = tipo_padrao.id
 
     # 4. RESPONSÁVEL (COLABORADOR)
     match_responsavel = re.search(

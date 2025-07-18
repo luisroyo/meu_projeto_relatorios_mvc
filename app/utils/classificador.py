@@ -14,7 +14,7 @@ def normalizar_texto(texto):
 def classificar_ocorrencia(texto):
     """
     Retorna o tipo de ocorrência com base no texto informado.
-    Se nenhuma palavra-chave for encontrada, retorna None.
+    Se nenhuma palavra-chave for encontrada, retorna um tipo padrão.
     """
     texto_normalizado = normalizar_texto(texto)
 
@@ -23,4 +23,5 @@ def classificar_ocorrencia(texto):
             if normalizar_texto(palavra) in texto_normalizado:
                 return tipo
 
-    return None
+    # Retorna um tipo padrão se nenhuma palavra-chave for encontrada
+    return "verificação"

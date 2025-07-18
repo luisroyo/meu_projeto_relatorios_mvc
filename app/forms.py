@@ -234,7 +234,7 @@ class OcorrenciaForm(FlaskForm):
     ocorrencia_tipo_id = SelectField(
         "Tipo da Ocorrência (Selecione ou crie um novo abaixo)",
         coerce=optional_int_coerce,
-        validators=[Optional()],
+        validators=[DataRequired(message="Selecione um tipo de ocorrência.")],
         choices=[],
     )
     novo_tipo_ocorrencia = StringField(

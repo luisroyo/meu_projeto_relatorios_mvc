@@ -238,6 +238,38 @@
         },
       });
     });
+
+    // Validação elegante do tipo de ocorrência
+    $("form").on("submit", function(e) {
+      const tipoOcorrencia = $("#ocorrencia_tipo_id").val();
+      if (!tipoOcorrencia) {
+        // Destaca o campo com erro
+        $("#ocorrencia_tipo_id").addClass("is-invalid");
+        
+        // Mostra mensagem de erro
+        if (!$("#ocorrencia_tipo_id").next(".invalid-feedback").length) {
+          $("#ocorrencia_tipo_id").after('<div class="invalid-feedback">Por favor, selecione um tipo de ocorrência.</div>');
+        }
+        
+        // Foca no campo
+        $("#ocorrencia_tipo_id").focus();
+        
+        e.preventDefault();
+        return false;
+      } else {
+        // Remove destaque de erro se estiver selecionado
+        $("#ocorrencia_tipo_id").removeClass("is-invalid");
+        $("#ocorrencia_tipo_id").next(".invalid-feedback").remove();
+      }
+    });
+    
+    // Remove erro quando usuário seleciona um tipo
+    $("#ocorrencia_tipo_id").on("change", function() {
+      if ($(this).val()) {
+        $(this).removeClass("is-invalid");
+        $(this).next(".invalid-feedback").remove();
+      }
+    });
   });
 </script>
 {% endblock %}
