@@ -14,6 +14,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from whitenoise import WhiteNoise
+from flask_cors import CORS
 
 # Carrega variáveis de ambiente do arquivo .env se existir
 try:
@@ -34,7 +35,7 @@ csrf = CSRFProtect()
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"],
-    # A URL de armazenamento será carregada a partir da configuração do app
+    storage_uri="redis://localhost:6379"
 )
 
 # --- Configura o LoginManager ---
@@ -72,6 +73,15 @@ def create_app(
 ):  # <-- 1. Aceita uma classe de configuração como argumento
     """Cria e configura a aplicação Flask."""
     app_instance = Flask(__name__)
+
+    # Habilita CORS para todas as rotas que começam com /api/ e garante suporte ao preflight
+    CORS(
+        app_instance,
+        resources={r"/api/*": {"origins": "*"}},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    )
 
     # 2. Carrega a configuração a partir do objeto fornecido
     # Isto substitui todo o bloco de carregamento manual do .env e os os.getenv()
