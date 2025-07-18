@@ -16,6 +16,9 @@ class BaseGenerativeService:
 
         try:
             # Tenta usar GEMINI_API_KEY_1 primeiro, depois GOOGLE_API_KEY como fallback
+            # IMPORTANTE: Configure no .env ou variáveis de ambiente:
+            # - GOOGLE_API_KEY_1 (API Key principal para inicialização)
+            # - GOOGLE_API_KEY_2 (API Key de backup para fallback)
             self._google_api_key = os.getenv("GEMINI_API_KEY_1") or os.getenv("GOOGLE_API_KEY")
             if not self._google_api_key:
                 self.logger.error(
@@ -94,6 +97,10 @@ class BaseGenerativeService:
             self.logger.warning("Prompt final está vazio ou não é uma string.")
             raise ValueError("Prompt final para a IA não pode ser vazio.")
 
+        # Configuração das API Keys para fallback automático
+        # IMPORTANTE: Configure no .env ou variáveis de ambiente:
+        # - GOOGLE_API_KEY_1 (API Key principal)
+        # - GOOGLE_API_KEY_2 (API Key de backup/fallback)
         api_keys = [
             os.environ.get("GOOGLE_API_KEY_1"),
             os.environ.get("GOOGLE_API_KEY_2")

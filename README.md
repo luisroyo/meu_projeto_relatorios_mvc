@@ -54,10 +54,17 @@ pip install -r requirements.txt
 
 Crie um arquivo .env na raiz do projeto (nunca comite este arquivo):
 
+```env
 SECRET_KEY=sua-chave-muito-secreta
 DATABASE_URL=sqlite:///dev.db    # Ou sua URI PostgreSQL
-GOOGLE_API_KEY=sua-chave-google-generative-ai
 FLASK_DEBUG=True
+
+# API Keys para fallback automático (veja API_KEYS_SETUP.md para detalhes)
+GOOGLE_API_KEY_1=sua-chave-google-generative-ai-principal
+GOOGLE_API_KEY_2=sua-chave-google-generative-ai-backup
+```
+
+**📋 Para configuração detalhada das API Keys, consulte [API_KEYS_SETUP.md](API_KEYS_SETUP.md)**
 
 ### 5. Inicializar o Banco de Dados
 
