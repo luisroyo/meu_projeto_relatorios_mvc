@@ -320,9 +320,10 @@ def deletar_ocorrencia(ocorrencia_id):
     return redirect(url_for("ocorrencia.listar_ocorrencias"))
 
 
-@ocorrencia_bp.route("/analisar-relatorio", methods=["POST"])
-@login_required
+@ocorrencia_bp.route("/analisar-relatorio", methods=["POST", "OPTIONS"])
 def analisar_relatorio():
+    if request.method == "OPTIONS":
+        return '', 200
     data = request.get_json()
     texto = data.get("texto_relatorio", "")
     if not texto:
