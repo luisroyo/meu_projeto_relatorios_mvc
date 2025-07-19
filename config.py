@@ -6,6 +6,8 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'uma-chave-secreta-dificil-de-adivinhar'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
+    CACHE_TYPE = "RedisCache"
+    CACHE_REDIS_URL = os.environ.get("CACHE_REDIS_URL")
 
 class DevelopmentConfig(Config):
     """Configuração de desenvolvimento."""
