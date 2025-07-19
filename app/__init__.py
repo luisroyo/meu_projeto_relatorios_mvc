@@ -76,12 +76,13 @@ def create_app(
     """Cria e configura a aplicação Flask."""
     app_instance = Flask(__name__)
 
-    # Habilita CORS para rotas /api/* e /ocorrencias/*, garantindo suporte ao preflight e headers completos
+    # Habilita CORS para rotas /api/*, /ocorrencias/* e /login
     CORS(
         app_instance,
         resources={
             r"/api/*": {"origins": ["http://localhost:8081", "*"]},
-            r"/ocorrencias/*": {"origins": ["http://localhost:8081", "*"]}
+            r"/ocorrencias/*": {"origins": ["http://localhost:8081", "*"]},
+            r"/login": {"origins": ["http://localhost:8081", "*"]}
         },
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
