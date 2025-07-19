@@ -32,10 +32,12 @@ migrate = Migrate()
 login_manager = LoginManager()
 cache = Cache()
 csrf = CSRFProtect()
+# Use a URL do Redis de variável de ambiente, ou padrão para memory:// se não definida
+redis_url = os.environ.get("REDIS_URL", "memory://")
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"],
-    storage_uri="redis://localhost:6379"
+    storage_uri=redis_url
 )
 
 # --- Configura o LoginManager ---
