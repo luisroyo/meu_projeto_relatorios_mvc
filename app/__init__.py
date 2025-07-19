@@ -79,7 +79,7 @@ def create_app(
     # Habilita CORS para todas as rotas que começam com /api/ e garante suporte ao preflight
     CORS(
         app_instance,
-        resources={r"/api/*": {"origins": "*"}},
+        resources={r"/api/*": {"origins": ["http://localhost:8081", "*"]}},
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
