@@ -324,7 +324,6 @@ def deletar_ocorrencia(ocorrencia_id):
 
 @ocorrencia_bp.route("/analisar-relatorio", methods=["POST", "OPTIONS"])
 @cross_origin()
-@csrf.exempt
 def analisar_relatorio():
     if request.method == "OPTIONS":
         return '', 200
