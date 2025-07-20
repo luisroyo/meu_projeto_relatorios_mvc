@@ -865,3 +865,904 @@ def listar_rondas_condominio_data_command(condominio_nome, data_plantao):
         click.echo(f"{len(rondas)} ronda(s) encontrada(s):")
         for r in rondas:
             click.echo(f"ID: {r.id} | Data: {r.data_plantao_ronda} | Turno: '{r.turno_ronda}' | Condominio: {cond.nome} | user_id: {r.user_id} | Escala: '{r.escala_plantao}'")
+
+
+@click.command("contar-ocorrencias-30-06-2025")
+@with_appcontext
+def contar_ocorrencias_30_06_2025_command():
+    """
+    Conta e mostra a quantidade de ocorrências registradas no dia 30/06/2025.
+    Exibe estatísticas resumidas por status e tipo.
+    """
+    from datetime import datetime, timezone
+    from app.models import Ocorrencia, OcorrenciaTipo
+    
+    logger.info("Iniciando contagem de ocorrências do dia 30/06/2025...")
+    click.echo("=== CONTAGEM DE OCORRÊNCIAS - 30/06/2025 ===")
+    
+    # Define o período do dia 30/06/2025 (00:00:00 até 23:59:59)
+    inicio_dia = datetime(2025, 6, 30, 0, 0, 0, tzinfo=timezone.utc)
+    fim_dia = datetime(2025, 7, 1, 0, 0, 0, tzinfo=timezone.utc)
+    
+    # Conta total de ocorrências do dia
+    total_ocorrencias = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia >= inicio_dia,
+        Ocorrencia.data_hora_ocorrencia < fim_dia
+    ).count()
+    
+    click.echo(f"\n📊 RESULTADO:")
+    click.echo(f"   Total de ocorrências em 30/06/2025: {total_ocorrencias}")
+    
+    if total_ocorrencias == 0:
+        click.echo("❌ Nenhuma ocorrência encontrada para 30/06/2025.")
+        return
+    
+    # Estatísticas por status
+    from sqlalchemy import func
+    status_stats = (
+        db.session.query(
+            Ocorrencia.status,
+            func.count(Ocorrencia.id).label('quantidade')
+        )
+        .filter(
+            Ocorrencia.data_hora_ocorrencia >= inicio_dia,
+            Ocorrencia.data_hora_ocorrencia < fim_dia
+        )
+        .group_by(Ocorrencia.status)
+        .order_by(func.count(Ocorrencia.id).desc())
+        .all()
+    )
+    
+    click.echo(f"\n📈 ESTATÍSTICAS POR STATUS:")
+    for status, quantidade in status_stats:
+        percentual = (quantidade / total_ocorrencias) * 100
+        click.echo(f"   • {status}: {quantidade} ({percentual:.1f}%)")
+    
+    # Estatísticas por tipo
+    tipo_stats = (
+        db.session.query(
+            OcorrenciaTipo.nome,
+            func.count(Ocorrencia.id).label('quantidade')
+        )
+        .join(Ocorrencia, Ocorrencia.ocorrencia_tipo_id == OcorrenciaTipo.id)
+        .filter(
+            Ocorrencia.data_hora_ocorrencia >= inicio_dia,
+            Ocorrencia.data_hora_ocorrencia < fim_dia
+        )
+        .group_by(OcorrenciaTipo.nome)
+        .order_by(func.count(Ocorrencia.id).desc())
+        .all()
+    )
+    
+    click.echo(f"\n📋 ESTATÍSTICAS POR TIPO:")
+    for tipo, quantidade in tipo_stats:
+        percentual = (quantidade / total_ocorrencias) * 100
+        click.echo(f"   • {tipo}: {quantidade} ({percentual:.1f}%)")
+    
+    # Estatísticas por hora do dia
+    hora_stats = (
+        db.session.query(
+            func.extract('hour', Ocorrencia.data_hora_ocorrencia).label('hora'),
+            func.count(Ocorrencia.id).label('quantidade')
+        )
+        .filter(
+            Ocorrencia.data_hora_ocorrencia >= inicio_dia,
+            Ocorrencia.data_hora_ocorrencia < fim_dia
+        )
+        .group_by(func.extract('hour', Ocorrencia.data_hora_ocorrencia))
+        .order_by(func.extract('hour', Ocorrencia.data_hora_ocorrencia))
+        .all()
+    )
+    
+    click.echo(f"\n🕐 ESTATÍSTICAS POR HORA:")
+    for hora, quantidade in hora_stats:
+        percentual = (quantidade / total_ocorrencias) * 100
+        click.echo(f"   • {int(hora):02d}:00 - {int(hora):02d}:59: {quantidade} ({percentual:.1f}%)")
+    
+    # Resumo final
+    click.echo(f"\n✅ RESUMO:")
+    click.echo(f"   • Data: 30/06/2025")
+    click.echo(f"   • Total de ocorrências: {total_ocorrencias}")
+    if status_stats:
+        status_mais_comum = status_stats[0]
+        click.echo(f"   • Status mais comum: {status_mais_comum[0]} ({status_mais_comum[1]})")
+    if tipo_stats:
+        tipo_mais_comum = tipo_stats[0]
+        click.echo(f"   • Tipo mais comum: {tipo_mais_comum[0]} ({tipo_mais_comum[1]})")
+    if hora_stats:
+        hora_mais_ativa = max(hora_stats, key=lambda x: x[1])
+        click.echo(f"   • Hora mais ativa: {int(hora_mais_ativa[0]):02d}:00 ({hora_mais_ativa[1]} ocorrências)")
+    
+    logger.info(f"Contagem de ocorrências de 30/06/2025 concluída. Total: {total_ocorrencias}")
+
+
+@click.command("investigar-discrepancia-junho-2025")
+@with_appcontext
+def investigar_discrepancia_junho_2025_command():
+    """
+    Investiga a discrepância entre as ocorrências contadas e o total real no banco.
+    Verifica diferentes filtros e condições que podem estar causando a diferença.
+    """
+    from datetime import datetime, timezone
+    from app.models import Ocorrencia, OcorrenciaTipo
+    from sqlalchemy import func
+    
+    logger.info("Iniciando investigação da discrepância de ocorrências de junho de 2025...")
+    click.echo("=== INVESTIGAÇÃO DE DISCREPÂNCIA - JUNHO DE 2025 ===")
+    
+    # Define o período de junho de 2025
+    inicio_junho = datetime(2025, 6, 1, 0, 0, 0, tzinfo=timezone.utc)
+    fim_junho = datetime(2025, 7, 1, 0, 0, 0, tzinfo=timezone.utc)
+    
+    click.echo(f"\n📊 ANÁLISE GERAL:")
+    click.echo(f"   Período analisado: 01/06/2025 a 30/06/2025")
+    click.echo(f"   Início UTC: {inicio_junho}")
+    click.echo(f"   Fim UTC: {fim_junho}")
+    
+    # 1. Total geral de ocorrências no banco
+    total_geral = Ocorrencia.query.count()
+    click.echo(f"\n🔍 TOTAL GERAL NO BANCO:")
+    click.echo(f"   Total de ocorrências no banco: {total_geral}")
+    
+    # 2. Ocorrências com data_hora_ocorrencia NULL
+    ocorrencias_sem_data = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia.is_(None)
+    ).count()
+    click.echo(f"\n⚠️ OCORRÊNCIAS SEM DATA:")
+    click.echo(f"   Ocorrências com data_hora_ocorrencia NULL: {ocorrencias_sem_data}")
+    
+    if ocorrencias_sem_data > 0:
+        click.echo(f"   IDs das ocorrências sem data:")
+        ocorrencias_sem_data_list = Ocorrencia.query.filter(
+            Ocorrencia.data_hora_ocorrencia.is_(None)
+        ).all()
+        for oc in ocorrencias_sem_data_list:
+            click.echo(f"     - ID: {oc.id}, Status: {oc.status}, Data Criação: {oc.data_criacao}")
+    
+    # 3. Ocorrências no período (filtro principal)
+    ocorrencias_periodo = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia >= inicio_junho,
+        Ocorrencia.data_hora_ocorrencia < fim_junho
+    ).count()
+    click.echo(f"\n📅 OCORRÊNCIAS NO PERÍODO (FILTRO PRINCIPAL):")
+    click.echo(f"   Ocorrências em junho/2025: {ocorrencias_periodo}")
+    
+    # 4. Ocorrências antes do período
+    ocorrencias_antes = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia < inicio_junho
+    ).count()
+    click.echo(f"\n📅 OCORRÊNCIAS ANTES DO PERÍODO:")
+    click.echo(f"   Ocorrências antes de 01/06/2025: {ocorrencias_antes}")
+    
+    # 5. Ocorrências após o período
+    ocorrencias_depois = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia >= fim_junho
+    ).count()
+    click.echo(f"\n📅 OCORRÊNCIAS APÓS O PERÍODO:")
+    click.echo(f"   Ocorrências após 30/06/2025: {ocorrencias_depois}")
+    
+    # 6. Verificação matemática
+    total_calculado = ocorrencias_periodo + ocorrencias_antes + ocorrencias_depois + ocorrencias_sem_data
+    click.echo(f"\n🧮 VERIFICAÇÃO MATEMÁTICA:")
+    click.echo(f"   Período + Antes + Depois + Sem Data = {ocorrencias_periodo} + {ocorrencias_antes} + {ocorrencias_depois} + {ocorrencias_sem_data} = {total_calculado}")
+    click.echo(f"   Total real no banco: {total_geral}")
+    click.echo(f"   Diferença: {total_geral - total_calculado}")
+    
+    # 7. Análise por status no período
+    status_analysis = (
+        db.session.query(
+            Ocorrencia.status,
+            func.count(Ocorrencia.id).label('quantidade')
+        )
+        .filter(
+            Ocorrencia.data_hora_ocorrencia >= inicio_junho,
+            Ocorrencia.data_hora_ocorrencia < fim_junho
+        )
+        .group_by(Ocorrencia.status)
+        .all()
+    )
+    
+    click.echo(f"\n📈 ANÁLISE POR STATUS NO PERÍODO:")
+    for status, quantidade in status_analysis:
+        click.echo(f"   • {status}: {quantidade}")
+    
+    # 8. Verificar ocorrências com datas estranhas
+    click.echo(f"\n🔍 OCORRÊNCIAS COM DATAS ESTRANHAS:")
+    
+    # Ocorrências com data_hora_ocorrencia muito antiga
+    ocorrencias_antigas = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia < datetime(2020, 1, 1, tzinfo=timezone.utc)
+    ).count()
+    click.echo(f"   Ocorrências antes de 2020: {ocorrencias_antigas}")
+    
+    # Ocorrências com data_hora_ocorrencia no futuro
+    ocorrencias_futuras = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia > datetime.now(timezone.utc)
+    ).count()
+    click.echo(f"   Ocorrências no futuro: {ocorrencias_futuras}")
+    
+    # 9. Verificar ocorrências com data_criacao vs data_hora_ocorrencia
+    click.echo(f"\n🔍 COMPARAÇÃO DATA_CRIACAO vs DATA_HORA_OCORRENCIA:")
+    
+    # Ocorrências criadas em junho mas com data_hora_ocorrencia diferente
+    ocorrencias_criadas_junho = Ocorrencia.query.filter(
+        Ocorrencia.data_criacao >= inicio_junho,
+        Ocorrencia.data_criacao < fim_junho
+    ).count()
+    click.echo(f"   Ocorrências CRIADAS em junho/2025: {ocorrencias_criadas_junho}")
+    
+    # Ocorrências com data_hora_ocorrencia em junho mas criadas em outro mês
+    ocorrencias_ocorridas_junho = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia >= inicio_junho,
+        Ocorrencia.data_hora_ocorrencia < fim_junho
+    ).count()
+    click.echo(f"   Ocorrências OCORRIDAS em junho/2025: {ocorrencias_ocorridas_junho}")
+    
+    # 10. Verificar se há ocorrências duplicadas ou com problemas
+    click.echo(f"\n🔍 VERIFICAÇÃO DE PROBLEMAS:")
+    
+    # Ocorrências com mesmo ID (impossível, mas vamos verificar)
+    ids_duplicados = db.session.query(Ocorrencia.id).group_by(Ocorrencia.id).having(
+        func.count(Ocorrencia.id) > 1
+    ).all()
+    click.echo(f"   IDs duplicados: {len(ids_duplicados)}")
+    
+    # 11. Resumo da investigação
+    click.echo(f"\n✅ RESUMO DA INVESTIGAÇÃO:")
+    click.echo(f"   • Total no banco: {total_geral}")
+    click.echo(f"   • Ocorrências em junho/2025: {ocorrencias_periodo}")
+    click.echo(f"   • Ocorrências sem data: {ocorrencias_sem_data}")
+    click.echo(f"   • Ocorrências criadas em junho: {ocorrencias_criadas_junho}")
+    click.echo(f"   • Ocorrências ocorridas em junho: {ocorrencias_ocorridas_junho}")
+    
+    if ocorrencias_periodo != 188:
+        click.echo(f"\n❌ PROBLEMA IDENTIFICADO:")
+        click.echo(f"   Esperado: 188 ocorrências")
+        click.echo(f"   Encontrado: {ocorrencias_periodo} ocorrências")
+        click.echo(f"   Diferença: {188 - ocorrencias_periodo}")
+        
+        if ocorrencias_sem_data > 0:
+            click.echo(f"   ⚠️ Possível causa: {ocorrencias_sem_data} ocorrências sem data_hora_ocorrencia")
+        
+        if ocorrencias_criadas_junho != ocorrencias_periodo:
+            click.echo(f"   ⚠️ Possível causa: diferença entre data de criação e data da ocorrência")
+    
+    logger.info(f"Investigação de discrepância concluída. Período: {ocorrencias_periodo}, Total: {total_geral}")
+
+
+@click.command("listar-todas-ocorrencias-junho-2025")
+@with_appcontext
+def listar_todas_ocorrencias_junho_2025_command():
+    """
+    Lista todas as 188 ocorrências de junho de 2025 com detalhes completos.
+    Ajuda a identificar quais podem estar sendo excluídas da métrica.
+    """
+    from datetime import datetime, timezone
+    from app.models import Ocorrencia, OcorrenciaTipo, Condominio, User
+    
+    logger.info("Listando todas as ocorrências de junho de 2025...")
+    click.echo("=== LISTA COMPLETA - OCORRÊNCIAS JUNHO 2025 ===")
+    
+    # Define o período de junho de 2025
+    inicio_junho = datetime(2025, 6, 1, 0, 0, 0, tzinfo=timezone.utc)
+    fim_junho = datetime(2025, 7, 1, 0, 0, 0, tzinfo=timezone.utc)
+    
+    # Busca todas as ocorrências do período com todos os relacionamentos
+    from sqlalchemy.orm import aliased
+    
+    Supervisor = aliased(User)
+    ocorrencias = (
+        Ocorrencia.query
+        .join(OcorrenciaTipo, Ocorrencia.ocorrencia_tipo_id == OcorrenciaTipo.id)
+        .outerjoin(Condominio, Ocorrencia.condominio_id == Condominio.id)
+        .join(User, Ocorrencia.registrado_por_user_id == User.id)
+        .outerjoin(Supervisor, Ocorrencia.supervisor_id == Supervisor.id)
+        .filter(
+            Ocorrencia.data_hora_ocorrencia >= inicio_junho,
+            Ocorrencia.data_hora_ocorrencia < fim_junho
+        )
+        .order_by(Ocorrencia.data_hora_ocorrencia)
+        .all()
+    )
+    
+    total_ocorrencias = len(ocorrencias)
+    click.echo(f"\n📊 TOTAL ENCONTRADO: {total_ocorrencias} ocorrências")
+    
+    if total_ocorrencias == 0:
+        click.echo("❌ Nenhuma ocorrência encontrada!")
+        return
+    
+    # Análise por condomínio
+    condominios_count = {}
+    tipos_count = {}
+    status_count = {}
+    users_count = {}
+    
+    click.echo(f"\n📝 LISTA DETALHADA:")
+    click.echo("=" * 120)
+    
+    for i, oc in enumerate(ocorrencias, 1):
+        # Formata a data no padrão brasileiro
+        data_formatada = oc.data_hora_ocorrencia.strftime('%d/%m/%Y %H:%M')
+        data_criacao_formatada = oc.data_criacao.strftime('%d/%m/%Y %H:%M') if oc.data_criacao else "N/A"
+        
+        # Informações básicas
+        condominio_nome = oc.condominio.nome if oc.condominio else "Sem condomínio"
+        tipo_nome = oc.tipo.nome if oc.tipo else "Sem tipo"
+        registrado_por = oc.registrado_por.username if oc.registrado_por else "N/A"
+        supervisor = oc.supervisor.username if oc.supervisor else "N/A"
+        
+        # Contadores para análise
+        condominios_count[condominio_nome] = condominios_count.get(condominio_nome, 0) + 1
+        tipos_count[tipo_nome] = tipos_count.get(tipo_nome, 0) + 1
+        status_count[oc.status] = status_count.get(oc.status, 0) + 1
+        users_count[registrado_por] = users_count.get(registrado_por, 0) + 1
+        
+        click.echo(f"\n{i:3d}. OCORRÊNCIA #{oc.id}")
+        click.echo(f"    📅 Data Ocorrência: {data_formatada}")
+        click.echo(f"    📅 Data Criação: {data_criacao_formatada}")
+        click.echo(f"    🏢 Condomínio: {condominio_nome}")
+        click.echo(f"    📋 Tipo: {tipo_nome}")
+        click.echo(f"    🔄 Status: {oc.status}")
+        click.echo(f"    👤 Registrado por: {registrado_por}")
+        click.echo(f"    👨‍💼 Supervisor: {supervisor}")
+        
+        if oc.turno:
+            click.echo(f"    ⏰ Turno: {oc.turno}")
+        
+        if oc.endereco_especifico:
+            click.echo(f"    📍 Endereço: {oc.endereco_especifico}")
+        
+        # Verificar se tem relacionamentos
+        if oc.orgaos_acionados:
+            orgaos = [org.nome for org in oc.orgaos_acionados]
+            click.echo(f"    🏛️ Órgãos: {', '.join(orgaos)}")
+        
+        if oc.colaboradores_envolvidos:
+            colaboradores = [col.nome_completo for col in oc.colaboradores_envolvidos]
+            click.echo(f"    👥 Colaboradores: {', '.join(colaboradores)}")
+        
+        click.echo("-" * 80)
+    
+    # Análise estatística
+    click.echo(f"\n📊 ANÁLISE ESTATÍSTICA:")
+    click.echo(f"   Total de ocorrências: {total_ocorrencias}")
+    
+    click.echo(f"\n🏢 POR CONDOMÍNIO:")
+    for cond, count in sorted(condominios_count.items(), key=lambda x: x[1], reverse=True):
+        percentual = (count / total_ocorrencias) * 100
+        click.echo(f"   • {cond}: {count} ({percentual:.1f}%)")
+    
+    click.echo(f"\n📋 POR TIPO:")
+    for tipo, count in sorted(tipos_count.items(), key=lambda x: x[1], reverse=True):
+        percentual = (count / total_ocorrencias) * 100
+        click.echo(f"   • {tipo}: {count} ({percentual:.1f}%)")
+    
+    click.echo(f"\n🔄 POR STATUS:")
+    for status, count in sorted(status_count.items(), key=lambda x: x[1], reverse=True):
+        percentual = (count / total_ocorrencias) * 100
+        click.echo(f"   • {status}: {count} ({percentual:.1f}%)")
+    
+    click.echo(f"\n👤 POR USUÁRIO:")
+    for user, count in sorted(users_count.items(), key=lambda x: x[1], reverse=True):
+        percentual = (count / total_ocorrencias) * 100
+        click.echo(f"   • {user}: {count} ({percentual:.1f}%)")
+    
+    # Verificar possíveis filtros que podem estar causando a discrepância
+    click.echo(f"\n🔍 POSSÍVEIS CAUSAS DA DISCREPÂNCIA:")
+    
+    # Verificar ocorrências sem condomínio
+    ocorrencias_sem_condominio = sum(1 for oc in ocorrencias if not oc.condominio)
+    if ocorrencias_sem_condominio > 0:
+        click.echo(f"   ⚠️ {ocorrencias_sem_condominio} ocorrências sem condomínio")
+    
+    # Verificar ocorrências sem supervisor
+    ocorrencias_sem_supervisor = sum(1 for oc in ocorrencias if not oc.supervisor)
+    if ocorrencias_sem_supervisor > 0:
+        click.echo(f"   ⚠️ {ocorrencias_sem_supervisor} ocorrências sem supervisor")
+    
+    # Verificar ocorrências sem turno
+    ocorrencias_sem_turno = sum(1 for oc in ocorrencias if not oc.turno)
+    if ocorrencias_sem_turno > 0:
+        click.echo(f"   ⚠️ {ocorrencias_sem_turno} ocorrências sem turno")
+    
+    # Verificar ocorrências com endereço específico
+    ocorrencias_com_endereco = sum(1 for oc in ocorrencias if oc.endereco_especifico)
+    click.echo(f"   📍 {ocorrencias_com_endereco} ocorrências com endereço específico")
+    
+    # Verificar ocorrências com órgãos acionados
+    ocorrencias_com_orgaos = sum(1 for oc in ocorrencias if oc.orgaos_acionados)
+    click.echo(f"   🏛️ {ocorrencias_com_orgaos} ocorrências com órgãos acionados")
+    
+    # Verificar ocorrências com colaboradores
+    ocorrencias_com_colaboradores = sum(1 for oc in ocorrencias if oc.colaboradores_envolvidos)
+    click.echo(f"   👥 {ocorrencias_com_colaboradores} ocorrências com colaboradores")
+    
+    click.echo(f"\n✅ INVESTIGAÇÃO CONCLUÍDA!")
+    click.echo(f"   Compare esta lista com a métrica que mostra 184 ocorrências")
+    click.echo(f"   para identificar quais 4 estão sendo excluídas.")
+    
+    logger.info(f"Listagem completa de ocorrências de junho concluída. Total: {total_ocorrencias}")
+
+
+@click.command("testar-filtros-dashboard-ocorrencia")
+@with_appcontext
+def testar_filtros_dashboard_ocorrencia_command():
+    """
+    Testa os mesmos filtros usados pelo dashboard de ocorrências para identificar a discrepância.
+    Simula exatamente o que o dashboard faz.
+    """
+    from datetime import datetime, timezone
+    from app.models import Ocorrencia, OcorrenciaTipo, Condominio, User
+    from app.services import ocorrencia_service
+    from app.utils.date_utils import parse_date_range
+    from sqlalchemy import func
+    
+    logger.info("Testando filtros do dashboard de ocorrências...")
+    click.echo("=== TESTE DOS FILTROS DO DASHBOARD DE OCORRÊNCIAS ===")
+    
+    # Simula os filtros que o dashboard recebe (junho de 2025)
+    filters = {
+        "condominio_id": None,
+        "tipo_id": None,
+        "status": "",
+        "supervisor_id": None,
+        "mes": 6,  # Junho
+        "data_inicio_str": "2025-06-01",
+        "data_fim_str": "2025-06-30",
+    }
+    
+    click.echo(f"\n📊 FILTROS APLICADOS:")
+    click.echo(f"   Filtros: {filters}")
+    
+    # 1. Processa as datas como o dashboard faz
+    data_inicio_str = filters.get("data_inicio_str")
+    data_fim_str = filters.get("data_fim_str")
+    date_start_range, date_end_range = parse_date_range(data_inicio_str, data_fim_str)
+    
+    click.echo(f"\n📅 PROCESSAMENTO DE DATAS:")
+    click.echo(f"   Data início string: {data_inicio_str}")
+    click.echo(f"   Data fim string: {data_fim_str}")
+    click.echo(f"   Date start range: {date_start_range}")
+    click.echo(f"   Date end range: {date_end_range}")
+    click.echo(f"   Tipo date_start_range: {type(date_start_range)}")
+    click.echo(f"   Tipo date_end_range: {type(date_end_range)}")
+    
+    # 2. Converte para datetime UTC como o dashboard faz
+    from datetime import time
+    date_start_range_dt = datetime.combine(date_start_range, time.min, tzinfo=timezone.utc)
+    date_end_range_dt = datetime.combine(date_end_range, time.max, tzinfo=timezone.utc)
+    
+    click.echo(f"\n🕐 CONVERSÃO PARA DATETIME UTC:")
+    click.echo(f"   Date start range DT: {date_start_range_dt}")
+    click.echo(f"   Date end range DT: {date_end_range_dt}")
+    
+    # 3. Query base como o dashboard faz
+    def add_date_filter(query):
+        return query.filter(
+            Ocorrencia.data_hora_ocorrencia >= date_start_range_dt,
+            Ocorrencia.data_hora_ocorrencia <= date_end_range_dt
+        )
+    
+    # 4. Query base para KPIs (exatamente como o dashboard)
+    base_kpi_query = db.session.query(Ocorrencia)
+    base_kpi_query = ocorrencia_service.apply_ocorrencia_filters(
+        base_kpi_query, filters
+    )
+    base_kpi_query = add_date_filter(base_kpi_query)
+    
+    total_ocorrencias = base_kpi_query.count()
+    click.echo(f"\n📊 RESULTADO DO DASHBOARD:")
+    click.echo(f"   Total de ocorrências encontradas: {total_ocorrencias}")
+    
+    # 5. Comparação com nossa contagem direta
+    inicio_junho = datetime(2025, 6, 1, 0, 0, 0, tzinfo=timezone.utc)
+    fim_junho = datetime(2025, 7, 1, 0, 0, 0, tzinfo=timezone.utc)
+    
+    total_direto = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia >= inicio_junho,
+        Ocorrencia.data_hora_ocorrencia < fim_junho
+    ).count()
+    
+    click.echo(f"\n🔍 COMPARAÇÃO:")
+    click.echo(f"   Total direto (nosso comando): {total_direto}")
+    click.echo(f"   Total dashboard: {total_ocorrencias}")
+    click.echo(f"   Diferença: {total_direto - total_ocorrencias}")
+    
+    # 6. Verificar se há diferença nos filtros de data
+    click.echo(f"\n🔍 ANÁLISE DAS DATAS:")
+    click.echo(f"   Nosso início: {inicio_junho}")
+    click.echo(f"   Dashboard início: {date_start_range_dt}")
+    click.echo(f"   Nosso fim: {fim_junho}")
+    click.echo(f"   Dashboard fim: {date_end_range_dt}")
+    
+    # 7. Testar com as datas exatas do dashboard
+    ocorrencias_dashboard_dates = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia >= date_start_range_dt,
+        Ocorrencia.data_hora_ocorrencia <= date_end_range_dt
+    ).count()
+    
+    click.echo(f"\n📊 TESTE COM DATAS DO DASHBOARD:")
+    click.echo(f"   Ocorrências com datas do dashboard: {ocorrencias_dashboard_dates}")
+    
+    # 8. Verificar se há filtros adicionais sendo aplicados
+    click.echo(f"\n🔍 VERIFICAÇÃO DE FILTROS ADICIONAIS:")
+    
+    # Testar sem aplicar filtros de ocorrência
+    base_query_sem_filtros = db.session.query(Ocorrencia)
+    base_query_sem_filtros = add_date_filter(base_query_sem_filtros)
+    total_sem_filtros = base_query_sem_filtros.count()
+    
+    click.echo(f"   Total sem filtros de ocorrência: {total_sem_filtros}")
+    
+    # 9. Resumo final
+    click.echo(f"\n✅ RESUMO:")
+    click.echo(f"   • Total real no banco (junho/2025): {total_direto}")
+    click.echo(f"   • Total do dashboard: {total_ocorrencias}")
+    click.echo(f"   • Total com datas do dashboard: {ocorrencias_dashboard_dates}")
+    click.echo(f"   • Total sem filtros adicionais: {total_sem_filtros}")
+    
+    if total_ocorrencias != 188:
+        click.echo(f"\n❌ PROBLEMA IDENTIFICADO:")
+        click.echo(f"   O dashboard está mostrando {total_ocorrencias} em vez de 188")
+        click.echo(f"   Diferença: {188 - total_ocorrencias} ocorrências")
+    
+    logger.info(f"Teste dos filtros do dashboard concluído. Dashboard: {total_ocorrencias}, Real: {total_direto}")
+
+
+@click.command("testar-dashboard-comparativo")
+@with_appcontext
+def testar_dashboard_comparativo_command():
+    """
+    Testa o dashboard comparativo para verificar se há discrepância na contagem de ocorrências.
+    """
+    from datetime import datetime, timezone, date, timedelta
+    from app.models import Ocorrencia, Ronda
+    from app.services.dashboard.comparativo.processor import DataProcessor
+    from app.services.dashboard.comparativo.aggregator import DataAggregator
+    from app.services.dashboard.comparativo.filters import FilterApplier
+    from sqlalchemy import func
+    
+    logger.info("Testando dashboard comparativo...")
+    click.echo("=== TESTE DO DASHBOARD COMPARATIVO ===")
+    
+    # Teste 1: Modo todos os meses (padrão)
+    click.echo(f"\n📊 TESTE 1: MODO TODOS OS MESES (2025)")
+    filters = {}
+    
+    try:
+        rondas_series, ocorrencias_series = DataProcessor.process_all_months_mode(2025, filters)
+        click.echo(f"   Série de ocorrências: {ocorrencias_series}")
+        click.echo(f"   Ocorrências em junho (índice 5): {ocorrencias_series[5]}")
+        
+        # Comparação direta
+        inicio_junho = datetime(2025, 6, 1, 0, 0, 0, tzinfo=timezone.utc)
+        fim_junho = datetime(2025, 7, 1, 0, 0, 0, tzinfo=timezone.utc)
+        
+        total_direto = Ocorrencia.query.filter(
+            Ocorrencia.data_hora_ocorrencia >= inicio_junho,
+            Ocorrencia.data_hora_ocorrencia < fim_junho
+        ).count()
+        
+        click.echo(f"   Total direto junho/2025: {total_direto}")
+        click.echo(f"   Diferença: {total_direto - ocorrencias_series[5]}")
+        
+    except Exception as e:
+        click.echo(f"   ❌ Erro no modo todos os meses: {e}")
+    
+    # Teste 2: Modo mês único (junho)
+    click.echo(f"\n📊 TESTE 2: MODO MÊS ÚNICO (junho/2025)")
+    
+    try:
+        rondas_series, ocorrencias_series = DataProcessor.process_single_month_mode(2025, 6, filters)
+        click.echo(f"   Série de ocorrências: {ocorrencias_series}")
+        click.echo(f"   Ocorrências em junho (índice 5): {ocorrencias_series[5]}")
+        
+    except Exception as e:
+        click.echo(f"   ❌ Erro no modo mês único: {e}")
+    
+    # Teste 3: Agregador direto
+    click.echo(f"\n📊 TESTE 3: AGREGADOR DIRETO")
+    
+    try:
+        ocorrencias_raw = DataAggregator.get_monthly_aggregation_with_filters(
+            Ocorrencia, Ocorrencia.data_hora_ocorrencia, 2025, filters, is_ronda=False
+        )
+        click.echo(f"   Dados brutos: {ocorrencias_raw}")
+        
+        # Encontrar junho
+        junho_data = None
+        for mes_str, total in ocorrencias_raw:
+            if mes_str == "2025-06":
+                junho_data = total
+                break
+        
+        click.echo(f"   Ocorrências em junho (agregador): {junho_data}")
+        
+    except Exception as e:
+        click.echo(f"   ❌ Erro no agregador: {e}")
+    
+    # Teste 4: Query manual usando o mesmo filtro do agregador
+    click.echo(f"\n📊 TESTE 4: QUERY MANUAL")
+    
+    try:
+        query = db.session.query(
+            func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM"), 
+            func.count(Ocorrencia.id)
+        )
+        
+        # Aplica filtros como o agregador faz
+        query = FilterApplier.apply_ocorrencia_filters(query, filters)
+        query = query.filter(func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY") == "2025")
+        
+        result = (
+            query.group_by(func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM"))
+            .order_by(func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM"))
+            .all()
+        )
+        
+        click.echo(f"   Resultado query manual: {result}")
+        
+        # Encontrar junho
+        junho_manual = None
+        for mes_str, total in result:
+            if mes_str == "2025-06":
+                junho_manual = total
+                break
+        
+        click.echo(f"   Ocorrências em junho (manual): {junho_manual}")
+        
+    except Exception as e:
+        click.echo(f"   ❌ Erro na query manual: {e}")
+    
+    # Teste 5: Verificar se há problemas com timezone
+    click.echo(f"\n📊 TESTE 5: VERIFICAÇÃO DE TIMEZONE")
+    
+    try:
+        # Query sem timezone (como o comparativo faz)
+        query_sem_tz = db.session.query(
+            func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM"), 
+            func.count(Ocorrencia.id)
+        ).filter(
+            func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY") == "2025"
+        ).group_by(
+            func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM")
+        ).all()
+        
+        click.echo(f"   Query sem timezone: {query_sem_tz}")
+        
+        # Query com timezone explícito
+        query_com_tz = db.session.query(
+            func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM"), 
+            func.count(Ocorrencia.id)
+        ).filter(
+            Ocorrencia.data_hora_ocorrencia >= datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+            Ocorrencia.data_hora_ocorrencia < datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        ).group_by(
+            func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM")
+        ).all()
+        
+        click.echo(f"   Query com timezone: {query_com_tz}")
+        
+    except Exception as e:
+        click.echo(f"   ❌ Erro na verificação de timezone: {e}")
+    
+    # Teste 6: Verificar ocorrências específicas de junho
+    click.echo(f"\n📊 TESTE 6: OCORRÊNCIAS ESPECÍFICAS DE JUNHO")
+    
+    try:
+        # Buscar todas as ocorrências de junho
+        ocorrencias_junho = Ocorrencia.query.filter(
+            func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM") == "2025-06"
+        ).all()
+        
+        click.echo(f"   Total ocorrências junho (func.to_char): {len(ocorrencias_junho)}")
+        
+        # Verificar se há ocorrências com data_hora_ocorrencia nula
+        ocorrencias_nulas = Ocorrencia.query.filter(
+            Ocorrencia.data_hora_ocorrencia.is_(None)
+        ).count()
+        
+        click.echo(f"   Ocorrências com data nula: {ocorrencias_nulas}")
+        
+        # Verificar range de datas em junho
+        datas_junho = [
+            oc.data_hora_ocorrencia for oc in ocorrencias_junho 
+            if oc.data_hora_ocorrencia
+        ]
+        
+        if datas_junho:
+            min_data = min(datas_junho)
+            max_data = max(datas_junho)
+            click.echo(f"   Data mínima em junho: {min_data}")
+            click.echo(f"   Data máxima em junho: {max_data}")
+        
+    except Exception as e:
+        click.echo(f"   ❌ Erro na verificação específica: {e}")
+    
+    # Resumo final
+    click.echo(f"\n✅ RESUMO DO DASHBOARD COMPARATIVO:")
+    click.echo(f"   • Verifique se há diferenças entre os testes acima")
+    click.echo(f"   • Se houver diferenças, pode indicar problemas de timezone ou filtros")
+    click.echo(f"   • O dashboard comparativo usa func.to_char sem timezone explícito")
+    
+    logger.info("Teste do dashboard comparativo concluído")
+
+
+@click.command("investigar-discrepancia-comparativo")
+@with_appcontext
+def investigar_discrepancia_comparativo_command():
+    """
+    Investiga especificamente a discrepância entre os modos do dashboard comparativo.
+    """
+    from datetime import datetime, timezone, date
+    from app.models import Ocorrencia
+    from app.services.dashboard.comparativo.processor import DataProcessor
+    from app.services.dashboard.comparativo.aggregator import DataAggregator
+    from app.services.dashboard.comparativo.filters import FilterApplier
+    from sqlalchemy import func
+    
+    logger.info("Investigando discrepância no dashboard comparativo...")
+    click.echo("=== INVESTIGAÇÃO DA DISCREPÂNCIA NO DASHBOARD COMPARATIVO ===")
+    
+    filters = {}
+    year = 2025
+    month = 6
+    
+    click.echo(f"\n🔍 COMPARAÇÃO DOS DOIS MODOS:")
+    
+    # Modo 1: Todos os meses
+    click.echo(f"\n📊 MODO 1: TODOS OS MESES")
+    try:
+        rondas_all, ocorrencias_all = DataProcessor.process_all_months_mode(year, filters)
+        click.echo(f"   Ocorrências em junho (índice 5): {ocorrencias_all[5]}")
+    except Exception as e:
+        click.echo(f"   ❌ Erro: {e}")
+    
+    # Modo 2: Mês único
+    click.echo(f"\n📊 MODO 2: MÊS ÚNICO")
+    try:
+        rondas_single, ocorrencias_single = DataProcessor.process_single_month_mode(year, month, filters)
+        click.echo(f"   Ocorrências em junho (índice 5): {ocorrencias_single[5]}")
+    except Exception as e:
+        click.echo(f"   ❌ Erro: {e}")
+    
+    # Diferença
+    diferenca = ocorrencias_all[5] - ocorrencias_single[5]
+    click.echo(f"\n📊 DIFERENÇA: {diferenca} ocorrências")
+    
+    # Investigar o problema
+    click.echo(f"\n🔍 INVESTIGANDO O PROBLEMA:")
+    
+    # 1. Verificar como o modo mês único calcula as datas
+    start_date = date(year, month, 1)
+    if month == 12:
+        end_date = date(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        end_date = date(year, month + 1, 1) - timedelta(days=1)
+    
+    click.echo(f"   Data início (mês único): {start_date}")
+    click.echo(f"   Data fim (mês único): {end_date}")
+    
+    # 2. Verificar como o agregador processa essas datas
+    temp_filters = filters.copy()
+    temp_filters["data_inicio_str"] = start_date.strftime("%Y-%m-%d")
+    temp_filters["data_fim_str"] = end_date.strftime("%Y-%m-%d")
+    
+    click.echo(f"   Filtros temporários: {temp_filters}")
+    
+    # 3. Testar o agregador com os filtros do modo mês único
+    click.echo(f"\n📊 TESTE DO AGREGADOR COM FILTROS DO MÊS ÚNICO:")
+    try:
+        ocorrencias_raw_single = DataAggregator.get_monthly_aggregation_with_filters(
+            Ocorrencia, Ocorrencia.data_hora_ocorrencia, year, temp_filters, is_ronda=False
+        )
+        click.echo(f"   Dados brutos: {ocorrencias_raw_single}")
+        
+        # Encontrar junho
+        junho_single = None
+        for mes_str, total in ocorrencias_raw_single:
+            if mes_str == "2025-06":
+                junho_single = total
+                break
+        
+        click.echo(f"   Ocorrências em junho (agregador com filtros): {junho_single}")
+        
+    except Exception as e:
+        click.echo(f"   ❌ Erro no agregador: {e}")
+    
+    # 4. Testar o agregador sem filtros (como modo todos os meses)
+    click.echo(f"\n📊 TESTE DO AGREGADOR SEM FILTROS:")
+    try:
+        ocorrencias_raw_all = DataAggregator.get_monthly_aggregation_with_filters(
+            Ocorrencia, Ocorrencia.data_hora_ocorrencia, year, filters, is_ronda=False
+        )
+        click.echo(f"   Dados brutos: {ocorrencias_raw_all}")
+        
+        # Encontrar junho
+        junho_all = None
+        for mes_str, total in ocorrencias_raw_all:
+            if mes_str == "2025-06":
+                junho_all = total
+                break
+        
+        click.echo(f"   Ocorrências em junho (agregador sem filtros): {junho_all}")
+        
+    except Exception as e:
+        click.echo(f"   ❌ Erro no agregador: {e}")
+    
+    # 5. Verificar se há diferença na aplicação de filtros
+    click.echo(f"\n🔍 VERIFICAÇÃO DOS FILTROS:")
+    
+    # Query sem filtros
+    query_sem_filtros = db.session.query(
+        func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM"), 
+        func.count(Ocorrencia.id)
+    ).filter(
+        func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY") == str(year)
+    ).group_by(
+        func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM")
+    ).all()
+    
+    click.echo(f"   Query sem filtros: {query_sem_filtros}")
+    
+    # Query com filtros do modo mês único
+    query_com_filtros = db.session.query(
+        func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM"), 
+        func.count(Ocorrencia.id)
+    )
+    
+    # Aplica filtros como o agregador faz
+    query_com_filtros = FilterApplier.apply_ocorrencia_filters(query_com_filtros, temp_filters)
+    query_com_filtros = query_com_filtros.filter(
+        func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY") == str(year)
+    )
+    
+    result_com_filtros = (
+        query_com_filtros.group_by(func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM"))
+        .order_by(func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM"))
+        .all()
+    )
+    
+    click.echo(f"   Query com filtros: {result_com_filtros}")
+    
+    # 6. Verificar se há ocorrências sendo excluídas pelos filtros
+    click.echo(f"\n🔍 VERIFICAÇÃO DE OCORRÊNCIAS EXCLUÍDAS:")
+    
+    # Ocorrências que estão no modo todos os meses mas não no modo mês único
+    if diferenca > 0:
+        click.echo(f"   Procurando {diferenca} ocorrências que estão sendo excluídas...")
+        
+        # Buscar ocorrências de junho que podem estar sendo excluídas
+        ocorrencias_junho = Ocorrencia.query.filter(
+            func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM") == "2025-06"
+        ).all()
+        
+        # Verificar quais estão sendo excluídas pelos filtros
+        ocorrencias_excluidas = []
+        for oc in ocorrencias_junho:
+            # Verificar se a ocorrência passa pelos filtros do modo mês único
+            if oc.data_hora_ocorrencia:
+                data_oc = oc.data_hora_ocorrencia.date()
+                if data_oc < start_date or data_oc > end_date:
+                    ocorrencias_excluidas.append(oc)
+        
+        if ocorrencias_excluidas:
+            click.echo(f"   Ocorrências excluídas pelos filtros de data: {len(ocorrencias_excluidas)}")
+            for oc in ocorrencias_excluidas:
+                click.echo(f"     - ID: {oc.id}, Data: {oc.data_hora_ocorrencia}")
+        else:
+            click.echo(f"   Nenhuma ocorrência excluída pelos filtros de data")
+    
+    # 7. Resumo e solução
+    click.echo(f"\n✅ RESUMO DA INVESTIGAÇÃO:")
+    click.echo(f"   • Modo 'todos os meses': {ocorrencias_all[5]} ocorrências")
+    click.echo(f"   • Modo 'mês único': {ocorrencias_single[5]} ocorrências")
+    click.echo(f"   • Diferença: {diferenca} ocorrências")
+    
+    if diferenca > 0:
+        click.echo(f"\n🚨 PROBLEMA IDENTIFICADO:")
+        click.echo(f"   O modo 'mês único' está aplicando filtros de data que excluem {diferenca} ocorrências")
+        click.echo(f"   Isso pode estar causando a discrepância de 184 vs 188 no dashboard")
+    
+    logger.info(f"Investigação da discrepância no comparativo concluída. Diferença: {diferenca}")

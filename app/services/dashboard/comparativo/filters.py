@@ -62,14 +62,18 @@ class FilterApplier:
 
         if filters.get("data_inicio_str"):
             try:
+                from datetime import timezone
                 start_date = datetime.strptime(filters["data_inicio_str"], "%Y-%m-%d")
+                start_date = start_date.replace(tzinfo=timezone.utc)
                 query = query.filter(Ocorrencia.data_hora_ocorrencia >= start_date)
             except ValueError:
                 pass
 
         if filters.get("data_fim_str"):
             try:
+                from datetime import timezone
                 end_date = datetime.strptime(filters["data_fim_str"], "%Y-%m-%d")
+                end_date = end_date.replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
                 query = query.filter(Ocorrencia.data_hora_ocorrencia <= end_date)
             except ValueError:
                 pass
