@@ -162,28 +162,9 @@ def create_app(
 
         app_instance.register_blueprint(ocorrencia_bp)
 
-        # Registra os Comandos de CLI
-        from . import commands
-
-        app_instance.cli.add_command(commands.seed_db_command)
-        app_instance.cli.add_command(commands.assign_supervisors_command)
-        app_instance.cli.add_command(commands.check_ocorrencias_data_command)
-        app_instance.cli.add_command(commands.check_rondas_monthly_command)
-        app_instance.cli.add_command(commands.test_media_dia_trabalhado_command)
-        app_instance.cli.add_command(commands.investigate_rondas_discrepancy_command)
-        app_instance.cli.add_command(commands.test_media_dias_reais_command)
-        app_instance.cli.add_command(commands.check_supervisor_working_days_command)
-        app_instance.cli.add_command(commands.test_supervisor_specific_command)
-        app_instance.cli.add_command(commands.debug_ocorrencias_mes_command)
-        app_instance.cli.add_command(commands.test_ronda_duplicada_command)
-        app_instance.cli.add_command(commands.listar_rondas_condominio_data_command)
-        app_instance.cli.add_command(commands.contar_ocorrencias_30_06_2025_command)
-        app_instance.cli.add_command(commands.investigar_discrepancia_junho_2025_command)
-        app_instance.cli.add_command(commands.listar_todas_ocorrencias_junho_2025_command)
-        app_instance.cli.add_command(commands.testar_filtros_dashboard_ocorrencia_command)
-        app_instance.cli.add_command(commands.testar_dashboard_comparativo_command)
-        app_instance.cli.add_command(commands.investigar_discrepancia_comparativo_command)
-        app_instance.cli.add_command(commands.testar_dashboard_ocorrencia_mes_especifico_command)
+        # Registra todos os comandos CLI de uma vez
+        from .commands import register_commands
+        register_commands(app_instance)
 
     module_logger.info(
         "Aplicação Flask completamente configurada e pronta para ser retornada."
