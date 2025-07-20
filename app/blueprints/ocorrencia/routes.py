@@ -9,6 +9,8 @@ import pytz
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
                    render_template, request, url_for)
 from flask_login import current_user, login_required
+from flask_cors import cross_origin
+from flask_wtf import csrf
 
 from app import db
 from app.forms import OcorrenciaForm
@@ -321,6 +323,8 @@ def deletar_ocorrencia(ocorrencia_id):
 
 
 @ocorrencia_bp.route("/analisar-relatorio", methods=["POST", "OPTIONS"])
+@cross_origin()
+@csrf.exempt
 def analisar_relatorio():
     if request.method == "OPTIONS":
         return '', 200

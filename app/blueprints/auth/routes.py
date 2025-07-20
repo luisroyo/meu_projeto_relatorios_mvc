@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 from flask import (Blueprint, current_app, flash, redirect, render_template,
                    request, url_for, jsonify)
 from flask_login import current_user, login_user, logout_user
+from flask_cors import cross_origin
 
 # --- CORREÇÃO: Importar 'limiter' junto com 'db' ---
 from app import db, limiter, csrf
@@ -89,6 +90,7 @@ def login():
 
 # --- ROTA DE LOGIN PARA API ---
 @auth_bp.route("/api/login", methods=["POST", "OPTIONS"])
+@cross_origin()
 @csrf.exempt
 def api_login():
     if request.method == "OPTIONS":
