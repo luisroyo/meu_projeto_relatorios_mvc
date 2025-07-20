@@ -93,6 +93,8 @@ def create_app(
     # 2. Carrega a configuração a partir do objeto fornecido
     # Isto substitui todo o bloco de carregamento manual do .env e os os.getenv()
     app_instance.config.from_object(config_class)
+    
+
 
     # Inicializa as extensões com a instância da aplicação
     db.init_app(app_instance)
