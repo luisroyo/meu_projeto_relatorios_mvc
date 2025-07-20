@@ -85,13 +85,20 @@ class BaseGenerativeService:
 
     def _generate_cache_key(self, prompt_final: str) -> str:
         """Gera uma chave de cache SHA256 para o prompt."""
-        return hashlib.sha256(prompt_final.encode("utf-8")).hexdigest()
+        cache_key = hashlib.sha256(prompt_final.encode("utf-8")).hexdigest()
+        self.logger.info(f"🔑 Chave de cache gerada: {cache_key[:16]}...")
+        return cache_key
 
     # APLICAÇÃO DO CACHE COM O DECORATOR @cache.memoize
-    @cache.memoize()
+    @cache.memoize(timeout=3600)  # Cache por 1 hora
     def _call_generative_model(self, prompt_final: str) -> str:
         import google.generativeai as genai
         import os
+        
+        # Log detalhado do cache
+        cache_key = self._generate_cache_key(prompt_final)
+        self.logger.info(f"🚀 CACHE MISS - Nova consulta para chave: {cache_key[:16]}...")
+        self.logger.info(f"📝 Prompt (primeiros 100 chars): {prompt_final[:100]}...")
         
         if not isinstance(prompt_final, str) or not prompt_final.strip():
             self.logger.warning("Prompt final está vazio ou não é uma string.")
@@ -112,7 +119,7 @@ class BaseGenerativeService:
                 continue
             try:
                 genai.configure(api_key=api_key)
-                self.logger.info(f"Usando GOOGLE_API_KEY_{idx} para chamada Gemini.")
+                self.logger.info(f"🔑 Usando GOOGLE_API_KEY_{idx} para chamada Gemini.")
                 # Recria o modelo para garantir que está usando a API Key correta
                 generation_config = {
                     "temperature": 0.7,
@@ -132,7 +139,7 @@ class BaseGenerativeService:
                     safety_settings=safety_settings,
                     generation_config=generation_config,
                 )
-                self.logger.info(f"CACHE MISS. Enviando novo prompt para o modelo Gemini (API {idx}) (primeiros 100 chars): {prompt_final[:100]}...")
+                self.logger.info(f"🤖 Enviando prompt para o modelo Gemini (API {idx})")
                 response = model.generate_content(prompt_final)
                 self.logger.debug(f"Resposta bruta da API Gemini: {response}")
 
@@ -141,7 +148,8 @@ class BaseGenerativeService:
                         part.text for part in response.parts if hasattr(part, "text")
                     )
                     if texto_processado:
-                        self.logger.info("Resposta da IA processada com sucesso (via response.parts).")
+                        self.logger.info(f"✅ Resposta da IA processada com sucesso (via response.parts) - {len(texto_processado)} chars")
+                        self.logger.info(f"💾 Salvando no cache com chave: {cache_key[:16]}...")
                         return texto_processado
                     elif (
                         response.prompt_feedback
@@ -151,14 +159,15 @@ class BaseGenerativeService:
                             response.prompt_feedback.block_reason_message
                             or str(response.prompt_feedback.block_reason)
                         )
-                        self.logger.warning(f"Conteúdo bloqueado pela IA (detectado em parts). Motivo: {block_reason_detail}")
+                        self.logger.warning(f"🚫 Conteúdo bloqueado pela IA (detectado em parts). Motivo: {block_reason_detail}")
                         raise ValueError(f"O conteúdo gerado foi bloqueado pela IA. Motivo: {block_reason_detail}")
                     else:
-                        self.logger.warning("Resposta da IA (via parts) não contém texto processado ou partes válidas.")
+                        self.logger.warning("⚠️ Resposta da IA (via parts) não contém texto processado ou partes válidas.")
                         raise ValueError("Resposta da IA (via parts) está vazia ou inválida.")
 
                 elif hasattr(response, "text") and response.text:
-                    self.logger.info("Resposta da IA processada com sucesso (via response.text).")
+                    self.logger.info(f"✅ Resposta da IA processada com sucesso (via response.text) - {len(response.text)} chars")
+                    self.logger.info(f"💾 Salvando no cache com chave: {cache_key[:16]}...")
                     return response.text
 
                 elif (
@@ -169,13 +178,13 @@ class BaseGenerativeService:
                         response.prompt_feedback.block_reason_message
                         or str(response.prompt_feedback.block_reason)
                     )
-                    self.logger.warning(f"Conteúdo bloqueado pela IA (sem partes/texto, mas com feedback). Motivo: {block_reason_detail}")
+                    self.logger.warning(f"🚫 Conteúdo bloqueado pela IA (sem partes/texto, mas com feedback). Motivo: {block_reason_detail}")
                     raise ValueError(f"O conteúdo gerado foi bloqueado pela IA. Motivo: {block_reason_detail}")
                 else:
-                    self.logger.warning("Resposta da API Gemini não contém 'text', 'parts' válidas ou feedback de bloqueio claro.")
+                    self.logger.warning("⚠️ Resposta da API Gemini não contém 'text', 'parts' válidas ou feedback de bloqueio claro.")
                     raise ValueError("Resposta da API Gemini está em formato inesperado ou vazia.")
             except Exception as e:
-                self.logger.error(f"Erro ao tentar GOOGLE_API_KEY_{idx}: {e}", exc_info=True)
+                self.logger.error(f"❌ Erro ao tentar GOOGLE_API_KEY_{idx}: {e}", exc_info=True)
                 last_exception = e
                 continue
         
@@ -184,3 +193,24 @@ class BaseGenerativeService:
             raise RuntimeError(f"Todas as APIs Gemini falharam. Último erro: {last_exception}")
         else:
             raise RuntimeError("Nenhuma API Key Gemini configurada. Configure GOOGLE_API_KEY_1 ou GOOGLE_API_KEY_2 no .env")
+
+    def _call_generative_model_with_cache_logging(self, prompt_final: str) -> str:
+        """Versão da função com logs detalhados de cache."""
+        cache_key = self._generate_cache_key(prompt_final)
+        
+        # Verifica se existe no cache
+        try:
+            cached_result = cache.get(cache_key)
+            if cached_result:
+                self.logger.info(f"🎯 CACHE HIT - Resposta encontrada no cache para chave: {cache_key[:16]}...")
+                self.logger.info(f"📊 Tamanho da resposta em cache: {len(cached_result)} chars")
+                return cached_result
+            else:
+                self.logger.info(f"🚀 CACHE MISS - Chave não encontrada: {cache_key[:16]}...")
+        except Exception as e:
+            self.logger.warning(f"⚠️ Erro ao verificar cache: {e}")
+        
+        # Se não está no cache, chama a função original
+        result = self._call_generative_model(prompt_final)
+        self.logger.info(f"💾 Resposta salva no cache com chave: {cache_key[:16]}...")
+        return result
