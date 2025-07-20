@@ -120,9 +120,31 @@ O aplicativo estará disponível em http://localhost:5000.
 
 ## Instruções de Teste
 
+### Testes Unitários
+
 1. Executar Todos os Testes:
 
 pytest
+
+### Scripts de Monitoramento
+
+Para testar e monitorar o Redis e cache:
+
+```bash
+# Testar conexão Redis
+python scripts/monitoring/test_redis.py
+
+# Testar cache simples
+python scripts/monitoring/simple_cache_test.py
+
+# Testar cache completo (integração)
+python scripts/test_cache.py
+
+# Gerar tráfego contínuo (manter Redis ativo)
+python scripts/monitoring/generate_redis_traffic.py
+```
+
+**📋 Para mais detalhes sobre os scripts, consulte [scripts/README.md](scripts/README.md)**
 
 2. Estrutura de Teste:
 - Os testes estão localizados no diretório tests/, organizados por recurso e serviço.

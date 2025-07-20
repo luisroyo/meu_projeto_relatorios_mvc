@@ -60,6 +60,11 @@ def check_cache_config():
     print("\n📋 Verificando configuração de cache...")
     
     try:
+        import sys
+        import os
+        # Adiciona o diretório raiz ao path para importar config
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+        
         from config import Config, DevelopmentConfig, ProductionConfig
         
         # Testa configuração base
