@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 from app.models import Condominio
 from app.utils.classificador import classificar_ocorrencia
+from app.services.patrimonial_report_service import PatrimonialReportService
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -48,4 +49,8 @@ def analisar_relatorio_api():
     nome_tipo_encontrado = classificar_ocorrencia(texto_limpo)
     if nome_tipo_encontrado:
         dados_extraidos["tipo_ocorrencia"] = nome_tipo_encontrado
+    # 4. IA - Corrigir relatório
+    service = PatrimonialReportService()
+    relatorio_corrigido = service.gerar_relatorio_seguranca(texto)
+    dados_extraidos["relatorio_corrigido"] = relatorio_corrigido
     return jsonify({"sucesso": True, "dados": dados_extraidos}) 
