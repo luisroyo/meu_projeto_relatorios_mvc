@@ -1766,3 +1766,162 @@ def investigar_discrepancia_comparativo_command():
         click.echo(f"   Isso pode estar causando a discrepância de 184 vs 188 no dashboard")
     
     logger.info(f"Investigação da discrepância no comparativo concluída. Diferença: {diferenca}")
+
+
+@click.command("testar-dashboard-ocorrencia-mes-especifico")
+@with_appcontext
+def testar_dashboard_ocorrencia_mes_especifico_command():
+    """
+    Testa o dashboard de ocorrências quando um mês específico é selecionado.
+    """
+    from datetime import datetime, timezone, timedelta
+    from app.models import Ocorrencia
+    from app.services.dashboard.ocorrencia_dashboard import get_ocorrencia_dashboard_data
+    from app.blueprints.admin.routes_dashboard import _get_date_range_from_month
+    from sqlalchemy import func
+    
+    logger.info("Testando dashboard de ocorrências com mês específico...")
+    click.echo("=== TESTE DO DASHBOARD DE OCORRÊNCIAS COM MÊS ESPECÍFICO ===")
+    
+    current_year = 2025
+    month = 6  # Junho
+    
+    click.echo(f"\n📊 TESTE COM MÊS ESPECÍFICO: {month}/{current_year}")
+    
+    # 1. Simular como o dashboard processa o mês específico
+    click.echo(f"\n🔍 SIMULAÇÃO DO DASHBOARD:")
+    
+    # Como o dashboard faz
+    start_date_str, end_date_str = _get_date_range_from_month(current_year, month)
+    click.echo(f"   Data início (dashboard): {start_date_str}")
+    click.echo(f"   Data fim (dashboard): {end_date_str}")
+    
+    # Filtros como o dashboard aplica
+    filters = {
+        "condominio_id": None,
+        "tipo_id": None,
+        "status": "",
+        "supervisor_id": None,
+        "mes": month,
+        "data_inicio_str": start_date_str,
+        "data_fim_str": end_date_str,
+    }
+    
+    click.echo(f"   Filtros aplicados: {filters}")
+    
+    # 2. Testar o dashboard com esses filtros
+    click.echo(f"\n📊 TESTE DO DASHBOARD:")
+    try:
+        dashboard_data = get_ocorrencia_dashboard_data(filters)
+        total_dashboard = dashboard_data.get("total_ocorrencias", 0)
+        click.echo(f"   Total de ocorrências (dashboard): {total_dashboard}")
+    except Exception as e:
+        click.echo(f"   ❌ Erro no dashboard: {e}")
+        total_dashboard = 0
+    
+    # 3. Comparação direta
+    click.echo(f"\n🔍 COMPARAÇÃO DIRETA:")
+    
+    # Converter strings para datetime UTC
+    start_date_dt = datetime.strptime(start_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    end_date_dt = datetime.strptime(end_date_str, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
+    
+    click.echo(f"   Data início DT: {start_date_dt}")
+    click.echo(f"   Data fim DT: {end_date_dt}")
+    
+    # Contagem direta
+    total_direto = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia >= start_date_dt,
+        Ocorrencia.data_hora_ocorrencia <= end_date_dt
+    ).count()
+    
+    click.echo(f"   Total direto: {total_direto}")
+    click.echo(f"   Diferença: {total_direto - total_dashboard}")
+    
+    # 4. Testar com func.to_char (como o comparativo faz)
+    click.echo(f"\n📊 TESTE COM FUN.TO_CHAR:")
+    
+    total_func_to_char = Ocorrencia.query.filter(
+        func.to_char(Ocorrencia.data_hora_ocorrencia, "YYYY-MM") == f"{current_year:04d}-{month:02d}"
+    ).count()
+    
+    click.echo(f"   Total com func.to_char: {total_func_to_char}")
+    
+    # 5. Verificar se há diferença no processamento de datas
+    click.echo(f"\n🔍 VERIFICAÇÃO DE PROCESSAMENTO DE DATAS:")
+    
+    # Como o dashboard processa as datas
+    from app.utils.date_utils import parse_date_range
+    date_start_range, date_end_range = parse_date_range(start_date_str, end_date_str)
+    
+    click.echo(f"   Date start range: {date_start_range}")
+    click.echo(f"   Date end range: {date_end_range}")
+    click.echo(f"   Tipo date_start_range: {type(date_start_range)}")
+    click.echo(f"   Tipo date_end_range: {type(date_end_range)}")
+    
+    # Converter para datetime UTC como o dashboard faz
+    from datetime import time
+    date_start_range_dt = datetime.combine(date_start_range, time.min, tzinfo=timezone.utc)
+    date_end_range_dt = datetime.combine(date_end_range, time.max, tzinfo=timezone.utc)
+    
+    click.echo(f"   Date start range DT: {date_start_range_dt}")
+    click.echo(f"   Date end range DT: {date_end_range_dt}")
+    
+    # Testar com essas datas
+    total_dashboard_dates = Ocorrencia.query.filter(
+        Ocorrencia.data_hora_ocorrencia >= date_start_range_dt,
+        Ocorrencia.data_hora_ocorrencia <= date_end_range_dt
+    ).count()
+    
+    click.echo(f"   Total com datas do dashboard: {total_dashboard_dates}")
+    
+    # 6. Verificar ocorrências que podem estar sendo excluídas
+    if total_direto != total_dashboard:
+        click.echo(f"\n🔍 INVESTIGANDO OCORRÊNCIAS EXCLUÍDAS:")
+        
+        # Ocorrências que estão no nosso filtro mas não no dashboard
+        ocorrencias_excluidas = (
+            Ocorrencia.query.filter(
+                Ocorrencia.data_hora_ocorrencia >= start_date_dt,
+                Ocorrencia.data_hora_ocorrencia <= end_date_dt
+            )
+            .filter(
+                ~Ocorrencia.data_hora_ocorrencia.between(date_start_range_dt, date_end_range_dt)
+            )
+            .all()
+        )
+        
+        if ocorrencias_excluidas:
+            click.echo(f"   Ocorrências excluídas pelo dashboard: {len(ocorrencias_excluidas)}")
+            for oc in ocorrencias_excluidas:
+                click.echo(f"     - ID: {oc.id}, Data: {oc.data_hora_ocorrencia}")
+        
+        # Ocorrências que estão no dashboard mas não no nosso filtro
+        ocorrencias_incluidas_extra = (
+            Ocorrencia.query.filter(
+                Ocorrencia.data_hora_ocorrencia.between(date_start_range_dt, date_end_range_dt)
+            )
+            .filter(
+                ~Ocorrencia.data_hora_ocorrencia.between(start_date_dt, end_date_dt)
+            )
+            .all()
+        )
+        
+        if ocorrencias_incluidas_extra:
+            click.echo(f"   Ocorrências incluídas extra pelo dashboard: {len(ocorrencias_incluidas_extra)}")
+            for oc in ocorrencias_incluidas_extra:
+                click.echo(f"     - ID: {oc.id}, Data: {oc.data_hora_ocorrencia}")
+    
+    # 7. Resumo final
+    click.echo(f"\n✅ RESUMO:")
+    click.echo(f"   • Total direto: {total_direto}")
+    click.echo(f"   • Total dashboard: {total_dashboard}")
+    click.echo(f"   • Total func.to_char: {total_func_to_char}")
+    click.echo(f"   • Total datas dashboard: {total_dashboard_dates}")
+    
+    if total_dashboard != 188:
+        click.echo(f"\n❌ PROBLEMA IDENTIFICADO:")
+        click.echo(f"   O dashboard está mostrando {total_dashboard} em vez de 188")
+        click.echo(f"   Diferença: {188 - total_dashboard} ocorrências")
+    
+    logger.info(f"Teste do dashboard com mês específico concluído. Dashboard: {total_dashboard}, Direto: {total_direto}")
