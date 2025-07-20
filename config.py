@@ -6,13 +6,21 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'uma-chave-secreta-dificil-de-adivinhar'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
-    CACHE_TYPE = "RedisCache"
-    CACHE_REDIS_URL = os.environ.get("CACHE_REDIS_URL")
+    
+    # Configuração do Redis - usa REDIS_URL (padrão do Render/Heroku)
+    REDIS_URL = os.environ.get("REDIS_URL")
+    if REDIS_URL:
+        CACHE_TYPE = "RedisCache"
+        CACHE_REDIS_URL = REDIS_URL
+    else:
+        # Fallback para SimpleCache se Redis não estiver disponível
+        CACHE_TYPE = "SimpleCache"
 
 class DevelopmentConfig(Config):
     """Configuração de desenvolvimento."""
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///dev.db'
+    # Em desenvolvimento, sempre usa SimpleCache para simplicidade
     CACHE_TYPE = 'SimpleCache'
 
 class TestingConfig(Config):
@@ -45,6 +53,7 @@ class ProductionConfig(Config):
 # Exemplo de uso seguro:
 #   export SECRET_KEY='sua-chave-super-secreta'
 #   export DATABASE_URL='postgresql://usuario:senha@host:porta/banco'
+#   export REDIS_URL='redis://usuario:senha@host:porta/0'  # Para Redis
 #
 # Para rodar em produção, use:
 #   app = create_app(ProductionConfig)

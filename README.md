@@ -62,16 +62,30 @@ FLASK_DEBUG=True
 # API Keys para fallback automático (veja API_KEYS_SETUP.md para detalhes)
 GOOGLE_API_KEY_1=sua-chave-google-generative-ai-principal
 GOOGLE_API_KEY_2=sua-chave-google-generative-ai-backup
+
+# Redis (opcional - para cache em produção)
+REDIS_URL=redis://usuario:senha@host:porta/0
 ```
 
 **📋 Para configuração detalhada das API Keys, consulte [API_KEYS_SETUP.md](API_KEYS_SETUP.md)**
 
-### 5. Inicializar o Banco de Dados
+### 5. Configurar Redis (Opcional)
+
+O sistema usa cache para otimizar as respostas da API Gemini. Por padrão, usa cache em memória (SimpleCache).
+
+**Para usar Redis em produção:**
+1. Configure `REDIS_URL` nas variáveis de ambiente
+2. Execute o teste: `python test_redis.py`
+3. O sistema automaticamente detecta e usa Redis se disponível
+
+**Para desenvolvimento local:** SimpleCache é suficiente e não requer configuração adicional.
+
+### 6. Inicializar o Banco de Dados
 
 flask db upgrade
 flask seed-db    # Cria usuários admin/supervisor iniciais (apenas para desenvolvimento)
 
-### 6. Executar a Aplicação
+### 7. Executar a Aplicação
 
 flask run
 
