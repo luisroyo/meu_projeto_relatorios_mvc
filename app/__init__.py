@@ -161,6 +161,8 @@ def create_app(
         from app.blueprints.ocorrencia.routes import ocorrencia_bp
 
         app_instance.register_blueprint(ocorrencia_bp)
+        from app.blueprints.api.routes import api_bp
+        app_instance.register_blueprint(api_bp)
 
         # Registra todos os comandos CLI de uma vez
         from .commands import register_commands

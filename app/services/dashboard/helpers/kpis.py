@@ -2,7 +2,7 @@
 import logging
 from datetime import timedelta, datetime
 
-from sqlalchemy import func, tuple_
+from sqlalchemy import func, tuple_, text
 
 from app import db
 from app.models import EscalaMensal, Ocorrencia, Ronda, User
@@ -222,6 +222,7 @@ def get_ocorrencia_period_info(base_kpi_query, date_start_range, date_end_range)
     Garante que as datas nunca extrapolem o range filtrado.
     """
     try:
+        from app.models import Ocorrencia
         # Busca a primeira e última data registrada no período (com fallback para o range filtrado)
         primeira_data = base_kpi_query.with_entities(
             func.min(Ocorrencia.data_hora_ocorrencia)
@@ -262,10 +263,16 @@ def get_ocorrencia_period_info(base_kpi_query, date_start_range, date_end_range)
         if primeira_data_date and ultima_data_date:
             periodo_real_dias = (ultima_data_date - primeira_data_date).days + 1
 
-        # Corrigir: contar dias distintos com ocorrências dentro do período filtrado
+        # Corrigir: contar dias distintos com ocorrências dentro do período filtrado, considerando o timezone America/Sao_Paulo
         dias_com_dados = (
             base_kpi_query.session.query(
-                func.count(func.distinct(func.date(Ocorrencia.data_hora_ocorrencia)))
+                func.count(
+                    func.distinct(
+                        func.date(
+                            Ocorrencia.data_hora_ocorrencia.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('America/Sao_Paulo')
+                        )
+                    )
+                )
             )
             .filter(
                 Ocorrencia.data_hora_ocorrencia >= date_start_range,

@@ -118,6 +118,30 @@ O aplicativo estará disponível em http://localhost:5000.
 <!-- Exemplo: -->
 <!-- Veja a documentação completa da API em [docs/api.md](docs/api.md) -->
 
+## API RESTful
+
+Agora o projeto segue o padrão RESTful para integração com front-end web/mobile:
+
+- Todas as rotas de API usam o prefixo `/api/`.
+- Exemplo de endpoint:
+  - `POST /api/ocorrencias/analisar-relatorio` — para análise automática de relatórios de ocorrência.
+- As rotas de API têm CORS habilitado e CSRF desabilitado.
+- As rotas antigas continuam funcionando temporariamente para compatibilidade.
+
+Para consumir a API, envie requisições para `/api/ocorrencias/analisar-relatorio` com o corpo JSON:
+```json
+{
+  "texto_relatorio": "...texto do relatório..."
+}
+```
+A resposta será:
+```json
+{
+  "sucesso": true,
+  "dados": { ...campos extraídos... }
+}
+```
+
 ## Instruções de Teste
 
 ### Testes Unitários
