@@ -53,8 +53,13 @@ endblock %} {% block content %}
         </div>
       </div>
       <hr />
-      <h6 class="fw-bold">Relatório Final Oficial</h6>
-      <pre class="themed-pre">{{ ocorrencia.relatorio_final }}</pre>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="fw-bold mb-0">Relatório Final Oficial</h6>
+        <button class="btn btn-outline-primary btn-sm" onclick="copyRelatorio()" id="copyBtn">
+          <i class="bi bi-clipboard me-1"></i>Copiar Relatório
+        </button>
+      </div>
+      <pre class="themed-pre" id="relatorioText">{{ ocorrencia.relatorio_final }}</pre>
     </div>
   </div>
   <div class="d-flex justify-content-between flex-wrap gap-2">
@@ -70,4 +75,66 @@ endblock %} {% block content %}
     </div>
   </div>
 </div>
+
+<script>
+function copyRelatorio() {
+  const relatorioText = document.getElementById('relatorioText').textContent;
+  const copyBtn = document.getElementById('copyBtn');
+  const originalText = copyBtn.innerHTML;
+  
+  // Tenta copiar para a área de transferência
+  if (navigator.clipboard && window.isSecureContext) {
+    // Método moderno (HTTPS)
+    navigator.clipboard.writeText(relatorioText).then(() => {
+      showCopySuccess();
+    }).catch(() => {
+      fallbackCopyTextToClipboard(relatorioText);
+    });
+  } else {
+    // Método fallback para HTTP
+    fallbackCopyTextToClipboard(relatorioText);
+  }
+  
+  function showCopySuccess() {
+    copyBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Copiado!';
+    copyBtn.classList.remove('btn-outline-primary');
+    copyBtn.classList.add('btn-success');
+    
+    setTimeout(() => {
+      copyBtn.innerHTML = originalText;
+      copyBtn.classList.remove('btn-success');
+      copyBtn.classList.add('btn-outline-primary');
+    }, 2000);
+  }
+  
+  function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      showCopySuccess();
+    } catch (err) {
+      console.error('Erro ao copiar: ', err);
+      copyBtn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Erro ao copiar';
+      copyBtn.classList.remove('btn-outline-primary');
+      copyBtn.classList.add('btn-danger');
+      
+      setTimeout(() => {
+        copyBtn.innerHTML = originalText;
+        copyBtn.classList.remove('btn-danger');
+        copyBtn.classList.add('btn-outline-primary');
+      }, 2000);
+    }
+    
+    document.body.removeChild(textArea);
+  }
+}
+</script>
 {% endblock %}
