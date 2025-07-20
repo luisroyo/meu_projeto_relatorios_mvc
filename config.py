@@ -7,8 +7,8 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
     
-    # Configuração do Redis - usa REDIS_URL (padrão do Render/Heroku)
-    REDIS_URL = os.environ.get("REDIS_URL")
+    # Configuração do Redis - suporta tanto REDIS_URL quanto CACHE_REDIS_URL
+    REDIS_URL = os.environ.get("REDIS_URL") or os.environ.get("CACHE_REDIS_URL")
     if REDIS_URL:
         CACHE_TYPE = "RedisCache"
         CACHE_REDIS_URL = REDIS_URL

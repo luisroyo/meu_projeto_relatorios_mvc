@@ -17,15 +17,20 @@ Para desenvolvimento local, o **SimpleCache** é usado automaticamente e não re
 
 Para usar Redis em produção:
 
-1. **Configure a variável de ambiente:**
+1. **Configure uma das variáveis de ambiente:**
    ```env
+   # Opção 1 (padrão)
    REDIS_URL=redis://usuario:senha@host:porta/0
+   
+   # Opção 2 (alternativa)
+   CACHE_REDIS_URL=redis://usuario:senha@host:porta/0
    ```
 
 2. **No Render:**
    - Vá para as configurações do seu serviço
-   - Adicione a variável `REDIS_URL` com a URL do seu Redis
-   - Exemplo: `redis://default:senha@host.upstash.io:porta/0`
+   - Adicione a variável `REDIS_URL` ou `CACHE_REDIS_URL` com a URL do seu Redis
+   - Exemplo: `rediss://default:senha@host.upstash.io:porta/0`
+   - **Nota**: O sistema detecta automaticamente qual variável está configurada
 
 3. **Teste a conexão:**
    ```bash
@@ -39,7 +44,8 @@ Para usar Redis em produção:
 O sistema detecta automaticamente se o Redis está disponível:
 
 ```python
-# Se REDIS_URL estiver configurada
+# Suporta tanto REDIS_URL quanto CACHE_REDIS_URL
+REDIS_URL = os.environ.get("REDIS_URL") or os.environ.get("CACHE_REDIS_URL")
 if REDIS_URL:
     CACHE_TYPE = "RedisCache"
     CACHE_REDIS_URL = REDIS_URL

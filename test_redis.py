@@ -19,14 +19,18 @@ def test_redis_connection():
     redis_url = os.getenv("REDIS_URL")
     cache_redis_url = os.getenv("CACHE_REDIS_URL")
     
+    # URL final que será usada (prioridade para REDIS_URL, depois CACHE_REDIS_URL)
+    final_redis_url = redis_url or cache_redis_url
+    
     print(f"REDIS_URL: {'✅ Configurada' if redis_url else '❌ Não configurada'}")
     print(f"CACHE_REDIS_URL: {'✅ Configurada' if cache_redis_url else '❌ Não configurada'}")
+    print(f"URL Final: {'✅ ' + final_redis_url.split('@')[1] if final_redis_url else '❌ Nenhuma configurada'}")
     
     # Testa conexão com Redis
-    if redis_url:
+    if final_redis_url:
         try:
-            print(f"\n🔗 Tentando conectar com: {redis_url.split('@')[1] if '@' in redis_url else redis_url}")
-            r = redis.from_url(redis_url)
+            print(f"\n🔗 Tentando conectar com: {final_redis_url.split('@')[1] if '@' in final_redis_url else final_redis_url}")
+            r = redis.from_url(final_redis_url)
             
             # Testa ping
             pong = r.ping()
