@@ -183,6 +183,7 @@ def create_app(
         app_instance.cli.add_command(commands.testar_filtros_dashboard_ocorrencia_command)
         app_instance.cli.add_command(commands.testar_dashboard_comparativo_command)
         app_instance.cli.add_command(commands.investigar_discrepancia_comparativo_command)
+        app_instance.cli.add_command(commands.testar_dashboard_ocorrencia_mes_especifico_command)
 
     module_logger.info(
         "Aplicação Flask completamente configurada e pronta para ser retornada."

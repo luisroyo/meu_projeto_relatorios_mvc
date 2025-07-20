@@ -1,5 +1,6 @@
 # app/services/dashboard/ocorrencia_dashboard.py
 import logging
+from datetime import datetime
 
 from sqlalchemy import func
 
@@ -26,9 +27,12 @@ def get_ocorrencia_dashboard_data(filters):
 
     # Sempre garantir o filtro de datas em todas as queries
     def add_date_filter(query):
+        from datetime import time, timezone
+        date_start_range_dt = datetime.combine(date_start_range, time.min, tzinfo=timezone.utc)
+        date_end_range_dt = datetime.combine(date_end_range, time.max, tzinfo=timezone.utc)
         return query.filter(
-            Ocorrencia.data_hora_ocorrencia >= date_start_range,
-            Ocorrencia.data_hora_ocorrencia <= date_end_range
+            Ocorrencia.data_hora_ocorrencia >= date_start_range_dt,
+            Ocorrencia.data_hora_ocorrencia <= date_end_range_dt
         )
 
     # 2. Query base para KPIs (com filtro de datas)

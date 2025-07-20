@@ -30,7 +30,7 @@ def apply_ocorrencia_filters(query, filters):
         query = query.filter(Ocorrencia.ocorrencia_tipo_id == filters["tipo_id"])
 
     # Filtros de Data (com tratamento de timezone)
-    data_inicio_str = filters.get("data_inicio")
+    data_inicio_str = filters.get("data_inicio_str") or filters.get("data_inicio")
     if data_inicio_str:
         try:
             # Obtém o timezone da configuração da aplicação para flexibilidade
@@ -51,7 +51,7 @@ def apply_ocorrencia_filters(query, filters):
             )
             # Opcional: pode-se adicionar um flash de erro aqui se o contexto permitir
 
-    data_fim_str = filters.get("data_fim")
+    data_fim_str = filters.get("data_fim_str") or filters.get("data_fim")
     if data_fim_str:
         try:
             default_tz_str = current_app.config.get(
