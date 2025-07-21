@@ -3,7 +3,7 @@ from flask_cors import cross_origin
 from app import csrf
 import re
 from datetime import datetime
-from app.models import Condominio
+from app.models import Condominio, Colaborador
 from app.utils.classificador import classificar_ocorrencia
 from app.services.patrimonial_report_service import PatrimonialReportService
 
@@ -53,4 +53,27 @@ def analisar_relatorio_api():
     service = PatrimonialReportService()
     relatorio_corrigido = service.gerar_relatorio_seguranca(texto)
     dados_extraidos["relatorio_corrigido"] = relatorio_corrigido
-    return jsonify({"sucesso": True, "dados": dados_extraidos}) 
+    return jsonify({"sucesso": True, "dados": dados_extraidos})
+
+@api_bp.route("/colaboradores", methods=["GET"])
+@cross_origin()
+@csrf.exempt
+def listar_colaboradores():
+    nome = request.args.get("nome", type=str)
+    query = Colaborador.query
+    if nome:
+        query = query.filter(Colaborador.nome_completo.ilike(f"%{nome}%"))
+    colaboradores = query.all()
+    resultado = []
+    for c in colaboradores:
+        resultado.append({
+            "id": c.id,
+            "nome_completo": c.nome_completo,
+            "cargo": c.cargo,
+            "matricula": c.matricula,
+            "data_admissao": c.data_admissao.isoformat() if c.data_admissao else None,
+            "status": c.status,
+            "data_criacao": c.data_criacao.isoformat() if c.data_criacao else None,
+            "data_modificacao": c.data_modificacao.isoformat() if c.data_modificacao else None
+        })
+    return jsonify({"colaboradores": resultado}) 
