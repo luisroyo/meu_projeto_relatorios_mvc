@@ -109,6 +109,8 @@ def api_login():
         login_user(user)
         user.last_login = datetime.now(timezone.utc)
         db.session.commit()  # Garante que o last_login seja salvo imediatamente
+        # Registra o login no histórico
+        _registrar_login(user, True, request, None)
         # Gera o token JWT
         payload = {
             "user_id": user.id,
