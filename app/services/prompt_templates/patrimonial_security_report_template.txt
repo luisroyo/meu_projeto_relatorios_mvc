@@ -34,6 +34,10 @@ REGRAS DE PADRONIZAÇÃO:
 6. Não invente dados:
    Expanda ou reorganize frases apenas para garantir clareza e coerência, sem criar informações novas.
 
+IMPORTANTE:
+Caso alguma informação solicitada no modelo de saída (como "Veículo", "Envolvidos/Testemunhas", "Ações Realizadas", etc.) NÃO esteja presente no relatório bruto, simplesmente omita essa seção no relatório final.
+Não invente, preencha com dados genéricos ou deixe campos em branco. Apenas inclua as seções para as quais existam informações no texto original.
+
 MODELO DE SAÍDA (OBRIGATÓRIO):
 
 Data: [DD/MM/AAAA]  
