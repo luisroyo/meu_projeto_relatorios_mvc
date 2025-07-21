@@ -68,6 +68,7 @@ def login():
             login_user(user, remember=form.remember.data)
             login_success = True
             user.last_login = datetime.now(timezone.utc)
+            db.session.commit()  # Garante que o last_login seja salvo imediatamente
             flash(f"Bem-vindo, {user.username}!", "success")
         else:
             flash("Login falhou. Verifique email e senha.", "danger")
@@ -107,6 +108,7 @@ def api_login():
             return jsonify({"success": False, "message": "Conta ainda não aprovada."}), 403
         login_user(user)
         user.last_login = datetime.now(timezone.utc)
+        db.session.commit()  # Garante que o last_login seja salvo imediatamente
         # Gera o token JWT
         payload = {
             "user_id": user.id,
