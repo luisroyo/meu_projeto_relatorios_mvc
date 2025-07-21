@@ -846,4 +846,30 @@ def listar_rondas_condominio_data_command(condominio_nome, data_plantao):
     else:
         click.echo(f"{len(rondas)} ronda(s) encontrada(s):")
         for r in rondas:
-            click.echo(f"ID: {r.id} | Data: {r.data_plantao_ronda} | Turno: '{r.turno_ronda}' | Condominio: {cond.nome} | user_id: {r.user_id} | Escala: '{r.escala_plantao}'") 
+            click.echo(f"ID: {r.id} | Data: {r.data_plantao_ronda} | Turno: '{r.turno_ronda}' | Condominio: {cond.nome} | user_id: {r.user_id} | Escala: '{r.escala_plantao}'")
+
+@click.command("logins-hoje")
+@with_appcontext
+def logins_hoje_command():
+    """
+    Lista todos os usuários que fizeram login com sucesso hoje.
+    """
+    from datetime import datetime, timezone
+    from app.models import LoginHistory, User
+    today = datetime.now(timezone.utc).date()
+    logins_hoje = (
+        db.session.query(User.id, User.username, LoginHistory.timestamp)
+        .join(LoginHistory, LoginHistory.user_id == User.id)
+        .filter(
+            LoginHistory.success == True,
+            db.func.date(LoginHistory.timestamp) == today
+        )
+        .order_by(LoginHistory.timestamp.desc())
+        .all()
+    )
+    click.echo("--- USUÁRIOS QUE FIZERAM LOGIN HOJE ---")
+    if not logins_hoje:
+        click.echo("Nenhum login registrado hoje.")
+        return
+    for user_id, username, timestamp in logins_hoje:
+        click.echo(f"ID: {user_id} | Usuário: {username} | Login: {timestamp}") 
