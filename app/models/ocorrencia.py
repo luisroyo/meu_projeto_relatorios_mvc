@@ -81,4 +81,6 @@ class Ocorrencia(db.Model):
         tipo_nome = self.tipo.nome if self.tipo else "N/A"
         data_str = self.data_hora_ocorrencia.strftime('%d/%m/%Y %H:%M')
         cond_nome = self.condominio.nome if self.condominio else "Sem Condomínio"
-        return f'<Ocorrencia {self.id} - {tipo_nome} em {data_str} ({cond_nome})>' 
+        return f'<Ocorrencia {self.id} - {tipo_nome} em {data_str} ({cond_nome})>'
+
+__all__ = ["Ocorrencia", "ocorrencia_orgaos", "ocorrencia_colaboradores"] 

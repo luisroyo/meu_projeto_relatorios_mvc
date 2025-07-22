@@ -7,6 +7,6 @@ from .escala_mensal import EscalaMensal
 from .ocorrencia_tipo import OcorrenciaTipo
 from .orgao_publico import OrgaoPublico
 from .logradouro import Logradouro
-from .ocorrencia import Ocorrencia
+from .ocorrencia import Ocorrencia, ocorrencia_orgaos, ocorrencia_colaboradores
 from .login_history import LoginHistory
 from .vw_ocorrencias_detalhadas import VWOcorrenciasDetalhadas 
