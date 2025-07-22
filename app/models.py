@@ -288,6 +288,15 @@ class OrgaoPublico(db.Model):
         return f'<OrgaoPublico {self.nome}>'
 
 
+class Logradouro(db.Model):
+    __tablename__ = "logradouro"
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(150), unique=True, nullable=False, index=True)
+
+    def __repr__(self):
+        return f"<Logradouro {self.nome}>"
+
+
 class Ocorrencia(db.Model):
     """Modelo de ocorrência (incidente registrado)."""
 
@@ -304,6 +313,9 @@ class Ocorrencia(db.Model):
     turno = db.Column(db.String(50), nullable=True)
     status = db.Column(db.String(50), nullable=False, default="Registrada", index=True)
     endereco_especifico = db.Column(db.String(255), nullable=True)
+    # NOVO: logradouro opcional
+    logradouro_id = db.Column(db.Integer, db.ForeignKey("logradouro.id"), nullable=True)
+    logradouro = db.relationship("Logradouro", backref="ocorrencias")
     data_criacao = db.Column(
         db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
