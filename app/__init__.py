@@ -144,25 +144,9 @@ def create_app(
         return local_dt.strftime("%Y-%m-%dT%H:%M")
 
     with app_instance.app_context():
-        # Registra os Blueprints
-        from app.blueprints.main.routes import main_bp
-
-
-        app_instance.register_blueprint(main_bp)
-        from app.blueprints.auth.routes import auth_bp
-
-        app_instance.register_blueprint(auth_bp)
-        from app.blueprints.admin import admin_bp
-
-        app_instance.register_blueprint(admin_bp, url_prefix="/admin")
-        from app.blueprints.ronda.routes import ronda_bp
-
-        app_instance.register_blueprint(ronda_bp)
-        from app.blueprints.ocorrencia.routes import ocorrencia_bp
-
-        app_instance.register_blueprint(ocorrencia_bp)
-        from app.blueprints.api.routes import api_bp
-        app_instance.register_blueprint(api_bp)
+        # Registra os Blueprints centralizadamente
+        from app.blueprints import register_blueprints
+        register_blueprints(app_instance)
 
         # Registra todos os comandos CLI de uma vez
         from .commands import register_commands
