@@ -6,6 +6,7 @@ from .comparativo.aggregator import DataAggregator
 from .comparativo.metrics import MetricsCalculator
 from .comparativo.breakdown import BreakdownAnalyzer
 from .comparativo.processor import DataProcessor
+from calendar import monthrange
 
 
 def get_monthly_comparison_data(
@@ -38,14 +39,32 @@ def get_monthly_comparison_data(
         rondas_series, ocorrencias_series = DataProcessor.process_single_month_mode(
             year, selected_months[0], filters
         )
+        # Garante que o filtro de data do mês selecionado seja passado para o breakdown
+        mes = selected_months[0]
+        data_inicio_str = f"{year}-{mes:02d}-01"
+        ultimo_dia = monthrange(year, mes)[1]
+        data_fim_str = f"{year}-{mes:02d}-{ultimo_dia}"
+        filters = dict(filters)  # cópia para não afetar outros usos
+        filters["data_inicio_str"] = data_inicio_str
+        filters["data_fim_str"] = data_fim_str
     elif comparison_mode == "comparison" and len(selected_months) >= 2:
         rondas_series, ocorrencias_series = DataProcessor.process_comparison_mode(
             year, selected_months, filters
         )
+        # Para comparação múltipla, pode-se definir o menor e maior mês como range
+        mes_inicio = min(selected_months)
+        mes_fim = max(selected_months)
+        data_inicio_str = f"{year}-{mes_inicio:02d}-01"
+        ultimo_dia = monthrange(year, mes_fim)[1]
+        data_fim_str = f"{year}-{mes_fim:02d}-{ultimo_dia}"
+        filters = dict(filters)
+        filters["data_inicio_str"] = data_inicio_str
+        filters["data_fim_str"] = data_fim_str
     else:
         rondas_series, ocorrencias_series = DataProcessor.process_all_months_mode(
             year, filters
         )
+        # Para o modo 'all', pode-se deixar os filtros como estão
 
     # Calcula métricas comparativas
     metrics = MetricsCalculator.calculate_comparison_metrics(
