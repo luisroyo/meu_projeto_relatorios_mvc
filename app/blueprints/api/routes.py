@@ -3,7 +3,7 @@ from flask_cors import cross_origin
 from app import csrf
 import re
 from datetime import datetime
-from app.models import Condominio, Colaborador
+from app.models import Condominio, Colaborador, VWColaboradores, VWLogradouros
 from app.utils.classificador import classificar_ocorrencia
 from app.services.patrimonial_report_service import PatrimonialReportService
 
@@ -76,4 +76,43 @@ def listar_colaboradores():
             "data_criacao": c.data_criacao.isoformat() if c.data_criacao else None,
             "data_modificacao": c.data_modificacao.isoformat() if c.data_modificacao else None
         })
-    return jsonify({"colaboradores": resultado}) 
+    return jsonify({"colaboradores": resultado})
+
+@api_bp.route("/colaboradores_view", methods=["GET"])
+@cross_origin()
+@csrf.exempt
+def listar_colaboradores_view():
+    nome = request.args.get("nome", type=str)
+    query = VWColaboradores.query
+    if nome:
+        query = query.filter(VWColaboradores.nome_completo.ilike(f"%{nome}%"))
+    colaboradores = query.all()
+    resultado = [
+        {
+            "id": c.id,
+            "nome_completo": c.nome_completo,
+            "cargo": c.cargo,
+            "matricula": c.matricula,
+            "data_admissao": c.data_admissao.isoformat() if c.data_admissao else None,
+            "status": c.status,
+            "data_criacao": c.data_criacao.isoformat() if c.data_criacao else None,
+            "data_modificacao": c.data_modificacao.isoformat() if c.data_modificacao else None
+        }
+        for c in colaboradores
+    ]
+    return jsonify({"colaboradores": resultado})
+
+@api_bp.route("/logradouros_view", methods=["GET"])
+@cross_origin()
+@csrf.exempt
+def listar_logradouros_view():
+    nome = request.args.get("nome", type=str)
+    query = VWLogradouros.query
+    if nome:
+        query = query.filter(VWLogradouros.nome.ilike(f"%{nome}%"))
+    logradouros = query.all()
+    resultado = [
+        {"id": l.id, "nome": l.nome}
+        for l in logradouros
+    ]
+    return jsonify({"logradouros": resultado}) 
