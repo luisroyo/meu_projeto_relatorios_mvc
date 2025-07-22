@@ -516,3 +516,56 @@ def export_ronda_dashboard_pdf_html():
         logger.error(f"Erro ao gerar relatório PDF HTML: {e}", exc_info=True)
         flash("Erro ao gerar relatório PDF. Tente novamente.", "danger")
         return redirect(url_for("admin.ronda_dashboard"))
+
+
+@admin_bp.route("/ronda_dashboard/preview")
+@login_required
+@admin_required
+def preview_ronda_dashboard_report():
+    """Pré-visualiza o relatório de rondas em HTML antes do download do PDF."""
+    logger.info(f"Usuário '{current_user.username}' acessou a pré-visualização do relatório de rondas.")
+    try:
+        current_year = datetime.now().year
+        filters = {
+            "turno": request.args.get("turno", ""),
+            "supervisor_id": request.args.get("supervisor_id", type=int),
+            "condominio_id": request.args.get("condominio_id", type=int),
+            "mes": request.args.get("mes", type=int),
+            "data_inicio_str": request.args.get("data_inicio", ""),
+            "data_fim_str": request.args.get("data_fim", ""),
+            "data_especifica": request.args.get("data_especifica", ""),
+        }
+        if filters["mes"] and not (filters["data_inicio_str"] or filters["data_fim_str"]):
+            from app.services.dashboard.helpers.date_utils import get_date_range_from_month
+            start_date, end_date = get_date_range_from_month(current_year, filters["mes"])
+            if start_date and end_date:
+                filters["data_inicio_str"] = start_date
+                filters["data_fim_str"] = end_date
+        dashboard_data = get_ronda_dashboard_data(filters)
+        supervisor_name = None
+        condominio_name = None
+        if filters.get("supervisor_id"):
+            supervisor = User.query.get(filters["supervisor_id"])
+            supervisor_name = supervisor.username if supervisor else "N/A"
+        if filters.get("condominio_id"):
+            condominio = Condominio.query.get(filters["condominio_id"])
+            condominio_name = condominio.nome if condominio else "N/A"
+        filters_info = {
+            "data_inicio": dashboard_data.get("selected_data_inicio_str", ""),
+            "data_fim": dashboard_data.get("selected_data_fim_str", ""),
+            "supervisor_name": supervisor_name,
+            "condominio_name": condominio_name,
+            "turno": filters.get("turno", ""),
+            "mes": filters.get("mes")
+        }
+        return render_template(
+            "admin/ronda_dashboard_preview.html",
+            title="Pré-visualização do Relatório de Rondas",
+            dashboard_data=dashboard_data,
+            filters_info=filters_info,
+            request_args=request.args
+        )
+    except Exception as e:
+        logger.error(f"Erro ao gerar pré-visualização do relatório: {e}", exc_info=True)
+        flash("Erro ao gerar pré-visualização do relatório. Tente novamente.", "danger")
+        return redirect(url_for("admin.ronda_dashboard"))
