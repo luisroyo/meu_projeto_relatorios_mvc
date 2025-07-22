@@ -19,6 +19,8 @@ def upgrade():
     op.execute("DROP TRIGGER IF EXISTS trg_update_ocorrencia ON ocorrencia;")
     op.execute("DROP FUNCTION IF EXISTS atualizar_data_modificacao();")
     op.execute("DROP VIEW IF EXISTS vw_ocorrencias_detalhadas;")
+    op.execute("DROP VIEW IF EXISTS vw_colaboradores;")
+    op.execute("DROP VIEW IF EXISTS vw_logradouros;")
     
     # Criar view detalhada de ocorrencias
     op.execute("""
@@ -71,8 +73,33 @@ def upgrade():
     GROUP BY condominio_id;
     """)
 
+    # Criar view de colaboradores
+    op.execute("""
+    CREATE VIEW vw_colaboradores AS
+    SELECT 
+        id,
+        nome_completo,
+        cargo,
+        matricula,
+        data_admissao,
+        status,
+        data_criacao,
+        data_modificacao
+    FROM colaborador;
+    """)
+    # Criar view de logradouros
+    op.execute("""
+    CREATE VIEW vw_logradouros AS
+    SELECT 
+        id,
+        nome
+    FROM logradouro;
+    """)
+
 def downgrade():
     op.execute("DROP MATERIALIZED VIEW IF EXISTS mv_ocorrencias_por_condominio;")
     op.execute("DROP TRIGGER IF EXISTS trg_update_ocorrencia ON ocorrencia;")
     op.execute("DROP FUNCTION IF EXISTS atualizar_data_modificacao();")
     op.execute("DROP VIEW IF EXISTS vw_ocorrencias_detalhadas;")
+    op.execute("DROP VIEW IF EXISTS vw_colaboradores;")
+    op.execute("DROP VIEW IF EXISTS vw_logradouros;")
