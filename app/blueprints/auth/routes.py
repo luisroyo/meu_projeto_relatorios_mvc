@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 from urllib.parse import urlsplit
 
 from flask import (Blueprint, current_app, flash, redirect, render_template,
-                   request, url_for, jsonify)
+                   request, url_for, jsonify, session)
 from flask_login import current_user, login_user, logout_user
 from flask_cors import cross_origin
 
@@ -66,6 +66,7 @@ def login():
                 return redirect(url_for("auth.login"))
 
             login_user(user, remember=form.remember.data)
+            session.permanent = True  # Garante expiração por inatividade
             login_success = True
             user.last_login = datetime.now(timezone.utc)
             db.session.commit()  # Garante que o last_login seja salvo imediatamente
@@ -107,6 +108,7 @@ def api_login():
         if not user.is_approved:
             return jsonify({"success": False, "message": "Conta ainda não aprovada."}), 403
         login_user(user)
+        session.permanent = True  # Garante expiração por inatividade
         user.last_login = datetime.now(timezone.utc)
         db.session.commit()  # Garante que o last_login seja salvo imediatamente
         # Registra o login no histórico
