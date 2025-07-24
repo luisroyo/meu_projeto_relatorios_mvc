@@ -172,4 +172,28 @@ def historico_ocorrencias():
             "data_modificacao": o.data_modificacao.isoformat() if o.data_modificacao else None
         }
     resultado = [serialize_ocorrencia(o) for o in ocorrencias]
-    return jsonify({"historico": resultado}) 
+    return jsonify({"historico": resultado})
+
+@api_bp.route("/ocorrencias/<int:id>", methods=["GET", "OPTIONS"])
+@cross_origin()
+@csrf.exempt
+def detalhe_ocorrencia(id):
+    if request.method == "OPTIONS":
+        return '', 200
+    ocorrencia = Ocorrencia.query.get_or_404(id)
+    resultado = {
+        "id": ocorrencia.id,
+        "relatorio_final": ocorrencia.relatorio_final,
+        "data_hora_ocorrencia": ocorrencia.data_hora_ocorrencia.isoformat() if ocorrencia.data_hora_ocorrencia else None,
+        "turno": ocorrencia.turno,
+        "status": ocorrencia.status,
+        "endereco_especifico": ocorrencia.endereco_especifico,
+        "condominio": ocorrencia.condominio.nome if ocorrencia.condominio else None,
+        "tipo": ocorrencia.tipo.nome if ocorrencia.tipo else None,
+        "supervisor": ocorrencia.supervisor_id,
+        "colaboradores": [c.nome_completo for c in ocorrencia.colaboradores_envolvidos],
+        "orgaos_acionados": [org.nome for org in ocorrencia.orgaos_acionados],
+        "data_criacao": ocorrencia.data_criacao.isoformat() if ocorrencia.data_criacao else None,
+        "data_modificacao": ocorrencia.data_modificacao.isoformat() if ocorrencia.data_modificacao else None
+    }
+    return jsonify(resultado) 
