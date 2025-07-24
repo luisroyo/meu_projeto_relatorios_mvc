@@ -1,11 +1,15 @@
 # config.py
 import os
+from datetime import timedelta
 
 class Config:
     """Configuração base."""
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'uma-chave-secreta-dificil-de-adivinhar'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
+    # Expiração de sessão por inatividade (15 minutos)
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=15)
+    SESSION_PERMANENT = True
     
     # Configuração do Redis - suporta tanto REDIS_URL quanto CACHE_REDIS_URL
     REDIS_URL = os.environ.get("REDIS_URL") or os.environ.get("CACHE_REDIS_URL")

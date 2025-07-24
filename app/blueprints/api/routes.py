@@ -6,6 +6,13 @@ from datetime import datetime
 from app.models import Condominio, Colaborador, VWColaboradores, VWLogradouros
 from app.utils.classificador import classificar_ocorrencia
 from app.services.patrimonial_report_service import PatrimonialReportService
+from app.models.ocorrencia import Ocorrencia
+from app.models.condominio import Condominio
+from app.models.ocorrencia_tipo import OcorrenciaTipo
+from app.models.user import User
+from app.models.colaborador import Colaborador
+from app.models.orgao_publico import OrgaoPublico
+from app.services import ocorrencia_service
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -115,4 +122,54 @@ def listar_logradouros_view():
         {"id": l.id, "nome": l.nome}
         for l in logradouros
     ]
-    return jsonify({"logradouros": resultado}) 
+    return jsonify({"logradouros": resultado})
+
+@api_bp.route("/ocorrencias/historico", methods=["GET"])
+@cross_origin()
+@csrf.exempt
+def historico_ocorrencias():
+    # Filtros opcionais
+    status = request.args.get("status")
+    condominio_id = request.args.get("condominio_id", type=int)
+    tipo_id = request.args.get("tipo_id", type=int)
+    data_inicio = request.args.get("data_inicio")
+    data_fim = request.args.get("data_fim")
+    supervisor_id = request.args.get("supervisor_id", type=int)
+
+    filters = {}
+    if status:
+        filters["status"] = status
+    if condominio_id:
+        filters["condominio_id"] = condominio_id
+    if tipo_id:
+        filters["tipo_id"] = tipo_id
+    if data_inicio:
+        filters["data_inicio_str"] = data_inicio
+    if data_fim:
+        filters["data_fim_str"] = data_fim
+    if supervisor_id:
+        filters["supervisor_id"] = supervisor_id
+
+    query = Ocorrencia.query
+    query = ocorrencia_service.apply_ocorrencia_filters(query, filters)
+    query = query.order_by(Ocorrencia.data_hora_ocorrencia.desc())
+    ocorrencias = query.limit(100).all()  # Limite de 100 para evitar resposta gigante
+
+    def serialize_ocorrencia(o):
+        return {
+            "id": o.id,
+            "relatorio_final": o.relatorio_final,
+            "data_hora_ocorrencia": o.data_hora_ocorrencia.isoformat() if o.data_hora_ocorrencia else None,
+            "turno": o.turno,
+            "status": o.status,
+            "endereco_especifico": o.endereco_especifico,
+            "condominio": o.condominio.nome if o.condominio else None,
+            "tipo": o.tipo.nome if o.tipo else None,
+            "supervisor": o.supervisor_id,
+            "colaboradores": [c.nome_completo for c in o.colaboradores_envolvidos],
+            "orgaos_acionados": [org.nome for org in o.orgaos_acionados],
+            "data_criacao": o.data_criacao.isoformat() if o.data_criacao else None,
+            "data_modificacao": o.data_modificacao.isoformat() if o.data_modificacao else None
+        }
+    resultado = [serialize_ocorrencia(o) for o in ocorrencias]
+    return jsonify({"historico": resultado}) 
