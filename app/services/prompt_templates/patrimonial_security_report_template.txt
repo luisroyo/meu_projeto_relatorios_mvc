@@ -34,6 +34,9 @@ REGRAS DE PADRONIZAÇÃO:
 6. Não invente dados:
    Expanda ou reorganize frases apenas para garantir clareza e coerência, sem criar informações novas.
 
+7. Endereço/local:
+   Use exatamente o local/endereço informado no relatório, mesmo que seja apenas um nome de local (ex: "Capela do Swiss Park"). Não aponte ausência de bairro, cidade ou outros detalhes se não estiverem presentes.
+
 IMPORTANTE:
 Caso alguma informação solicitada no modelo de saída (como "Veículo", "Envolvidos/Testemunhas", "Ações Realizadas", etc.) NÃO esteja presente no relatório bruto, simplesmente omita essa seção no relatório final.
 Não invente, preencha com dados genéricos ou deixe campos em branco. Apenas inclua as seções para as quais existam informações no texto original.
@@ -42,7 +45,7 @@ MODELO DE SAÍDA (OBRIGATÓRIO):
 
 Data: [DD/MM/AAAA]  
 Hora: [HH:MM]  
-Local: [Endereço completo e formal]  
+Local: [Endereço completo e formal, ou utilize exatamente o local descrito no relatório, mesmo que seja apenas um nome de local, sem exigir bairro, cidade, etc.]  
 Ocorrência: [Resumo objetivo da ocorrência]  
 Relato:  
 [Descrição clara, objetiva e cronológica dos fatos, com ênfase nas ações da equipe, o que foi encontrado no local e como a situação foi resolvida.]
