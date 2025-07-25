@@ -72,4 +72,7 @@ def apply_ocorrencia_filters(query, filters):
                 f"Formato de data de fim inválido fornecido: '{data_fim_str}'. Erro: {e}"
             )
 
+    if filters.get("texto_relatorio"):
+        query = query.filter(Ocorrencia.relatorio_final.ilike(f"%{filters['texto_relatorio']}%"))
+
     return query

@@ -95,6 +95,7 @@ def listar_ocorrencias():
         "tipo_id": request.args.get("tipo_id", type=int),
         "data_inicio": request.args.get("data_inicio", ""),
         "data_fim": request.args.get("data_fim", ""),
+        "texto_relatorio": request.args.get("texto_relatorio", ""),
     }
 
     query = Ocorrencia.query.options(
@@ -146,6 +147,7 @@ def listar_ocorrencias():
         selected_data_inicio=filters["data_inicio"],
         selected_data_fim=filters["data_fim"],
         filter_args=filter_args,
+        texto_relatorio=filters["texto_relatorio"],
     )
 
 
