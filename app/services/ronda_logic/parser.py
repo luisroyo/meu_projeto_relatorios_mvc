@@ -25,6 +25,20 @@ def parse_linha_log_prefixo(linha_strip: str, ultima_vtr_conhecida_global: str):
     id_vtr_para_eventos_desta_linha = ultima_vtr_conhecida_global
     vtr_contexto_geral_para_proximas_linhas = ultima_vtr_conhecida_global
 
+    # --- NOVO: Verificar se é uma linha simples de VTR ---
+    match_vtr_simples = config.REGEX_VTR_LINHA_SIMPLES.match(linha_strip)
+    if match_vtr_simples:
+        vtr_especifica_da_linha = match_vtr_simples.group(1).upper().replace(" ", "")
+        id_vtr_para_eventos_desta_linha = vtr_especifica_da_linha
+        vtr_contexto_geral_para_proximas_linhas = vtr_especifica_da_linha
+        return (
+            None,
+            None,
+            id_vtr_para_eventos_desta_linha,
+            "",  # Linha de VTR não tem mensagem de evento
+            vtr_contexto_geral_para_proximas_linhas,
+        )
+
     match_prefixo = config.REGEX_PREFIXO_LINHA.match(linha_strip)
     if match_prefixo:
         hora_linha_log_raw_temp = match_prefixo.group(1)
@@ -172,108 +186,16 @@ def extrair_eventos_de_bloco(
     fim_plantao: datetime = None,
 ):
     eventos_acumulados_bloco = []
-    data_bloco_especifica = data_contexto_bloco
-    hora_inicio_raw_bloco = None
-    hora_termino_raw_bloco = None
-    vtr_para_eventos_deste_bloco = vtr_contexto_linha_prefixada
-    bloco_linhas = list(bloco_linhas_orig)
-    if bloco_linhas:
-        primeira_linha_bloco_limpa = _limpar_e_normalizar_mensagem(bloco_linhas[0])
-        match_vtr = config.REGEX_VTR_MENSAGEM_ALTERNATIVA.match(
-            primeira_linha_bloco_limpa
+    for linha in bloco_linhas_orig:
+        eventos = extrair_eventos_de_mensagem_simples(
+            linha,
+            data_contexto_bloco,
+            vtr_contexto_linha_prefixada,
+            linha_original_referencia,
+            log_entry_datetime_referencia,
+            inicio_plantao,
+            fim_plantao,
         )
-        if match_vtr:
-            vtr_para_eventos_deste_bloco = match_vtr.group(1).upper().replace(" ", "")
-            bloco_linhas[0] = match_vtr.group(2).strip()
-        else:
-            bloco_linhas[0] = primeira_linha_bloco_limpa
-
-    linhas_processadas_indices = set()
-    for idx, linha_b_raw in enumerate(bloco_linhas):
-        linha_b_limpa = (
-            _limpar_e_normalizar_mensagem(linha_b_raw)
-            if idx > 0 or not match_vtr
-            else linha_b_raw
-        )
-        if not linha_b_limpa:
-            continue
-        match_data = config.REGEX_BLOCO_DATA.search(linha_b_limpa)
-        if match_data:
-            data_norm = normalizar_data_capturada(match_data.group(1))
-            if data_norm:
-                data_bloco_especifica = data_norm
-            linhas_processadas_indices.add(idx)
-            continue
-        match_inicio = config.REGEX_BLOCO_INICIO.search(linha_b_limpa)
-        if match_inicio:
-            hora_inicio_raw_bloco = match_inicio.group(1)
-            linhas_processadas_indices.add(idx)
-            continue
-        match_termino = config.REGEX_BLOCO_TERMINO.search(linha_b_limpa)
-        if match_termino:
-            hora_termino_raw_bloco = match_termino.group(1)
-            linhas_processadas_indices.add(idx)
-            continue
-
-    for idx, linha_b_raw in enumerate(bloco_linhas):
-        if idx in linhas_processadas_indices or not _limpar_e_normalizar_mensagem(
-            linha_b_raw
-        ):
-            continue
-        if (
-            data_bloco_especifica
-            and data_bloco_especifica != config.FALLBACK_DATA_INDEFINIDA
-        ):
-            eventos_acumulados_bloco.extend(
-                extrair_eventos_de_mensagem_simples(
-                    linha_b_raw,
-                    data_bloco_especifica,
-                    vtr_para_eventos_deste_bloco,
-                    f"{linha_original_referencia} (bloco_linha_raw: {linha_b_raw[:30]})",
-                    log_entry_datetime_referencia,
-                    inicio_plantao,
-                    fim_plantao,
-                )
-            )
-
-    for tipo_evento_bloco, hora_raw in [
-        ("inicio", hora_inicio_raw_bloco),
-        ("termino", hora_termino_raw_bloco),
-    ]:
-        if hora_raw:
-            hora_fmt = normalizar_hora_capturada(hora_raw)
-            if (
-                hora_fmt
-                and data_bloco_especifica
-                and data_bloco_especifica != config.FALLBACK_DATA_INDEFINIDA
-            ):
-                try:
-                    dt_obj = datetime.strptime(
-                        f"{data_bloco_especifica} {hora_fmt}", "%d/%m/%Y %H:%M"
-                    )
-                    dt_obj_final = _ajustar_data_evento_para_plantao(
-                        dt_obj,
-                        data_bloco_especifica,
-                        inicio_plantao,
-                        fim_plantao,
-                        log_entry_datetime_referencia,
-                    )
-                    eventos_acumulados_bloco.append(
-                        {
-                            "vtr": vtr_para_eventos_deste_bloco
-                            or config.DEFAULT_VTR_ID,
-                            "tipo": tipo_evento_bloco,
-                            "hora_str": hora_fmt,
-                            "data_str": dt_obj_final.strftime("%d/%m/%Y"),
-                            "datetime_obj": dt_obj_final,
-                            "linha_original": f"{linha_original_referencia} (bloco_explicito)",
-                        }
-                    )
-                except ValueError as ve:
-                    logger.error(f"Erro data/hora (bloco explícito): {ve}")
-
-    eventos_unicos_dict = {
-        (ev["vtr"], ev["tipo"], ev["data_str"], ev["hora_str"]): ev
-        for ev in eventos_acumulados_bloco
-    }
-    return list(eventos_unicos_dict.values())
+        if eventos:
+            eventos_acumulados_bloco.extend(eventos)
+    return eventos_acumulados_bloco
