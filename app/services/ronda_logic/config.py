@@ -17,6 +17,11 @@ REGEX_VTR_MENSAGEM_ALTERNATIVA = re.compile(
     r"^(VTR\s*\d+|Águia\s*\d+):\s*(.*)$", re.IGNORECASE
 )
 
+# --- NOVO: Expressão para detectar VTR em linhas simples ---
+REGEX_VTR_LINHA_SIMPLES = re.compile(
+    r"^(VTR\s*\d+|Águia\s*\d+)$", re.IGNORECASE
+)
+
 REGEX_BLOCO_DATA = re.compile(
     r"Data:\s*(\d{1,2}/\d{1,2}/\d{2,4})", re.IGNORECASE
 )  # Aceita ano com 2 ou 4 digitos
@@ -38,8 +43,21 @@ PREPOSICOES_ARTIGOS_REGEX_PART = r"(?:s\sde\s|\sde\s|\sda\s|\s)"
 TIME_CAPTURE_REGEX_PART = r"(\d{1,2}\s*[:;hH]\s*\d{1,2})"  # Ex: 19:20, 03;19, 8h30
 SIMPLE_HOUR_CAPTURE_REGEX_PART = r"(\d{1,2}\s*h(?!\d))"
 
-
 RONDA_EVENT_REGEX_PATTERNS = [
+    # --- NOVO: Padrões específicos para formatos como "Termino: 6:31" e "Ínicio 06:11" ---
+    {
+        "tipo": "inicio",
+        "regex_str": rf"^{INICIO_KEYWORDS_REGEX_PART}\s+{TIME_CAPTURE_REGEX_PART}$",
+    },
+    {
+        "tipo": "termino",
+        "regex_str": rf"^{TERMINO_KEYWORDS_REGEX_PART}:\s*{TIME_CAPTURE_REGEX_PART}$",
+    },
+    {
+        "tipo": "termino",
+        "regex_str": rf"^{TERMINO_KEYWORDS_REGEX_PART}\s+{TIME_CAPTURE_REGEX_PART}$",
+    },
+    
     # Padrões com hora e minuto explícitos (hora primeiro)
     {
         "tipo": "inicio",
