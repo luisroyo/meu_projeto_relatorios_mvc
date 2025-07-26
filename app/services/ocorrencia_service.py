@@ -76,3 +76,28 @@ def apply_ocorrencia_filters(query, filters):
         query = query.filter(Ocorrencia.relatorio_final.ilike(f"%{filters['texto_relatorio']}%"))
 
     return query
+
+
+def contar_ocorrencias_pendentes():
+    """
+    Conta o número de ocorrências com status 'Pendente' que precisam ser revisadas.
+    
+    :return: Número de ocorrências pendentes
+    """
+    from app.models import Ocorrencia  # Importação tardia para evitar importação circular
+    
+    return Ocorrencia.query.filter_by(status="Pendente").count()
+
+
+def obter_ocorrencias_pendentes(limit=10):
+    """
+    Obtém as ocorrências pendentes mais recentes.
+    
+    :param limit: Número máximo de ocorrências a retornar
+    :return: Lista de ocorrências pendentes
+    """
+    from app.models import Ocorrencia  # Importação tardia para evitar importação circular
+    
+    return Ocorrencia.query.filter_by(status="Pendente").order_by(
+        Ocorrencia.data_hora_ocorrencia.desc()
+    ).limit(limit).all()
