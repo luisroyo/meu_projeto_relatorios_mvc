@@ -13,6 +13,7 @@ from app.models.user import User
 from app.models.colaborador import Colaborador
 from app.models.orgao_publico import OrgaoPublico
 from app.services import ocorrencia_service
+from app import db
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -196,4 +197,48 @@ def detalhe_ocorrencia(id):
         "data_criacao": ocorrencia.data_criacao.isoformat() if ocorrencia.data_criacao else None,
         "data_modificacao": ocorrencia.data_modificacao.isoformat() if ocorrencia.data_modificacao else None
     }
-    return jsonify(resultado) 
+    return jsonify(resultado)
+
+@api_bp.route("/ocorrencias/salvar", methods=["POST", "OPTIONS"])
+@cross_origin()
+@csrf.exempt
+def salvar_ocorrencia():
+    if request.method == "OPTIONS":
+        return '', 200
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"sucesso": False, "message": "Dados não fornecidos."}), 400
+
+        # Campos obrigatórios
+        relatorio_final = data.get("relatorio_final")
+        if not relatorio_final:
+            return jsonify({"sucesso": False, "message": "Relatório final é obrigatório."}), 400
+
+        # Criar nova ocorrência
+        nova_ocorrencia = Ocorrencia(
+            relatorio_final=relatorio_final,
+            status="Pendente",  # Status especial para indicar que precisa ser revisada
+            data_hora_ocorrencia=datetime.utcnow(),
+            turno=data.get("turno", "Diurno"),
+            endereco_especifico=data.get("endereco_especifico", ""),
+            condominio_id=data.get("condominio_id"),
+            ocorrencia_tipo_id=data.get("ocorrencia_tipo_id"),
+            registrado_por_user_id=data.get("registrado_por_user_id"),
+            supervisor_id=data.get("supervisor_id")
+        )
+
+        # Salvar no banco
+        db.session.add(nova_ocorrencia)
+        db.session.commit()
+
+        return jsonify({
+            "sucesso": True,
+            "message": "Ocorrência salva com sucesso. Aguardando revisão.",
+            "ocorrencia_id": nova_ocorrencia.id
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"sucesso": False, "message": f"Erro ao salvar ocorrência: {str(e)}"}), 500 

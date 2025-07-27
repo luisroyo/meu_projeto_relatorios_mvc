@@ -8,6 +8,7 @@ from app import db, limiter
 from app.forms import AnalisadorForm  # Verifique se este import está correto
 from app.models import ProcessingHistory
 from app.services.patrimonial_report_service import PatrimonialReportService
+from app.services import ocorrencia_service
 
 main_bp = Blueprint("main", __name__)
 logger = logging.getLogger(__name__)
@@ -73,9 +74,14 @@ def index():
     # Para requisições GET, renderiza a página com o formulário vazio
     # --- PONTO DA CORREÇÃO ---
     # A variável 'form' agora é passada também no GET inicial.
+    
+    # Verificar ocorrências pendentes para alerta
+    ocorrencias_pendentes_count = ocorrencia_service.contar_ocorrencias_pendentes()
+    
     return render_template(
         "index.html",
         title="Analisador de Relatórios IA",
         form=form,
         relatorio_corrigido=relatorio_corrigido,
+        ocorrencias_pendentes_count=ocorrencias_pendentes_count,
     )

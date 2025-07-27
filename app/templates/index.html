@@ -9,6 +9,21 @@
         <p class="lead text-muted">Cole o relatório bruto abaixo para processamento e correção.</p>
     </div>
 
+    {% if ocorrencias_pendentes_count and ocorrencias_pendentes_count > 0 %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+            <div>
+                <strong>Atenção!</strong> Existem {{ ocorrencias_pendentes_count }} ocorrência(s) aguardando revisão.
+                <a href="{{ url_for('ocorrencia.listar_ocorrencias', status='Pendente') }}" class="alert-link ms-2">
+                    <i class="bi bi-arrow-right me-1"></i>Ver ocorrências pendentes
+                </a>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
     {% if current_user.is_authenticated %}
     <form method="POST" action="{{ url_for('main.index') }}" id="analisador-form" novalidate>
         

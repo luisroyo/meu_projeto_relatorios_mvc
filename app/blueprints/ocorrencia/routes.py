@@ -127,7 +127,9 @@ def listar_ocorrencias():
     status_list = [
         "Registrada",
         "Em Andamento",
-        "Concluída"
+        "Concluída",
+        "Pendente",
+        "Rejeitada"
     ]
 
     filter_args = {k: v for k, v in request.args.items() if k != "page"}
@@ -321,6 +323,48 @@ def deletar_ocorrencia(ocorrencia_id):
     except Exception as e:
         db.session.rollback()
         flash(f"Erro ao deletar a ocorrência: {e}", "danger")
+    return redirect(url_for("ocorrencia.listar_ocorrencias"))
+
+
+@ocorrencia_bp.route("/aprovar/<int:ocorrencia_id>", methods=["POST"])
+@login_required
+def aprovar_ocorrencia(ocorrencia_id):
+    """Aprova uma ocorrência pendente, mudando o status para 'Registrada'."""
+    ocorrencia = db.get_or_404(Ocorrencia, ocorrencia_id)
+    
+    if ocorrencia.status != "Pendente":
+        flash("Apenas ocorrências pendentes podem ser aprovadas.", "warning")
+        return redirect(url_for("ocorrencia.detalhes_ocorrencia", ocorrencia_id=ocorrencia.id))
+    
+    try:
+        ocorrencia.status = "Registrada"
+        db.session.commit()
+        flash("Ocorrência aprovada com sucesso!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao aprovar ocorrência: {e}", "danger")
+    
+    return redirect(url_for("ocorrencia.detalhes_ocorrencia", ocorrencia_id=ocorrencia.id))
+
+
+@ocorrencia_bp.route("/rejeitar/<int:ocorrencia_id>", methods=["POST"])
+@login_required
+def rejeitar_ocorrencia(ocorrencia_id):
+    """Rejeita uma ocorrência pendente, mudando o status para 'Rejeitada'."""
+    ocorrencia = db.get_or_404(Ocorrencia, ocorrencia_id)
+    
+    if ocorrencia.status != "Pendente":
+        flash("Apenas ocorrências pendentes podem ser rejeitadas.", "warning")
+        return redirect(url_for("ocorrencia.detalhes_ocorrencia", ocorrencia_id=ocorrencia.id))
+    
+    try:
+        ocorrencia.status = "Rejeitada"
+        db.session.commit()
+        flash("Ocorrência rejeitada.", "info")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao rejeitar ocorrência: {e}", "danger")
+    
     return redirect(url_for("ocorrencia.listar_ocorrencias"))
 
 
