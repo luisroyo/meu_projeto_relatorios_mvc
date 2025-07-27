@@ -65,12 +65,27 @@ endblock %} {% block content %}
   <div class="d-flex justify-content-between flex-wrap gap-2">
     <a href="{{ url_for('ocorrencia.listar_ocorrencias') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar ao Histórico</a>
     <div>
-      <a href="{{ url_for('ocorrencia.editar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-warning"><i class="bi bi-pencil me-1"></i>Editar Ocorrência</a>
-      {% if current_user.is_admin %}
-      <form action="{{ url_for('ocorrencia.deletar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta ocorrência? Esta ação não pode ser desfeita.');">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-        <button type="submit" class="btn btn-danger ms-2"><i class="bi bi-trash me-1"></i>Excluir Ocorrência</button>
-      </form>
+      {% if ocorrencia.status == "Pendente" %}
+        <form action="{{ url_for('ocorrencia.aprovar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" method="POST" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="btn btn-success" onclick="return confirm('Confirmar aprovação desta ocorrência?')">
+            <i class="bi bi-check-circle me-1"></i>Aprovar Ocorrência
+          </button>
+        </form>
+        <form action="{{ url_for('ocorrencia.rejeitar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" method="POST" class="d-inline ms-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="btn btn-danger" onclick="return confirm('Confirmar rejeição desta ocorrência?')">
+            <i class="bi bi-x-circle me-1"></i>Rejeitar Ocorrência
+          </button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('ocorrencia.editar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-warning"><i class="bi bi-pencil me-1"></i>Editar Ocorrência</a>
+        {% if current_user.is_admin %}
+        <form action="{{ url_for('ocorrencia.deletar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta ocorrência? Esta ação não pode ser desfeita.');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="btn btn-danger ms-2"><i class="bi bi-trash me-1"></i>Excluir Ocorrência</button>
+        </form>
+        {% endif %}
       {% endif %}
     </div>
   </div>

@@ -46,7 +46,9 @@ MODELO DE SAÍDA (OBRIGATÓRIO):
 Data: [DD/MM/AAAA]  
 Hora: [HH:MM]  
 Local: [Endereço completo e formal, ou utilize exatamente o local descrito no relatório, mesmo que seja apenas um nome de local, sem exigir bairro, cidade, etc.]  
+
 Ocorrência: [Resumo objetivo da ocorrência]  
+
 Relato:  
 [Descrição clara, objetiva e cronológica dos fatos, com ênfase nas ações da equipe, o que foi encontrado no local e como a situação foi resolvida.]
 
