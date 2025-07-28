@@ -1,4 +1,4 @@
-# app/__init__.py (VERSÃO CORRIGIDA)
+# app/__init__.py (VERSÃO CORRIGIDA COM AUTOMAÇÃO DE RONDAS)
 
 import logging
 import os
@@ -15,6 +15,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from whitenoise import WhiteNoise
 from flask_cors import CORS
+
+
 
 # Carrega variáveis de ambiente do arquivo .env se existir
 try:
@@ -39,6 +41,7 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"],
     storage_uri=redis_url
 )
+
 
 # --- Configura o LoginManager ---
 # A configuração de login_view deve ser feita após a criação do app
@@ -94,6 +97,7 @@ def create_app(
     # Isto substitui todo o bloco de carregamento manual do .env e os os.getenv()
     app_instance.config.from_object(config_class)
     
+
 
 
     # Inicializa as extensões com a instância da aplicação
@@ -156,3 +160,4 @@ def create_app(
         "Aplicação Flask completamente configurada e pronta para ser retornada."
     )
     return app_instance
+

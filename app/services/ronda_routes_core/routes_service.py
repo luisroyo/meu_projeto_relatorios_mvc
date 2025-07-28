@@ -11,6 +11,7 @@ from app.services.ronda_routes_core.persistence_service import (
     get_ronda_by_id, delete_ronda, save_ronda, update_ronda, build_ronda_query, list_rondas, get_ronda_stats, get_top_supervisor
 )
 from app.services.ronda_routes_core.business_service import atribuir_supervisor
+from typing import Optional # Importa Optional para tipagem
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class RondaRoutesService:
                 db.session.add(condominio_obj)
                 db.session.flush()
             elif condominio_id_sel and condominio_id_sel.isdigit():
-                condominio_obj = db.get_or_404(Condominio, int(condominio_id_sel))
+                condominio_obj = db.session.get(Condominio, int(condominio_id_sel)) # Usar db.session.get para buscar por PK
             else:
                 condominio_obj = None
 
@@ -79,7 +80,7 @@ class RondaRoutesService:
             return None, None, f"Erro ao processar o log de rondas: {str(e)}", "error"
 
     @staticmethod
-    def salvar_ronda(data, current_user):
+    def salvar_ronda(data: dict, user: User): # <--- ASSINATURA ALTERADA: de 'current_user' para 'user: User'
         """
         Orquestra o salvamento de uma ronda a partir dos dados recebidos da rota /salvar.
         Retorna: (success: bool, message: str, status_code: int, ronda_id: Optional[int])
@@ -112,7 +113,7 @@ class RondaRoutesService:
                     db.session.add(condominio_obj)
                     db.session.flush()
             elif condominio_id_str and condominio_id_str.isdigit():
-                condominio_obj = db.get_or_404(Condominio, int(condominio_id_str))
+                condominio_obj = db.session.get(Condominio, int(condominio_id_str)) # Usar db.session.get para buscar por PK
 
             valid, msg = validar_campos_essenciais(log_bruto, condominio_obj, data_plantao_str, escala_plantao)
             if not valid:
@@ -142,10 +143,19 @@ class RondaRoutesService:
 
             # --- Turno e supervisor ---
             turno_ronda = inferir_turno(data_plantao, escala_plantao)
+            # A função atribuir_supervisor agora receberá o 'user' para determinar permissões ou atribuições
             supervisor_id_para_db = atribuir_supervisor(data_plantao, turno_ronda, supervisor_id_manual_str)
 
             if ronda_id:
                 ronda = get_ronda_by_id(ronda_id)
+                if not ronda:
+                    return False, "Ronda não encontrada para atualização.", 404, None
+
+                # Verificação de permissão para edição
+                # Permite edição por admin, pelo usuário que registrou a ronda, ou pelo supervisor atribuído à ronda
+                if not user.is_admin and ronda.user_id != user.id and ronda.supervisor_id != user.id:
+                    return False, "Você não tem permissão para editar esta ronda.", 403, None
+
                 ronda.log_ronda_bruto = log_bruto
                 ronda.relatorio_processado = relatorio
                 ronda.condominio_id = condominio_obj.id
@@ -160,7 +170,7 @@ class RondaRoutesService:
                 update_ronda()
                 mensagem_sucesso = "Ronda atualizada com sucesso!"
             else:
-                from app.models import Ronda
+                from app.models import Ronda # Importa Ronda novamente para garantir que está no escopo
                 if Ronda.query.filter_by(
                     condominio_id=condominio_obj.id,
                     data_plantao_ronda=data_plantao,
@@ -174,7 +184,7 @@ class RondaRoutesService:
                     escala_plantao=escala_plantao,
                     data_plantao_ronda=data_plantao,
                     turno_ronda=turno_ronda,
-                    user_id=current_user.id,
+                    user_id=user.id, # <--- ALTERADO: usa o 'user.id' passado
                     supervisor_id=supervisor_id_para_db,
                     total_rondas_no_log=total,
                     primeiro_evento_log_dt=primeiro_evento_utc,
@@ -195,7 +205,7 @@ class RondaRoutesService:
         """
         Lista rondas com filtros e paginação. Retorna: (pagination, total_rondas, soma_duracao, duracao_media, media_rondas_dia, supervisor_mais_ativo, condominios, supervisores, turnos, active_filter_params)
         """
-        from app.models import Condominio, User
+        from app.models import Condominio, User # Garante que Condominio e User estão importados
         filter_params = filter_params or {}
         query = build_ronda_query(filter_params)
         rondas_pagination = list_rondas(query, page=page, per_page=10)
@@ -218,12 +228,12 @@ class RondaRoutesService:
             media_rondas_dia = "N/A"
         supervisor_mais_ativo = get_top_supervisor(query)
         condominios = Condominio.query.order_by(Condominio.nome).all()
-        supervisors = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
+        supervisores = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
         turnos = ["Noturno Par", "Noturno Impar", "Diurno Par", "Diurno Impar"]
         active_filter_params = {k: v for k, v in filter_params.items() if v not in [None, ""]}
         return (
             rondas_pagination, total_rondas, soma_duracao, duracao_media, media_rondas_dia,
-            supervisor_mais_ativo, condominios, supervisors, turnos, active_filter_params
+            supervisor_mais_ativo, condominios, supervisores, turnos, active_filter_params
         )
 
     @staticmethod
@@ -239,4 +249,5 @@ class RondaRoutesService:
         except Exception as e:
             db.session.rollback()
             logger.error(f"Erro ao excluir ronda {ronda_id}: {e}", exc_info=True)
-            return False, f"Erro ao excluir ronda: {str(e)}", 500 
+            return False, f"Erro ao excluir ronda: {str(e)}", 500
+

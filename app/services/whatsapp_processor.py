@@ -36,20 +36,19 @@ class Plantao:
 
 
 class WhatsAppProcessor:
-    """Processador principal para arquivos do WhatsApp."""
+    """Processador principal para arquivos do WhatsApp - OTIMIZADO."""
     
     def __init__(self):
-        # Regex para capturar mensagens do WhatsApp (formato padrão)
+        # Regex compiladas para melhor performance
         self.pattern = re.compile(
             r'\[(\d{2}/\d{2}/\d{4}),\s*(\d{2}:\d{2})\]\s*([^:]+):\s*(.+)'
         )
         
-        # Regex para capturar mensagens do WhatsApp (formato alternativo)
         self.pattern_alt = re.compile(
             r'(\d{2}/\d{2}/\d{4})\s+(\d{2}:\d{2})\s+-\s+([^:]+):\s*(.+)'
         )
         
-        # Regex para identificar mensagens do sistema
+        # Regex para mensagens do sistema (compiladas uma vez)
         self.system_patterns = [
             re.compile(r'mensagem apagada', re.IGNORECASE),
             re.compile(r'adicionou', re.IGNORECASE),
@@ -62,17 +61,21 @@ class WhatsAppProcessor:
             re.compile(r'somente as pessoas que fazem parte', re.IGNORECASE),
         ]
         
-        # Variáveis para detectar mudança de data/plantão
+        # Cache para melhor performance
         self.last_processed_date = None
         self.last_processed_plantao = None
+        self._datetime_cache = {}  # Cache para parsing de datetime
     
     def is_system_message(self, conteudo: str) -> bool:
-        """Verifica se a mensagem é do sistema."""
+        """Verifica se a mensagem é do sistema - OTIMIZADO."""
         return any(pattern.search(conteudo) for pattern in self.system_patterns)
     
     def parse_datetime(self, data_str: str, hora_str: str) -> datetime:
-        """Converte string de data e hora para datetime."""
-        return datetime.strptime(f"{data_str} {hora_str}", "%d/%m/%Y %H:%M")
+        """Converte string de data e hora para datetime - COM CACHE."""
+        cache_key = f"{data_str}_{hora_str}"
+        if cache_key not in self._datetime_cache:
+            self._datetime_cache[cache_key] = datetime.strptime(f"{data_str} {hora_str}", "%d/%m/%Y %H:%M")
+        return self._datetime_cache[cache_key]
     
     def parse_date(self, data_str: str) -> datetime:
         """Converte string de data para datetime."""
@@ -80,7 +83,7 @@ class WhatsAppProcessor:
     
     def get_plantao_info(self, dt: datetime) -> Tuple[datetime, str, datetime, datetime]:
         """
-        Determina informações do plantão baseado na data/hora.
+        Determina informações do plantão baseado na data/hora - OTIMIZADO.
         
         Returns:
             (data_plantao, tipo, inicio, fim)
@@ -112,8 +115,7 @@ class WhatsAppProcessor:
     
     def detect_plantao_change(self, dt: datetime) -> bool:
         """
-        Detecta se houve mudança de data ou plantão.
-        Retorna True se houve mudança, False caso contrário.
+        Detecta se houve mudança de data ou plantão - OTIMIZADO.
         """
         data_plantao, tipo, _, _ = self.get_plantao_info(dt)
         current_plantao = (data_plantao.date(), tipo)
@@ -134,12 +136,16 @@ class WhatsAppProcessor:
     
     def parse_messages(self, content: str, data_inicio: Optional[datetime] = None, 
                       data_fim: Optional[datetime] = None, autor_filtro: Optional[str] = None) -> List[Mensagem]:
-        """Extrai mensagens do conteúdo do arquivo com filtros opcionais."""
+        """Extrai mensagens do conteúdo do arquivo - OTIMIZADO."""
         mensagens = []
         linhas = content.split('\n')
         i = 0
+        total_linhas = len(linhas)
         
-        while i < len(linhas):
+        # Pré-compila filtros para melhor performance
+        autor_filtro_lower = autor_filtro.lower() if autor_filtro else None
+        
+        while i < total_linhas:
             linha = linhas[i].strip()
             if not linha:
                 i += 1
@@ -158,19 +164,19 @@ class WhatsAppProcessor:
                     i += 1
                     continue
             
-            # Pula mensagens do sistema
+            # Pula mensagens do sistema rapidamente
             if self.is_system_message(conteudo):
                 i += 1
                 continue
             
-            # Coleta linhas adicionais da mensagem
+            # Coleta linhas adicionais da mensagem de forma otimizada
             conteudo_completo = [conteudo]
             j = i + 1
-            while j < len(linhas):
+            while j < total_linhas:
                 proxima_linha = linhas[j].strip()
                 if not proxima_linha:
                     break
-                # Se a próxima linha não é uma nova mensagem (não tem data/hora), adiciona ao conteúdo
+                # Se a próxima linha não é uma nova mensagem, adiciona ao conteúdo
                 if not self.pattern.match(proxima_linha) and not self.pattern_alt.match(proxima_linha):
                     conteudo_completo.append(proxima_linha)
                     j += 1
@@ -180,14 +186,14 @@ class WhatsAppProcessor:
             try:
                 data_hora = self.parse_datetime(data_str, hora_str)
                 
-                # Aplica filtros por data/hora completa
+                # Aplica filtros de forma otimizada
                 if data_inicio and data_hora < data_inicio:
                     i = j
                     continue
                 if data_fim and data_hora > data_fim:
                     i = j
                     continue
-                if autor_filtro and autor_filtro.lower() not in autor.lower():
+                if autor_filtro_lower and autor_filtro_lower not in autor.lower():
                     i = j
                     continue
                 
@@ -206,11 +212,11 @@ class WhatsAppProcessor:
         return mensagens
     
     def group_by_plantao(self, mensagens: List[Mensagem]) -> List[Plantao]:
-        """Agrupa mensagens por plantão."""
+        """Agrupa mensagens por plantão - OTIMIZADO."""
         if not mensagens:
             return []
         
-        # Ordena mensagens por data/hora
+        # Ordena mensagens por data/hora uma única vez
         mensagens.sort(key=lambda m: m.data_hora)
         
         plantoes = {}
@@ -238,70 +244,66 @@ class WhatsAppProcessor:
     
     def process_file(self, filepath: str, data_inicio: Optional[datetime] = None, 
                     data_fim: Optional[datetime] = None, autor_filtro: Optional[str] = None) -> List[Plantao]:
-        """Processa um arquivo .txt do WhatsApp e retorna plantões."""
+        """Processa um arquivo .txt do WhatsApp - OTIMIZADO."""
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                content = f.read()
-        except UnicodeDecodeError:
-            # Tenta com encoding diferente
-            with open(filepath, 'r', encoding='latin-1') as f:
-                content = f.read()
+            # Tenta UTF-8 primeiro, depois latin-1
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except UnicodeDecodeError:
+                with open(filepath, 'r', encoding='latin-1') as f:
+                    content = f.read()
         
-        # Processa mensagens com filtros
-        mensagens = self.parse_messages(content, data_inicio, data_fim, autor_filtro)
-        plantoes = self.group_by_plantao(mensagens)
-        
-        # Verifica se há mudança de plantão para o plantão atual
-        if plantoes:
-            # Pega o plantão mais recente
-            plantao_atual = plantoes[-1]
-            if self.detect_plantao_change(plantao_atual.data):
-                print(f"Novo plantão detectado: {plantao_atual.data.strftime('%d/%m/%Y')} - {plantao_atual.tipo}")
-                print(f"Total de mensagens: {len(plantao_atual.mensagens)}")
-                # Aqui você pode adicionar lógica para processar automaticamente
-                # Por exemplo, criar ocorrência automaticamente
-        
-        return plantoes
+            # Processa mensagens com filtros
+            mensagens = self.parse_messages(content, data_inicio, data_fim, autor_filtro)
+            plantoes = self.group_by_plantao(mensagens)
+            
+            # Verifica mudança de plantão para o plantão atual
+            if plantoes:
+                plantao_atual = plantoes[-1]
+                if self.detect_plantao_change(plantao_atual.data):
+                    print(f"🚀 Novo plantão detectado: {plantao_atual.data.strftime('%d/%m/%Y')} - {plantao_atual.tipo}")
+                    print(f"📊 Total de mensagens: {len(plantao_atual.mensagens)}")
+            
+            return plantoes
+            
+        except Exception as e:
+            print(f"❌ Erro ao processar arquivo {filepath}: {e}")
+            return []
     
     def format_for_ronda_log(self, plantao: Plantao) -> str:
-        """Formata as mensagens do plantão para o formato de log de ronda."""
+        """Formata as mensagens do plantão para o formato de log de ronda - OTIMIZADO."""
         if not plantao.mensagens:
             return ""
         
-        # Ordena mensagens por horário
+        # Ordena mensagens por horário uma única vez
         plantao.mensagens.sort(key=lambda m: m.data_hora)
         
-        log_lines = []
-        for msg in plantao.mensagens:
-            hora_str = msg.data_hora.strftime("%H:%M")
-            data_str = msg.data_hora.strftime("%d/%m/%Y")
-            log_lines.append(f"[{hora_str}, {data_str}] {msg.autor}: {msg.conteudo}")
+        # Usa list comprehension para melhor performance
+        log_lines = [
+            f"[{msg.data_hora.strftime('%H:%M')}, {msg.data_hora.strftime('%d/%m/%Y')}] {msg.autor}: {msg.conteudo}"
+            for msg in plantao.mensagens
+        ]
         
         return "\n".join(log_lines)
     
     def get_available_plantoes(self, filepath: str) -> List[Dict]:
-        """Retorna lista de plantões disponíveis no arquivo."""
+        """Retorna lista de plantões disponíveis no arquivo - OTIMIZADO."""
         plantoes = self.process_file(filepath)
         
-        available = []
-        for plantao in plantoes:
-            data_str = plantao.data.strftime("%d/%m/%Y")
-            if plantao.tipo == "diurno":
-                horario_str = "06h às 18h"
-                escala = "06h às 18h"
-            else:
-                horario_str = "18h às 06h"
-                escala = "18h às 06h"
-            
-            available.append({
+        # Usa list comprehension para melhor performance
+        available = [
+            {
                 'data': plantao.data.date(),
-                'data_str': data_str,
+                'data_str': plantao.data.strftime("%d/%m/%Y"),
                 'tipo': plantao.tipo,
-                'horario': horario_str,
-                'escala': escala,
+                'horario': "06h às 18h" if plantao.tipo == "diurno" else "18h às 06h",
+                'escala': "06h às 18h" if plantao.tipo == "diurno" else "18h às 06h",
                 'total_mensagens': len(plantao.mensagens),
                 'inicio': plantao.inicio,
                 'fim': plantao.fim
-            })
+            }
+            for plantao in plantoes
+        ]
         
         return available 
