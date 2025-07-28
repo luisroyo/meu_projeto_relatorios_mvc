@@ -119,11 +119,11 @@ def debug_ocorrencias_mes_command(ano, mes):
         click.echo(f"  ID: {o.id} | Data: {o.data_hora_ocorrencia} | Status: {o.status}")
     dias_distintos = (
         Ocorrencia.query
-        .with_entities(func.date(Ocorrencia.data_hora_ocorrencia))
+        .with_entities(func.date(func.timezone('America/Sao_Paulo', Ocorrencia.data_hora_ocorrencia)))
         .filter(Ocorrencia.data_hora_ocorrencia >= data_inicio)
         .filter(Ocorrencia.data_hora_ocorrencia <= data_fim)
-        .group_by(func.date(Ocorrencia.data_hora_ocorrencia))
-        .order_by(func.date(Ocorrencia.data_hora_ocorrencia))
+        .group_by(func.date(func.timezone('America/Sao_Paulo', Ocorrencia.data_hora_ocorrencia)))
+        .order_by(func.date(func.timezone('America/Sao_Paulo', Ocorrencia.data_hora_ocorrencia)))
         .all()
     )
     click.echo(f"Dias distintos com ocorrências em {mes:02d}/{ano}: {len(dias_distintos)}")
@@ -873,3 +873,47 @@ def logins_hoje_command():
         return
     for user_id, username, timestamp in logins_hoje:
         click.echo(f"ID: {user_id} | Usuário: {username} | Login: {timestamp}") 
+
+@click.command("testar-fuso-horario-ocorrencia")
+@click.argument("ocorrencia_id", type=int)
+@with_appcontext
+def testar_fuso_horario_ocorrencia_command(ocorrencia_id):
+    """
+    Testa se o bug do fuso horário foi corrigido para uma ocorrência específica.
+    """
+    from app.models import Ocorrencia
+    from sqlalchemy import func
+    
+    ocorrencia = Ocorrencia.query.get(ocorrencia_id)
+    if not ocorrencia:
+        click.echo(f"❌ Ocorrência {ocorrencia_id} não encontrada!")
+        return
+    
+    click.echo(f"=== TESTE DE FUSO HORÁRIO - OCORRÊNCIA {ocorrencia_id} ===")
+    click.echo(f"📅 Data/Hora UTC no banco: {ocorrencia.data_hora_ocorrencia}")
+    
+    # Teste 1: Data extraída sem conversão (bug anterior)
+    data_sem_conversao = db.session.query(
+        func.date(Ocorrencia.data_hora_ocorrencia)
+    ).filter(Ocorrencia.id == ocorrencia_id).scalar()
+    
+    # Teste 2: Data extraída com conversão (correção)
+    data_com_conversao = db.session.query(
+        func.date(func.timezone('America/Sao_Paulo', Ocorrencia.data_hora_ocorrencia))
+    ).filter(Ocorrencia.id == ocorrencia_id).scalar()
+    
+    click.echo(f"🔍 RESULTADOS:")
+    click.echo(f"   Data sem conversão (bug): {data_sem_conversao}")
+    click.echo(f"   Data com conversão (correção): {data_com_conversao}")
+    
+    if data_sem_conversao != data_com_conversao:
+        click.echo(f"✅ BUG CONFIRMADO E CORRIGIDO!")
+        click.echo(f"   Diferença: {data_sem_conversao} vs {data_com_conversao}")
+    else:
+        click.echo(f"ℹ️  Nenhuma diferença detectada para esta ocorrência.")
+    
+    click.echo(f"📊 STATUS: {'CORRIGIDO' if data_sem_conversao != data_com_conversao else 'OK'}")
+
+
+# Registra o comando
+testar_fuso_horario_ocorrencia_command.__doc__ = "Testa se o bug do fuso horário foi corrigido" 

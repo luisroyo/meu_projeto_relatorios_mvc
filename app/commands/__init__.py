@@ -12,6 +12,7 @@ from .debug import (
     test_ronda_duplicada_command,
     listar_rondas_condominio_data_command,
     logins_hoje_command,
+    testar_fuso_horario_ocorrencia_command,
 )
 from .relatorios import (
     test_media_dia_trabalhado_command,
@@ -45,4 +46,5 @@ def register_commands(app):
     app.cli.add_command(fix_ocorrencias_definitive_command)
     app.cli.add_command(investigate_rondas_discrepancy_command)
     app.cli.add_command(testar_dashboard_comparativo_command)
-    app.cli.add_command(logins_hoje_command) 
+    app.cli.add_command(logins_hoje_command)
+    app.cli.add_command(testar_fuso_horario_ocorrencia_command) 
