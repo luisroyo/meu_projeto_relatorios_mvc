@@ -55,6 +55,42 @@ block head %} {{ super() }}
                 {{ render_field(form.nome_condominio_outro, label_visible=true,
                 label_text='NOME DO NOVO CONDOMÍNIO') }}
               </div>
+              
+              <!-- Campo de upload WhatsApp - Apenas para Administradores -->
+              {% if current_user.is_admin %}
+              <div class="mb-3">
+                <label for="{{ form.arquivo_whatsapp.id }}" class="form-label">
+                  <strong>{{ form.arquivo_whatsapp.label.text }}</strong>
+                  <small class="text-muted ms-2">(Opcional - preenche o log automaticamente)</small>
+                  <span class="badge bg-warning ms-2">ADMIN</span>
+                </label>
+                <div class="input-group">
+                  {{ form.arquivo_whatsapp(class="form-control", accept=".txt") }}
+                  <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('{{ form.arquivo_whatsapp.id }}').click()">
+                    <i class="fas fa-folder-open"></i> Escolher
+                  </button>
+                </div>
+                {% if form.arquivo_whatsapp.errors %}
+                  <div class="text-danger mt-1">
+                    {% for error in form.arquivo_whatsapp.errors %}
+                      <small>{{ error }}</small><br>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+                <div class="form-text">
+                  <i class="fas fa-info-circle me-1"></i>
+                  <strong>Funcionalidade exclusiva para administradores.</strong> Envie um arquivo .txt do WhatsApp. O sistema preencherá automaticamente o log baseado na data e escala selecionadas.
+                </div>
+              </div>
+              {% else %}
+              <div class="mb-3">
+                <div class="alert alert-info">
+                  <i class="fas fa-lock me-2"></i>
+                  <strong>Importação WhatsApp:</strong> Funcionalidade disponível apenas para administradores.
+                </div>
+              </div>
+              {% endif %}
+              
               <div class="mb-3">
                 {{ render_field(form.log_bruto_rondas, label_visible=true,
                 label_text="LOG BRUTO DAS RONDAS", rows="10") }}
@@ -109,6 +145,9 @@ block head %} {{ super() }}
 </div>
 {% endblock %} {% block scripts %} {{ super() }}
 <script>
+      // Variável global para verificar se usuário é admin
+      const isAdmin = {{ 'true' if current_user.is_admin else 'false' }};
+      
       document.addEventListener('DOMContentLoaded', function () {
           // Configuração e inicialização do Select2
           const select2Config = {
@@ -129,6 +168,129 @@ block head %} {{ super() }}
               if (condominioSelect.value === 'Outro') {
                   outroCondominioField.style.display = 'block';
               }
+          }
+
+          // Preview do nome do arquivo WhatsApp e processamento automático
+          const whatsappFileInput = document.getElementById('{{ form.arquivo_whatsapp.id }}');
+          const dataPlantaoInput = document.getElementById('{{ form.data_plantao.id }}');
+          const escalaPlantaoSelect = document.getElementById('{{ form.escala_plantao.id }}');
+          const logBrutoTextarea = document.getElementById('{{ form.log_bruto_rondas.id }}');
+          
+          if (whatsappFileInput) {
+              whatsappFileInput.addEventListener('change', function(e) {
+                  const fileName = e.target.files[0]?.name;
+                  if (fileName) {
+                      const inputGroup = e.target.closest('.input-group');
+                      const button = inputGroup.querySelector('.btn');
+                      button.textContent = fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName;
+                      
+                      // Processa automaticamente se data e escala estiverem preenchidas
+                      processarWhatsAppAutomaticamente();
+                  }
+              });
+          }
+          
+          // Processa automaticamente quando data ou escala mudam
+          if (dataPlantaoInput) {
+              dataPlantaoInput.addEventListener('change', function() {
+                  if (whatsappFileInput && whatsappFileInput.files.length > 0) {
+                      processarWhatsAppAutomaticamente();
+                  }
+              });
+          }
+          
+          if (escalaPlantaoSelect) {
+              escalaPlantaoSelect.addEventListener('change', function() {
+                  if (whatsappFileInput && whatsappFileInput.files.length > 0) {
+                      processarWhatsAppAutomaticamente();
+                  }
+              });
+          }
+          
+          // Função para mostrar toast
+          function showToast(message, type = 'info') {
+              const toast = document.createElement('div');
+              toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+              toast.style.top = '20px';
+              toast.style.right = '20px';
+              toast.style.zIndex = '9999';
+              toast.innerHTML = `
+                  ${message}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              `;
+              document.body.appendChild(toast);
+              setTimeout(() => {
+                  toast.classList.remove('show');
+                  setTimeout(() => toast.remove(), 500);
+              }, 4000);
+          }
+          
+          // Função para processar WhatsApp automaticamente
+          function processarWhatsAppAutomaticamente() {
+              // Verifica se o usuário é administrador
+              if (!isAdmin) {
+                  showToast('Funcionalidade disponível apenas para administradores.', 'warning');
+                  return;
+              }
+              
+              const arquivo = whatsappFileInput.files[0];
+              const dataPlantao = dataPlantaoInput.value;
+              const escalaPlantao = escalaPlantaoSelect.value;
+              
+              if (!arquivo || !dataPlantao || !escalaPlantao) {
+                  return;
+              }
+              
+              // Mostra indicador de processamento
+              const button = whatsappFileInput.closest('.input-group').querySelector('.btn');
+              const originalText = button.textContent;
+              button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+              button.disabled = true;
+              
+              const formData = new FormData();
+              formData.append('arquivo', arquivo);
+              formData.append('data_plantao', dataPlantao);
+              formData.append('escala_plantao', escalaPlantao);
+              
+              fetch("{{ url_for('ronda.processar_whatsapp') }}", {
+                  method: 'POST',
+                  body: formData,
+                  headers: {
+                      'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                  }
+              })
+              .then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      // Preenche o log automaticamente
+                      logBrutoTextarea.value = data.log;
+                      
+                      // Mostra mensagem de sucesso
+                      showToast(data.message, 'success');
+                      
+                      // Atualiza o botão
+                      button.innerHTML = '<i class="fas fa-check"></i> Processado';
+                      button.classList.remove('btn-outline-secondary');
+                      button.classList.add('btn-success');
+                      
+                      setTimeout(() => {
+                          button.textContent = originalText;
+                          button.classList.remove('btn-success');
+                          button.classList.add('btn-outline-secondary');
+                          button.disabled = false;
+                      }, 3000);
+                  } else {
+                      showToast(data.message, 'warning');
+                      button.textContent = originalText;
+                      button.disabled = false;
+                  }
+              })
+              .catch(error => {
+                  console.error('Erro:', error);
+                  showToast('Erro ao processar arquivo WhatsApp', 'danger');
+                  button.textContent = originalText;
+                  button.disabled = false;
+              });
           }
 
           // CORREÇÃO: Adicionada lógica para o botão de PROCESSAR
@@ -193,43 +355,41 @@ block head %} {{ super() }}
                       const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                       const form = document.getElementById('processar-ronda-form');
                       const data = {
-                          ronda_id: {{ ronda_data_to_save.ronda_id | tojson
-                  }},
-                  log_bruto: form.querySelector('#log_bruto_rondas').value,
-                  condominio_id: form.querySelector('#nome_condominio').value,
-                  nome_condominio_outro: form.querySelector('#nome_condominio_outro').value,
-                  data_plantao: form.querySelector('#data_plantao').value,
-                  escala_plantao: form.querySelector('#escala_plantao').value,
-                  supervisor_id: form.querySelector('#supervisor_id').value
-          };
+                          ronda_id: {{ ronda_data_to_save.ronda_id | tojson }},
+                          log_bruto: form.querySelector('#log_bruto_rondas').value,
+                          condominio_id: form.querySelector('#nome_condominio').value,
+                          nome_condominio_outro: form.querySelector('#nome_condominio_outro').value,
+                          data_plantao: form.querySelector('#data_plantao').value,
+                          escala_plantao: form.querySelector('#escala_plantao').value,
+                          supervisor_id: form.querySelector('#supervisor_id').value
+                      };
 
-          const response = await fetch("{{ url_for('ronda.salvar_ronda') }}", {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'X-CSRFToken': csrfToken
-              },
-              body: JSON.stringify(data)
-          });
+                      const response = await fetch("{{ url_for('ronda.salvar_ronda') }}", {
+                          method: 'POST',
+                          headers: {
+                              'Content-Type': 'application/json',
+                              'X-CSRFToken': csrfToken
+                          },
+                          body: JSON.stringify(data)
+                      });
 
-          const result = await response.json();
+                      const result = await response.json();
 
-          if (!response.ok || !result.success) {
-              throw new Error(result.message || 'Falha ao salvar a ronda.');
+                      if (!response.ok || !result.success) {
+                          throw new Error(result.message || 'Falha ao salvar a ronda.');
+                      }
+
+                      showToast(result.message, 'success');
+
+                  } catch (error) {
+                      console.error('Erro ao salvar a ronda:', error);
+                      showToast(error.message || 'Erro inesperado ao salvar a ronda.', 'danger');
+                  } finally {
+                      this.disabled = false;
+                      this.innerHTML = '<i class="bi bi-save-fill me-1"></i>Salvar Ronda no Sistema';
+                  }
+              });
           }
-
-          showToast(result.message, 'success');
-
-      }    catch (error) {
-          console.error('Erro ao salvar a ronda:', error);
-          showToast(error.message || 'Erro inesperado ao salvar a ronda.', 'danger');
-      } finally {
-          this.disabled = false;
-          this.innerHTML = '<i class="bi bi-save-fill me-1"></i>Salvar Ronda no Sistema';
-      }
-  });
-
-      }
-  });
+      });
 </script>
 {% endblock %}

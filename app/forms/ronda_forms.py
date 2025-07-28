@@ -1,4 +1,5 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed
 from wtforms import SelectField, StringField, DateField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Optional, Length, ValidationError
 
@@ -27,6 +28,10 @@ class TestarRondasForm(FlaskForm):
     )
     supervisor_id = SelectField(
         "Supervisor da Ronda", coerce=int, validators=[Optional()]
+    )
+    arquivo_whatsapp = FileField(
+        "Arquivo WhatsApp (.txt) - Opcional",
+        validators=[FileAllowed(['txt'], message="Apenas arquivos .txt são permitidos.")]
     )
     log_bruto_rondas = TextAreaField(
         "Log Bruto das Rondas",
