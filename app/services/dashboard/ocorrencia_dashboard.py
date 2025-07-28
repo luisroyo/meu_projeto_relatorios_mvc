@@ -2,6 +2,7 @@
 import logging
 from datetime import datetime
 
+from flask import current_app
 from sqlalchemy import func
 
 from app import db
@@ -87,16 +88,31 @@ def get_ocorrencia_dashboard_data(filters):
     # --- DEBUG: Logs para evolução diária ---
     logger.info(f"Filtros aplicados: {filters}")
 
+    # CORREÇÃO: Converter UTC para local antes de extrair a data
+    from sqlalchemy import text
+    import pytz
+    
+    # Obtém o timezone local da configuração
+    local_tz_str = current_app.config.get("DEFAULT_TIMEZONE", "America/Sao_Paulo")
+    
+    # Query corrigida para converter UTC para local antes de extrair a data
     ocorrencias_por_dia_q = db.session.query(
-        func.date(Ocorrencia.data_hora_ocorrencia), func.count(Ocorrencia.id)
+        func.date(
+            func.timezone(local_tz_str, Ocorrencia.data_hora_ocorrencia)
+        ), 
+        func.count(Ocorrencia.id)
     )
     ocorrencias_por_dia_q = ocorrencia_service.apply_ocorrencia_filters(
         ocorrencias_por_dia_q, filters
     )
     ocorrencias_por_dia_q = add_date_filter(ocorrencias_por_dia_q)
     ocorrencias_por_dia = (
-        ocorrencias_por_dia_q.group_by(func.date(Ocorrencia.data_hora_ocorrencia))
-        .order_by(func.date(Ocorrencia.data_hora_ocorrencia))
+        ocorrencias_por_dia_q.group_by(
+            func.date(func.timezone(local_tz_str, Ocorrencia.data_hora_ocorrencia))
+        )
+        .order_by(
+            func.date(func.timezone(local_tz_str, Ocorrencia.data_hora_ocorrencia))
+        )
         .all()
     )
 
