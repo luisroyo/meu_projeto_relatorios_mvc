@@ -61,6 +61,10 @@ class WhatsAppProcessor:
             re.compile(r'criptografia de ponta a ponta', re.IGNORECASE),
             re.compile(r'somente as pessoas que fazem parte', re.IGNORECASE),
         ]
+        
+        # Variáveis para detectar mudança de data/plantão
+        self.last_processed_date = None
+        self.last_processed_plantao = None
     
     def is_system_message(self, conteudo: str) -> bool:
         """Verifica se a mensagem é do sistema."""
@@ -105,6 +109,28 @@ class WhatsAppProcessor:
             tipo = "noturno"
         
         return data_plantao, tipo, inicio, fim
+    
+    def detect_plantao_change(self, dt: datetime) -> bool:
+        """
+        Detecta se houve mudança de data ou plantão.
+        Retorna True se houve mudança, False caso contrário.
+        """
+        data_plantao, tipo, _, _ = self.get_plantao_info(dt)
+        current_plantao = (data_plantao.date(), tipo)
+        
+        # Se é a primeira vez processando
+        if self.last_processed_plantao is None:
+            self.last_processed_plantao = current_plantao
+            self.last_processed_date = data_plantao.date()
+            return True
+        
+        # Verifica se houve mudança
+        if current_plantao != self.last_processed_plantao:
+            self.last_processed_plantao = current_plantao
+            self.last_processed_date = data_plantao.date()
+            return True
+        
+        return False
     
     def parse_messages(self, content: str, data_inicio: Optional[datetime] = None, 
                       data_fim: Optional[datetime] = None, autor_filtro: Optional[str] = None) -> List[Mensagem]:
@@ -224,6 +250,16 @@ class WhatsAppProcessor:
         # Processa mensagens com filtros
         mensagens = self.parse_messages(content, data_inicio, data_fim, autor_filtro)
         plantoes = self.group_by_plantao(mensagens)
+        
+        # Verifica se há mudança de plantão para o plantão atual
+        if plantoes:
+            # Pega o plantão mais recente
+            plantao_atual = plantoes[-1]
+            if self.detect_plantao_change(plantao_atual.data):
+                print(f"Novo plantão detectado: {plantao_atual.data.strftime('%d/%m/%Y')} - {plantao_atual.tipo}")
+                print(f"Total de mensagens: {len(plantao_atual.mensagens)}")
+                # Aqui você pode adicionar lógica para processar automaticamente
+                # Por exemplo, criar ocorrência automaticamente
         
         return plantoes
     
