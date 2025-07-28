@@ -1,7 +1,7 @@
 # app/blueprints/ronda/routes.py
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from collections.abc import Sequence
 
 import pytz  # Importe a biblioteca pytz
@@ -16,6 +16,7 @@ from app.decorators.admin_required import admin_required
 from app.forms import TestarRondasForm
 from app.models import Condominio, EscalaMensal, Ronda, User
 from app.services.ronda_routes_core.routes_service import RondaRoutesService
+from app.services.whatsapp_processor import WhatsAppProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,51 @@ def registrar_ronda():
         relatorio_processado_final = ronda.relatorio_processado
 
     if form.validate_on_submit():
+        # Processa arquivo WhatsApp se fornecido
+        if form.arquivo_whatsapp.data:
+            try:
+                import tempfile
+                import os
+                
+                # Salva arquivo temporariamente
+                arquivo = form.arquivo_whatsapp.data
+                temp_dir = os.path.join(tempfile.gettempdir(), 'whatsapp_ronda')
+                os.makedirs(temp_dir, exist_ok=True)
+                temp_path = os.path.join(temp_dir, arquivo.filename)
+                arquivo.save(temp_path)
+                
+                # Processa o arquivo WhatsApp
+                processor = WhatsAppProcessor()
+                data_inicio = form.data_plantao.data
+                data_fim = form.data_plantao.data
+                
+                # Determina horário baseado na escala
+                if form.escala_plantao.data == "06h às 18h":
+                    data_inicio = data_inicio.replace(hour=6, minute=0, second=0, microsecond=0)
+                    data_fim = data_inicio.replace(hour=17, minute=59, second=59)
+                else:  # 18h às 06h
+                    data_inicio = data_inicio.replace(hour=18, minute=0, second=0, microsecond=0)
+                    data_fim = (data_inicio + timedelta(days=1)).replace(hour=5, minute=59, second=59)
+                
+                # Processa mensagens do período
+                plantoes = processor.process_file(temp_path, data_inicio, data_fim)
+                
+                if plantoes:
+                    # Formata o log para ronda
+                    log_formatado = processor.format_for_ronda_log(plantoes[0])
+                    form.log_bruto_rondas.data = log_formatado
+                    flash(f"Log carregado automaticamente do WhatsApp! {len(plantoes[0].mensagens)} mensagens encontradas.", "success")
+                else:
+                    flash("Nenhuma mensagem encontrada no período selecionado.", "warning")
+                
+                # Remove arquivo temporário
+                os.unlink(temp_path)
+                
+            except Exception as e:
+                logger.error(f"Erro ao processar arquivo WhatsApp: {e}", exc_info=True)
+                flash(f"Erro ao processar arquivo WhatsApp: {str(e)}", "danger")
+        
+        # Processa o registro da ronda
         relatorio_processado_final, condominio_obj, mensagem, status = RondaRoutesService.processar_registro_ronda(form, current_user)
         if status == "success":
             flash(mensagem, "info")
@@ -156,3 +202,84 @@ def excluir_ronda(ronda_id):
     else:
         flash(message, "danger")
     return redirect(url_for("ronda.listar_rondas"))
+
+
+@ronda_bp.route("/processar-whatsapp", methods=["POST"])
+@login_required
+@admin_required
+def processar_whatsapp():
+    """Processa arquivo WhatsApp via AJAX."""
+    try:
+        if 'arquivo' not in request.files:
+            return jsonify({'success': False, 'message': 'Nenhum arquivo enviado'}), 400
+        
+        arquivo = request.files['arquivo']
+        if arquivo.filename == '':
+            return jsonify({'success': False, 'message': 'Nenhum arquivo selecionado'}), 400
+        
+        # Valida extensão
+        if not arquivo.filename.lower().endswith('.txt'):
+            return jsonify({'success': False, 'message': 'Apenas arquivos .txt são permitidos'}), 400
+        
+        # Obtém parâmetros
+        data_plantao = request.form.get('data_plantao')
+        escala_plantao = request.form.get('escala_plantao')
+        
+        if not data_plantao or not escala_plantao:
+            return jsonify({'success': False, 'message': 'Data e escala são obrigatórios'}), 400
+        
+        # Salva arquivo temporariamente
+        import tempfile
+        import os
+        temp_dir = os.path.join(tempfile.gettempdir(), 'whatsapp_ronda')
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_path = os.path.join(temp_dir, arquivo.filename)
+        arquivo.save(temp_path)
+        
+        try:
+            # Processa o arquivo WhatsApp
+            processor = WhatsAppProcessor()
+            
+            # Converte data
+            from datetime import datetime
+            data_dt = datetime.strptime(data_plantao, '%Y-%m-%d')
+            
+            # Determina horário baseado na escala
+            if escala_plantao == "06h às 18h":
+                # Plantão diurno: 06h às 18h (mesmo dia)
+                data_inicio = data_dt.replace(hour=6, minute=0, second=0, microsecond=0)
+                data_fim = data_dt.replace(hour=17, minute=59, second=59)
+            else:  # 18h às 06h
+                # Plantão noturno: 18h do dia selecionado até 06h do dia seguinte
+                data_inicio = data_dt.replace(hour=18, minute=0, second=0, microsecond=0)
+                data_fim = (data_dt + timedelta(days=1)).replace(hour=5, minute=59, second=59)
+            
+            # Processa mensagens do período
+            plantoes = processor.process_file(temp_path, data_inicio, data_fim)
+            
+            if plantoes and plantoes[0].mensagens:
+                # Formata o log para ronda
+                log_formatado = processor.format_for_ronda_log(plantoes[0])
+                total_mensagens = len(plantoes[0].mensagens)
+                
+                return jsonify({
+                    'success': True,
+                    'log': log_formatado,
+                    'total_mensagens': total_mensagens,
+                    'message': f'Log carregado com sucesso! {total_mensagens} mensagens encontradas.'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'Nenhuma mensagem encontrada no período selecionado.'
+                }), 404
+                
+        finally:
+            # Remove arquivo temporário
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+                
+    except Exception as e:
+        logger.error(f"Erro ao processar arquivo WhatsApp: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro ao processar arquivo: {str(e)}'}), 500
+
