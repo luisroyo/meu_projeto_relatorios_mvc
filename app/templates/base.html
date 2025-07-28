@@ -109,6 +109,14 @@
               <i class="bi bi-journals me-1"></i>Histórico de Rondas
             </a>
           </li>
+          {% if current_user.is_admin %}
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'ronda.upload_process_ronda' %}active{% endif %}"
+              href="{{ url_for('ronda.upload_process_ronda') }}">
+              <i class="bi bi-cloud-arrow-up me-1"></i>Upload Rondas
+            </a>
+          </li>
+          {% endif %}
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'ocorrencia.listar_ocorrencias' %}active{% endif %}"
               href="{{ url_for('ocorrencia.listar_ocorrencias') }}">

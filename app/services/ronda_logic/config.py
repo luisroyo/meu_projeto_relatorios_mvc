@@ -34,7 +34,7 @@ REGEX_BLOCO_TERMINO = re.compile(
 REGEX_BLOCO_QRA = re.compile(r"QRA\s+.*", re.IGNORECASE)
 
 INICIO_KEYWORDS_REGEX_PART = (
-    r"(?:[ií]n[ií]cio|in[ií]cio|inicio|iniciou|come[cç]o|come[cç]ou)"
+    r"(?:[ií]n[ií]cio|in[ií]cio|inicio|iniciou|come[cç]o|come[cç]ou|inicial)"
 )
 TERMINO_KEYWORDS_REGEX_PART = r"(?:t[eé]rmino|termino|t[eé]rminou|terminou|fim|final|encerrou)"  # "Final de final" é coberto por "final"
 TIPO_RONDA_REGEX_PART = r"(?:ronda|vigil[âa]ncia|patrulha)"
@@ -44,10 +44,19 @@ TIME_CAPTURE_REGEX_PART = r"(\d{1,2}\s*[:;hH]\s*\d{1,2})"  # Ex: 19:20, 03;19, 8
 SIMPLE_HOUR_CAPTURE_REGEX_PART = r"(\d{1,2}\s*h(?!\d))"
 
 RONDA_EVENT_REGEX_PATTERNS = [
-    # --- NOVO: Padrões específicos para formatos como "Termino: 6:31" e "Ínicio 06:11" ---
+    # --- NOVO: Padrões específicos para formatos como "Termino: 6:31", "Ínicio 06:11" e "Inicial 06:11" ---
     {
         "tipo": "inicio",
         "regex_str": rf"^{INICIO_KEYWORDS_REGEX_PART}\s+{TIME_CAPTURE_REGEX_PART}$",
+    },
+    # --- NOVO: Padrões específicos para "Inicial" ---
+    {
+        "tipo": "inicio",
+        "regex_str": rf"^inicial\s+{TIME_CAPTURE_REGEX_PART}$",
+    },
+    {
+        "tipo": "inicio",
+        "regex_str": rf"^{TIME_CAPTURE_REGEX_PART}\s+inicial$",
     },
     {
         "tipo": "termino",
