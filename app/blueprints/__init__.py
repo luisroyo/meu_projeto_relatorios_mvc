@@ -5,7 +5,7 @@ from .admin.routes_colaborador import admin_bp as admin_colaborador_bp
 from .ocorrencia.routes import ocorrencia_bp
 from .ronda.routes import ronda_bp
 from .auth.routes import auth_bp
-from .api.routes import api_bp
+from .api import api_bp
 from .main.routes import main_bp
 
 def register_blueprints(app):
