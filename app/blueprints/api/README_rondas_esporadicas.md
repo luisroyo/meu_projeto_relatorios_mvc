@@ -12,6 +12,29 @@ As rondas esporádicas são registros de entrada e saída em condomínios espec�
 
 ## 🔗 **Endpoints Disponíveis**
 
+### **0. Listar Condomínios**
+```http
+GET /api/condominios
+```
+
+**Resposta:**
+```json
+{
+  "sucesso": true,
+  "condominios": [
+    {
+      "id": 1,
+      "nome": "Residencial A"
+    },
+    {
+      "id": 2,
+      "nome": "Condomínio B"
+    }
+  ],
+  "total": 2
+}
+```
+
 ### **1. Validar Horário de Entrada**
 ```http
 POST /api/rondas-esporadicas/validar-horario

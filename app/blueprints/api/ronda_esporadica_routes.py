@@ -9,6 +9,30 @@ from app.services.ronda_esporadica_service import RondaEsporadicaService
 from app import db
 from . import api_bp
 
+@api_bp.route("/condominios", methods=["GET"])
+@cross_origin()
+@csrf.exempt
+def listar_condominios():
+    """Lista todos os condomínios disponíveis."""
+    try:
+        condominios = Condominio.query.order_by(Condominio.nome).all()
+        
+        condominios_list = []
+        for condominio in condominios:
+            condominios_list.append({
+                "id": condominio.id,
+                "nome": condominio.nome
+            })
+        
+        return jsonify({
+            "sucesso": True,
+            "condominios": condominios_list,
+            "total": len(condominios_list)
+        })
+        
+    except Exception as e:
+        return jsonify({"sucesso": False, "message": f"Erro ao buscar condomínios: {str(e)}"}), 500
+
 @api_bp.route("/rondas-esporadicas/validar-horario", methods=["POST", "OPTIONS"])
 @cross_origin()
 @csrf.exempt
