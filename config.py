@@ -24,8 +24,17 @@ class DevelopmentConfig(Config):
     """Configuração de desenvolvimento."""
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///dev.db'
-    # Em desenvolvimento, sempre usa SimpleCache para simplicidade
-    CACHE_TYPE = 'SimpleCache'
+    
+    # Configuração do cache - usa Redis se disponível, senão SimpleCache
+    REDIS_URL = os.environ.get("REDIS_URL") or os.environ.get("CACHE_REDIS_URL")
+    if REDIS_URL:
+        CACHE_TYPE = "RedisCache"
+        CACHE_REDIS_URL = REDIS_URL
+        CACHE_DEFAULT_TIMEOUT = 3600  # 1 hora
+    else:
+        # Fallback para SimpleCache se Redis não estiver disponível
+        CACHE_TYPE = "SimpleCache"
+        CACHE_DEFAULT_TIMEOUT = 3600  # 1 hora
 
 class TestingConfig(Config):
     """Configuração de teste."""
