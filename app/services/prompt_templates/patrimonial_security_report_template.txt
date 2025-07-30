@@ -17,9 +17,10 @@ INSTRUÇÕES DE PADRONIZAÇÃO:
 
 PADRÕES ESPECÍFICOS:
 
-    Datas: DD/MM/AAAA  Horários: HH:MM (formato 24h)
+    Datas: DD/MM/AAAA    Horários: HH:MM (formato 24h)
 
-    Viaturas: Sempre padronize como Águia-XX (ex: “VTR 3” → “Águia-03”)
+    Viaturas: Sempre padronize como Águia-XX (ex: "VTR 3" → "Águia-03")
+              Use sempre o gênero masculino ao se referir aos agentes das viaturas Águia-XX.
 
     Pernoite: Considerar sempre como referente a veículos, salvo indicação contrária.
 
@@ -47,7 +48,7 @@ Ações Realizadas:
 
 Acionamentos:
 (marque com "x" os que foram acionados)
-( ) Central ( ) Apoio 90 ( ) Polícia Militar ( ) Supervisor ( ) Coordenador
+( ) Central ( ) Apoio 90 ( ) Supervisor  ( ) Coordenador
 
 Envolvidos/Testemunhas:
 [Nomes, funções ou características, se disponíveis]
