@@ -40,12 +40,31 @@ export const CONFIG = {
         unexpectedResponse: 'Resposta inesperada do servidor.'
     },
     initialProcessButtonHTML: '<i class="bi bi-gear-fill me-1"></i>Processar Relatório',
-    initialCopyButtonHTML: '<i class="bi bi-clipboard-data me-1"></i>Copiar Padrão',
-    initialCopyEmailButtonHTML: '<i class="bi bi-envelope-check me-1"></i>Copiar E-mail',
-    // HTML inicial para botões WhatsApp (já definido no template index.html, mas pode ser útil para referência)
-    initialWhatsAppButtonHTML: '<i class="bi bi-whatsapp me-1"></i>Enviar Padrão via WhatsApp',
-    initialWhatsAppEmailButtonHTML: '<i class="bi bi-whatsapp me-1"></i>Enviar E-mail via WhatsApp',
-    initialClearButtonHTML: '<i class="bi bi-eraser-fill me-1"></i>Limpar Tudo'
+    // Função utilitária para detectar dispositivos mobile
+    isMobile: () => {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    },
+    // Configurações de WhatsApp
+    whatsapp: {
+        mobileUrl: 'whatsapp://send?text=',
+        desktopUrl: 'https://wa.me/?text=',
+        // Função para detectar se o WhatsApp app está instalado
+        isAppInstalled: () => {
+            // Para mobile, tentamos detectar se o app está instalado
+            if (CONFIG.isMobile()) {
+                // No iOS, podemos tentar abrir o app e ver se funciona
+                if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                    // iOS: sempre tentar app primeiro
+                    return true;
+                } else if (/Android/i.test(navigator.userAgent)) {
+                    // Android: tentar app primeiro
+                    return true;
+                }
+            }
+            // Para desktop, sempre usar web
+            return false;
+        }
+    }
 };
 
 export const DOMElements = {};

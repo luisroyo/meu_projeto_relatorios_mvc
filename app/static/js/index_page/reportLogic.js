@@ -230,7 +230,33 @@ export function handleSendToWhatsApp(target = "standard") {
   }
 
   const textoCodificado = encodeURIComponent(textoParaEnviar.trim());
-  const whatsappUrl = `https://wa.me/?text=${textoCodificado}`;
-
-  window.open(whatsappUrl, "_blank");
+  
+  // Função para tentar abrir WhatsApp com fallback para web
+  const openWhatsApp = (text) => {
+    const isMobile = CONFIG.isMobile();
+    
+    if (isMobile) {
+      // Para mobile: tentar app primeiro, depois web
+      const appUrl = `whatsapp://send?text=${text}`;
+      const webUrl = `https://wa.me/?text=${text}`;
+      
+      // Tentar abrir o app
+      const appWindow = window.open(appUrl, '_blank');
+      
+      // Se o app não abrir em 1 segundo, tentar web
+      setTimeout(() => {
+        if (appWindow && appWindow.closed) {
+          // App não abriu, tentar web
+          window.open(webUrl, '_blank');
+        }
+      }, 1000);
+      
+    } else {
+      // Para desktop: sempre usar web
+      const webUrl = `https://wa.me/?text=${text}`;
+      window.open(webUrl, '_blank');
+    }
+  };
+  
+  openWhatsApp(textoCodificado);
 }
