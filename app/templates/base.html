@@ -88,6 +88,9 @@
                   href="{{ url_for('admin.ocorrencia_dashboard') }}">Métricas de Ocorrências</a></li>
               <li><a class="dropdown-item {% if request.endpoint == 'admin.dashboard_comparativo' %}active{% endif %}"
                   href="{{ url_for('admin.dashboard_comparativo') }}">Análise Comparativa</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item {% if request.endpoint == 'gemini_dashboard.dashboard' %}active{% endif %}"
+                  href="{{ url_for('gemini_dashboard.dashboard') }}"><i class="bi bi-robot me-2"></i>Monitoramento Gemini</a></li>
             </ul>
           </li>
 
