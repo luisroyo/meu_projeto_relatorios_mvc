@@ -35,6 +35,7 @@ class Ronda(db.Model):
     primeiro_evento_log_dt = db.Column(db.DateTime(timezone=True), nullable=True)
     ultimo_evento_log_dt = db.Column(db.DateTime(timezone=True), nullable=True)
     duracao_total_rondas_minutos = db.Column(db.Integer, default=0)
+    tipo = db.Column(db.String(50), nullable=True, default="tradicional")  # tradicional, esporadica
 
     condominio = db.relationship("Condominio", backref="rondas")
 
