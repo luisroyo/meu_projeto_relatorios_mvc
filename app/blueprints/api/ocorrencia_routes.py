@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import request, jsonify
 from flask_cors import cross_origin
 from app import csrf
 import re
@@ -14,8 +14,7 @@ from app.models.colaborador import Colaborador
 from app.models.orgao_publico import OrgaoPublico
 from app.services import ocorrencia_service
 from app import db
-
-api_bp = Blueprint("api", __name__, url_prefix="/api")
+from . import api_bp
 
 @api_bp.route("/ocorrencias/analisar-relatorio", methods=["POST", "OPTIONS"])
 @cross_origin()
