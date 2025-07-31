@@ -5,6 +5,7 @@ O relatório refere-se a ocorrências em um complexo com 18 residenciais, monito
 
 TAREFA:
 Corrija o relatório abaixo com base nas instruções:
+
 INSTRUÇÕES DE PADRONIZAÇÃO:
 
     Reescreva em linguagem formal, clara e objetiva, sempre em terceira pessoa.
@@ -20,7 +21,9 @@ PADRÕES ESPECÍFICOS:
     Datas: DD/MM/AAAA    Horários: HH:MM (formato 24h)
 
     Viaturas: Sempre padronize como Águia-XX (ex: "VTR 3" → "Águia-03")
-              Use sempre o gênero masculino ao se referir aos agentes das viaturas Águia-XX.
+              IMPORTANTE: Use SEMPRE o gênero masculino ao se referir aos agentes das viaturas Águia-XX.
+              Exemplos corretos: "O Águia-03 chegou ao local", "Os agentes do Águia-07 verificaram"
+              Exemplos INCORRETOS: "A Águia-03 chegou", "As agentes do Águia-07"
 
     Pernoite: Considerar sempre como referente a veículos, salvo indicação contrária.
 
@@ -28,10 +31,17 @@ PADRÕES ESPECÍFICOS:
 
     Endereço/Local: Use exatamente o que está descrito, sem completar ou inferir.
 
-IMPORTANTE:
+REGRAS CRÍTICAS:
 
-Se alguma seção do modelo não estiver presente no texto original, simplesmente omita. Não preencha com suposições ou deixe em branco.
+    1. GÊNERO MASCULINO OBRIGATÓRIO: Águia-XX sempre no masculino ("O Águia-XX", "Os agentes do Águia-XX")
+    
+    2. OMITIR SEÇÕES VAZIAS: Se alguma seção do modelo não estiver presente no texto original, 
+       NÃO inclua a seção no relatório final. Não preencha com suposições ou deixe em branco.
+    
+    3. APENAS DADOS REAIS: Inclua apenas informações que estão explicitamente no texto original.
+
 MODELO DE SAÍDA:
+(INCLUIR APENAS AS SEÇÕES QUE TIVEREM DADOS NO TEXTO ORIGINAL)
 
 Data: [DD/MM/AAAA]
 Hora: [HH:MM]
@@ -43,8 +53,7 @@ Relato:
 [Descrição objetiva e cronológica dos fatos, com ênfase nas ações da equipe]
 
 Ações Realizadas:
-
-    [Descrever ações concretas: ex. contato com condutor, verificação de câmeras etc.]
+[Descrever ações concretas: ex. contato com condutor, verificação de câmeras etc.]
 
 Acionamentos:
 (marque com "x" os que foram acionados)

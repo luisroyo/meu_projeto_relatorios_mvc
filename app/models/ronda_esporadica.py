@@ -1,6 +1,7 @@
 from app import db
 from datetime import datetime, timezone, time, timedelta
 from sqlalchemy import func
+from typing import Optional
 
 class RondaEsporadica(db.Model):
     """Modelo para rondas esporádicas realizadas via PWA."""
@@ -86,7 +87,7 @@ class RondaEsporadica(db.Model):
         duracao = saida - entrada
         return int(duracao.total_seconds() / 60)
     
-    def finalizar_ronda(self, hora_saida: time, observacoes: str = None):
+    def finalizar_ronda(self, hora_saida: time, observacoes: Optional[str] = None):
         """Finaliza a ronda com hora de saída e observações."""
         self.hora_saida = hora_saida
         self.status = "finalizada"

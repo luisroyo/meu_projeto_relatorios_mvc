@@ -1,11 +1,13 @@
 from flask import request, jsonify
 from flask_cors import cross_origin
 from app import csrf
-from datetime import datetime
+from datetime import datetime, date
 from app.models.ronda import Ronda
 from app.models.condominio import Condominio
+from app.models.user import User
 from app.services.ronda_routes_core.routes_service import RondaRoutesService
-from app.services.ronda_utils import RondaUtils
+from app.services.ronda_routes_core.persistence_service import get_ronda_by_id, list_rondas, build_ronda_query
+from app.services.ronda_routes_core.business_service import atribuir_supervisor
 from app import db
 from . import api_bp
 
@@ -15,36 +17,45 @@ from . import api_bp
 def listar_rondas_do_dia(condominio_id, data):
     """Lista todas as rondas de um condomínio em uma data específica."""
     try:
-        # Converter data string para objeto date
+        # Converter data
         data_obj = datetime.strptime(data, "%Y-%m-%d").date()
         
-        # Buscar rondas do dia
-        rondas = Ronda.query.filter(
-            Ronda.condominio_id == condominio_id,
-            Ronda.data_plantao == data_obj
-        ).order_by(Ronda.primeiro_evento_utc.asc()).all()
+        # Buscar rondas
+        query = Ronda.query.filter_by(
+            condominio_id=condominio_id,
+            data_plantao_ronda=data_obj
+        ).options(
+            db.joinedload(Ronda.condominio),
+            db.joinedload(Ronda.supervisor)
+        )
         
-        resultado = []
+        rondas = query.order_by(Ronda.id.desc()).all()
+        
+        # Formatar resposta
+        rondas_list = []
         for ronda in rondas:
-            resultado.append({
+            rondas_list.append({
                 "id": ronda.id,
                 "condominio_id": ronda.condominio_id,
-                "condominio_nome": ronda.condominio.nome if ronda.condominio else None,
-                "data_plantao": ronda.data_plantao.isoformat() if ronda.data_plantao else None,
-                "escala_plantao": ronda.escala_plantao,
-                "log_bruto": ronda.log_bruto,
+                "condominio_nome": ronda.condominio.nome if ronda.condominio else "N/A",
+                "data_plantao": ronda.data_plantao_ronda.isoformat(),
+                "escala_plantao": ronda.escala_plantao_ronda,
+                "log_bruto": ronda.log_bruto_rondas,
                 "total_rondas": ronda.total_rondas,
-                "duracao_total_minutos": ronda.duracao_total_minutos,
-                "primeiro_evento_utc": ronda.primeiro_evento_utc.isoformat() if ronda.primeiro_evento_utc else None,
-                "ultimo_evento_utc": ronda.ultimo_evento_utc.isoformat() if ronda.ultimo_evento_utc else None,
+                "duracao_total_minutos": ronda.duracao_total_rondas_minutos,
+                "primeiro_evento_utc": ronda.primeiro_evento_log_dt.isoformat() if ronda.primeiro_evento_log_dt else None,
+                "ultimo_evento_utc": ronda.ultimo_evento_log_dt.isoformat() if ronda.ultimo_evento_log_dt else None,
                 "supervisor_id": ronda.supervisor_id,
-                "supervisor_nome": ronda.supervisor.nome_completo if ronda.supervisor else None,
-                "status": ronda.status,
-                "data_criacao": ronda.data_criacao.isoformat() if ronda.data_criacao else None,
-                "data_modificacao": ronda.data_modificacao.isoformat() if ronda.data_modificacao else None
+                "supervisor_nome": ronda.supervisor.username if ronda.supervisor else None,
+                "status": ronda.status_ronda,
+                "data_criacao": ronda.data_hora_inicio.isoformat() if ronda.data_hora_inicio else None,
+                "data_modificacao": ronda.data_hora_fim.isoformat() if ronda.data_hora_fim else None
             })
         
-        return jsonify({"rondas": resultado})
+        return jsonify({
+            "rondas": rondas_list,
+            "total": len(rondas_list)
+        })
         
     except Exception as e:
         return jsonify({"sucesso": False, "message": f"Erro ao listar rondas: {str(e)}"}), 500
@@ -52,13 +63,21 @@ def listar_rondas_do_dia(condominio_id, data):
 @api_bp.route("/rondas/em-andamento/<int:condominio_id>", methods=["GET"])
 @cross_origin()
 @csrf.exempt
-def ronda_em_andamento(condominio_id):
+def verificar_ronda_em_andamento(condominio_id):
     """Verifica se existe uma ronda em andamento para o condomínio."""
     try:
-        # Buscar ronda em andamento (status = "em_andamento")
-        ronda_ativa = Ronda.query.filter(
-            Ronda.condominio_id == condominio_id,
-            Ronda.status == "em_andamento"
+        data_plantao = request.args.get("data_plantao")
+        if not data_plantao:
+            return jsonify({"sucesso": False, "message": "Data do plantão é obrigatória."}), 400
+
+        # Converter data
+        data_obj = datetime.strptime(data_plantao, "%Y-%m-%d").date()
+        
+        # Verificar ronda em andamento
+        ronda_ativa = Ronda.query.filter_by(
+            condominio_id=condominio_id,
+            data_plantao_ronda=data_obj,
+            status_ronda="em_andamento"
         ).first()
         
         if ronda_ativa:
@@ -66,8 +85,13 @@ def ronda_em_andamento(condominio_id):
                 "em_andamento": True,
                 "ronda": {
                     "id": ronda_ativa.id,
-                    "inicio": ronda_ativa.primeiro_evento_utc.isoformat() if ronda_ativa.primeiro_evento_utc else None,
-                    "data_plantao": ronda_ativa.data_plantao.isoformat() if ronda_ativa.data_plantao else None
+                    "inicio": ronda_ativa.data_hora_inicio.isoformat() if ronda_ativa.data_hora_inicio else None,
+                    "data_plantao": ronda_ativa.data_plantao_ronda.isoformat(),
+                    "escala_plantao": ronda_ativa.escala_plantao_ronda,
+                    "turno": ronda_ativa.turno_ronda,
+                    "observacoes": ronda_ativa.log_bruto_rondas,
+                    "user_id": ronda_ativa.user_id,
+                    "supervisor_id": ronda_ativa.supervisor_id
                 }
             })
         else:
@@ -80,7 +104,7 @@ def ronda_em_andamento(condominio_id):
 @cross_origin()
 @csrf.exempt
 def iniciar_ronda():
-    """Inicia uma nova ronda para um condomínio."""
+    """Inicia uma nova ronda."""
     if request.method == "OPTIONS":
         return '', 200
         
@@ -92,44 +116,46 @@ def iniciar_ronda():
         # Campos obrigatórios
         condominio_id = data.get("condominio_id")
         data_plantao = data.get("data_plantao")
-        
+        escala_plantao = data.get("escala_plantao", "06h às 18h")
+        supervisor_id = data.get("supervisor_id")
+        user_id = data.get("user_id", 1)  # Default user
+
         if not condominio_id or not data_plantao:
             return jsonify({"sucesso": False, "message": "Condomínio e data são obrigatórios."}), 400
-
-        # Verificar se já existe ronda em andamento
-        ronda_ativa = Ronda.query.filter(
-            Ronda.condominio_id == condominio_id,
-            Ronda.status == "em_andamento"
-        ).first()
-        
-        if ronda_ativa:
-            return jsonify({"sucesso": False, "message": "Já existe uma ronda em andamento para este condomínio."}), 400
 
         # Converter data
         data_obj = datetime.strptime(data_plantao, "%Y-%m-%d").date()
         
+        # Verificar se já existe ronda em andamento
+        ronda_existente = Ronda.query.filter_by(
+            condominio_id=condominio_id,
+            data_plantao_ronda=data_obj,
+            status_ronda="em_andamento"
+        ).first()
+        
+        if ronda_existente:
+            return jsonify({"sucesso": False, "message": "Já existe uma ronda em andamento para este condomínio e data."}), 400
+
         # Criar nova ronda
         nova_ronda = Ronda(
             condominio_id=condominio_id,
-            data_plantao=data_obj,
-            escala_plantao=data.get("escala_plantao", "06h às 18h"),
-            log_bruto=f"Início de ronda: {datetime.now().strftime('%H:%M')}",
-            status="em_andamento",
-            primeiro_evento_utc=datetime.utcnow(),
-            supervisor_id=data.get("supervisor_id")
+            data_plantao_ronda=data_obj,
+            escala_plantao_ronda=escala_plantao,
+            supervisor_id=supervisor_id,
+            user_id=user_id,
+            status_ronda="em_andamento",
+            data_hora_inicio=datetime.now()
         )
-
-        # Salvar no banco
+        
         db.session.add(nova_ronda)
         db.session.commit()
-
+        
         return jsonify({
             "sucesso": True,
-            "message": "Ronda iniciada com sucesso.",
-            "ronda_id": nova_ronda.id,
-            "inicio": nova_ronda.primeiro_evento_utc.isoformat()
-        }), 201
-
+            "message": "Ronda iniciada com sucesso!",
+            "ronda_id": nova_ronda.id
+        })
+        
     except Exception as e:
         db.session.rollback()
         return jsonify({"sucesso": False, "message": f"Erro ao iniciar ronda: {str(e)}"}), 500
@@ -138,35 +164,37 @@ def iniciar_ronda():
 @cross_origin()
 @csrf.exempt
 def finalizar_ronda(ronda_id):
-    """Finaliza uma ronda em andamento."""
+    """Finaliza uma ronda existente."""
     if request.method == "OPTIONS":
         return '', 200
         
     try:
-        ronda = Ronda.query.get_or_404(ronda_id)
-        
-        if ronda.status != "em_andamento":
-            return jsonify({"sucesso": False, "message": "Apenas rondas em andamento podem ser finalizadas."}), 400
+        data = request.get_json()
+        if not data:
+            return jsonify({"sucesso": False, "message": "Dados não fornecidos."}), 400
 
-        # Atualizar ronda
-        ronda.status = "finalizada"
-        ronda.ultimo_evento_utc = datetime.utcnow()
-        ronda.log_bruto += f"\nTérmino de ronda: {datetime.now().strftime('%H:%M')}"
-        
-        # Calcular duração
-        if ronda.primeiro_evento_utc and ronda.ultimo_evento_utc:
-            duracao = ronda.ultimo_evento_utc - ronda.primeiro_evento_utc
-            ronda.duracao_total_minutos = int(duracao.total_seconds() / 60)
+        # Buscar ronda
+        ronda = get_ronda_by_id(ronda_id)
+        if not ronda:
+            return jsonify({"sucesso": False, "message": "Ronda não encontrada."}), 404
 
+        # Atualizar dados
+        if "log_bruto" in data:
+            ronda.log_bruto_rondas = data["log_bruto"]
+        
+        if "observacoes" in data:
+            ronda.observacoes = data["observacoes"]
+        
+        ronda.status_ronda = "finalizada"
+        ronda.data_hora_fim = datetime.now()
+        
         db.session.commit()
-
+        
         return jsonify({
             "sucesso": True,
-            "message": "Ronda finalizada com sucesso.",
-            "duracao_minutos": ronda.duracao_total_minutos,
-            "termino": ronda.ultimo_evento_utc.isoformat()
+            "message": "Ronda finalizada com sucesso!"
         })
-
+        
     except Exception as e:
         db.session.rollback()
         return jsonify({"sucesso": False, "message": f"Erro ao finalizar ronda: {str(e)}"}), 500
@@ -175,31 +203,34 @@ def finalizar_ronda(ronda_id):
 @cross_origin()
 @csrf.exempt
 def atualizar_ronda(ronda_id):
-    """Atualiza dados de uma ronda em andamento."""
+    """Atualiza uma ronda existente."""
     if request.method == "OPTIONS":
         return '', 200
         
     try:
-        ronda = Ronda.query.get_or_404(ronda_id)
         data = request.get_json()
-        
         if not data:
             return jsonify({"sucesso": False, "message": "Dados não fornecidos."}), 400
 
-        # Atualizar campos permitidos
-        if "observacoes" in data:
-            ronda.log_bruto += f"\n{data['observacoes']}"
+        # Buscar ronda
+        ronda = get_ronda_by_id(ronda_id)
+        if not ronda:
+            return jsonify({"sucesso": False, "message": "Ronda não encontrada."}), 404
+
+        # Atualizar dados
+        if "log_bruto" in data:
+            ronda.log_bruto_rondas = data["log_bruto"]
         
-        if "escala_plantao" in data:
-            ronda.escala_plantao = data["escala_plantao"]
-
+        if "observacoes" in data:
+            ronda.observacoes = data["observacoes"]
+        
         db.session.commit()
-
+        
         return jsonify({
             "sucesso": True,
-            "message": "Ronda atualizada com sucesso."
+            "message": "Ronda atualizada com sucesso!"
         })
-
+        
     except Exception as e:
         db.session.rollback()
         return jsonify({"sucesso": False, "message": f"Erro ao atualizar ronda: {str(e)}"}), 500
@@ -208,58 +239,43 @@ def atualizar_ronda(ronda_id):
 @cross_origin()
 @csrf.exempt
 def gerar_relatorio_ronda(condominio_id, data):
-    """Gera relatório de todas as rondas de um condomínio em uma data."""
+    """Gera relatório de ronda para um condomínio e data."""
     if request.method == "OPTIONS":
         return '', 200
         
     try:
+        # Converter data
         data_obj = datetime.strptime(data, "%Y-%m-%d").date()
         
-        # Buscar todas as rondas do dia
-        rondas = Ronda.query.filter(
-            Ronda.condominio_id == condominio_id,
-            Ronda.data_plantao == data_obj,
-            Ronda.status == "finalizada"
-        ).order_by(Ronda.primeiro_evento_utc.asc()).all()
+        # Buscar ronda
+        ronda = Ronda.query.filter_by(
+            condominio_id=condominio_id,
+            data_plantao_ronda=data_obj
+        ).first()
         
-        if not rondas:
-            return jsonify({"sucesso": False, "message": "Nenhuma ronda finalizada encontrada para esta data."}), 404
+        if not ronda:
+            return jsonify({"sucesso": False, "message": "Ronda não encontrada."}), 404
 
-        # Gerar relatório usando o serviço existente
-        condominio = Condominio.query.get(condominio_id)
-        if not condominio:
-            return jsonify({"sucesso": False, "message": "Condomínio não encontrado."}), 404
+        # Gerar relatório básico
+        relatorio = f"""
+RELATÓRIO DE RONDA - {ronda.condominio.nome if ronda.condominio else 'N/A'}
+Data: {ronda.data_plantao_ronda.strftime('%d/%m/%Y')}
+Escala: {ronda.escala_plantao_ronda}
+Status: {ronda.status_ronda}
 
-        # Usar o sistema de usuário automático
-        system_user = RondaUtils.get_system_user()
-        
-        # Gerar relatório consolidado
-        relatorio_consolidado = f"RELATÓRIO DE RONDAS - {condominio.nome}\n"
-        relatorio_consolidado += f"Data: {data_obj.strftime('%d/%m/%Y')}\n"
-        relatorio_consolidado += f"Total de Rondas: {len(rondas)}\n\n"
-        
-        duracao_total = 0
-        for i, ronda in enumerate(rondas, 1):
-            inicio = ronda.primeiro_evento_utc.strftime("%H:%M") if ronda.primeiro_evento_utc else "N/A"
-            termino = ronda.ultimo_evento_utc.strftime("%H:%M") if ronda.ultimo_evento_utc else "N/A"
-            duracao = ronda.duracao_total_minutos or 0
-            duracao_total += duracao
-            
-            relatorio_consolidado += f"Ronda {i}:\n"
-            relatorio_consolidado += f"  Início: {inicio}\n"
-            relatorio_consolidado += f"  Término: {termino}\n"
-            relatorio_consolidado += f"  Duração: {duracao} minutos\n"
-            relatorio_consolidado += f"  Observações: {ronda.log_bruto}\n\n"
-        
-        relatorio_consolidado += f"Duração Total: {duracao_total} minutos"
+Log Bruto:
+{ronda.log_bruto_rondas or 'Nenhum log registrado'}
 
+Observações:
+{ronda.observacoes or 'Nenhuma observação'}
+        """.strip()
+        
         return jsonify({
             "sucesso": True,
-            "relatorio": relatorio_consolidado,
-            "total_rondas": len(rondas),
-            "duracao_total_minutos": duracao_total
+            "message": "Relatório gerado com sucesso!",
+            "relatorio": relatorio
         })
-
+        
     except Exception as e:
         return jsonify({"sucesso": False, "message": f"Erro ao gerar relatório: {str(e)}"}), 500
 
@@ -267,33 +283,48 @@ def gerar_relatorio_ronda(condominio_id, data):
 @cross_origin()
 @csrf.exempt
 def enviar_ronda_whatsapp(condominio_id, data):
-    """Envia relatório de rondas para WhatsApp."""
+    """Envia relatório de ronda via WhatsApp."""
     if request.method == "OPTIONS":
         return '', 200
         
     try:
-        # Primeiro gerar o relatório
-        relatorio_response = gerar_relatorio_ronda(condominio_id, data)
+        # Converter data
+        data_obj = datetime.strptime(data, "%Y-%m-%d").date()
         
-        if relatorio_response.status_code != 200:
-            return relatorio_response
+        # Buscar ronda
+        ronda = Ronda.query.filter_by(
+            condominio_id=condominio_id,
+            data_plantao_ronda=data_obj
+        ).first()
         
-        relatorio_data = relatorio_response.get_json()
-        if not relatorio_data.get("sucesso"):
-            return jsonify(relatorio_data), 400
+        if not ronda:
+            return jsonify({"sucesso": False, "message": "Ronda não encontrada."}), 404
+
+        # Gerar relatório
+        relatorio = f"""
+🔄 RELATÓRIO DE RONDA - {ronda.condominio.nome if ronda.condominio else 'N/A'}
+📅 Data: {ronda.data_plantao_ronda.strftime('%d/%m/%Y')}
+⏰ Escala: {ronda.escala_plantao_ronda}
+📊 Status: {ronda.status_ronda}
+
+📝 Log:
+{ronda.log_bruto_rondas or 'Nenhum log registrado'}
+
+💬 Observações:
+{ronda.observacoes or 'Nenhuma observação'}
+        """.strip()
         
-        relatorio = relatorio_data["relatorio"]
+        # Aqui você pode integrar com o serviço de WhatsApp
+        # Por enquanto, retornamos o relatório formatado
         
-        # Aqui você pode integrar com sua API de WhatsApp
-        # Por enquanto, retornamos sucesso
         return jsonify({
             "sucesso": True,
-            "message": "Relatório enviado para WhatsApp com sucesso.",
+            "message": "Relatório preparado para envio via WhatsApp!",
             "relatorio": relatorio
         })
-
+        
     except Exception as e:
-        return jsonify({"sucesso": False, "message": f"Erro ao enviar para WhatsApp: {str(e)}"}), 500
+        return jsonify({"sucesso": False, "message": f"Erro ao enviar via WhatsApp: {str(e)}"}), 500
 
 @api_bp.route("/rondas/<int:ronda_id>", methods=["GET", "OPTIONS"])
 @cross_origin()
@@ -304,27 +335,34 @@ def detalhe_ronda(ronda_id):
         return '', 200
         
     try:
-        ronda = Ronda.query.get_or_404(ronda_id)
-        
-        resultado = {
+        # Buscar ronda
+        ronda = get_ronda_by_id(ronda_id)
+        if not ronda:
+            return jsonify({"sucesso": False, "message": "Ronda não encontrada."}), 404
+
+        # Formatar resposta
+        ronda_data = {
             "id": ronda.id,
             "condominio_id": ronda.condominio_id,
-            "condominio_nome": ronda.condominio.nome if ronda.condominio else None,
-            "data_plantao": ronda.data_plantao.isoformat() if ronda.data_plantao else None,
-            "escala_plantao": ronda.escala_plantao,
-            "log_bruto": ronda.log_bruto,
+            "condominio_nome": ronda.condominio.nome if ronda.condominio else "N/A",
+            "data_plantao": ronda.data_plantao_ronda.isoformat(),
+            "escala_plantao": ronda.escala_plantao_ronda,
+            "log_bruto": ronda.log_bruto_rondas,
             "total_rondas": ronda.total_rondas,
-            "duracao_total_minutos": ronda.duracao_total_minutos,
-            "primeiro_evento_utc": ronda.primeiro_evento_utc.isoformat() if ronda.primeiro_evento_utc else None,
-            "ultimo_evento_utc": ronda.ultimo_evento_utc.isoformat() if ronda.ultimo_evento_utc else None,
+            "duracao_total_minutos": ronda.duracao_total_rondas_minutos,
+            "primeiro_evento_utc": ronda.primeiro_evento_log_dt.isoformat() if ronda.primeiro_evento_log_dt else None,
+            "ultimo_evento_utc": ronda.ultimo_evento_log_dt.isoformat() if ronda.ultimo_evento_log_dt else None,
             "supervisor_id": ronda.supervisor_id,
-            "supervisor_nome": ronda.supervisor.nome_completo if ronda.supervisor else None,
-            "status": ronda.status,
-            "data_criacao": ronda.data_criacao.isoformat() if ronda.data_criacao else None,
-            "data_modificacao": ronda.data_modificacao.isoformat() if ronda.data_modificacao else None
+            "supervisor_nome": ronda.supervisor.username if ronda.supervisor else None,
+            "status": ronda.status_ronda,
+            "data_criacao": ronda.data_hora_inicio.isoformat() if ronda.data_hora_inicio else None,
+            "data_modificacao": ronda.data_hora_fim.isoformat() if ronda.data_hora_fim else None
         }
         
-        return jsonify(resultado)
+        return jsonify({
+            "sucesso": True,
+            "ronda": ronda_data
+        })
         
     except Exception as e:
         return jsonify({"sucesso": False, "message": f"Erro ao buscar ronda: {str(e)}"}), 500 

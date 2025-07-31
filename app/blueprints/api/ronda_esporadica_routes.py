@@ -33,6 +33,81 @@ def listar_condominios():
     except Exception as e:
         return jsonify({"sucesso": False, "message": f"Erro ao buscar condomínios: {str(e)}"}), 500
 
+@api_bp.route("/rondas-esporadicas/estatisticas/<int:condominio_id>", methods=["GET"])
+@cross_origin()
+@csrf.exempt
+def obter_estatisticas_rondas_esporadicas(condominio_id):
+    """Obtém estatísticas de rondas esporádicas para um condomínio."""
+    try:
+        data_inicio = request.args.get("data_inicio")
+        data_fim = request.args.get("data_fim")
+        
+        if not data_inicio or not data_fim:
+            return jsonify({"sucesso": False, "message": "Data início e data fim são obrigatórias."}), 400
+
+        # Converter datas
+        data_inicio_obj = datetime.strptime(data_inicio, "%Y-%m-%d").date()
+        data_fim_obj = datetime.strptime(data_fim, "%Y-%m-%d").date()
+        
+        # Buscar rondas no período
+        rondas = RondaEsporadica.query.filter(
+            RondaEsporadica.condominio_id == condominio_id,
+            RondaEsporadica.data_plantao >= data_inicio_obj,
+            RondaEsporadica.data_plantao <= data_fim_obj
+        ).all()
+        
+        # Calcular estatísticas
+        total_rondas = len(rondas)
+        rondas_finalizadas = len([r for r in rondas if r.status == "finalizada"])
+        duracao_total_minutos = sum(r.duracao_minutos or 0 for r in rondas)
+        duracao_media_minutos = duracao_total_minutos / total_rondas if total_rondas > 0 else 0
+        
+        # Estatísticas por turno
+        turnos = {}
+        for ronda in rondas:
+            turno = ronda.turno or "Não definido"
+            if turno not in turnos:
+                turnos[turno] = {"total": 0, "duracao": 0}
+            turnos[turno]["total"] += 1
+            turnos[turno]["duracao"] += ronda.duracao_minutos or 0
+        
+        # Estatísticas por data
+        datas = {}
+        for ronda in rondas:
+            data_str = ronda.data_plantao.isoformat()
+            if data_str not in datas:
+                datas[data_str] = {"total": 0, "duracao": 0}
+            datas[data_str]["total"] += 1
+            datas[data_str]["duracao"] += ronda.duracao_minutos or 0
+        
+        estatisticas = {
+            "periodo": {
+                "data_inicio": data_inicio,
+                "data_fim": data_fim,
+                "dias": (data_fim_obj - data_inicio_obj).days + 1
+            },
+            "resumo": {
+                "total_rondas": total_rondas,
+                "rondas_finalizadas": rondas_finalizadas,
+                "rondas_em_andamento": total_rondas - rondas_finalizadas,
+                "duracao_total_minutos": duracao_total_minutos,
+                "duracao_media_minutos": round(duracao_media_minutos, 2),
+                "duracao_total_formatada": f"{duracao_total_minutos // 60}h {duracao_total_minutos % 60}min",
+                "duracao_media_formatada": f"{int(duracao_media_minutos) // 60}h {int(duracao_media_minutos) % 60}min"
+            },
+            "por_turno": turnos,
+            "por_data": datas
+        }
+        
+        return jsonify({
+            "sucesso": True,
+            "message": "Estatísticas obtidas com sucesso!",
+            "estatisticas": estatisticas
+        })
+        
+    except Exception as e:
+        return jsonify({"sucesso": False, "message": f"Erro ao obter estatísticas: {str(e)}"}), 500
+
 @api_bp.route("/rondas-esporadicas/validar-horario", methods=["POST", "OPTIONS"])
 @cross_origin()
 @csrf.exempt

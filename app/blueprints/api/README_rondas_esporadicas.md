@@ -349,6 +349,233 @@ GET /api/rondas-esporadicas/status-consolidacao/{condominio_id}/{data}
 GET /api/rondas-esporadicas/estatisticas/{condominio_id}?data_inicio=2025-01-01&data_fim=2025-01-31
 ```
 
+**Exemplo:** `GET /api/rondas-esporadicas/estatisticas/1?data_inicio=2025-01-01&data_fim=2025-01-31`
+
+**Resposta:**
+```json
+{
+  "sucesso": true,
+  "message": "Estatísticas obtidas com sucesso!",
+  "estatisticas": {
+    "periodo": {
+      "data_inicio": "2025-01-01",
+      "data_fim": "2025-01-31",
+      "dias": 31
+    },
+    "resumo": {
+      "total_rondas": 45,
+      "rondas_finalizadas": 42,
+      "rondas_em_andamento": 3,
+      "duracao_total_minutos": 2700,
+      "duracao_media_minutos": 60.0,
+      "duracao_total_formatada": "45h 0min",
+      "duracao_media_formatada": "1h 0min"
+    },
+    "por_turno": {
+      "Diurno": {
+        "total": 25,
+        "duracao": 1500
+      },
+      "Noturno": {
+        "total": 20,
+        "duracao": 1200
+      }
+    },
+    "por_data": {
+      "2025-01-15": {
+        "total": 3,
+        "duracao": 180
+      }
+    }
+  }
+}
+```
+
+## 🚀 **APIs de Rondas Regulares (Tradicionais)**
+
+### **1. Listar Rondas do Dia**
+```http
+GET /api/rondas/do-dia/{condominio_id}/{data}
+```
+
+**Exemplo:** `GET /api/rondas/do-dia/1/2025-01-30`
+
+**Resposta:**
+```json
+{
+  "rondas": [
+    {
+      "id": 1,
+      "condominio_id": 1,
+      "condominio_nome": "Residencial A",
+      "data_plantao": "2025-01-30",
+      "escala_plantao": "06h às 18h",
+      "log_bruto": "Log da ronda...",
+      "total_rondas": 5,
+      "duracao_total_minutos": 300,
+      "primeiro_evento_utc": "2025-01-30T06:00:00Z",
+      "ultimo_evento_utc": "2025-01-30T18:00:00Z",
+      "supervisor_id": 2,
+      "supervisor_nome": "João Silva",
+      "status": "finalizada",
+      "data_criacao": "2025-01-30T06:00:00Z",
+      "data_modificacao": "2025-01-30T18:00:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+### **2. Verificar Ronda em Andamento**
+```http
+GET /api/rondas/em-andamento/{condominio_id}?data_plantao=2025-01-30
+```
+
+**Resposta:**
+```json
+{
+  "em_andamento": true,
+  "ronda": {
+    "id": 1,
+    "inicio": "2025-01-30T06:00:00Z",
+    "data_plantao": "2025-01-30",
+    "escala_plantao": "06h às 18h",
+    "turno": "Diurno",
+    "observacoes": "Ronda em andamento",
+    "user_id": 1,
+    "supervisor_id": 2
+  }
+}
+```
+
+### **3. Iniciar Ronda**
+```http
+POST /api/rondas/iniciar
+```
+
+**Payload:**
+```json
+{
+  "condominio_id": 1,
+  "data_plantao": "2025-01-30",
+  "escala_plantao": "06h às 18h",
+  "supervisor_id": 2,
+  "user_id": 1
+}
+```
+
+**Resposta:**
+```json
+{
+  "sucesso": true,
+  "message": "Ronda iniciada com sucesso!",
+  "ronda_id": 1
+}
+```
+
+### **4. Finalizar Ronda**
+```http
+PUT /api/rondas/finalizar/{ronda_id}
+```
+
+**Payload:**
+```json
+{
+  "log_bruto": "Log final da ronda",
+  "observacoes": "Observações finais"
+}
+```
+
+**Resposta:**
+```json
+{
+  "sucesso": true,
+  "message": "Ronda finalizada com sucesso!"
+}
+```
+
+### **5. Atualizar Ronda**
+```http
+PUT /api/rondas/atualizar/{ronda_id}
+```
+
+**Payload:**
+```json
+{
+  "log_bruto": "Log atualizado",
+  "observacoes": "Nova observação"
+}
+```
+
+**Resposta:**
+```json
+{
+  "sucesso": true,
+  "message": "Ronda atualizada com sucesso!"
+}
+```
+
+### **6. Gerar Relatório**
+```http
+POST /api/rondas/gerar-relatorio/{condominio_id}/{data}
+```
+
+**Exemplo:** `POST /api/rondas/gerar-relatorio/1/2025-01-30`
+
+**Resposta:**
+```json
+{
+  "sucesso": true,
+  "message": "Relatório gerado com sucesso!",
+  "relatorio": "RELATÓRIO DE RONDA - Residencial A\nData: 30/01/2025\nEscala: 06h às 18h\nStatus: finalizada\n\nLog Bruto:\nLog da ronda...\n\nObservações:\nObservações da ronda"
+}
+```
+
+### **7. Enviar WhatsApp**
+```http
+POST /api/rondas/enviar-whatsapp/{condominio_id}/{data}
+```
+
+**Exemplo:** `POST /api/rondas/enviar-whatsapp/1/2025-01-30`
+
+**Resposta:**
+```json
+{
+  "sucesso": true,
+  "message": "Relatório preparado para envio via WhatsApp!",
+  "relatorio": "🔄 RELATÓRIO DE RONDA - Residencial A\n📅 Data: 30/01/2025\n⏰ Escala: 06h às 18h\n📊 Status: finalizada\n\n📝 Log:\nLog da ronda...\n\n💬 Observações:\nObservações da ronda"
+}
+```
+
+### **8. Detalhes da Ronda**
+```http
+GET /api/rondas/{ronda_id}
+```
+
+**Resposta:**
+```json
+{
+  "sucesso": true,
+  "ronda": {
+    "id": 1,
+    "condominio_id": 1,
+    "condominio_nome": "Residencial A",
+    "data_plantao": "2025-01-30",
+    "escala_plantao": "06h às 18h",
+    "log_bruto": "Log da ronda...",
+    "total_rondas": 5,
+    "duracao_total_minutos": 300,
+    "primeiro_evento_utc": "2025-01-30T06:00:00Z",
+    "ultimo_evento_utc": "2025-01-30T18:00:00Z",
+    "supervisor_id": 2,
+    "supervisor_nome": "João Silva",
+    "status": "finalizada",
+    "data_criacao": "2025-01-30T06:00:00Z",
+    "data_modificacao": "2025-01-30T18:00:00Z"
+  }
+}
+```
+
 ## 🔄 **Fluxo de Consolidação**
 
 1. **Coletar Rondas**: Sistema coleta todas as rondas esporádicas do dia
