@@ -12,13 +12,13 @@ class RondaEsporadicaService:
     """Serviço para gerenciar rondas esporádicas via PWA."""
     
     @staticmethod
-    def validar_horario_entrada(hora_informada: time, tolerancia_minutos: int = 30) -> Tuple[bool, str]:
+    def validar_horario_entrada(hora_informada: time, tolerancia_minutos: int = 120) -> Tuple[bool, str]:
         """
         Valida se o horário informado está próximo do horário atual.
         
         Args:
             hora_informada: Horário informado pelo usuário
-            tolerancia_minutos: Tolerância em minutos (padrão: 30)
+            tolerancia_minutos: Tolerância em minutos (padrão: 120 = 2 horas)
             
         Returns:
             Tuple[bool, str]: (é_válido, mensagem)
@@ -36,7 +36,7 @@ class RondaEsporadicaService:
             if diferenca <= tolerancia_minutos:
                 return True, "Horário válido"
             else:
-                return False, f"Horário muito diferente do atual. Diferença: {diferenca} minutos"
+                return False, f"Horário muito diferente do atual. Diferença: {diferenca} minutos (máximo: {tolerancia_minutos} minutos)"
                 
         except Exception as e:
             logger.error(f"Erro ao validar horário: {e}")
