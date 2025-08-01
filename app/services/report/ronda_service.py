@@ -23,10 +23,10 @@ class RondaReportService:
             doc = SimpleDocTemplate(
                 buffer,
                 pagesize=A4,
-                rightMargin=72,
-                leftMargin=72,
-                topMargin=120,
-                bottomMargin=60
+                rightMargin=50,  # Reduzido de 72 para 50
+                leftMargin=50,   # Reduzido de 72 para 50
+                topMargin=80,    # Reduzido de 120 para 80
+                bottomMargin=50  # Reduzido de 60 para 50
             )
 
             story = []
@@ -40,15 +40,12 @@ class RondaReportService:
                 periodo_inicio,
                 periodo_fim
             ))
-            story.append(PageBreak())
 
             # Informações de geração
             story.extend(self.builder.add_generation_info())
-            story.append(Spacer(1, 20))
 
             # Filtros
             story.extend(self.builder.format_filters_section(filters_info))
-            story.append(Spacer(1, 20))
 
             # KPIs
             kpi_data = [
@@ -59,12 +56,10 @@ class RondaReportService:
                 ['Supervisor Mais Ativo', dashboard_data.get('supervisor_mais_ativo', 'N/A'), 'Supervisor com mais rondas']
             ]
             story.extend(self.builder.create_kpi_table(kpi_data))
-            story.append(PageBreak())
 
             # Informações do período
             if dashboard_data.get('periodo_info'):
                 story.extend(self.builder.create_period_info_table(dashboard_data['periodo_info']))
-                story.append(Spacer(1, 20))
 
             # Tabela de condomínios
             if dashboard_data.get('condominio_labels') and dashboard_data.get('rondas_por_condominio_data'):
@@ -76,7 +71,6 @@ class RondaReportService:
                     'Todos os Condomínios com Ronda no Período',
                     [3, 2]
                 ))
-                story.append(PageBreak())
 
             # Análise por turno
             if dashboard_data.get('turno_labels') and dashboard_data.get('rondas_por_turno_data'):
@@ -90,7 +84,6 @@ class RondaReportService:
                     'Análise por Turno',
                     [2.5, 1.5, 1.5]
                 ))
-                story.append(Spacer(1, 20))
 
             # Ranking de supervisores
             if dashboard_data.get('supervisor_labels') and dashboard_data.get('rondas_por_supervisor_data'):
@@ -104,7 +97,6 @@ class RondaReportService:
                     'Ranking de Supervisores',
                     [0.8, 2.2, 1.5, 1.5]
                 ))
-                story.append(PageBreak())
 
             # Duração média por condomínio
             if dashboard_data.get('duracao_condominio_labels') and dashboard_data.get('duracao_media_data'):
@@ -116,7 +108,6 @@ class RondaReportService:
                     'Duração Média por Condomínio',
                     [3.5, 2]
                 ))
-                story.append(Spacer(1, 20))
 
             # Comparação com período anterior
             if dashboard_data.get('comparacao_periodo'):
@@ -133,7 +124,6 @@ class RondaReportService:
                     'Comparação com Período Anterior',
                     [2, 1.5, 1.5, 1.5]
                 ))
-                story.append(PageBreak())
 
             # Resumo executivo
             story.extend(self._create_executive_summary(dashboard_data, periodo_inicio, periodo_fim))
@@ -150,6 +140,123 @@ class RondaReportService:
             logger.error(f'Erro ao gerar relatório PDF de rondas: {e}', exc_info=True)
             raise
 
+    def generate_compact_ronda_dashboard_pdf(self, dashboard_data: Dict, filters_info: Optional[Dict] = None) -> BytesIO:
+        """Gera relatório PDF ultra-compacto do dashboard de rondas."""
+        try:
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=A4,
+                rightMargin=40,  # Ainda mais reduzido
+                leftMargin=40,   # Ainda mais reduzido
+                topMargin=60,    # Ainda mais reduzido
+                bottomMargin=40  # Ainda mais reduzido
+            )
+
+            story = []
+
+            # Capa compacta
+            periodo_inicio = filters_info.get("data_inicio", "") if filters_info else ""
+            periodo_fim = filters_info.get("data_fim", "") if filters_info else ""
+            story.extend(self.builder.create_cover_page(
+                "Relatório Compacto - Rondas",
+                "Assistente IA Seg",
+                periodo_inicio,
+                periodo_fim
+            ))
+
+            # Resumo executivo compacto
+            kpi_data = [
+                ['Indicador', 'Valor'],
+                ['Total de Rondas', str(dashboard_data.get('total_rondas', 0))],
+                ['Média por Dia', f"{dashboard_data.get('media_rondas_dia', 0)}"],
+                ['Duração Média', f"{dashboard_data.get('duracao_media_geral', 0)} min"],
+                ['Supervisor Mais Ativo', dashboard_data.get('supervisor_mais_ativo', 'N/A')]
+            ]
+            
+            story.extend(self.builder.create_compact_summary_table(
+                kpi_data, 
+                dashboard_data.get('periodo_info', {})
+            ))
+
+            # Tabelas combinadas em layout compacto
+            tables_data = []
+            
+            # Condomínios
+            if dashboard_data.get('condominio_labels') and dashboard_data.get('rondas_por_condominio_data'):
+                condominio_data = [['Condomínio', 'Total']]
+                for label, value in zip(dashboard_data['condominio_labels'], dashboard_data['rondas_por_condominio_data']):
+                    condominio_data.append([label, str(value)])
+                tables_data.append({
+                    'title': 'Rondas por Condomínio',
+                    'data': condominio_data,
+                    'col_widths': [3, 1]
+                })
+
+            # Turnos
+            if dashboard_data.get('turno_labels') and dashboard_data.get('rondas_por_turno_data'):
+                turno_data = [['Turno', 'Total', '%']]
+                total_rondas_turno = sum(dashboard_data['rondas_por_turno_data'])
+                for label, value in zip(dashboard_data['turno_labels'], dashboard_data['rondas_por_turno_data']):
+                    percentual = round((value / total_rondas_turno * 100), 1) if total_rondas_turno > 0 else 0
+                    turno_data.append([label, str(value), f"{percentual}%"])
+                tables_data.append({
+                    'title': 'Análise por Turno',
+                    'data': turno_data,
+                    'col_widths': [2, 1, 1]
+                })
+
+            # Supervisores (top 5)
+            if dashboard_data.get('supervisor_labels') and dashboard_data.get('rondas_por_supervisor_data'):
+                supervisor_data = [['Pos', 'Supervisor', 'Total', '%']]
+                total_rondas_supervisor = sum(dashboard_data['rondas_por_supervisor_data'])
+                for i, (label, value) in enumerate(zip(dashboard_data['supervisor_labels'][:5], dashboard_data['rondas_por_supervisor_data'][:5]), 1):
+                    percentual = round((value / total_rondas_supervisor * 100), 1) if total_rondas_supervisor > 0 else 0
+                    supervisor_data.append([str(i), label, str(value), f"{percentual}%"])
+                tables_data.append({
+                    'title': 'Top 5 Supervisores',
+                    'data': supervisor_data,
+                    'col_widths': [0.5, 2.5, 1, 1]
+                })
+
+            # Duração por condomínio (top 5)
+            if dashboard_data.get('duracao_condominio_labels') and dashboard_data.get('duracao_media_data'):
+                duracao_data = [['Condomínio', 'Duração (min)']]
+                for label, value in zip(dashboard_data['duracao_condominio_labels'][:5], dashboard_data['duracao_media_data'][:5]):
+                    duracao_data.append([label, f"{value:.1f}"])
+                tables_data.append({
+                    'title': 'Duração Média por Condomínio (Top 5)',
+                    'data': duracao_data,
+                    'col_widths': [3.5, 1.5]
+                })
+
+            # Comparação com período anterior
+            if dashboard_data.get('comparacao_periodo'):
+                comparacao = dashboard_data['comparacao_periodo']
+                comparacao_data = [
+                    ['Métrica', 'Atual', 'Anterior', 'Var.'],
+                    ['Total de Rondas',
+                     str(comparacao.get('total_atual', 0)),
+                     str(comparacao.get('total_anterior', 0)),
+                     f"{comparacao.get('variacao_percentual', 0):+.1f}%"]
+                ]
+                tables_data.append({
+                    'title': 'Comparação Período Anterior',
+                    'data': comparacao_data,
+                    'col_widths': [2, 1, 1, 1]
+                })
+
+            story.extend(self.builder.create_compact_combined_tables(tables_data))
+
+            # Build do documento
+            doc.build(story, onFirstPage=self.builder.add_header_footer, onLaterPages=self.builder.add_header_footer)
+            buffer.seek(0)
+            return buffer
+
+        except Exception as e:
+            logger.error(f'Erro ao gerar relatório PDF compacto de rondas: {e}', exc_info=True)
+            raise
+
     def _create_executive_summary(self, dashboard_data: Dict, periodo_inicio: str, periodo_fim: str) -> List:
         story = []
         story.append(Paragraph('Resumo Executivo', self.builder.styles.section_style))
@@ -163,7 +270,7 @@ class RondaReportService:
         <b>Cobertura do Período:</b> {dashboard_data.get('periodo_info', {}).get('cobertura_periodo', 0)}%<br/>
         """
         story.append(Paragraph(resumo_text, self.builder.styles.normal_style))
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 12))  # Reduzido de 20 para 12
         return story
 
     def _create_debug_info(self, dashboard_data: Dict) -> List:
@@ -179,5 +286,5 @@ class RondaReportService:
         • Comparação de Período: {'Sim' if dashboard_data.get('comparacao_periodo') else 'Não'}<br/>
         """
         story.append(Paragraph(debug_text, self.builder.styles.normal_style))
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 12))  # Reduzido de 20 para 12
         return story
