@@ -5,7 +5,7 @@ from flask import flash
 
 
 def parse_date_range(data_inicio_str, data_fim_str):
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now().date()  # Use local timezone instead of UTC
     first_day = today.replace(day=1)
     last_day = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(
         days=1

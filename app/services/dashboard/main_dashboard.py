@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 def get_main_dashboard_data():
     """Busca e processa os dados para o dashboard principal de métricas."""
-    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
-    end_date = datetime.now(timezone.utc).date()
+    thirty_days_ago = datetime.now() - timedelta(days=30)  # Use local timezone
+    end_date = datetime.now().date()  # Use local timezone
 
     total_users = db.session.query(func.count(User.id)).scalar()
     total_approved_users = (

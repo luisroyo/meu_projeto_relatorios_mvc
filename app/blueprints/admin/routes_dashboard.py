@@ -15,7 +15,8 @@ from app.services.dashboard.comparativo_dashboard import \
 from app.services.dashboard.main_dashboard import get_main_dashboard_data
 from app.services.dashboard.ocorrencia_dashboard import \
     get_ocorrencia_dashboard_data
-from app.services.report_service import RondaReportService
+from app.services.report.ronda_service import RondaReportService
+from app.services.report.ocorrencia_service import OcorrenciaReportService
 
 from . import admin_bp
 
@@ -304,7 +305,7 @@ def export_ocorrencia_dashboard_pdf():
         }
         
         # Gera o PDF
-        report_service = RondaReportService()
+        report_service = OcorrenciaReportService()
         pdf_buffer = report_service.generate_ocorrencia_dashboard_pdf(dashboard_data, filters_info)
         
         # Nome do arquivo
@@ -569,3 +570,153 @@ def preview_ronda_dashboard_report():
         logger.error(f"Erro ao gerar pré-visualização do relatório: {e}", exc_info=True)
         flash("Erro ao gerar pré-visualização do relatório. Tente novamente.", "danger")
         return redirect(url_for("admin.ronda_dashboard"))
+
+
+@admin_bp.route("/ronda_dashboard/export_pdf_compact")
+@login_required
+@admin_required
+def export_ronda_dashboard_pdf_compact():
+    """Exporta o dashboard de rondas como PDF compacto."""
+    logger.info(f"Usuário '{current_user.username}' exportou relatório PDF compacto do dashboard de rondas.")
+    
+    try:
+        current_year = datetime.now().year
+        
+        # Aplica os mesmos filtros da rota principal
+        filters = {
+            "turno": request.args.get("turno", ""),
+            "supervisor_id": request.args.get("supervisor_id", type=int),
+            "condominio_id": request.args.get("condominio_id", type=int),
+            "mes": request.args.get("mes", type=int),
+            "data_inicio_str": request.args.get("data_inicio", ""),
+            "data_fim_str": request.args.get("data_fim", ""),
+            "data_especifica": request.args.get("data_especifica", ""),
+        }
+        
+        if filters["mes"] and not (filters["data_inicio_str"] or filters["data_fim_str"]):
+            start_date, end_date = _get_date_range_from_month(current_year, filters["mes"])
+            if start_date and end_date:
+                filters["data_inicio_str"] = start_date
+                filters["data_fim_str"] = end_date
+        
+        # Busca os dados do dashboard
+        dashboard_data = get_ronda_dashboard_data(filters)
+        
+        # Busca nomes reais dos filtros aplicados
+        supervisor_name = None
+        condominio_name = None
+        
+        if filters.get("supervisor_id"):
+            supervisor = User.query.get(filters["supervisor_id"])
+            supervisor_name = supervisor.username if supervisor else "N/A"
+        
+        if filters.get("condominio_id"):
+            condominio = Condominio.query.get(filters["condominio_id"])
+            condominio_name = condominio.nome if condominio else "N/A"
+        
+        # Prepara informações dos filtros para o relatório
+        filters_info = {
+            "data_inicio": dashboard_data.get("selected_data_inicio_str", ""),
+            "data_fim": dashboard_data.get("selected_data_fim_str", ""),
+            "supervisor_name": supervisor_name,
+            "condominio_name": condominio_name,
+            "turno": filters.get("turno", ""),
+            "mes": filters.get("mes")
+        }
+        
+        # Gera o PDF compacto
+        report_service = RondaReportService()
+        pdf_buffer = report_service.generate_compact_ronda_dashboard_pdf(dashboard_data, filters_info)
+        
+        # Nome do arquivo
+        filename = f"relatorio_rondas_compacto_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        
+        return send_file(
+            pdf_buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório PDF compacto: {e}", exc_info=True)
+        flash("Erro ao gerar relatório PDF compacto. Tente novamente.", "danger")
+        return redirect(url_for("admin.ronda_dashboard"))
+
+
+@admin_bp.route("/ocorrencia_dashboard/export_pdf_compact")
+@login_required
+@admin_required
+def export_ocorrencia_dashboard_pdf_compact():
+    """Exporta o dashboard de ocorrências como PDF compacto."""
+    logger.info(f"Usuário '{current_user.username}' exportou relatório PDF compacto do dashboard de ocorrências.")
+    
+    try:
+        current_year = datetime.now().year
+        
+        # Aplica os mesmos filtros da rota principal
+        filters = {
+            "condominio_id": request.args.get("condominio_id", type=int),
+            "tipo_id": request.args.get("tipo_id", type=int),
+            "status": request.args.get("status", ""),
+            "supervisor_id": request.args.get("supervisor_id", type=int),
+            "mes": request.args.get("mes", type=int),
+            "data_inicio_str": request.args.get("data_inicio", ""),
+            "data_fim_str": request.args.get("data_fim", ""),
+        }
+        
+        if filters["mes"] and not (filters["data_inicio_str"] or filters["data_fim_str"]):
+            start_date, end_date = _get_date_range_from_month(current_year, filters["mes"])
+            if start_date and end_date:
+                filters["data_inicio_str"] = start_date
+                filters["data_fim_str"] = end_date
+        
+        # Busca os dados do dashboard
+        dashboard_data = get_ocorrencia_dashboard_data(filters)
+        
+        # Busca nomes reais dos filtros aplicados
+        supervisor_name = None
+        condominio_name = None
+        tipo_name = None
+        
+        if filters.get("supervisor_id"):
+            supervisor = User.query.get(filters["supervisor_id"])
+            supervisor_name = supervisor.username if supervisor else "N/A"
+        
+        if filters.get("condominio_id"):
+            condominio = Condominio.query.get(filters["condominio_id"])
+            condominio_name = condominio.nome if condominio else "N/A"
+        
+        if filters.get("tipo_id"):
+            tipo = OcorrenciaTipo.query.get(filters["tipo_id"])
+            tipo_name = tipo.nome if tipo else "N/A"
+        
+        # Prepara informações dos filtros para o relatório
+        filters_info = {
+            "data_inicio": dashboard_data.get("selected_data_inicio_str", ""),
+            "data_fim": dashboard_data.get("selected_data_fim_str", ""),
+            "supervisor_name": supervisor_name,
+            "condominio_name": condominio_name,
+            "tipo_name": tipo_name,
+            "status": filters.get("status", ""),
+            "mes": filters.get("mes")
+        }
+        
+        # Gera o PDF compacto
+        report_service = OcorrenciaReportService()
+        pdf_buffer = report_service.generate_compact_ocorrencia_dashboard_pdf(dashboard_data, filters_info)
+        
+        # Nome do arquivo
+        filename = f"relatorio_ocorrencias_compacto_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        
+        return send_file(
+            pdf_buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório PDF compacto de ocorrências: {e}", exc_info=True)
+        flash("Erro ao gerar relatório PDF compacto. Tente novamente.", "danger")
+        return redirect(url_for("admin.ocorrencia_dashboard"))

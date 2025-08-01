@@ -23,31 +23,31 @@ class ReportBuilder:
         # Logo
         try:
             logo_path = 'app/static/images/logo_master.png'
-            img = Image(logo_path, width=180, height=80)
+            img = Image(logo_path, width=150, height=65)  # Reduzido de 180x80 para 150x65
             img.hAlign = 'CENTER'
             story.append(img)
         except Exception:
             pass
         
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 15))  # Reduzido de 20 para 15
         
         # Slogan
-        slogan_style = ParagraphStyle('slogan', fontSize=16, leading=22, alignment=TA_CENTER)
+        slogan_style = ParagraphStyle('slogan', fontSize=14, leading=18, alignment=TA_CENTER)  # Reduzido de 16 para 14
         story.append(Paragraph('É <b>segurança</b>.<br/>É <b>manutenção</b>.<br/>É <b>sustentabilidade</b>.<br/>', slogan_style))
         
-        story.append(Spacer(1, 10))
+        story.append(Spacer(1, 8))  # Reduzido de 10 para 8
         
         # Nome da empresa
-        company_style = ParagraphStyle('company', fontSize=18, leading=24, alignment=TA_CENTER, textColor=colors.HexColor('#1e2d3b'))
+        company_style = ParagraphStyle('company', fontSize=16, leading=20, alignment=TA_CENTER, textColor=colors.HexColor('#1e2d3b'))  # Reduzido de 18 para 16
         story.append(Paragraph('É <b>ASSOCIAÇÃO MASTER</b>', company_style))
         
-        story.append(Spacer(1, 30))
+        story.append(Spacer(1, 20))  # Reduzido de 30 para 20
         
         # Título e subtítulo
         story.append(Paragraph(title, self.styles.title_style))
         story.append(Paragraph(subtitle, self.styles.subtitle_style))
         
-        story.append(Spacer(1, 30))
+        story.append(Spacer(1, 20))  # Reduzido de 30 para 20
         
         # Período
         if periodo_inicio or periodo_fim:
@@ -62,7 +62,7 @@ class ReportBuilder:
         story = []
         generation_date = f"Gerado em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}"
         story.append(Paragraph(generation_date, self.styles.normal_style))
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 12))  # Reduzido de 20 para 12
         return story
     
     def format_filters_section(self, filters_info: Optional[Dict]) -> List:
@@ -104,7 +104,7 @@ class ReportBuilder:
         ))
         
         story.append(filters_table)
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 12))  # Reduzido de 20 para 12
         return story
     
     def _format_date(self, date_str: str) -> str:
@@ -141,7 +141,7 @@ class ReportBuilder:
         ))
         
         story.append(kpi_table)
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 12))  # Reduzido de 20 para 12
         return story
     
     def create_period_info_table(self, periodo_info: Dict) -> List:
@@ -171,7 +171,7 @@ class ReportBuilder:
         ))
         
         story.append(periodo_table)
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 12))  # Reduzido de 20 para 12
         return story
     
     def _format_period_date(self, date_value) -> Optional[str]:
@@ -200,7 +200,7 @@ class ReportBuilder:
         ))
         
         story.append(table)
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 12))  # Reduzido de 20 para 12
         return story
     
     def create_analysis_table(self, data: List[List[str]], title: str, col_widths: List[float]) -> List:
@@ -219,13 +219,77 @@ class ReportBuilder:
         ))
         
         story.append(table)
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 12))  # Reduzido de 20 para 12
+        return story
+    
+    def create_compact_summary_table(self, kpi_data: List[List[str]], periodo_info: Dict) -> List:
+        """Cria uma tabela compacta combinando KPIs e informações do período."""
+        story = []
+        story.append(Paragraph('Resumo Executivo', self.styles.section_style))
+        
+        # Combinar KPIs e informações do período em uma tabela
+        summary_data = []
+        
+        # Adicionar KPIs
+        for kpi in kpi_data[1:]:  # Pular cabeçalho
+            summary_data.append([kpi[0], kpi[1]])
+        
+        # Adicionar informações do período
+        if periodo_info:
+            primeira_data = self._format_period_date(periodo_info.get('primeira_data_registrada'))
+            ultima_data = self._format_period_date(periodo_info.get('ultima_data_registrada'))
+            
+            summary_data.extend([
+                ['Primeira Data', primeira_data or 'N/A'],
+                ['Última Data', ultima_data or 'N/A'],
+                ['Cobertura', f"{periodo_info.get('cobertura_periodo', 0)}%"]
+            ])
+        
+        # Criar tabela compacta
+        if summary_data:
+            summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
+            summary_table.setStyle(TableStyle(
+                self.table_styles.get_header_style() +
+                self.table_styles.get_base_table_style() +
+                [
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
+                ]
+            ))
+            story.append(summary_table)
+        
+        story.append(Spacer(1, 8))  # Espaçamento reduzido
+        return story
+    
+    def create_compact_combined_tables(self, tables_data: List[Dict]) -> List:
+        """Cria múltiplas tabelas em layout compacto."""
+        story = []
+        
+        for i, table_info in enumerate(tables_data):
+            title = table_info.get('title', f'Tabela {i+1}')
+            data = table_info.get('data', [])
+            col_widths = table_info.get('col_widths', [2, 2])
+            
+            if data:
+                story.append(Paragraph(title, self.styles.section_style))
+                
+                table = Table(data, colWidths=[w * inch for w in col_widths])
+                table.setStyle(TableStyle(
+                    self.table_styles.get_header_style() +
+                    self.table_styles.get_zebra_style(len(data)) +
+                    self.table_styles.get_base_table_style()
+                ))
+                
+                story.append(table)
+                story.append(Spacer(1, 8))  # Espaçamento reduzido entre tabelas
+        
         return story
     
     def add_header_footer(self, canvas, doc):
         """Adiciona cabeçalho e rodapé às páginas."""
         canvas.saveState()
-        canvas.setFont('Helvetica', 8)
+        canvas.setFont('Helvetica', 7)  # Reduzido de 8 para 7
         canvas.setFillColor(colors.grey)
         canvas.drawString(72, 50, f'Gerado em: {datetime.now().strftime("%d/%m/%Y %H:%M")}')
         canvas.drawRightString(595, 50, f'Página {doc.page}')
