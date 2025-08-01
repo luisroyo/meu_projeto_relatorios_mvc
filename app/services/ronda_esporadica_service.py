@@ -15,32 +15,17 @@ class RondaEsporadicaService:
     def validar_horario_entrada(hora_informada: time, tolerancia_minutos: int = 120) -> Tuple[bool, str]:
         """
         Valida se o horário informado está próximo do horário atual.
+        VALIDAÇÃO DESABILITADA: Sempre retorna True para permitir qualquer horário.
         
         Args:
             hora_informada: Horário informado pelo usuário
-            tolerancia_minutos: Tolerância em minutos (padrão: 120 = 2 horas)
+            tolerancia_minutos: Tolerância em minutos (não usado mais)
             
         Returns:
-            Tuple[bool, str]: (é_válido, mensagem)
+            Tuple[bool, str]: (é_válido, mensagem) - Sempre (True, "Horário válido")
         """
-        try:
-            hora_atual = datetime.now().time()
-            
-            # Converter para minutos para facilitar comparação
-            hora_informada_minutos = hora_informada.hour * 60 + hora_informada.minute
-            hora_atual_minutos = hora_atual.hour * 60 + hora_atual.minute
-            
-            # Calcular diferença absoluta
-            diferenca = abs(hora_informada_minutos - hora_atual_minutos)
-            
-            if diferenca <= tolerancia_minutos:
-                return True, "Horário válido"
-            else:
-                return False, f"Horário muito diferente do atual. Diferença: {diferenca} minutos (máximo: {tolerancia_minutos} minutos)"
-                
-        except Exception as e:
-            logger.error(f"Erro ao validar horário: {e}")
-            return False, "Erro ao validar horário"
+        # VALIDAÇÃO DESABILITADA - Sempre retorna True
+        return True, "Horário válido (validação desabilitada)"
     
     @staticmethod
     def inferir_turno(escala_plantao: str) -> str:

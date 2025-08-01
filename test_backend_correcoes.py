@@ -6,17 +6,20 @@ from datetime import datetime, timedelta
 BASE_URL = "http://127.0.0.1:5000/api"
 
 def test_validacao_horario():
-    """Testa a validação de horário com tolerância aumentada."""
-    print("⏰ Testando validação de horário...")
+    """Testa a validação de horário (DESABILITADA)."""
+    print("⏰ Testando validação de horário (DESABILITADA)...")
     
     # Teste com horário atual (deve passar)
     hora_atual = datetime.now().time()
     hora_atual_str = hora_atual.strftime("%H:%M")
     
+    # Teste com horário muito diferente (deve passar também)
+    hora_diferente = "03:00"  # 3 da manhã
+    
     try:
+        # Teste 1: Horário atual
         response = requests.post(f"{BASE_URL}/rondas-esporadicas/validar-horario", json={
-            "hora_entrada": hora_atual_str,
-            "tolerancia_minutos": 120  # 2 horas de tolerância
+            "hora_entrada": hora_atual_str
         })
         
         print(f"Status Code: {response.status_code}")
@@ -25,11 +28,29 @@ def test_validacao_horario():
         if response.status_code == 200:
             data = response.json()
             if data.get("sucesso"):
-                print("✅ Validação de horário funcionando!")
+                print("✅ Validação de horário funcionando (DESABILITADA)!")
+                print(f"   - Horário atual: {data.get('hora_atual')}")
+                print(f"   - Horário informado: {data.get('hora_informada')}")
+                print(f"   - Observação: {data.get('observacao')}")
             else:
                 print(f"❌ Erro na validação: {data.get('message', 'Erro desconhecido')}")
         else:
             print(f"❌ Erro HTTP: {response.status_code}")
+            
+        # Teste 2: Horário muito diferente
+        response2 = requests.post(f"{BASE_URL}/rondas-esporadicas/validar-horario", json={
+            "hora_entrada": hora_diferente
+        })
+        
+        if response2.status_code == 200:
+            data2 = response2.json()
+            if data2.get("sucesso"):
+                print("✅ Validação aceita horário muito diferente (DESABILITADA)!")
+            else:
+                print(f"❌ Erro na validação: {data2.get('message', 'Erro desconhecido')}")
+        else:
+            print(f"❌ Erro HTTP: {response2.status_code}")
+            
     except Exception as e:
         print(f"❌ Erro inesperado: {str(e)}")
 
@@ -153,7 +174,7 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("✅ Testes das correções concluídos!")
     print("\n💡 Resumo das correções implementadas:")
-    print("1. ✅ Validação de horário: tolerância aumentada para 120 minutos")
+    print("1. ✅ Validação de horário: DESABILITADA (aceita qualquer horário)")
     print("2. ✅ Endpoint /api/rondas-esporadicas: criado com filtros")
     print("3. ✅ Endpoint /api/logradouros_view: criado com CORS")
     print("4. ✅ Endpoint /api/rondas-esporadicas/executadas: já existia")

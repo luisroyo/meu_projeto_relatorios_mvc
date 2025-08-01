@@ -354,7 +354,7 @@ def obter_estatisticas_rondas_esporadicas(condominio_id):
 @cross_origin()
 @csrf.exempt
 def validar_horario_entrada():
-    """Valida se o horário informado está próximo do horário atual."""
+    """Valida se o horário informado está próximo do horário atual. VALIDAÇÃO DESABILITADA."""
     if request.method == "OPTIONS":
         return '', 200
         
@@ -374,7 +374,7 @@ def validar_horario_entrada():
         except ValueError:
             return jsonify({"sucesso": False, "message": "Formato de hora inválido. Use HH:MM."}), 400
 
-        # Validar horário
+        # Validar horário (VALIDAÇÃO DESABILITADA)
         horario_valido, mensagem = RondaEsporadicaService.validar_horario_entrada(hora_entrada)
         
         return jsonify({
@@ -382,7 +382,8 @@ def validar_horario_entrada():
             "horario_valido": horario_valido,
             "mensagem": mensagem,
             "hora_atual": datetime.now().strftime("%H:%M"),
-            "hora_informada": hora_str
+            "hora_informada": hora_str,
+            "observacao": "Validação de horário desabilitada - qualquer horário é aceito"
         })
 
     except Exception as e:
