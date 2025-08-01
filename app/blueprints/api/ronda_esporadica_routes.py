@@ -33,6 +33,160 @@ def listar_condominios():
     except Exception as e:
         return jsonify({"sucesso": False, "message": f"Erro ao buscar condomínios: {str(e)}"}), 500
 
+@api_bp.route("/logradouros_view", methods=["GET"])
+@cross_origin()
+@csrf.exempt
+def listar_logradouros():
+    """Lista todos os logradouros disponíveis."""
+    try:
+        from app.models.vw_logradouros import VWLogradouros
+        
+        # Obter parâmetros de filtro
+        search = request.args.get("search", "")
+        limit = request.args.get("limit", 100, type=int)
+        offset = request.args.get("offset", 0, type=int)
+        
+        # Construir query
+        query = VWLogradouros.query
+        
+        # Aplicar filtro de busca se fornecido
+        if search:
+            query = query.filter(
+                VWLogradouros.nome.ilike(f"%{search}%")
+            )
+        
+        # Ordenar por nome
+        query = query.order_by(VWLogradouros.nome.asc())
+        
+        # Aplicar paginação
+        query = query.offset(offset).limit(limit)
+        
+        # Executar query
+        logradouros = query.all()
+        
+        # Formatar resposta
+        logradouros_list = []
+        for logradouro in logradouros:
+            logradouros_list.append({
+                "id": logradouro.id,
+                "nome": logradouro.nome,
+                "endereco_completo": logradouro.nome
+            })
+        
+        return jsonify({
+            "sucesso": True,
+            "message": "Logradouros obtidos com sucesso!",
+            "logradouros": logradouros_list,
+            "total": len(logradouros_list),
+            "paginacao": {
+                "limit": limit,
+                "offset": offset
+            },
+            "filtros": {
+                "search": search
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({"sucesso": False, "message": f"Erro ao buscar logradouros: {str(e)}"}), 500
+
+@api_bp.route("/rondas-esporadicas", methods=["GET"])
+@cross_origin()
+@csrf.exempt
+def listar_todas_rondas_esporadicas():
+    """Lista todas as rondas esporádicas com filtros opcionais."""
+    try:
+        # Obter parâmetros da query string
+        condominio_id = request.args.get("condominio_id")
+        status = request.args.get("status")  # em_andamento, finalizada, etc.
+        data_inicio = request.args.get("data_inicio")
+        data_fim = request.args.get("data_fim")
+        limit = request.args.get("limit", 100, type=int)
+        offset = request.args.get("offset", 0, type=int)
+        
+        # Construir query base
+        query = RondaEsporadica.query
+        
+        # Aplicar filtros se fornecidos
+        if condominio_id:
+            try:
+                condominio_id = int(condominio_id)
+                query = query.filter(RondaEsporadica.condominio_id == condominio_id)
+            except ValueError:
+                return jsonify({"sucesso": False, "message": "condominio_id deve ser um número válido."}), 400
+        
+        if status:
+            query = query.filter(RondaEsporadica.status == status)
+        
+        if data_inicio:
+            try:
+                data_inicio_obj = datetime.strptime(data_inicio, "%Y-%m-%d").date()
+                query = query.filter(RondaEsporadica.data_plantao >= data_inicio_obj)
+            except ValueError:
+                return jsonify({"sucesso": False, "message": "data_inicio deve estar no formato YYYY-MM-DD."}), 400
+        
+        if data_fim:
+            try:
+                data_fim_obj = datetime.strptime(data_fim, "%Y-%m-%d").date()
+                query = query.filter(RondaEsporadica.data_plantao <= data_fim_obj)
+            except ValueError:
+                return jsonify({"sucesso": False, "message": "data_fim deve estar no formato YYYY-MM-DD."}), 400
+        
+        # Ordenar por data (mais recente primeiro)
+        query = query.order_by(RondaEsporadica.data_plantao.desc(), RondaEsporadica.hora_entrada.desc())
+        
+        # Aplicar paginação
+        query = query.offset(offset).limit(limit)
+        
+        # Executar query
+        rondas = query.all()
+        
+        # Formatar resposta
+        rondas_list = []
+        for ronda in rondas:
+            # Calcular duração se não estiver calculada
+            if not ronda.duracao_minutos and ronda.hora_saida:
+                ronda.duracao_minutos = ronda.calcular_duracao()
+            
+            rondas_list.append({
+                "id": ronda.id,
+                "condominio_id": ronda.condominio_id,
+                "condominio_nome": ronda.condominio.nome if ronda.condominio else "N/A",
+                "data_plantao": ronda.data_plantao.isoformat(),
+                "escala_plantao": ronda.escala_plantao,
+                "turno": ronda.turno,
+                "hora_entrada": ronda.hora_entrada.isoformat() if ronda.hora_entrada else None,
+                "hora_saida": ronda.hora_saida.isoformat() if ronda.hora_saida else None,
+                "duracao_minutos": ronda.duracao_minutos,
+                "duracao_formatada": ronda.formatar_duracao() if ronda.duracao_minutos else None,
+                "observacoes": ronda.observacoes,
+                "status": ronda.status,
+                "user_id": ronda.user_id,
+                "supervisor_id": ronda.supervisor_id,
+                "data_criacao": ronda.data_criacao.isoformat() if ronda.data_criacao else None,
+                "data_modificacao": ronda.data_modificacao.isoformat() if ronda.data_modificacao else None
+            })
+        
+        return jsonify({
+            "sucesso": True,
+            "message": "Rondas esporádicas obtidas com sucesso!",
+            "rondas": rondas_list,
+            "total": len(rondas_list),
+            "paginacao": {
+                "limit": limit,
+                "offset": offset
+            },
+            "filtros": {
+                "condominio_id": condominio_id,
+                "status": status,
+                "data_inicio": data_inicio,
+                "data_fim": data_fim
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({"sucesso": False, "message": f"Erro ao buscar rondas esporádicas: {str(e)}"}), 500
+
 @api_bp.route("/rondas-esporadicas/executadas", methods=["GET"])
 @cross_origin()
 @csrf.exempt
