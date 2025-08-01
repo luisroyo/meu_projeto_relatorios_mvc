@@ -391,6 +391,99 @@ GET /api/rondas-esporadicas/estatisticas/{condominio_id}?data_inicio=2025-01-01&
 }
 ```
 
+### **14. Listar Rondas Executadas**
+```http
+GET /api/rondas-esporadicas/executadas?condominio_id=1&data_inicio=2025-01-01&data_fim=2025-01-31
+```
+
+**Parâmetros:**
+- `condominio_id` (obrigatório): ID do condomínio
+- `data_inicio` (opcional): Data inicial no formato YYYY-MM-DD
+- `data_fim` (opcional): Data final no formato YYYY-MM-DD
+
+**Exemplo:** `GET /api/rondas-esporadicas/executadas?condominio_id=1&data_inicio=2025-01-01&data_fim=2025-01-31`
+
+**Resposta:**
+```json
+{
+  "sucesso": true,
+  "message": "Rondas executadas obtidas com sucesso!",
+  "rondas": [
+    {
+      "id": 1,
+      "condominio_id": 1,
+      "condominio_nome": "Residencial A",
+      "data_plantao": "2025-01-15",
+      "escala_plantao": "06h às 18h",
+      "turno": "Diurno",
+      "hora_entrada": "08:30:00",
+      "hora_saida": "09:15:00",
+      "duracao_minutos": 45,
+      "duracao_formatada": "45 min",
+      "observacoes": "Ronda realizada sem incidentes",
+      "status": "finalizada",
+      "user_id": 1,
+      "supervisor_id": 2,
+      "data_criacao": "2025-01-15T08:30:00Z",
+      "data_modificacao": "2025-01-15T09:15:00Z"
+    }
+  ],
+  "total": 1,
+  "filtros": {
+    "condominio_id": 1,
+    "data_inicio": "2025-01-01",
+    "data_fim": "2025-01-31"
+  }
+}
+```
+
+### **15. Estatísticas de Consolidação**
+```http
+GET /api/rondas-esporadicas/estatisticas/{condominio_id}?data_inicio=2025-01-01&data_fim=2025-01-31
+```
+
+**Exemplo:** `GET /api/rondas-esporadicas/estatisticas/1?data_inicio=2025-01-01&data_fim=2025-01-31`
+
+**Resposta:**
+```json
+{
+  "sucesso": true,
+  "message": "Estatísticas obtidas com sucesso!",
+  "estatisticas": {
+    "periodo": {
+      "data_inicio": "2025-01-01",
+      "data_fim": "2025-01-31",
+      "dias": 31
+    },
+    "resumo": {
+      "total_rondas": 45,
+      "rondas_finalizadas": 42,
+      "rondas_em_andamento": 3,
+      "duracao_total_minutos": 2700,
+      "duracao_media_minutos": 60.0,
+      "duracao_total_formatada": "45h 0min",
+      "duracao_media_formatada": "1h 0min"
+    },
+    "por_turno": {
+      "Diurno": {
+        "total": 25,
+        "duracao": 1500
+      },
+      "Noturno": {
+        "total": 20,
+        "duracao": 1200
+      }
+    },
+    "por_data": {
+      "2025-01-15": {
+        "total": 3,
+        "duracao": 180
+      }
+    }
+  }
+}
+```
+
 ## 🚀 **APIs de Rondas Regulares (Tradicionais)**
 
 ### **1. Listar Rondas do Dia**
