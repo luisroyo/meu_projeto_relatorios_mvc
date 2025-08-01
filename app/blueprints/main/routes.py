@@ -1,7 +1,8 @@
 # app/blueprints/main/routes.py
 import logging
+import os
 
-from flask import Blueprint, flash, g, render_template
+from flask import Blueprint, flash, g, render_template, jsonify, request
 from flask_login import current_user, login_required
 
 from app import db, limiter
@@ -12,6 +13,9 @@ from app.services import ocorrencia_service
 
 main_bp = Blueprint("main", __name__)
 logger = logging.getLogger(__name__)
+
+# Token para o endpoint de uptime
+UPTIME_TOKEN = os.getenv("UPTIME_TOKEN", "defaulttoken")
 
 
 def _get_patrimonial_service():
@@ -85,3 +89,14 @@ def index():
         relatorio_corrigido=relatorio_corrigido,
         ocorrencias_pendentes_count=ocorrencias_pendentes_count,
     )
+
+
+@main_bp.route("/uptime")
+def uptime():
+    """Endpoint de monitoramento para UptimeRobot e ferramentas similares."""
+    token = request.args.get('token')
+    
+    if not token or token != UPTIME_TOKEN:
+        return jsonify({"error": "unauthorized"}), 403
+    
+    return jsonify({"status": "ok"}), 200
