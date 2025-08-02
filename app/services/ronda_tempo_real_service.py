@@ -5,7 +5,13 @@ from app.models.ronda_esporadica import RondaEsporadica
 from app.models.condominio import Condominio
 from app.models.user import User
 from app import db
-from app.services.ronda_format_utils import identificar_plantao
+from app.services.ronda_utils import (
+    identificar_plantao, 
+    inferir_turno, 
+    verificar_ronda_em_andamento,
+    obter_condominio_por_id,
+    obter_ronda_por_id
+)
 import json
 
 
@@ -26,7 +32,7 @@ class RondaTempoRealService:
         Inicia uma nova ronda e retorna um dicionário com os dados.
         """
         try:
-            condominio = Condominio.query.get(condominio_id)
+            condominio = obter_condominio_por_id(condominio_id)
             if not condominio:
                 raise ValueError(f"Condomínio {condominio_id} não encontrado")
             
@@ -37,13 +43,14 @@ class RondaTempoRealService:
                 data_plantao = data_atual
             
             plantao = identificar_plantao(hora_entrada)
+            turno = inferir_turno(plantao)
             
             ronda = RondaEsporadica(
                 condominio_id=condominio_id,
                 user_id=self.user_id,
                 data_plantao=data_plantao,
                 escala_plantao=plantao,
-                turno="Noturno" if plantao == "18 às 06" else "Diurno",
+                turno=turno,
                 hora_entrada=hora_entrada,
                 status="em_andamento",
                 observacoes=observacoes
@@ -80,7 +87,7 @@ class RondaTempoRealService:
         Finaliza uma ronda em andamento e retorna um dicionário com os dados.
         """
         try:
-            ronda = RondaEsporadica.query.get(ronda_id)
+            ronda = obter_ronda_por_id(ronda_id)
             if not ronda:
                 raise ValueError(f"Ronda {ronda_id} não encontrada")
             
@@ -231,7 +238,7 @@ class RondaTempoRealService:
         """
         Cancela uma ronda em andamento.
         """
-        ronda = RondaEsporadica.query.get(ronda_id)
+        ronda = obter_ronda_por_id(ronda_id)
         if not ronda:
             return False
         
