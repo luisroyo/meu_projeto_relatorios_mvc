@@ -23,7 +23,38 @@ class Config:
 class DevelopmentConfig(Config):
     """Configuração de desenvolvimento."""
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///dev.db'
+    
+    # Configuração do banco de dados com suporte a SSL para PostgreSQL
+    database_url = os.environ.get('DATABASE_URL')
+    if not database_url:
+        # Fallback para SQLite em desenvolvimento se DATABASE_URL não estiver definida
+        database_url = 'sqlite:///dev.db'
+    
+    # Garante que a URL use postgresql:// ao invés de postgres:// (para PostgreSQL)
+    if database_url and database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    
+    SQLALCHEMY_DATABASE_URI = database_url
+
+class LocalConfig(Config):
+    """Configuração para desenvolvimento local com PostgreSQL."""
+    DEBUG = True
+    
+    # Configuração do banco de dados local (PostgreSQL via Docker)
+    database_url = os.environ.get('DATABASE_URL')
+    if not database_url:
+        # URL padrão para PostgreSQL local
+        database_url = 'postgresql://postgres:postgres123@localhost:5432/relatorios_dev'
+    
+    # Garante que a URL use postgresql:// ao invés de postgres:// (para PostgreSQL)
+    if database_url and database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    
+    SQLALCHEMY_DATABASE_URI = database_url
+    
+    # Configuração do cache local
+    CACHE_TYPE = "SimpleCache"
+    CACHE_DEFAULT_TIMEOUT = 3600
     
     # Configuração do cache - usa Redis se disponível, senão SimpleCache
     REDIS_URL = os.environ.get("REDIS_URL") or os.environ.get("CACHE_REDIS_URL")
@@ -53,7 +84,19 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     """Configuração de produção. Use sempre variáveis de ambiente para segredos!"""
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')  # Não use fallback em produção
+    
+    @property
+    def SQLALCHEMY_DATABASE_URI(self):
+        """Configuração do banco de dados com suporte a SSL para PostgreSQL."""
+        database_url = os.environ.get('DATABASE_URL')
+        if not database_url:
+            raise ValueError("DATABASE_URL deve ser definida em produção!")
+        
+        # Garante que a URL use postgresql:// ao invés de postgres:// (para PostgreSQL)
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        
+        return database_url
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_SECURE = True

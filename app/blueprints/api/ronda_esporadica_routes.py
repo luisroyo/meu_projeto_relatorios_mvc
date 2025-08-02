@@ -13,9 +13,28 @@ from . import api_bp
 @cross_origin()
 @csrf.exempt
 def listar_condominios():
-    """Lista todos os condomínios disponíveis."""
+    """Lista todos os condomínios disponíveis com filtro opcional por nome."""
     try:
-        condominios = Condominio.query.order_by(Condominio.nome).all()
+        # Obter parâmetros de filtro
+        nome = request.args.get("nome", "")
+        limit = request.args.get("limit", 100, type=int)
+        offset = request.args.get("offset", 0, type=int)
+        
+        # Construir query base
+        query = Condominio.query
+        
+        # Aplicar filtro por nome se fornecido
+        if nome:
+            query = query.filter(Condominio.nome.ilike(f"%{nome}%"))
+        
+        # Ordenar por nome
+        query = query.order_by(Condominio.nome.asc())
+        
+        # Aplicar paginação
+        query = query.offset(offset).limit(limit)
+        
+        # Executar query
+        condominios = query.all()
         
         condominios_list = []
         for condominio in condominios:
@@ -27,7 +46,14 @@ def listar_condominios():
         return jsonify({
             "sucesso": True,
             "condominios": condominios_list,
-            "total": len(condominios_list)
+            "total": len(condominios_list),
+            "paginacao": {
+                "limit": limit,
+                "offset": offset
+            },
+            "filtros": {
+                "nome": nome
+            }
         })
         
     except Exception as e:
@@ -104,8 +130,12 @@ def listar_todas_rondas_esporadicas():
         limit = request.args.get("limit", 100, type=int)
         offset = request.args.get("offset", 0, type=int)
         
-        # Construir query base
-        query = RondaEsporadica.query
+        # Construir query base com joins otimizados
+        query = RondaEsporadica.query.options(
+            db.joinedload(RondaEsporadica.condominio),
+            db.joinedload(RondaEsporadica.user),
+            db.joinedload(RondaEsporadica.supervisor)
+        )
         
         # Aplicar filtros se fornecidos
         if condominio_id:
@@ -207,8 +237,12 @@ def listar_rondas_executadas():
         except ValueError:
             return jsonify({"sucesso": False, "message": "condominio_id deve ser um número válido."}), 400
         
-        # Construir query base
-        query = RondaEsporadica.query.filter_by(condominio_id=condominio_id)
+        # Construir query base com joins otimizados
+        query = RondaEsporadica.query.options(
+            db.joinedload(RondaEsporadica.condominio),
+            db.joinedload(RondaEsporadica.user),
+            db.joinedload(RondaEsporadica.supervisor)
+        ).filter_by(condominio_id=condominio_id)
         
         # Aplicar filtros de data se fornecidos
         if data_inicio:
