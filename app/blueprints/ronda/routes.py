@@ -19,7 +19,7 @@ from app.forms import TestarRondasForm
 from app.models import Condominio, EscalaMensal, Ronda, User
 from app.services.ronda_routes_core.routes_service import RondaRoutesService
 from app.services.whatsapp_processor import WhatsAppProcessor
-from app.services.ronda_utils import RondaUtils # Importa o novo módulo de utilitários
+from app.services.ronda_utils import get_system_user, infer_condominio_from_filename # Importa funções específicas
 
 logger = logging.getLogger(__name__)
 
@@ -439,7 +439,7 @@ def upload_process_ronda():
             logger.info(f"Arquivo temporário salvo em: {temp_filepath}")
 
             # Identifica condomínio pelo nome do arquivo
-            condominio = RondaUtils.infer_condominio_from_filename(whatsapp_file.filename)
+            condominio = infer_condominio_from_filename(whatsapp_file.filename)
             if not condominio:
                 os.remove(temp_filepath)
                 return jsonify({"success": False, "message": f"Não foi possível identificar o condomínio pelo nome do arquivo '{whatsapp_file.filename}'."}), 400
@@ -471,7 +471,7 @@ def upload_process_ronda():
                 return jsonify({"success": False, "message": "Nenhum plantão no arquivo corresponde aos filtros de mês/ano selecionados."}), 404
 
             # Obtém usuário do sistema uma única vez
-            system_user = RondaUtils.get_system_user()
+            system_user = get_system_user()
 
             total_rondas_salvas = 0
             messages = []
