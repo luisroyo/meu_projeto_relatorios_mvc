@@ -15,6 +15,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from whitenoise import WhiteNoise
 from flask_cors import CORS
+from app.auth.jwt_auth import init_jwt
 
 
 
@@ -116,6 +117,9 @@ def create_app(
     cache.init_app(app_instance)
     limiter.init_app(app_instance)
     csrf.init_app(app_instance)
+    
+    # Inicializa JWT
+    init_jwt(app_instance)
 
     # Configura o login_view após o init_app
     login_manager.login_view = "auth.login"  # type: ignore
