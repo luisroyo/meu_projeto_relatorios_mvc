@@ -536,7 +536,8 @@ def upload_process_ronda():
 def ronda_tempo_real():
     """Interface para sistema de rondas em tempo real."""
     import os
-    if os.environ.get('FLASK_ENV') != 'development':
+    show_rondas_tempo_real = os.environ.get('FLASK_ENV') == 'development'
+    if not show_rondas_tempo_real:
         return abort(404)
     # Carrega condomínios para o template, assim como no registro de ocorrências
     try:
@@ -550,8 +551,8 @@ def ronda_tempo_real():
         for c in condominios_validos[:5]:  # Log apenas os primeiros 5
             logger.info(f"Condomínio: {c.id} - {c.nome}")
             
-        return render_template('ronda_tempo_real.html', condominios=condominios_validos)
+        return render_template('ronda_tempo_real.html', condominios=condominios_validos, show_rondas_tempo_real=show_rondas_tempo_real)
     except Exception as e:
         logger.error(f"Erro ao carregar condomínios: {e}", exc_info=True)
-        return render_template('ronda_tempo_real.html', condominios=[])
+        return render_template('ronda_tempo_real.html', condominios=[], show_rondas_tempo_real=show_rondas_tempo_real)
 
