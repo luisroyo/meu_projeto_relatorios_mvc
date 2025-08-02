@@ -81,5 +81,16 @@ docs/_build/
 # Python virtual environment
 venv/
 
+# VS Code/virtualenv padrão
+.venv/
+
+# Bancos de dados locais
+*.db
+
+# Logs rotacionados e arquivos temporários
+*.log*
+*.bak
+*.tmp
+
 render.yaml
 Dockerfile
