@@ -2,6 +2,7 @@ from flask import request, jsonify
 from flask_cors import cross_origin
 from app import csrf
 from datetime import datetime, time
+import logging
 from app.models.ronda_esporadica import RondaEsporadica
 from app.models.condominio import Condominio
 from app.models.user import User
@@ -9,11 +10,24 @@ from app.services.ronda_esporadica_service import RondaEsporadicaService
 from app import db
 from . import api_bp
 
+logger = logging.getLogger(__name__)
+
+# DEPRECATION WARNING: Esta API está obsoleta
+# Use /api/ronda-tempo-real/ em vez de /api/rondas-esporadicas/
+DEPRECATION_MESSAGE = {
+    "warning": "API OBSOLETA",
+    "message": "Esta API está obsoleta. Use /api/ronda-tempo-real/ em vez de /api/rondas-esporadicas/",
+    "migration_guide": "Consulte REFATORACAO_RONDAS.md para detalhes da migração"
+}
+
 @api_bp.route("/condominios", methods=["GET"])
 @cross_origin()
 @csrf.exempt
 def listar_condominios():
     """Lista todos os condomínios disponíveis com filtro opcional por nome."""
+    # DEPRECATION WARNING
+    logger.warning(f"API OBSOLETA chamada: {request.endpoint} por {request.remote_addr}")
+    
     try:
         # Obter parâmetros de filtro
         nome = request.args.get("nome", "")
@@ -121,6 +135,9 @@ def listar_logradouros():
 @csrf.exempt
 def listar_todas_rondas_esporadicas():
     """Lista todas as rondas esporádicas com filtros opcionais."""
+    # DEPRECATION WARNING
+    logger.warning(f"API OBSOLETA chamada: {request.endpoint} por {request.remote_addr}")
+    
     try:
         # Obter parâmetros da query string
         condominio_id = request.args.get("condominio_id")
@@ -464,6 +481,9 @@ def ronda_esporadica_em_andamento(condominio_id):
 @csrf.exempt
 def iniciar_ronda_esporadica():
     """Inicia uma nova ronda esporádica."""
+    # DEPRECATION WARNING
+    logger.warning(f"API OBSOLETA chamada: {request.endpoint} por {request.remote_addr}")
+    
     if request.method == "OPTIONS":
         return '', 200
         
