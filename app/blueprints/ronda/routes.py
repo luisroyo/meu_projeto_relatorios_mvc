@@ -8,7 +8,7 @@ import tempfile
 
 import pytz
 from flask import (Blueprint, flash, jsonify, redirect, render_template,
-                   request, url_for, session)
+                   request, url_for, session, abort)
 from flask_login import current_user, login_required
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
@@ -529,4 +529,29 @@ def upload_process_ronda():
             if 'temp_filepath' in locals() and os.path.exists(temp_filepath):
                 os.remove(temp_filepath)
             return jsonify({"success": False, "message": f"❌ Erro interno do servidor: {str(e)}"}), 500
+
+
+@ronda_bp.route('/tempo-real')
+@login_required
+def ronda_tempo_real():
+    """Interface para sistema de rondas em tempo real."""
+    import os
+    if os.environ.get('FLASK_ENV') != 'development':
+        return abort(404)
+    # Carrega condomínios para o template, assim como no registro de ocorrências
+    try:
+        condominios = Condominio.query.order_by(Condominio.nome).all()
+        logger.info(f"Carregando {len(condominios)} condomínios para o template")
+        
+        # Filtra condomínios válidos (com nome não nulo)
+        condominios_validos = [c for c in condominios if c and c.nome is not None]
+        logger.info(f"Condomínios válidos: {len(condominios_validos)}")
+        
+        for c in condominios_validos[:5]:  # Log apenas os primeiros 5
+            logger.info(f"Condomínio: {c.id} - {c.nome}")
+            
+        return render_template('ronda_tempo_real.html', condominios=condominios_validos)
+    except Exception as e:
+        logger.error(f"Erro ao carregar condomínios: {e}", exc_info=True)
+        return render_template('ronda_tempo_real.html', condominios=[])
 

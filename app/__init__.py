@@ -36,11 +36,20 @@ cache = Cache()
 csrf = CSRFProtect()
 # Use a URL do Redis de variável de ambiente, ou padrão para memory:// se não definida
 redis_url = os.environ.get("REDIS_URL", "memory://")
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri=redis_url
-)
+
+# Limites diferentes para desenvolvimento e produção
+if os.environ.get("FLASK_ENV", "development") == "development":
+    limiter = Limiter(
+        key_func=get_remote_address,
+        default_limits=["10000 per hour"],
+        storage_uri=redis_url
+    )
+else:
+    limiter = Limiter(
+        key_func=get_remote_address,
+        default_limits=["200 per day", "50 per hour"],
+        storage_uri=redis_url
+    )
 
 
 # --- Configura o LoginManager ---
@@ -151,6 +160,11 @@ def create_app(
         # Registra os Blueprints centralizadamente
         from app.blueprints import register_blueprints
         register_blueprints(app_instance)
+
+        # Desabilita CSRF para rotas da API
+        api_blueprint = app_instance.blueprints.get('api')
+        if api_blueprint:
+            csrf.exempt(api_blueprint)
 
         # Registra todos os comandos CLI de uma vez
         from .commands import register_commands

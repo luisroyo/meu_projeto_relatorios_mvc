@@ -85,4 +85,34 @@ def seed_db_command():
             return
     db.session.commit()
     logger.info("Comando de inicialização do banco de dados concluído.")
-    click.echo("Comando de inicialização do banco de dados concluído.") 
+    click.echo("Comando de inicialização do banco de dados concluído.")
+
+@click.command("seed-condominios")
+@with_appcontext
+def seed_condominios_command():
+    """Cria condomínios de exemplo para o sistema de rondas."""
+    from app.models.condominio import Condominio
+    
+    condominios_exemplo = [
+        "ZERMATT",
+        "RESIDENCIAL VILLA VERDE",
+        "CONDOMÍNIO SOLAR",
+        "RESIDENCIAL PARQUE DAS FLORES",
+        "CONDOMÍNIO VISTA ALEGRE",
+        "RESIDENCIAL JARDIM BOTÂNICO",
+        "CONDOMÍNIO MORADA NOBRE",
+        "RESIDENCIAL VALE DO SOL"
+    ]
+    
+    for nome in condominios_exemplo:
+        # Verifica se já existe
+        condominio_existente = Condominio.query.filter_by(nome=nome).first()
+        if not condominio_existente:
+            condominio = Condominio(nome=nome)
+            db.session.add(condominio)
+            click.echo(f"✅ Condomínio '{nome}' criado")
+        else:
+            click.echo(f"⏭️  Condomínio '{nome}' já existe")
+    
+    db.session.commit()
+    click.echo("🎉 Condomínios de exemplo criados com sucesso!") 
