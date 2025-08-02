@@ -13,7 +13,7 @@ from app.services.ronda_routes_core.helpers import inferir_turno
 from app.services.ronda_routes_core.validation import validar_campos_essenciais, validar_condominio_existe
 from app.services.rondaservice import processar_log_de_rondas
 from app.services.whatsapp_processor import WhatsAppProcessor, Plantao
-from app.services.ronda_utils import RondaUtils # Importa o novo módulo de utilitários
+from app.services.ronda_utils import get_system_user, infer_condominio_from_filename # Importa funções específicas
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class RondaAutomationService:
         """
         logger.info(f"Iniciando varredura por novos arquivos WhatsApp em: {self.whatsapp_files_dir} (Filtro: Mês={month}, Ano={year})")
         
-        system_user = RondaUtils.get_system_user() # Usa o utilitário
+        system_user = get_system_user() # Usa o utilitário
 
         for filename in os.listdir(self.whatsapp_files_dir):
             if filename.lower().endswith(".txt"):
@@ -43,7 +43,7 @@ class RondaAutomationService:
                 logger.info(f"Processando arquivo: {filepath}")
                 
                 try:
-                    condominio = RondaUtils.infer_condominio_from_filename(filename) # Usa o utilitário
+                    condominio = infer_condominio_from_filename(filename) # Usa o utilitário
                     if not condominio:
                         logger.error(f"Não foi possível identificar o condomínio pelo nome do arquivo '{filename}'. Movendo para pasta de erros.")
                         shutil.move(filepath, os.path.join(self.error_files_dir, filename))

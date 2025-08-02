@@ -8,6 +8,7 @@ from datetime import datetime, time, date
 from typing import Tuple, Optional
 from app.models.ronda_esporadica import RondaEsporadica
 from app.models.condominio import Condominio
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -189,4 +190,58 @@ def formatar_hora(hora: time) -> str:
         str: Hora formatada (ex: "18:30")
     """
     return hora.strftime('%H:%M')
+
+
+def get_system_user() -> Optional[User]:
+    """
+    Obtém o usuário do sistema para operações automatizadas.
+    Retorna o primeiro usuário administrador encontrado.
+
+    Returns:
+        User ou None se nenhum admin encontrado
+    """
+    try:
+        # Busca o primeiro usuário administrador
+        system_user = User.query.filter_by(is_admin=True).first()
+        if system_user:
+            logger.info(f"Usuário do sistema: {system_user.username}")
+            return system_user
+        else:
+            logger.warning("Nenhum usuário administrador encontrado para operações do sistema")
+            return None
+    except Exception as e:
+        logger.error(f"Erro ao obter usuário do sistema: {e}")
+        return None
+
+
+def infer_condominio_from_filename(filename: str) -> Optional[Condominio]:
+    """
+    Infere o condomínio baseado no nome do arquivo.
+    Tenta encontrar um condomínio cujo nome esteja contido no nome do arquivo.
+
+    Args:
+        filename: Nome do arquivo (ex: "ZERMATT_20250130.txt")
+
+    Returns:
+        Condominio ou None se não encontrado
+    """
+    try:
+        # Remove extensão e converte para maiúsculas
+        nome_arquivo = filename.upper().replace('.TXT', '').replace('.TXT', '')
+        
+        # Busca todos os condomínios
+        condominios = Condominio.query.all()
+        
+        # Procura por condomínio cujo nome esteja contido no nome do arquivo
+        for condominio in condominios:
+            if condominio.nome.upper() in nome_arquivo:
+                logger.info(f"Condomínio identificado: {condominio.nome} (arquivo: {filename})")
+                return condominio
+        
+        logger.warning(f"Não foi possível identificar condomínio no arquivo: {filename}")
+        return None
+        
+    except Exception as e:
+        logger.error(f"Erro ao inferir condomínio do arquivo {filename}: {e}")
+        return None
 
