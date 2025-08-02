@@ -217,7 +217,11 @@ class RondaEsporadicaService:
         Returns:
             list: Lista de rondas
         """
-        return RondaEsporadica.query.filter(
+        return RondaEsporadica.query.options(
+            db.joinedload(RondaEsporadica.condominio),
+            db.joinedload(RondaEsporadica.user),
+            db.joinedload(RondaEsporadica.supervisor)
+        ).filter(
             RondaEsporadica.condominio_id == condominio_id,
             RondaEsporadica.data_plantao == data_plantao
         ).order_by(RondaEsporadica.hora_entrada.asc()).all()
