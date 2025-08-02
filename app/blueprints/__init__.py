@@ -8,6 +8,7 @@ from .ronda.routes import ronda_bp
 from .auth.routes import auth_bp
 from .api import api_bp
 from .api.auth_routes import auth_api_bp
+from .api.dashboard_routes import dashboard_api_bp
 from .main.routes import main_bp
 
 def register_blueprints(app):
@@ -19,4 +20,5 @@ def register_blueprints(app):
     app.register_blueprint(auth_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(auth_api_bp)
+    app.register_blueprint(dashboard_api_bp)
     app.register_blueprint(main_bp)
