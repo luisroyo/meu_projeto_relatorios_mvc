@@ -2,9 +2,12 @@ from app import create_app
 import os
 from config import DevelopmentConfig, ProductionConfig
 
-# Seleciona a configuração automaticamente
-if os.environ.get("FLASK_ENV") == "production":
-    app = create_app(ProductionConfig) # type: ignore
+# Seleciona a configuração com base em FLASK_ENV
+# O padrão é 'development' se a variável não estiver definida
+config_name = os.getenv('FLASK_ENV', 'development')
+
+if config_name == 'production':
+    app = create_app(ProductionConfig)
 else:
     app = create_app(DevelopmentConfig)
 

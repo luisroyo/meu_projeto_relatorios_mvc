@@ -44,6 +44,8 @@ class RondaEsporadica(db.Model):
     user = db.relationship("User", foreign_keys=[user_id], backref="rondas_esporadicas_criadas")
     supervisor = db.relationship("User", foreign_keys=[supervisor_id], backref="rondas_esporadicas_supervisionadas")
     
+    exportado = db.Column(db.Boolean, default=False, nullable=False)
+    
     def __repr__(self) -> str:
         return f'<RondaEsporadica {self.id} - {self.condominio.nome if self.condominio else "N/A"} - {self.data_plantao}>'
     
