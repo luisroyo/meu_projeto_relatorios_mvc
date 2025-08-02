@@ -303,9 +303,345 @@ Todas as APIs retornam erros no formato:
 - `409`: Conflito
 - `500`: Erro interno do servidor
 
+## 🚨 Ocorrências
+
+### GET `/api/ocorrencias/`
+**Listar ocorrências com paginação e filtros**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `page`: Número da página (padrão: 1)
+- `per_page`: Itens por página (padrão: 10)
+- `condominio_id`: Filtrar por condomínio
+- `tipo_id`: Filtrar por tipo de ocorrência
+- `data_inicio`: Data de início (YYYY-MM-DD)
+- `data_fim`: Data de fim (YYYY-MM-DD)
+
+**Response (200):**
+```json
+{
+  "ocorrencias": [
+    {
+      "id": 1,
+      "tipo": "Furto",
+      "condominio": "ZERMATT",
+      "data_ocorrencia": "2025-08-02T15:30:00",
+      "hora_ocorrencia": "15:30:00",
+      "descricao": "Furto de bicicleta...",
+      "local": "Estacionamento",
+      "envolvidos": "João Silva",
+      "acoes_tomadas": "Registrado BO",
+      "status": "pendente",
+      "registrado_por": "Luis Royo",
+      "data_registro": "2025-08-02T15:35:00"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pages": 5,
+    "total": 50,
+    "per_page": 10,
+    "has_next": true,
+    "has_prev": false
+  }
+}
+```
+
+### GET `/api/ocorrencias/<id>`
+**Obter detalhes de uma ocorrência específica**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "id": 1,
+  "tipo": {
+    "id": 1,
+    "nome": "Furto"
+  },
+  "condominio": {
+    "id": 1,
+    "nome": "ZERMATT"
+  },
+  "data_ocorrencia": "2025-08-02T15:30:00",
+  "hora_ocorrencia": "15:30:00",
+  "descricao": "Furto de bicicleta no estacionamento",
+  "local": "Estacionamento",
+  "envolvidos": "João Silva",
+  "acoes_tomadas": "Registrado BO",
+  "status": "pendente",
+  "registrado_por": {
+    "id": 1,
+    "username": "Luis Royo"
+  },
+  "data_registro": "2025-08-02T15:35:00"
+}
+```
+
+### POST `/api/ocorrencias/`
+**Criar nova ocorrência**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "tipo_ocorrencia_id": 1,
+  "condominio_id": 1,
+  "data_ocorrencia": "2025-08-02",
+  "hora_ocorrencia": "15:30:00",
+  "descricao": "Furto de bicicleta no estacionamento",
+  "local": "Estacionamento",
+  "envolvidos": "João Silva",
+  "acoes_tomadas": "Registrado BO",
+  "status": "pendente"
+}
+```
+
+**Response (201):**
+```json
+{
+  "message": "Ocorrência criada com sucesso",
+  "ocorrencia_id": 1
+}
+```
+
+### PUT `/api/ocorrencias/<id>`
+**Atualizar ocorrência existente**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "status": "finalizada",
+  "acoes_tomadas": "Registrado BO e recuperado o bem"
+}
+```
+
+### DELETE `/api/ocorrencias/<id>`
+**Deletar ocorrência (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### GET `/api/ocorrencias/tipos`
+**Listar tipos de ocorrência**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "tipos": [
+    {
+      "id": 1,
+      "nome": "Furto",
+      "descricao": "Furto de bens"
+    }
+  ]
+}
+```
+
+### GET `/api/ocorrencias/condominios`
+**Listar condomínios para filtros**
+
+**Headers:** `Authorization: Bearer <token>`
+
+## 🔄 Rondas
+
+### GET `/api/rondas/`
+**Listar rondas com paginação e filtros**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `page`: Número da página (padrão: 1)
+- `per_page`: Itens por página (padrão: 10)
+- `condominio_id`: Filtrar por condomínio
+- `data_inicio`: Data de início (YYYY-MM-DD)
+- `data_fim`: Data de fim (YYYY-MM-DD)
+- `status`: Filtrar por status
+
+### GET `/api/rondas/<id>`
+**Obter detalhes de uma ronda específica**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### GET `/api/rondas/tempo-real/em-andamento`
+**Listar rondas em andamento (tempo real)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### POST `/api/rondas/tempo-real/iniciar`
+**Iniciar nova ronda em tempo real**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "condominio_id": 1,
+  "hora_entrada": "18:30:00",
+  "observacoes": "Iniciando ronda"
+}
+```
+
+### POST `/api/rondas/tempo-real/finalizar/<id>`
+**Finalizar ronda em tempo real**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "hora_saida": "19:15:00",
+  "observacoes": "Ronda finalizada"
+}
+```
+
+### POST `/api/rondas/tempo-real/cancelar/<id>`
+**Cancelar ronda em tempo real**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### GET `/api/rondas/tempo-real/estatisticas`
+**Obter estatísticas das rondas em tempo real**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### GET `/api/rondas/tempo-real/hora-atual`
+**Obter hora atual do servidor**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### POST `/api/rondas/relatorios/gerar`
+**Gerar relatório de rondas**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "condominio_id": 1  // Opcional, se não fornecido gera para todos
+}
+```
+
+### GET `/api/rondas/condominios`
+**Listar condomínios para rondas**
+
+**Headers:** `Authorization: Bearer <token>`
+
+## 👨‍💼 Admin
+
+### GET `/api/admin/users`
+**Listar usuários com paginação (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### GET `/api/admin/users/<id>`
+**Obter detalhes de um usuário específico (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### PUT `/api/admin/users/<id>`
+**Atualizar usuário (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "username": "Novo Nome",
+  "email": "novo@email.com",
+  "is_admin": true,
+  "is_supervisor": true,
+  "is_approved": true
+}
+```
+
+### DELETE `/api/admin/users/<id>`
+**Deletar usuário (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### GET `/api/admin/condominios`
+**Listar condomínios com paginação (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### POST `/api/admin/condominios`
+**Criar novo condomínio (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "nome": "Novo Condomínio",
+  "endereco": "Rua das Flores, 123"
+}
+```
+
+### PUT `/api/admin/condominios/<id>`
+**Atualizar condomínio (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### DELETE `/api/admin/condominios/<id>`
+**Deletar condomínio (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### GET `/api/admin/tipos-ocorrencia`
+**Listar tipos de ocorrência (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### POST `/api/admin/tipos-ocorrencia`
+**Criar novo tipo de ocorrência (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "nome": "Novo Tipo",
+  "descricao": "Descrição do novo tipo"
+}
+```
+
+### GET `/api/admin/colaboradores`
+**Listar colaboradores (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### GET `/api/admin/orgaos-publicos`
+**Listar órgãos públicos (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+### GET `/api/admin/stats`
+**Obter estatísticas administrativas (apenas admin)**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "stats": {
+    "total_usuarios": 25,
+    "total_condominios": 8,
+    "total_tipos_ocorrencia": 12,
+    "total_colaboradores": 45,
+    "usuarios_pendentes": 3
+  }
+}
+```
+
 ## 🚀 Próximos Endpoints a Implementar
 
-1. **APIs de Admin** (`/api/admin/*`)
-2. **APIs de Ocorrências** (`/api/ocorrencias/*`)
-3. **APIs de Relatórios** (`/api/relatorios/*`)
-4. **APIs de Usuários** (`/api/users/*`) 
+1. **APIs de Relatórios Avançados** (`/api/relatorios/*`)
+2. **APIs de Notificações** (`/api/notificacoes/*`)
+3. **APIs de Configurações** (`/api/config/*`) 
