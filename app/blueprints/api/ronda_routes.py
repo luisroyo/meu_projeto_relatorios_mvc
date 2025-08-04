@@ -5,13 +5,10 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.user import User
 from app.models.ronda_esporadica import RondaEsporadica
-from app.models.ronda import Ronda
 from app.models.condominio import Condominio
-from app.services.ronda_tempo_real_service import RondaTempoRealService
-from app.services.ronda_esporadica_consolidacao_service import RondaEsporadicaConsolidacaoService
 from app import db
 from sqlalchemy import desc
-from datetime import datetime, date
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -24,59 +21,44 @@ def listar_rondas():
     """Listar rondas com paginação e filtros."""
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
-    
     if not user:
         return jsonify({'error': 'Usuário não encontrado'}), 404
-    
     try:
-        # Parâmetros de paginação
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
-        
-        # Filtros
         condominio_id = request.args.get('condominio_id', type=int)
         data_inicio = request.args.get('data_inicio')
         data_fim = request.args.get('data_fim')
         status = request.args.get('status')
-        
-        # Query base - rondas esporádicas (tempo real)
         query = RondaEsporadica.query
-        
-        # Aplicar filtros
         if condominio_id:
             query = query.filter(RondaEsporadica.condominio_id == condominio_id)
         if data_inicio:
             query = query.filter(RondaEsporadica.data_plantao >= data_inicio)
         if data_fim:
             query = query.filter(RondaEsporadica.data_plantao <= data_fim)
-        if status:
+        if status and status.strip():
             query = query.filter(RondaEsporadica.status == status)
-        
-        # Ordenar por data mais recente
         query = query.order_by(desc(RondaEsporadica.data_plantao))
-        
-        # Paginação
-        pagination = query.paginate(
-            page=page, 
-            per_page=per_page, 
-            error_out=False
-        )
-        
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         rondas = []
-        for ronda in pagination.items:
-            rondas.append({
-                'id': ronda.id,
-                'condominio': ronda.condominio.nome if ronda.condominio else 'N/A',
-                'data_plantao': ronda.data_plantao.isoformat() if ronda.data_plantao else None,
-                'escala_plantao': ronda.escala_plantao,
-                'status': ronda.status,
-                'total_rondas': ronda.total_rondas,
-                'tempo_total_minutos': ronda.tempo_total_minutos,
-                'observacoes': ronda.observacoes,
-                'registrado_por': ronda.registrado_por.username if ronda.registrado_por else 'N/A',
-                'data_registro': ronda.data_registro.isoformat() if ronda.data_registro else None
-            })
-        
+        for r in pagination.items:
+            try:
+                rondas.append({
+                    'id': r.id,
+                    'condominio': r.condominio.nome if r.condominio else 'N/A',
+                    'data_plantao': r.data_plantao.isoformat() if r.data_plantao else None,
+                    'escala_plantao': r.escala_plantao,
+                    'status': r.status,
+                    'total_rondas': r.total_rondas,
+                    'duracao_minutos': r.duracao_minutos,
+                    'observacoes': r.observacoes,
+                    'user': r.user.username if r.user else 'N/A',
+                    'data_criacao': r.data_criacao.isoformat() if r.data_criacao else None
+                })
+            except Exception as e:
+                logger.error(f"Erro ao serializar ronda {r.id}: {e}")
+                continue
         return jsonify({
             'rondas': rondas,
             'pagination': {
@@ -88,7 +70,6 @@ def listar_rondas():
                 'has_prev': pagination.has_prev
             }
         }), 200
-        
     except Exception as e:
         logger.error(f"Erro ao listar rondas: {e}")
         return jsonify({'error': 'Erro interno do servidor'}), 500
@@ -110,137 +91,17 @@ def obter_ronda(ronda_id):
             'escala_plantao': ronda.escala_plantao,
             'status': ronda.status,
             'total_rondas': ronda.total_rondas,
-            'tempo_total_minutos': ronda.tempo_total_minutos,
+            'duracao_minutos': ronda.duracao_minutos,
             'observacoes': ronda.observacoes,
-            'registrado_por': {
-                'id': ronda.registrado_por.id,
-                'username': ronda.registrado_por.username
-            } if ronda.registrado_por else None,
-            'data_registro': ronda.data_registro.isoformat() if ronda.data_registro else None
+            'user': {
+                'id': ronda.user.id,
+                'username': ronda.user.username
+            } if ronda.user else None,
+            'data_criacao': ronda.data_criacao.isoformat() if ronda.data_criacao else None
         }), 200
         
     except Exception as e:
         logger.error(f"Erro ao obter ronda {ronda_id}: {e}")
-        return jsonify({'error': 'Erro interno do servidor'}), 500
-
-@ronda_api_bp.route('/tempo-real/em-andamento', methods=['GET'])
-@jwt_required()
-def listar_rondas_em_andamento():
-    """Listar rondas em andamento (tempo real)."""
-    try:
-        service = RondaTempoRealService()
-        rondas = service.listar_rondas_em_andamento()
-        
-        return jsonify({
-            'rondas': rondas
-        }), 200
-        
-    except Exception as e:
-        logger.error(f"Erro ao listar rondas em andamento: {e}")
-        return jsonify({'error': 'Erro interno do servidor'}), 500
-
-@ronda_api_bp.route('/tempo-real/iniciar', methods=['POST'])
-@jwt_required()
-def iniciar_ronda_tempo_real():
-    """Iniciar nova ronda em tempo real."""
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
-    
-    if not user:
-        return jsonify({'error': 'Usuário não encontrado'}), 404
-    
-    try:
-        data = request.get_json()
-        
-        # Validações básicas
-        if not data.get('condominio_id'):
-            return jsonify({'error': 'Condomínio é obrigatório'}), 400
-        
-        service = RondaTempoRealService()
-        resultado = service.iniciar_ronda(
-            condominio_id=data['condominio_id'],
-            hora_entrada=data.get('hora_entrada'),
-            observacoes=data.get('observacoes', ''),
-            user_id=user.id
-        )
-        
-        if resultado.get('success'):
-            return jsonify(resultado), 201
-        else:
-            return jsonify(resultado), 400
-        
-    except Exception as e:
-        logger.error(f"Erro ao iniciar ronda: {e}")
-        return jsonify({'error': 'Erro interno do servidor'}), 500
-
-@ronda_api_bp.route('/tempo-real/finalizar/<int:ronda_id>', methods=['POST'])
-@jwt_required()
-def finalizar_ronda_tempo_real(ronda_id):
-    """Finalizar ronda em tempo real."""
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
-    
-    if not user:
-        return jsonify({'error': 'Usuário não encontrado'}), 404
-    
-    try:
-        data = request.get_json()
-        
-        service = RondaTempoRealService()
-        resultado = service.finalizar_ronda(
-            ronda_id=ronda_id,
-            hora_saida=data.get('hora_saida'),
-            observacoes=data.get('observacoes', ''),
-            user_id=user.id
-        )
-        
-        if resultado.get('success'):
-            return jsonify(resultado), 200
-        else:
-            return jsonify(resultado), 400
-        
-    except Exception as e:
-        logger.error(f"Erro ao finalizar ronda: {e}")
-        return jsonify({'error': 'Erro interno do servidor'}), 500
-
-@ronda_api_bp.route('/tempo-real/cancelar/<int:ronda_id>', methods=['POST'])
-@jwt_required()
-def cancelar_ronda_tempo_real(ronda_id):
-    """Cancelar ronda em tempo real."""
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
-    
-    if not user:
-        return jsonify({'error': 'Usuário não encontrado'}), 404
-    
-    try:
-        service = RondaTempoRealService()
-        resultado = service.cancelar_ronda(
-            ronda_id=ronda_id,
-            user_id=user.id
-        )
-        
-        if resultado.get('success'):
-            return jsonify(resultado), 200
-        else:
-            return jsonify(resultado), 400
-        
-    except Exception as e:
-        logger.error(f"Erro ao cancelar ronda: {e}")
-        return jsonify({'error': 'Erro interno do servidor'}), 500
-
-@ronda_api_bp.route('/tempo-real/estatisticas', methods=['GET'])
-@jwt_required()
-def obter_estatisticas_tempo_real():
-    """Obter estatísticas das rondas em tempo real."""
-    try:
-        service = RondaTempoRealService()
-        estatisticas = service.obter_estatisticas_plantao()
-        
-        return jsonify(estatisticas), 200
-        
-    except Exception as e:
-        logger.error(f"Erro ao obter estatísticas: {e}")
         return jsonify({'error': 'Erro interno do servidor'}), 500
 
 @ronda_api_bp.route('/tempo-real/hora-atual', methods=['GET'])
@@ -255,41 +116,6 @@ def obter_hora_atual():
         
     except Exception as e:
         logger.error(f"Erro ao obter hora atual: {e}")
-        return jsonify({'error': 'Erro interno do servidor'}), 500
-
-@ronda_api_bp.route('/relatorios/gerar', methods=['POST'])
-@jwt_required()
-def gerar_relatorio_rondas():
-    """Gerar relatório de rondas."""
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
-    
-    if not user:
-        return jsonify({'error': 'Usuário não encontrado'}), 404
-    
-    try:
-        data = request.get_json()
-        condominio_id = data.get('condominio_id')  # Opcional, se não fornecido gera para todos
-        
-        service = RondaEsporadicaConsolidacaoService()
-        
-        if condominio_id:
-            # Relatório para condomínio específico
-            relatorio = service.gerar_relatorio_condominio(
-                condominio_id=condominio_id,
-                data_plantao=date.today()
-            )
-        else:
-            # Relatório para todos os condomínios
-            relatorio = service.gerar_relatorio_geral(data_plantao=date.today())
-        
-        return jsonify({
-            'relatorio': relatorio,
-            'condominio_id': condominio_id
-        }), 200
-        
-    except Exception as e:
-        logger.error(f"Erro ao gerar relatório: {e}")
         return jsonify({'error': 'Erro interno do servidor'}), 500
 
 @ronda_api_bp.route('/condominios', methods=['GET'])
@@ -309,3 +135,200 @@ def listar_condominios_rondas():
     except Exception as e:
         logger.error(f"Erro ao listar condomínios: {e}")
         return jsonify({'error': 'Erro interno do servidor'}), 500 
+
+@ronda_api_bp.route('/', methods=['POST'])
+@jwt_required()
+def create_ronda():
+    """Criar nova ronda."""
+    data = request.get_json()
+    current_user_id = get_jwt_identity()
+    
+    required_fields = ['condominio_id', 'data_plantao_ronda', 'escala_plantao', 'log_ronda_bruto']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({'error': f'Campo {field} é obrigatório'}), 400
+    
+    try:
+        from app.models.ronda import Ronda
+        from datetime import datetime
+        
+        nova_ronda = Ronda()
+        nova_ronda.condominio_id = data['condominio_id']
+        nova_ronda.data_plantao_ronda = datetime.fromisoformat(data['data_plantao_ronda'])
+        nova_ronda.escala_plantao = data['escala_plantao']
+        nova_ronda.log_ronda_bruto = data['log_ronda_bruto']
+        nova_ronda.supervisor_id = data.get('supervisor_id')
+        nova_ronda.user_id = current_user_id
+        
+        # Processar relatório se fornecido
+        if data.get('relatorio_processado'):
+            nova_ronda.relatorio_processado = data['relatorio_processado']
+        
+        db.session.add(nova_ronda)
+        db.session.commit()
+        
+        logger.info(f"Ronda {nova_ronda.id} criada por usuário {current_user_id}")
+        
+        return jsonify({
+            'message': 'Ronda criada com sucesso',
+            'ronda_id': nova_ronda.id
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao criar ronda: {e}")
+        return jsonify({'error': 'Erro ao criar ronda'}), 500
+
+@ronda_api_bp.route('/<int:ronda_id>', methods=['PUT'])
+@jwt_required()
+def update_ronda(ronda_id):
+    """Atualizar ronda."""
+    ronda = RondaEsporadica.query.get_or_404(ronda_id)
+    data = request.get_json()
+    current_user_id = get_jwt_identity()
+    
+    # Verificar permissões
+    user = User.query.get(current_user_id)
+    if not (user.is_admin or ronda.supervisor_id == current_user_id):
+        return jsonify({'error': 'Sem permissão para editar esta ronda'}), 403
+    
+    try:
+        if 'condominio_id' in data:
+            ronda.condominio_id = data['condominio_id']
+        if 'data_plantao_ronda' in data:
+            ronda.data_plantao_ronda = datetime.fromisoformat(data['data_plantao_ronda'])
+        if 'escala_plantao' in data:
+            ronda.escala_plantao = data['escala_plantao']
+        if 'log_ronda_bruto' in data:
+            ronda.log_ronda_bruto = data['log_ronda_bruto']
+        if 'supervisor_id' in data:
+            ronda.supervisor_id = data['supervisor_id']
+        if 'relatorio_processado' in data:
+            ronda.relatorio_processado = data['relatorio_processado']
+        
+        db.session.commit()
+        
+        logger.info(f"Ronda {ronda_id} atualizada por usuário {current_user_id}")
+        
+        return jsonify({'message': 'Ronda atualizada com sucesso'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao atualizar ronda {ronda_id}: {e}")
+        return jsonify({'error': 'Erro ao atualizar ronda'}), 500
+
+@ronda_api_bp.route('/<int:ronda_id>', methods=['DELETE'])
+@jwt_required()
+def delete_ronda(ronda_id):
+    """Deletar ronda."""
+    ronda = RondaEsporadica.query.get_or_404(ronda_id)
+    current_user_id = get_jwt_identity()
+    
+    # Apenas admins podem deletar
+    user = User.query.get(current_user_id)
+    if not user or not user.is_admin:
+        return jsonify({'error': 'Apenas administradores podem deletar rondas'}), 403
+    
+    try:
+        db.session.delete(ronda)
+        db.session.commit()
+        
+        logger.info(f"Ronda {ronda_id} deletada por usuário {current_user_id}")
+        return jsonify({'message': 'Ronda deletada com sucesso'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao deletar ronda {ronda_id}: {e}")
+        return jsonify({'error': 'Erro ao deletar ronda'}), 500
+
+@ronda_api_bp.route('/process-whatsapp', methods=['POST'])
+@jwt_required()
+def process_whatsapp():
+    """Processar arquivo WhatsApp."""
+    if 'file' not in request.files:
+        return jsonify({'error': 'Nenhum arquivo enviado'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'Nenhum arquivo selecionado'}), 400
+    
+    try:
+        from app.services.whatsapp_processor import WhatsAppProcessor
+        import tempfile
+        import os
+        
+        # Salvar arquivo temporário
+        temp_dir = tempfile.gettempdir()
+        temp_path = os.path.join(temp_dir, file.filename)
+        file.save(temp_path)
+        
+        # Processar arquivo
+        processor = WhatsAppProcessor()
+        resultado = processor.processar_arquivo(temp_path)
+        
+        # Limpar arquivo temporário
+        os.remove(temp_path)
+        
+        return jsonify({
+            'message': 'Arquivo processado com sucesso',
+            'resultado': resultado
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erro ao processar arquivo WhatsApp: {e}")
+        return jsonify({'error': 'Erro ao processar arquivo'}), 500
+
+@ronda_api_bp.route('/upload-process', methods=['POST'])
+@jwt_required()
+def upload_process_ronda():
+    """Upload e processamento de ronda."""
+    if 'file' not in request.files:
+        return jsonify({'error': 'Nenhum arquivo enviado'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'Nenhum arquivo selecionado'}), 400
+    
+    try:
+        from app.services.ronda_automation_service import RondaAutomationService
+        import tempfile
+        import os
+        
+        # Salvar arquivo temporário
+        temp_dir = tempfile.gettempdir()
+        temp_path = os.path.join(temp_dir, file.filename)
+        file.save(temp_path)
+        
+        # Processar arquivo
+        service = RondaAutomationService()
+        resultado = service.processar_arquivo(temp_path)
+        
+        # Limpar arquivo temporário
+        os.remove(temp_path)
+        
+        return jsonify({
+            'message': 'Arquivo processado com sucesso',
+            'resultado': resultado
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erro ao processar arquivo de ronda: {e}")
+        return jsonify({'error': 'Erro ao processar arquivo'}), 500
+
+@ronda_api_bp.route('/tempo-real', methods=['GET'])
+@jwt_required()
+def get_rondas_tempo_real():
+    """Obter rondas em tempo real."""
+    try:
+        from app.services.ronda_tempo_real_service import RondaTempoRealService
+        
+        service = RondaTempoRealService()
+        rondas = service.obter_rondas_tempo_real()
+        
+        return jsonify({
+            'rondas': rondas
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erro ao obter rondas em tempo real: {e}")
+        return jsonify({'error': 'Erro ao obter rondas em tempo real'}), 500 

@@ -64,6 +64,9 @@ class Ocorrencia(db.Model):
     )
     condominio = db.relationship("Condominio", backref="ocorrencias")
     tipo = db.relationship("OcorrenciaTipo", backref="ocorrencias")
+    registrado_por = db.relationship("User", foreign_keys=[registrado_por_user_id])
+    supervisor = db.relationship("User", foreign_keys=[supervisor_id])
+
     orgaos_acionados = db.relationship(
         "OrgaoPublico",
         secondary=ocorrencia_orgaos,
@@ -83,4 +86,4 @@ class Ocorrencia(db.Model):
         cond_nome = self.condominio.nome if self.condominio else "Sem Condomínio"
         return f'<Ocorrencia {self.id} - {tipo_nome} em {data_str} ({cond_nome})>'
 
-__all__ = ["Ocorrencia", "ocorrencia_orgaos", "ocorrencia_colaboradores"] 
+__all__ = ["Ocorrencia", "ocorrencia_orgaos", "ocorrencia_colaboradores"]

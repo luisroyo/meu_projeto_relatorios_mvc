@@ -12,6 +12,8 @@ from .api.dashboard_routes import dashboard_api_bp
 from .api.ocorrencia_routes import ocorrencia_api_bp
 from .api.ronda_routes import ronda_api_bp
 from .api.admin_routes import admin_api_bp
+from .api.analisador_routes import analisador_api_bp
+from .api.config_routes import config_api_bp
 from .main.routes import main_bp
 
 def register_blueprints(app):
@@ -27,4 +29,6 @@ def register_blueprints(app):
     app.register_blueprint(ocorrencia_api_bp)
     app.register_blueprint(ronda_api_bp)
     app.register_blueprint(admin_api_bp)
+    app.register_blueprint(analisador_api_bp)
+    app.register_blueprint(config_api_bp)
     app.register_blueprint(main_bp)

@@ -12,19 +12,32 @@ def init_jwt(app):
     app.config['JWT_SECRET_KEY'] = app.config.get('SECRET_KEY', 'dev-secret-key')
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
     app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
+    # Desabilitar CSRF para tokens JWT
+    app.config['JWT_CSRF_CHECK_FORM'] = False
+    app.config['JWT_CSRF_IN_COOKIES'] = False
+    app.config['JWT_CSRF_IN_COOKIES'] = False
+    app.config['JWT_CSRF_CHECK_FORM'] = False
+    app.config['JWT_CSRF_METHODS'] = []
+    app.config['JWT_CSRF_HEADER_NAME'] = None
     jwt.init_app(app)
 
 @jwt.user_identity_loader
 def user_identity_lookup(user):
     """Define como o ID do usuário é armazenado no token."""
-    return user.id
+    # Se user já é um int (ID), retorna como string
+    if isinstance(user, int):
+        return str(user)
+    # Se user é um objeto User, retorna o ID como string
+    return str(user.id)
 
 @jwt.user_lookup_loader
 def user_lookup_callback(_jwt_header, jwt_data):
     """Define como o usuário é recuperado do token."""
     from app.models.user import User
     identity = jwt_data["sub"]
-    return User.query.filter_by(id=identity).one_or_none()
+    # Converter string de volta para int
+    user_id = int(identity)
+    return User.query.filter_by(id=user_id).one_or_none()
 
 @jwt.expired_token_loader
 def expired_token_callback(jwt_header, jwt_payload):
@@ -34,7 +47,12 @@ def expired_token_callback(jwt_header, jwt_payload):
 @jwt.invalid_token_loader
 def invalid_token_callback(error):
     """Callback para token inválido."""
-    return {"error": "Token inválido", "code": "invalid_token"}, 401
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error(f"Token inválido: {error}")
+    logger.error(f"Tipo de erro: {type(error)}")
+    logger.error(f"Detalhes completos: {str(error)}")
+    return {"error": f"Token inválido: {error}", "code": "invalid_token"}, 401
 
 @jwt.unauthorized_loader
 def missing_token_callback(error):

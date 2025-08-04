@@ -5,7 +5,7 @@ import os
 from logging.handlers import RotatingFileHandler
 
 import pytz
-from flask import Flask
+from flask import Flask, request
 from flask_caching import Cache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -89,18 +89,24 @@ def create_app(
     """Cria e configura a aplicação Flask."""
     app_instance = Flask(__name__)
 
-    # Habilita CORS para rotas /api/*, /ocorrencias/* e /login
+    # Habilita CORS para todas as rotas da API
     CORS(
         app_instance,
         resources={
-            r"/api/*": {"origins": ["http://localhost:8081", "*"]},
-            r"/ocorrencias/*": {"origins": ["http://localhost:8081", "*"]},
-            r"/login": {"origins": ["http://localhost:8081", "*"]}
+            r"/api/*": {
+                "origins": ["http://localhost:5173", "http://localhost:5174", "http://localhost:8081", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://[::1]:5173", "http://[::1]:5174"],
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+                "expose_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+                "supports_credentials": True,
+                "max_age": 86400
+            }
         },
         supports_credentials=True,
-        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
         expose_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:8081", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://[::1]:5173", "http://[::1]:5174"]
     )
 
     # 2. Carrega a configuração a partir do objeto fornecido
@@ -165,10 +171,40 @@ def create_app(
         from app.blueprints import register_blueprints
         register_blueprints(app_instance)
 
-        # Desabilita CSRF para rotas da API
-        api_blueprint = app_instance.blueprints.get('api')
-        if api_blueprint:
-            csrf.exempt(api_blueprint)
+        # Desabilita CSRF para todas as rotas da API
+        api_blueprints = ['api', 'auth_api', 'dashboard_api', 'ocorrencia_api', 'ronda_api', 'admin_api']
+        for blueprint_name in api_blueprints:
+            api_blueprint = app_instance.blueprints.get(blueprint_name)
+            if api_blueprint:
+                csrf.exempt(api_blueprint)
+
+        # Adiciona handler para OPTIONS requests (preflight CORS)
+        @app_instance.route('/api/<path:path>', methods=['OPTIONS'])
+        def handle_options(path):
+            response = app_instance.make_response('')
+            # Permitir múltiplas origens
+            origin = request.headers.get('Origin')
+            allowed_origins = [
+                'http://localhost:5173',
+                'http://localhost:5174', 
+                'http://localhost:8081',
+                'http://localhost:3000',
+                'http://127.0.0.1:5173',
+                'http://127.0.0.1:5174',
+                'http://[::1]:5173',
+                'http://[::1]:5174'
+            ]
+            
+            if origin in allowed_origins:
+                response.headers.add('Access-Control-Allow-Origin', origin)
+            else:
+                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+                
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept,Origin')
+            response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
+            response.headers.add('Access-Control-Max-Age', '86400')
+            return response
 
         # Registra todos os comandos CLI de uma vez
         from .commands import register_commands
