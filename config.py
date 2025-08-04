@@ -123,20 +123,43 @@ class ProductionConfig(Config):
         else:
             database_url += "&sslmode=require"
     
+    # Configurações específicas para Neon
+    if "neon.tech" in database_url:
+        # Configurações otimizadas para Neon (auto-suspension)
+        if "?" not in database_url:
+            database_url += "?sslmode=require"
+        else:
+            database_url += "&sslmode=require"
+    
     SQLALCHEMY_DATABASE_URI = database_url
     
-    # Configurações de pool mais conservadoras para produção
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 5,  # Menos conexões para economizar recursos
-        'pool_timeout': 30,  # Timeout maior para produção
-        'pool_recycle': 1800,  # Reciclar a cada 30 minutos
-        'pool_pre_ping': True,  # Verificar conexão antes de usar
-        'max_overflow': 10,  # Menos overflow para produção
-        'connect_args': {
-            'connect_timeout': 10,  # Timeout de conexão
-            'application_name': 'gestao_seguranca_app',  # Nome da aplicação
+    # Configurações de pool otimizadas para produção
+    if "neon.tech" in database_url:
+        # Configurações específicas para Neon (auto-suspension)
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'pool_size': 3,  # Menos conexões para economizar horas Neon
+            'pool_timeout': 45,  # Mais tempo para Neon reativar
+            'pool_recycle': 900,  # Reciclar a cada 15 minutos
+            'pool_pre_ping': True,  # Verificar conexão antes de usar
+            'max_overflow': 5,  # Menos overflow para Neon
+            'connect_args': {
+                'connect_timeout': 15,  # Timeout maior para Neon
+                'application_name': 'gestao_seguranca_app_neon',
+            }
         }
-    }
+    else:
+        # Configurações padrão para produção
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'pool_size': 5,  # Menos conexões para economizar recursos
+            'pool_timeout': 30,  # Timeout maior para produção
+            'pool_recycle': 1800,  # Reciclar a cada 30 minutos
+            'pool_pre_ping': True,  # Verificar conexão antes de usar
+            'max_overflow': 10,  # Menos overflow para produção
+            'connect_args': {
+                'connect_timeout': 10,  # Timeout de conexão
+                'application_name': 'gestao_seguranca_app',
+            }
+        }
     
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True

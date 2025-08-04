@@ -6,7 +6,7 @@
 psycopg2.OperationalError: SSL connection has been closed unexpectedly
 ```
 
-Este erro ocorre quando a conexão SSL com o PostgreSQL no Render é fechada inesperadamente.
+Este erro ocorre quando a conexão SSL com o PostgreSQL é fechada inesperadamente. **Especialmente comum com Neon** devido ao sistema de auto-suspension que desliga o banco para economizar recursos.
 
 ## 🛠️ Soluções Implementadas
 
@@ -99,10 +99,18 @@ python scripts/monitor_db_connection.py
 
 ## 📊 Configurações Recomendadas
 
-### **Variáveis de Ambiente no Render:**
+### **Variáveis de Ambiente:**
 
+**Para Render:**
 ```bash
 DATABASE_URL=postgresql://user:pass@host:port/db?sslmode=require
+FLASK_CONFIG=production
+LOG_LEVEL=INFO
+```
+
+**Para Neon:**
+```bash
+DATABASE_URL=postgresql://user:pass@neon-host/db?sslmode=require
 FLASK_CONFIG=production
 LOG_LEVEL=INFO
 ```
@@ -112,7 +120,8 @@ LOG_LEVEL=INFO
 | Ambiente | Pool Size | Timeout | Recycle |
 |----------|-----------|---------|---------|
 | Desenvolvimento | 10 | 20s | 1h |
-| Produção | 5 | 30s | 30min |
+| Produção (Render) | 5 | 30s | 30min |
+| Produção (Neon) | 3 | 45s | 15min |
 
 ## 🚀 Como Aplicar as Correções
 
@@ -186,6 +195,34 @@ python scripts/monitor_db_connection.py
 python -c "from config import ProductionConfig; print(ProductionConfig.SQLALCHEMY_ENGINE_OPTIONS)"
 ```
 
+## 🌟 Otimizações Específicas para Neon
+
+### **Por que Neon é diferente:**
+- ⏰ **Auto-suspension** - Desliga banco após inatividade
+- 💰 **Economia de horas** - Reduz custos mensais
+- 🔄 **Reativação automática** - Mas causa delay na primeira conexão
+- ⚡ **Conflitos SSL** - Conexões antigas vs. banco reativado
+
+### **Configurações Neon:**
+```python
+# Pool otimizado para Neon
+SQLALCHEMY_ENGINE_OPTIONS = {
+    'pool_size': 3,  # Menos conexões = menos horas
+    'pool_timeout': 45,  # Aguarda Neon reativar
+    'pool_recycle': 900,  # Recicla antes do auto-suspension
+    'pool_pre_ping': True,  # Testa antes de usar
+    'connect_args': {
+        'connect_timeout': 15,  # Timeout maior para Neon
+    }
+}
+```
+
+### **Benefícios para Neon:**
+- ✅ **Economia de recursos** - Menos conexões simultâneas
+- ✅ **Estabilidade** - Reconexão automática quando reativa
+- ✅ **Performance** - Pool inteligente evita conexões desnecessárias
+- ✅ **Logs informativos** - Monitoramento de reconexões
+
 ## ✅ Resultado Esperado
 
 Após aplicar as correções:
@@ -195,6 +232,7 @@ Após aplicar as correções:
 - ✅ **Aplicação mais estável**
 - ✅ **Logs informativos para debug**
 - ✅ **Monitoramento proativo**
+- ✅ **Otimização específica para Neon**
 
 ## 📞 Suporte
 
