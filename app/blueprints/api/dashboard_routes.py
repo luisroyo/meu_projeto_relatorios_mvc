@@ -1,7 +1,7 @@
 """
 APIs de dashboard para fornecer dados para o frontend.
 """
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.user import User
 from app.models.ocorrencia import Ocorrencia
@@ -14,6 +14,42 @@ import logging
 logger = logging.getLogger(__name__)
 
 dashboard_api_bp = Blueprint('dashboard_api', __name__, url_prefix='/api/dashboard')
+
+@dashboard_api_bp.route('/test', methods=['GET'])
+@jwt_required()
+def test_jwt():
+    """Endpoint de teste para verificar se o JWT está funcionando."""
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'error': 'Usuário não encontrado'}), 404
+    
+    # Log para debug
+    logger.info(f"JWT Test - User ID: {current_user_id}, Username: {user.username}")
+    
+    return jsonify({
+        'success': True,
+        'message': 'JWT está funcionando!',
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email
+        },
+        'headers': {
+            'authorization': request.headers.get('Authorization', 'Não encontrado'),
+            'content_type': request.headers.get('Content-Type', 'Não encontrado')
+        }
+    }), 200
+
+@dashboard_api_bp.route('/test-public', methods=['GET'])
+def test_public():
+    """Endpoint público de teste."""
+    return jsonify({
+        'success': True,
+        'message': 'Endpoint público funcionando!',
+        'timestamp': datetime.now().isoformat()
+    }), 200
 
 @dashboard_api_bp.route('/stats', methods=['GET'])
 @jwt_required()
@@ -41,7 +77,7 @@ def get_dashboard_stats():
         # Ocorrências do último mês
         um_mes_atras = datetime.now() - timedelta(days=30)
         ocorrencias_ultimo_mes = Ocorrencia.query.filter(
-            Ocorrencia.data_ocorrencia >= um_mes_atras
+            Ocorrencia.data_hora_ocorrencia >= um_mes_atras
         ).count()
         
         # Rondas do último mês
@@ -76,16 +112,16 @@ def get_recent_ocorrencias():
     """Obter ocorrências recentes."""
     try:
         ocorrencias = Ocorrencia.query.order_by(
-            Ocorrencia.data_ocorrencia.desc()
+            Ocorrencia.data_hora_ocorrencia.desc()
         ).limit(10).all()
         
         return jsonify({
             'ocorrencias': [{
                 'id': o.id,
-                'tipo': o.tipo_ocorrencia.nome if o.tipo_ocorrencia else 'N/A',
+                'tipo': o.tipo.nome if o.tipo else 'N/A',
                 'condominio': o.condominio.nome if o.condominio else 'N/A',
-                'data': o.data_ocorrencia.isoformat() if o.data_ocorrencia else None,
-                'descricao': o.descricao[:100] + '...' if len(o.descricao) > 100 else o.descricao
+                'data': o.data_hora_ocorrencia.isoformat() if o.data_hora_ocorrencia else None,
+                'descricao': o.relatorio_final[:100] + '...' if len(o.relatorio_final) > 100 else o.relatorio_final
             } for o in ocorrencias]
         }), 200
         

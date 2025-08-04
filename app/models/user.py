@@ -38,7 +38,6 @@ class User(UserMixin, db.Model):
     )
     ocorrencias_registradas = db.relationship(
         "Ocorrencia",
-        backref="registrado_por",
         lazy="dynamic",
         foreign_keys="Ocorrencia.registrado_por_user_id",
     )
@@ -46,7 +45,6 @@ class User(UserMixin, db.Model):
     # Relações de supervisão
     ocorrencias_supervisionadas = db.relationship(
         "Ocorrencia",
-        backref="supervisor",
         lazy="dynamic",
         foreign_keys="Ocorrencia.supervisor_id",
     )
