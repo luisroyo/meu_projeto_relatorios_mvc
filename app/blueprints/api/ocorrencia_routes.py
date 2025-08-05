@@ -34,6 +34,9 @@ def get_user_name(user_id):
 def listar_ocorrencias():
     """Listar ocorrências com filtros e paginação."""
     try:
+        # Log para debug
+        logger.info(f"API de ocorrências chamada - User ID: {get_jwt_identity()}")
+        logger.info(f"Filtros recebidos: {request.args}")
         # Parâmetros de paginação
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
@@ -87,6 +90,9 @@ def listar_ocorrencias():
             except Exception as e:
                 logger.error(f"Erro ao serializar ocorrência {o.id}: {e}")
                 continue
+        
+        # Log do resultado
+        logger.info(f"Retornando {len(ocorrencias)} ocorrências de {pagination.total} total")
         
         return jsonify({
             'ocorrencias': ocorrencias,
