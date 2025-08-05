@@ -2,14 +2,8 @@ from app import create_app
 import os
 from config import DevelopmentConfig, ProductionConfig
 
-# Seleciona a configuração com base em FLASK_ENV
-# O padrão é 'development' se a variável não estiver definida
-config_name = os.getenv('FLASK_ENV', 'development')
-
-if config_name == 'production':
-    app = create_app(ProductionConfig)
-else:
-    app = create_app(DevelopmentConfig)
+# Força uso da DevelopmentConfig para teste local
+app = create_app(DevelopmentConfig)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
