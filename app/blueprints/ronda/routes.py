@@ -8,7 +8,7 @@ import tempfile
 
 import pytz
 from flask import (Blueprint, flash, jsonify, redirect, render_template,
-                   request, url_for, session)
+                   request, url_for, session, abort)
 from flask_login import current_user, login_required
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
@@ -19,7 +19,7 @@ from app.forms import TestarRondasForm
 from app.models import Condominio, EscalaMensal, Ronda, User
 from app.services.ronda_routes_core.routes_service import RondaRoutesService
 from app.services.whatsapp_processor import WhatsAppProcessor
-from app.services.ronda_utils import RondaUtils # Importa o novo módulo de utilitários
+from app.services.ronda_utils import get_system_user, infer_condominio_from_filename # Importa funções específicas
 
 logger = logging.getLogger(__name__)
 
@@ -439,7 +439,7 @@ def upload_process_ronda():
             logger.info(f"Arquivo temporário salvo em: {temp_filepath}")
 
             # Identifica condomínio pelo nome do arquivo
-            condominio = RondaUtils.infer_condominio_from_filename(whatsapp_file.filename)
+            condominio = infer_condominio_from_filename(whatsapp_file.filename)
             if not condominio:
                 os.remove(temp_filepath)
                 return jsonify({"success": False, "message": f"Não foi possível identificar o condomínio pelo nome do arquivo '{whatsapp_file.filename}'."}), 400
@@ -471,7 +471,7 @@ def upload_process_ronda():
                 return jsonify({"success": False, "message": "Nenhum plantão no arquivo corresponde aos filtros de mês/ano selecionados."}), 404
 
             # Obtém usuário do sistema uma única vez
-            system_user = RondaUtils.get_system_user()
+            system_user = get_system_user()
 
             total_rondas_salvas = 0
             messages = []
@@ -529,4 +529,30 @@ def upload_process_ronda():
             if 'temp_filepath' in locals() and os.path.exists(temp_filepath):
                 os.remove(temp_filepath)
             return jsonify({"success": False, "message": f"❌ Erro interno do servidor: {str(e)}"}), 500
+
+
+@ronda_bp.route('/tempo-real')
+@login_required
+def ronda_tempo_real():
+    """Interface para sistema de rondas em tempo real."""
+    import os
+    show_rondas_tempo_real = os.environ.get('FLASK_ENV') == 'development'
+    if not show_rondas_tempo_real:
+        return abort(404)
+    # Carrega condomínios para o template, assim como no registro de ocorrências
+    try:
+        condominios = Condominio.query.order_by(Condominio.nome).all()
+        logger.info(f"Carregando {len(condominios)} condomínios para o template")
+        
+        # Filtra condomínios válidos (com nome não nulo)
+        condominios_validos = [c for c in condominios if c and c.nome is not None]
+        logger.info(f"Condomínios válidos: {len(condominios_validos)}")
+        
+        for c in condominios_validos[:5]:  # Log apenas os primeiros 5
+            logger.info(f"Condomínio: {c.id} - {c.nome}")
+            
+        return render_template('ronda_tempo_real.html', condominios=condominios_validos, show_rondas_tempo_real=show_rondas_tempo_real)
+    except Exception as e:
+        logger.error(f"Erro ao carregar condomínios: {e}", exc_info=True)
+        return render_template('ronda_tempo_real.html', condominios=[], show_rondas_tempo_real=show_rondas_tempo_real)
 

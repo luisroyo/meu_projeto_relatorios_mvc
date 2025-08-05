@@ -12,35 +12,20 @@ class RondaEsporadicaService:
     """Serviço para gerenciar rondas esporádicas via PWA."""
     
     @staticmethod
-    def validar_horario_entrada(hora_informada: time, tolerancia_minutos: int = 30) -> Tuple[bool, str]:
+    def validar_horario_entrada(hora_informada: time, tolerancia_minutos: int = 120) -> Tuple[bool, str]:
         """
         Valida se o horário informado está próximo do horário atual.
+        VALIDAÇÃO DESABILITADA: Sempre retorna True para permitir qualquer horário.
         
         Args:
             hora_informada: Horário informado pelo usuário
-            tolerancia_minutos: Tolerância em minutos (padrão: 30)
+            tolerancia_minutos: Tolerância em minutos (não usado mais)
             
         Returns:
-            Tuple[bool, str]: (é_válido, mensagem)
+            Tuple[bool, str]: (é_válido, mensagem) - Sempre (True, "Horário válido")
         """
-        try:
-            hora_atual = datetime.now().time()
-            
-            # Converter para minutos para facilitar comparação
-            hora_informada_minutos = hora_informada.hour * 60 + hora_informada.minute
-            hora_atual_minutos = hora_atual.hour * 60 + hora_atual.minute
-            
-            # Calcular diferença absoluta
-            diferenca = abs(hora_informada_minutos - hora_atual_minutos)
-            
-            if diferenca <= tolerancia_minutos:
-                return True, "Horário válido"
-            else:
-                return False, f"Horário muito diferente do atual. Diferença: {diferenca} minutos"
-                
-        except Exception as e:
-            logger.error(f"Erro ao validar horário: {e}")
-            return False, "Erro ao validar horário"
+        # VALIDAÇÃO DESABILITADA - Sempre retorna True
+        return True, "Horário válido (validação desabilitada)"
     
     @staticmethod
     def inferir_turno(escala_plantao: str) -> str:
@@ -232,7 +217,11 @@ class RondaEsporadicaService:
         Returns:
             list: Lista de rondas
         """
-        return RondaEsporadica.query.filter(
+        return RondaEsporadica.query.options(
+            db.joinedload(RondaEsporadica.condominio),
+            db.joinedload(RondaEsporadica.user),
+            db.joinedload(RondaEsporadica.supervisor)
+        ).filter(
             RondaEsporadica.condominio_id == condominio_id,
             RondaEsporadica.data_plantao == data_plantao
         ).order_by(RondaEsporadica.hora_entrada.asc()).all()
