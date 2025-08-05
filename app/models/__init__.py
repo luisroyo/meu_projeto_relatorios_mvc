@@ -12,4 +12,5 @@ from .login_history import LoginHistory
 from .vw_ocorrencias_detalhadas import VWOcorrenciasDetalhadas
 from .vw_colaboradores import VWColaboradores
 from .vw_logradouros import VWLogradouros
-from .ronda_esporadica import RondaEsporadica 
+from .ronda_esporadica import RondaEsporadica
+from .user_online import UserOnline 
