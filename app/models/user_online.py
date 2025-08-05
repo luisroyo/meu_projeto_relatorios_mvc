@@ -1,6 +1,7 @@
 from app import db
 from datetime import datetime, timedelta
 from sqlalchemy import func
+from .user import User
 
 class UserOnline(db.Model):
     """Modelo para rastrear usuários online."""
