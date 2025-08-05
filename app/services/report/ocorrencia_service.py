@@ -100,7 +100,7 @@ class OcorrenciaReportService:
         except Exception as e:
             logger.error(f'Erro ao gerar relatório PDF de ocorrências: {e}', exc_info=True)
             raise
-
+    
     def generate_compact_ocorrencia_dashboard_pdf(self, dashboard_data: Dict, filters_info: Optional[Dict] = None) -> BytesIO:
         """Gera relatório PDF ultra-compacto do dashboard de ocorrências."""
         try:
@@ -215,6 +215,6 @@ class OcorrenciaReportService:
             story.append(Paragraph('Nenhum colaborador encontrado no período.', self.builder.styles.normal_style))
             story.append(Spacer(1, 12))  # Reduzido de 20 para 12
         
-        return story
+        return story 
 
  
