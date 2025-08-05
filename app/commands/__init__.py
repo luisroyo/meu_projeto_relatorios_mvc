@@ -1,4 +1,4 @@
-from .seed import seed_db_command
+from .seed import seed_db_command, seed_condominios_command
 from .debug import (
     check_ocorrencias_data_command,
     check_rondas_monthly_command,
@@ -27,6 +27,7 @@ from .relatorios import (
 
 def register_commands(app):
     app.cli.add_command(seed_db_command)
+    app.cli.add_command(seed_condominios_command)
     app.cli.add_command(check_ocorrencias_data_command)
     app.cli.add_command(check_rondas_monthly_command)
     app.cli.add_command(debug_ocorrencias_mes_command)

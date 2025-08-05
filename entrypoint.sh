@@ -1,9 +1,8 @@
 #!/bin/bash
+set -e
 
-# entrypoint.sh
-
-echo "Running database migrations..."
+# Aplica migrations
 flask db upgrade
 
-echo "Starting app with Gunicorn..."
-exec gunicorn --workers 3 --bind 0.0.0.0:$PORT 'app:create_app()' 
+# Inicia o Gunicorn apontando para a app factory
+exec gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --timeout 120
