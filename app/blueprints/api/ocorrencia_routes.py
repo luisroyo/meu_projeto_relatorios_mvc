@@ -308,6 +308,7 @@ def reject_ocorrencia(ocorrencia_id):
     return jsonify({'message': 'Ocorrência rejeitada com sucesso'}), 200
 
 @ocorrencia_api_bp.route('/analyze-report', methods=['POST'])
+@ocorrencia_api_bp.route('/analisar-relatorio', methods=['POST'])
 @jwt_required()
 def analyze_report():
     """Analisar relatório usando IA."""

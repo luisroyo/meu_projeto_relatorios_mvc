@@ -189,17 +189,21 @@ def delete_user(user_id):
 # ============================================================================
 
 @admin_api_bp.route('/colaboradores', methods=['GET'])
+@admin_api_bp.route('/colaboradores/search', methods=['GET'])
 @jwt_required()
 @admin_required
 def list_colaboradores():
-    """Listar colaboradores com paginação."""
+    """Listar colaboradores com paginação e busca."""
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     status = request.args.get('status', 'Ativo')
+    nome = request.args.get('nome', '')
     
     query = Colaborador.query
     if status:
         query = query.filter_by(status=status)
+    if nome:
+        query = query.filter(Colaborador.nome_completo.ilike(f'%{nome}%'))
     
     colaboradores_pagination = query.order_by(Colaborador.nome_completo).paginate(
         page=page, per_page=per_page
