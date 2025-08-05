@@ -99,9 +99,9 @@
                     <tr>
                         <td>{{ ocorrencia.id }}</td>
                         <td>{{ ocorrencia.data_hora_ocorrencia | localtime if ocorrencia.data_hora_ocorrencia else 'N/A' }}</td>
-                        <td>{{ ocorrencia.supervisor.username if ocorrencia.supervisor else 'N/A' }}</td>
-                        <td>{{ ocorrencia.condominio.nome if ocorrencia.condominio else 'N/A' }}</td>
-                        <td>{{ ocorrencia.tipo.nome if ocorrencia.tipo else 'N/A' }}</td>
+                        <td>{{ ocorrencia.supervisor if ocorrencia.supervisor else 'N/A' }}</td>
+                        <td>{{ ocorrencia.condominio if ocorrencia.condominio else 'N/A' }}</td>
+                        <td>{{ ocorrencia.tipo if ocorrencia.tipo else 'N/A' }}</td>
                         <td>
                             {{ render_status_badge(ocorrencia.status) }}
                         </td>

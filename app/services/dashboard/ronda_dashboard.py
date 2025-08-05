@@ -6,7 +6,7 @@ from flask import flash
 from sqlalchemy import func
 
 from app import db
-from app.models import Condominio, Ronda, User
+from app.models import Condominio, Ronda, User, VWRondasDetalhadas
 from app.utils.date_utils import parse_date_range
 
 # [NOVO] Importa o helper de KPIs
@@ -28,31 +28,31 @@ def get_ronda_dashboard_data(filters):
     date_start_range, date_end_range = parse_date_range(data_inicio_str, data_fim_str)
 
     # 2. Busca de Dados para Gráficos
-    # Rondas por Condomínio
+    # Rondas por Condomínio - usando a view
     rondas_por_condominio_q = db.session.query(
-        Condominio.nome, func.sum(Ronda.total_rondas_no_log)
-    ).join(Ronda, Condominio.id == Ronda.condominio_id)
+        VWRondasDetalhadas.condominio_nome, func.sum(VWRondasDetalhadas.total_rondas_no_log)
+    ).filter(VWRondasDetalhadas.condominio_nome.isnot(None))
     rondas_por_condominio_q = filters_helper.apply_ronda_filters(
         rondas_por_condominio_q, filters, date_start_range, date_end_range
     )
     rondas_por_condominio = (
-        rondas_por_condominio_q.group_by(Condominio.nome)
-        .order_by(func.sum(Ronda.total_rondas_no_log).desc())
+        rondas_por_condominio_q.group_by(VWRondasDetalhadas.condominio_nome)
+        .order_by(func.sum(VWRondasDetalhadas.total_rondas_no_log).desc())
         .all()
     )
     condominio_labels = [item[0] for item in rondas_por_condominio]
     rondas_por_condominio_data = [item[1] or 0 for item in rondas_por_condominio]
 
-    # Duração média por Condomínio
+    # Duração média por Condomínio - usando a view
     duracao_somas_q = db.session.query(
-        Condominio.nome,
-        func.sum(Ronda.duracao_total_rondas_minutos),
-        func.sum(Ronda.total_rondas_no_log),
-    ).join(Ronda, Condominio.id == Ronda.condominio_id)
+        VWRondasDetalhadas.condominio_nome,
+        func.sum(VWRondasDetalhadas.duracao_total_rondas_minutos),
+        func.sum(VWRondasDetalhadas.total_rondas_no_log),
+    ).filter(VWRondasDetalhadas.condominio_nome.isnot(None))
     duracao_somas_q = filters_helper.apply_ronda_filters(
         duracao_somas_q, filters, date_start_range, date_end_range
     )
-    duracao_somas_raw = duracao_somas_q.group_by(Condominio.nome).all()
+    duracao_somas_raw = duracao_somas_q.group_by(VWRondasDetalhadas.condominio_nome).all()
 
     # [ALTERADO] Lógica de cálculo movida para o helper de KPIs
     dados_ordenados = kpis_helper.calculate_average_duration_by_condominio(
@@ -61,50 +61,46 @@ def get_ronda_dashboard_data(filters):
     duracao_condominio_labels = [item["condominio"] for item in dados_ordenados]
     duracao_media_data = [item["media"] for item in dados_ordenados]
 
-    # Rondas por Turno
+    # Rondas por Turno - usando a view
     rondas_por_turno_q = db.session.query(
-        Ronda.turno_ronda, func.sum(Ronda.total_rondas_no_log)
-    ).filter(Ronda.turno_ronda.isnot(None), Ronda.total_rondas_no_log.isnot(None))
+        VWRondasDetalhadas.turno_ronda, func.sum(VWRondasDetalhadas.total_rondas_no_log)
+    ).filter(VWRondasDetalhadas.turno_ronda.isnot(None), VWRondasDetalhadas.total_rondas_no_log.isnot(None))
     rondas_por_turno_q = filters_helper.apply_ronda_filters(
         rondas_por_turno_q, filters, date_start_range, date_end_range
     )
     rondas_por_turno = (
-        rondas_por_turno_q.group_by(Ronda.turno_ronda)
-        .order_by(func.sum(Ronda.total_rondas_no_log).desc())
+        rondas_por_turno_q.group_by(VWRondasDetalhadas.turno_ronda)
+        .order_by(func.sum(VWRondasDetalhadas.total_rondas_no_log).desc())
         .all()
     )
     turno_labels = [item[0] for item in rondas_por_turno]
     rondas_por_turno_data = [item[1] or 0 for item in rondas_por_turno]
 
-    # Rondas por Supervisor
-    rondas_por_supervisor_q = (
-        db.session.query(
-            User.username, func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)
-        )
-        .outerjoin(Ronda, User.id == Ronda.supervisor_id)
-        .filter(User.is_supervisor == True)
-    )
+    # Rondas por Supervisor - usando a view
+    rondas_por_supervisor_q = db.session.query(
+        VWRondasDetalhadas.supervisor_username, func.coalesce(func.sum(VWRondasDetalhadas.total_rondas_no_log), 0)
+    ).filter(VWRondasDetalhadas.supervisor_username.isnot(None))
     rondas_por_supervisor_q = filters_helper.apply_ronda_filters(
         rondas_por_supervisor_q, filters, date_start_range, date_end_range
     )
     rondas_por_supervisor = (
-        rondas_por_supervisor_q.group_by(User.username)
-        .order_by(func.coalesce(func.sum(Ronda.total_rondas_no_log), 0).desc())
+        rondas_por_supervisor_q.group_by(VWRondasDetalhadas.supervisor_username)
+        .order_by(func.coalesce(func.sum(VWRondasDetalhadas.total_rondas_no_log), 0).desc())
         .all()
     )
     supervisor_labels = [item[0] for item in rondas_por_supervisor]
     rondas_por_supervisor_data = [item[1] for item in rondas_por_supervisor]
 
-    # Atividade de Rondas por Dia (Evolução)
+    # Atividade de Rondas por Dia (Evolução) - usando a view
     rondas_por_dia_q = db.session.query(
-        func.date(Ronda.data_plantao_ronda), func.sum(Ronda.total_rondas_no_log)
-    ).filter(Ronda.total_rondas_no_log.isnot(None))
+        func.date(VWRondasDetalhadas.data_plantao_ronda), func.sum(VWRondasDetalhadas.total_rondas_no_log)
+    ).filter(VWRondasDetalhadas.total_rondas_no_log.isnot(None))
     rondas_por_dia_q = filters_helper.apply_ronda_filters(
         rondas_por_dia_q, filters, date_start_range, date_end_range
     )
     rondas_por_dia = (
-        rondas_por_dia_q.group_by(func.date(Ronda.data_plantao_ronda))
-        .order_by(func.date(Ronda.data_plantao_ronda))
+        rondas_por_dia_q.group_by(func.date(VWRondasDetalhadas.data_plantao_ronda))
+        .order_by(func.date(VWRondasDetalhadas.data_plantao_ronda))
         .all()
     )
 
@@ -124,13 +120,13 @@ def get_ronda_dashboard_data(filters):
         try:
             data_selecionada = datetime.strptime(data_especifica_str, "%Y-%m-%d").date()
             rondas_por_turno_dia = (
-                db.session.query(Ronda.turno_ronda, func.sum(Ronda.total_rondas_no_log))
+                db.session.query(VWRondasDetalhadas.turno_ronda, func.sum(VWRondasDetalhadas.total_rondas_no_log))
                 .filter(
-                    Ronda.data_plantao_ronda == data_selecionada,
-                    Ronda.turno_ronda.isnot(None),
+                    VWRondasDetalhadas.data_plantao_ronda == data_selecionada,
+                    VWRondasDetalhadas.turno_ronda.isnot(None),
                 )
-                .group_by(Ronda.turno_ronda)
-                .order_by(Ronda.turno_ronda)
+                .group_by(VWRondasDetalhadas.turno_ronda)
+                .order_by(VWRondasDetalhadas.turno_ronda)
                 .all()
             )
             dados_dia_detalhado["labels"] = [item[0] for item in rondas_por_turno_dia]
@@ -139,22 +135,21 @@ def get_ronda_dashboard_data(filters):
             ]
             dados_tabela_dia = (
                 db.session.query(
-                    User.username,
-                    Ronda.turno_ronda,
-                    func.sum(Ronda.total_rondas_no_log),
+                    VWRondasDetalhadas.supervisor_username,
+                    VWRondasDetalhadas.turno_ronda,
+                    func.sum(VWRondasDetalhadas.total_rondas_no_log),
                 )
-                .join(User, User.id == Ronda.supervisor_id)
-                .filter(Ronda.data_plantao_ronda == data_selecionada)
-                .group_by(User.username, Ronda.turno_ronda)
-                .order_by(User.username)
+                .filter(VWRondasDetalhadas.data_plantao_ronda == data_selecionada)
+                .group_by(VWRondasDetalhadas.supervisor_username, VWRondasDetalhadas.turno_ronda)
+                .order_by(VWRondasDetalhadas.supervisor_username)
                 .all()
             )
         except (ValueError, TypeError):
             flash("Data para análise detalhada em formato inválido.", "warning")
 
-    # 3. Cálculo dos KPIs principais
+    # 3. Cálculo dos KPIs principais - usando a view
     base_kpi_query = filters_helper.apply_ronda_filters(
-        db.session.query(Ronda), filters, date_start_range, date_end_range
+        db.session.query(VWRondasDetalhadas), filters, date_start_range, date_end_range
     )
 
     # [ALTERADO] Lógica de cálculo movida para o helper de KPIs

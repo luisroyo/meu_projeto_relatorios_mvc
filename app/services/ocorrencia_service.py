@@ -39,23 +39,51 @@ def parse_date_string(date_str):
 def apply_ocorrencia_filters(query, filters):
     """
     Aplica filtros a uma query de Ocorrência de forma centralizada.
+    Funciona tanto com a tabela Ocorrencia quanto com a view VWOcorrenciasDetalhadas.
 
     :param query: O objeto de query SQLAlchemy inicial.
     :param filters: Um dicionário contendo os filtros a serem aplicados.
     :return: O objeto de query com os filtros aplicados.
     """
-    from app.models import \
-        Ocorrencia  # Importação tardia para evitar importação circular
+    from app.models import Ocorrencia  # Importação tardia para evitar importação circular
+    from app.models.vw_ocorrencias_detalhadas import VWOcorrenciasDetalhadas
 
-    # Filtros de ID e Status
-    if filters.get("status"):
-        query = query.filter(Ocorrencia.status == filters["status"])
-    if filters.get("condominio_id"):
-        query = query.filter(Ocorrencia.condominio_id == filters["condominio_id"])
-    if filters.get("supervisor_id"):
-        query = query.filter(Ocorrencia.supervisor_id == filters["supervisor_id"])
-    if filters.get("tipo_id"):
-        query = query.filter(Ocorrencia.ocorrencia_tipo_id == filters["tipo_id"])
+    # Detecta se estamos usando a view ou a tabela
+    is_view = hasattr(query.column_descriptions[0]['type'], '__tablename__') and \
+              query.column_descriptions[0]['type'].__tablename__ == 'vw_ocorrencias_detalhadas'
+    
+    if is_view:
+        # Usando a view
+        if filters.get("status"):
+            query = query.filter(VWOcorrenciasDetalhadas.status == filters["status"])
+        if filters.get("condominio_id"):
+            # Na view, condominio é uma string, então filtramos por nome
+            from app.models import Condominio
+            condominio = Condominio.query.get(filters["condominio_id"])
+            if condominio:
+                query = query.filter(VWOcorrenciasDetalhadas.condominio == condominio.nome)
+        if filters.get("supervisor_id"):
+            # Na view, supervisor é uma string, então filtramos por username
+            from app.models import User
+            supervisor = User.query.get(filters["supervisor_id"])
+            if supervisor:
+                query = query.filter(VWOcorrenciasDetalhadas.supervisor == supervisor.username)
+        if filters.get("tipo_id"):
+            # Na view, tipo é uma string, então filtramos por nome
+            from app.models import OcorrenciaTipo
+            tipo = OcorrenciaTipo.query.get(filters["tipo_id"])
+            if tipo:
+                query = query.filter(VWOcorrenciasDetalhadas.tipo == tipo.nome)
+    else:
+        # Usando a tabela original
+        if filters.get("status"):
+            query = query.filter(Ocorrencia.status == filters["status"])
+        if filters.get("condominio_id"):
+            query = query.filter(Ocorrencia.condominio_id == filters["condominio_id"])
+        if filters.get("supervisor_id"):
+            query = query.filter(Ocorrencia.supervisor_id == filters["supervisor_id"])
+        if filters.get("tipo_id"):
+            query = query.filter(Ocorrencia.ocorrencia_tipo_id == filters["tipo_id"])
 
     # Filtros de Data (com tratamento de timezone e múltiplos formatos)
     data_inicio_str = filters.get("data_inicio_str") or filters.get("data_inicio")
@@ -73,7 +101,10 @@ def apply_ocorrencia_filters(query, filters):
                 start_date_aware = local_tz.localize(start_date_naive)
                 start_date_utc = start_date_aware.astimezone(pytz.utc)
 
-                query = query.filter(Ocorrencia.data_hora_ocorrencia >= start_date_utc)
+                if is_view:
+                    query = query.filter(VWOcorrenciasDetalhadas.data_hora_ocorrencia >= start_date_utc)
+                else:
+                    query = query.filter(Ocorrencia.data_hora_ocorrencia >= start_date_utc)
                 logger.info(f"Filtro de data de início aplicado: {data_inicio_str} -> {start_date_utc}")
             except Exception as e:
                 logger.warning(
@@ -99,7 +130,10 @@ def apply_ocorrencia_filters(query, filters):
                 end_date_aware = local_tz.localize(end_date_naive)
                 end_date_utc = end_date_aware.astimezone(pytz.utc)
 
-                query = query.filter(Ocorrencia.data_hora_ocorrencia <= end_date_utc)
+                if is_view:
+                    query = query.filter(VWOcorrenciasDetalhadas.data_hora_ocorrencia <= end_date_utc)
+                else:
+                    query = query.filter(Ocorrencia.data_hora_ocorrencia <= end_date_utc)
                 logger.info(f"Filtro de data de fim aplicado: {data_fim_str} -> {end_date_utc}")
             except Exception as e:
                 logger.warning(
@@ -109,7 +143,9 @@ def apply_ocorrencia_filters(query, filters):
             logger.warning(f"Formato de data de fim inválido: '{data_fim_str}'")
 
     if filters.get("texto_relatorio"):
-        query = query.filter(Ocorrencia.relatorio_final.ilike(f"%{filters['texto_relatorio']}%"))
+        # Nota: A view não tem o campo relatorio_final, então este filtro só funciona com a tabela
+        if not is_view:
+            query = query.filter(Ocorrencia.relatorio_final.ilike(f"%{filters['texto_relatorio']}%"))
 
     return query
 
