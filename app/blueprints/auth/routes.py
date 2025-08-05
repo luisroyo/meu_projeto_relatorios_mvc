@@ -96,20 +96,8 @@ def login():
 @csrf.exempt
 def api_login():
     if request.method == "OPTIONS":
-        # Handler específico para OPTIONS
-        response = current_app.make_response('')
-        origin = request.headers.get('Origin')
-        
-        if origin:
-            response.headers['Access-Control-Allow-Origin'] = origin
-        else:
-            response.headers['Access-Control-Allow-Origin'] = '*'
-            
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,X-Requested-With,Accept,Origin'
-        response.headers['Access-Control-Allow-Methods'] = 'POST,OPTIONS'
-        response.headers['Access-Control-Allow-Credentials'] = 'true'
-        response.headers['Access-Control-Max-Age'] = '86400'
-        return response
+        # Handler simples para OPTIONS - evita erro 500
+        return '', 204
     data = request.get_json() or {}
     email = data.get("email")
     password = data.get("password")
