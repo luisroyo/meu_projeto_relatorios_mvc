@@ -7,7 +7,7 @@ from sqlalchemy import func
 
 from app import db
 from app.models import (Colaborador, Condominio, Ocorrencia, OcorrenciaTipo,
-                        User, VWOcorrenciasDetalhadas)
+                        User, VWOcorrenciasDetalhadas, ocorrencia_colaboradores)
 from app.services import ocorrencia_service
 from app.utils.date_utils import parse_date_range
 
@@ -28,7 +28,7 @@ def get_ocorrencia_dashboard_data(filters):
 
     # Sempre garantir o filtro de datas em todas as queries
     def add_date_filter(query):
-        from datetime import time, timezone
+        from datetime import time, timezone, datetime
         date_start_range_dt = datetime.combine(date_start_range, time.min, tzinfo=timezone.utc)
         date_end_range_dt = datetime.combine(date_end_range, time.max, tzinfo=timezone.utc)
         return query.filter(
@@ -56,11 +56,11 @@ def get_ocorrencia_dashboard_data(filters):
 
     ocorrencias_por_tipo_q = db.session.query(
         VWOcorrenciasDetalhadas.tipo, func.count(VWOcorrenciasDetalhadas.id)
-    ).filter(VWOcorrenciasDetalhadas.tipo.isnot(None))
-    ocorrencias_por_tipo_q = ocorrencia_service.apply_ocorrencia_filters(
-        ocorrencias_por_tipo_q, filters
+    ).filter(
+        VWOcorrenciasDetalhadas.tipo.isnot(None),
+        VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
+        VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range
     )
-    ocorrencias_por_tipo_q = add_date_filter(ocorrencias_por_tipo_q)
     ocorrencias_por_tipo = (
         ocorrencias_por_tipo_q.group_by(VWOcorrenciasDetalhadas.tipo)
         .order_by(func.count(VWOcorrenciasDetalhadas.id).desc())
@@ -72,11 +72,11 @@ def get_ocorrencia_dashboard_data(filters):
 
     ocorrencias_por_condominio_q = db.session.query(
         VWOcorrenciasDetalhadas.condominio, func.count(VWOcorrenciasDetalhadas.id)
-    ).filter(VWOcorrenciasDetalhadas.condominio.isnot(None))
-    ocorrencias_por_condominio_q = ocorrencia_service.apply_ocorrencia_filters(
-        ocorrencias_por_condominio_q, filters
+    ).filter(
+        VWOcorrenciasDetalhadas.condominio.isnot(None),
+        VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
+        VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range
     )
-    ocorrencias_por_condominio_q = add_date_filter(ocorrencias_por_condominio_q)
     ocorrencias_por_condominio = (
         ocorrencias_por_condominio_q.group_by(VWOcorrenciasDetalhadas.condominio)
         .order_by(func.count(VWOcorrenciasDetalhadas.id).desc())
@@ -88,77 +88,146 @@ def get_ocorrencia_dashboard_data(filters):
     # --- DEBUG: Logs para evolução diária ---
     logger.info(f"Filtros aplicados: {filters}")
 
-    # CORREÇÃO: Converter UTC para local antes de extrair a data
-    from sqlalchemy import text
+    # [NOVO] Evolução por turno diário (diurno e noturno) - Plantão 12x36
+    from datetime import datetime, time
     import pytz
     
     # Obtém o timezone local da configuração
     local_tz_str = current_app.config.get("DEFAULT_TIMEZONE", "America/Sao_Paulo")
+    local_tz = pytz.timezone(local_tz_str)
     
-    # Query corrigida para converter UTC para local antes de extrair a data
-    ocorrencias_por_dia_q = db.session.query(
-        func.date(
-            func.timezone(local_tz_str, Ocorrencia.data_hora_ocorrencia)
-        ), 
-        func.count(Ocorrencia.id)
+    # Query para ocorrências por turno e data
+    ocorrencias_por_turno_dia_q = db.session.query(
+        func.date(VWOcorrenciasDetalhadas.data_hora_ocorrencia),
+        VWOcorrenciasDetalhadas.turno,
+        func.count(VWOcorrenciasDetalhadas.id)
+    ).filter(
+        VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
+        VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range,
+        VWOcorrenciasDetalhadas.turno.isnot(None)
     )
-    ocorrencias_por_dia_q = ocorrencia_service.apply_ocorrencia_filters(
-        ocorrencias_por_dia_q, filters
-    )
-    ocorrencias_por_dia_q = add_date_filter(ocorrencias_por_dia_q)
-    ocorrencias_por_dia = (
-        ocorrencias_por_dia_q.group_by(
-            func.date(func.timezone(local_tz_str, Ocorrencia.data_hora_ocorrencia))
+    
+    # Aplicar filtros adicionais
+    if filters.get("supervisor_id"):
+        supervisor = User.query.get(filters["supervisor_id"])
+        if supervisor:
+            ocorrencias_por_turno_dia_q = ocorrencias_por_turno_dia_q.filter(
+                VWOcorrenciasDetalhadas.supervisor == supervisor.username
+            )
+    if filters.get("condominio_id"):
+        condominio = Condominio.query.get(filters["condominio_id"])
+        if condominio:
+            ocorrencias_por_turno_dia_q = ocorrencias_por_turno_dia_q.filter(
+                VWOcorrenciasDetalhadas.condominio == condominio.nome
+            )
+    
+    ocorrencias_por_turno_dia = (
+        ocorrencias_por_turno_dia_q.group_by(
+            func.date(VWOcorrenciasDetalhadas.data_hora_ocorrencia),
+            VWOcorrenciasDetalhadas.turno
         )
-        .order_by(
-            func.date(func.timezone(local_tz_str, Ocorrencia.data_hora_ocorrencia))
-        )
+        .order_by(func.date(VWOcorrenciasDetalhadas.data_hora_ocorrencia))
         .all()
     )
 
-    logger.info(f"Dados de ocorrências por dia: {ocorrencias_por_dia}")
+    logger.info(f"Dados de ocorrências por turno e dia: {ocorrencias_por_turno_dia}")
 
-    evolucao_date_labels, evolucao_ocorrencia_data = [], []
-
-    logger.info(f"Range de datas: {date_start_range} até {date_end_range}")
-    logger.info(f"Dias no range: {(date_end_range - date_start_range).days}")
-
+    # Processar dados para gráfico de barras empilhadas
+    evolucao_date_labels, evolucao_diurno_data, evolucao_noturno_data = [], [], []
+    
     if (date_end_range - date_start_range).days < 366:
+        # Gerar labels de data
         evolucao_date_labels = date_utils.generate_date_labels(
             date_start_range, date_end_range
         )
-        evolucao_ocorrencia_data = chart_data.fill_series_with_zeros(
-            ocorrencias_por_dia, evolucao_date_labels
-        )
+        
+        # Criar dicionário para organizar dados por data e turno
+        dados_por_data = {}
+        for data_str in evolucao_date_labels:
+            data_obj = datetime.strptime(data_str, "%Y-%m-%d").date()
+            dados_por_data[data_obj] = {"diurno": 0, "noturno": 0}
+        
+        # Preencher dados das ocorrências
+        for data_ocorrencia, turno, count in ocorrencias_por_turno_dia:
+            if data_ocorrencia in dados_por_data:
+                # Normalizar nomes dos turnos
+                turno_normalizado = turno.lower().strip()
+                if "diurno" in turno_normalizado or "dia" in turno_normalizado:
+                    dados_por_data[data_ocorrencia]["diurno"] += count
+                elif "noturno" in turno_normalizado or "noite" in turno_normalizado:
+                    dados_por_data[data_ocorrencia]["noturno"] += count
+        
+        # Preparar dados para o gráfico
+        evolucao_total_data = []
+        for data_str in evolucao_date_labels:
+            data_obj = datetime.strptime(data_str, "%Y-%m-%d").date()
+            total_dia = dados_por_data[data_obj]["diurno"] + dados_por_data[data_obj]["noturno"]
+            evolucao_total_data.append(total_dia)
+            evolucao_diurno_data.append(dados_por_data[data_obj]["diurno"])
+            evolucao_noturno_data.append(dados_por_data[data_obj]["noturno"])
 
         logger.info(f"Labels de data gerados: {len(evolucao_date_labels)}")
-        logger.info(f"Dados de evolução: {evolucao_ocorrencia_data}")
-        logger.info(f"Primeiros 5 labels: {evolucao_date_labels[:5]}")
-        logger.info(f"Primeiros 5 dados: {evolucao_ocorrencia_data[:5]}")
+        logger.info(f"Dados diurno: {evolucao_diurno_data[:5]}")
+        logger.info(f"Dados noturno: {evolucao_noturno_data[:5]}")
 
-    ultimas_ocorrencias_q = (
-        db.session.query(Ocorrencia)
-        .join(Condominio, Ocorrencia.condominio_id == Condominio.id)
-        .join(OcorrenciaTipo, Ocorrencia.ocorrencia_tipo_id == OcorrenciaTipo.id)
-        .outerjoin(User, Ocorrencia.supervisor_id == User.id)
+    ultimas_ocorrencias_q = db.session.query(VWOcorrenciasDetalhadas).filter(
+        VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
+        VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range
     )
-    ultimas_ocorrencias_q = ocorrencia_service.apply_ocorrencia_filters(
-        ultimas_ocorrencias_q, filters
-    )
-    ultimas_ocorrencias_q = add_date_filter(ultimas_ocorrencias_q)
+    
+    # Aplicar filtros adicionais
+    if filters.get("supervisor_id"):
+        # Buscar o nome do supervisor pelo ID
+        supervisor = User.query.get(filters["supervisor_id"])
+        if supervisor:
+            ultimas_ocorrencias_q = ultimas_ocorrencias_q.filter(
+                VWOcorrenciasDetalhadas.supervisor == supervisor.username
+            )
+    if filters.get("condominio_id"):
+        # Buscar o nome do condomínio pelo ID
+        condominio = Condominio.query.get(filters["condominio_id"])
+        if condominio:
+            ultimas_ocorrencias_q = ultimas_ocorrencias_q.filter(
+                VWOcorrenciasDetalhadas.condominio == condominio.nome
+            )
+    if filters.get("turno"):
+        ultimas_ocorrencias_q = ultimas_ocorrencias_q.filter(
+            VWOcorrenciasDetalhadas.turno == filters["turno"]
+        )
     ultimas_ocorrencias = (
-        ultimas_ocorrencias_q.order_by(Ocorrencia.data_hora_ocorrencia.desc())
+        ultimas_ocorrencias_q.order_by(VWOcorrenciasDetalhadas.data_hora_ocorrencia.desc())
         .limit(10)
         .all()
     )
 
+    # Query para top colaboradores que ATENDERAM ocorrências (não quem registrou)
     top_colaboradores_q = db.session.query(
-        Colaborador.nome_completo, func.count(Ocorrencia.id).label("total_ocorrencias")
-    ).join(Ocorrencia.colaboradores_envolvidos)
-    top_colaboradores_q = ocorrencia_service.apply_ocorrencia_filters(
-        top_colaboradores_q, filters
+        Colaborador.nome_completo, 
+        func.count(Ocorrencia.id).label("total_ocorrencias")
+    ).join(
+        ocorrencia_colaboradores, 
+        Colaborador.id == ocorrencia_colaboradores.c.colaborador_id
+    ).join(
+        Ocorrencia, 
+        ocorrencia_colaboradores.c.ocorrencia_id == Ocorrencia.id
+    ).filter(
+        Colaborador.nome_completo.isnot(None),
+        Ocorrencia.data_hora_ocorrencia >= date_start_range,
+        Ocorrencia.data_hora_ocorrencia <= date_end_range
     )
-    top_colaboradores_q = add_date_filter(top_colaboradores_q)
+    
+    # Aplicar filtros adicionais se necessário
+    if filters.get("supervisor_id"):
+        supervisor = User.query.get(filters["supervisor_id"])
+        if supervisor:
+            top_colaboradores_q = top_colaboradores_q.filter(
+                Ocorrencia.supervisor_id == supervisor.id
+            )
+    if filters.get("condominio_id"):
+        top_colaboradores_q = top_colaboradores_q.filter(
+            Ocorrencia.condominio_id == filters["condominio_id"]
+        )
+    
     top_colaboradores_raw = (
         top_colaboradores_q.group_by(Colaborador.nome_completo)
         .order_by(func.count(Ocorrencia.id).desc())
@@ -224,7 +293,7 @@ def get_ocorrencia_dashboard_data(filters):
         "condominio_labels": condominio_labels,
         "ocorrencias_por_condominio_data": ocorrencias_por_condominio_data,
         "evolucao_date_labels": evolucao_date_labels,
-        "evolucao_ocorrencia_data": evolucao_ocorrencia_data,
+        "evolucao_ocorrencia_data": evolucao_total_data,
         "ultimas_ocorrencias": ultimas_ocorrencias,
         "top_colaboradores_labels": top_colaboradores_labels,
         "top_colaboradores_data": top_colaboradores_data,
