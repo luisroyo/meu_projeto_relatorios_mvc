@@ -10,6 +10,7 @@ jwt = JWTManager()
 def init_jwt(app):
     """Inicializa a configuração JWT na aplicação Flask."""
     app.config['JWT_SECRET_KEY'] = app.config.get('SECRET_KEY', 'dev-secret-key')
+    print(f"JWT_SECRET_KEY configurada: {app.config['JWT_SECRET_KEY'][:10]}...")
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
     app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
     # Desabilitar CSRF para tokens JWT
