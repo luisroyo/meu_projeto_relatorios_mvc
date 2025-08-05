@@ -282,33 +282,35 @@ def create_app(
             'code': 'DB_DISCONNECTION'
         }), 503
     
-    # Middleware para verificar conexão antes de cada request
-    @app_instance.before_request
-    def check_db_connection():
-        """Verifica se a conexão com o banco está ativa antes de cada request."""
-        if request.endpoint and 'static' not in request.endpoint:
-            try:
-                # Testa a conexão com uma query simples
-                db.session.execute(text('SELECT 1'))
-            except (OperationalError, DisconnectionError) as e:
-                module_logger.warning(f"Conexão com banco perdida, tentando reconectar: {e}")
-                
+    # Middleware para verificar conexão antes de cada request (desabilitado para produção)
+    if os.environ.get("FLASK_ENV", "development") == "development":
+        @app_instance.before_request
+        def check_db_connection():
+            """Verifica se a conexão com o banco está ativa antes de cada request."""
+            if request.endpoint and 'static' not in request.endpoint:
                 try:
-                    db.session.rollback()
-                    db.session.close()
-                    db.engine.dispose()
-                except:
-                    pass
+                    # Testa a conexão com uma query simples
+                    db.session.execute(text('SELECT 1'))
+                except (OperationalError, DisconnectionError) as e:
+                    module_logger.warning(f"Conexão com banco perdida, tentando reconectar: {e}")
+                    
+                    try:
+                        db.session.rollback()
+                        db.session.close()
+                        db.engine.dispose()
+                    except:
+                        pass
     
-    # Middleware para rastrear atividade dos usuários
-    @app_instance.before_request
-    def track_user_activity():
-        """Rastreia atividade dos usuários online."""
-        try:
-            from .middleware.user_activity import track_user_activity as track_activity
-            track_activity()
-        except Exception as e:
-            module_logger.error(f"Erro no middleware de atividade: {e}")
+    # Middleware para rastrear atividade dos usuários (desabilitado para produção)
+    if os.environ.get("FLASK_ENV", "development") == "development":
+        @app_instance.before_request
+        def track_user_activity():
+            """Rastreia atividade dos usuários online."""
+            try:
+                from .middleware.user_activity import track_user_activity as track_activity
+                track_activity()
+            except Exception as e:
+                module_logger.error(f"Erro no middleware de atividade: {e}")
     
     # Configurar eventos do SQLAlchemy para logging (dentro do contexto da aplicação)
     with app_instance.app_context():
