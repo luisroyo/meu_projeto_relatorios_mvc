@@ -11,7 +11,7 @@ def track_user_activity():
         # Só rastreia se o usuário estiver autenticado
         if current_user.is_authenticated:
             # Obtém informações da sessão e request
-            session_id = session.get('_id', 'unknown')
+            session_id = str(session.get('_id', hash(request.remote_addr + str(current_user.id))))
             ip_address = request.remote_addr
             user_agent = request.headers.get('User-Agent', '')
             
