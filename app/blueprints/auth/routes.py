@@ -143,7 +143,7 @@ def _registrar_login(
     try:
         log = LoginHistory(  # type: ignore
             user_id=user.id if user else None,
-            attempted_username=req.form.get("email"),
+            attempted_username=req.form.get("email") or req.get_json().get("email") if req.is_json else req.form.get("email"),
             timestamp=datetime.now(timezone.utc),
             success=sucesso,
             ip_address=req.remote_addr,

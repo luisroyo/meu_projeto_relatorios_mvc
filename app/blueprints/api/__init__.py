@@ -58,4 +58,56 @@ def list_condominios_simple():
         return jsonify({'error': 'Erro ao listar condomínios'}), 500
 
 # NOTA: ronda_esporadica_routes.py está DEPRECATED
-# Use ronda_tempo_real_routes.py em vez disso 
+# Use ronda_tempo_real_routes.py em vez disso
+
+# Adicionar rotas de colaboradores e logradouros para compatibilidade com frontend
+from app.models.colaborador import Colaborador
+from app.models.vw_logradouros import VWLogradouros
+
+@api_bp.route('/colaboradores', methods=['GET'])
+@jwt_required()
+def list_colaboradores_simple():
+    """Listar colaboradores para filtros do frontend."""
+    try:
+        nome = request.args.get('nome', '')
+        query = Colaborador.query.filter_by(status='Ativo')
+        
+        if nome:
+            query = query.filter(Colaborador.nome_completo.ilike(f'%{nome}%'))
+        
+        colaboradores = query.order_by(Colaborador.nome_completo).limit(10).all()
+        
+        return jsonify({
+            'colaboradores': [{
+                'id': col.id,
+                'nome_completo': col.nome_completo,
+                'cargo': col.cargo,
+                'matricula': col.matricula
+            } for col in colaboradores]
+        }), 200
+    except Exception as e:
+        return jsonify({'error': 'Erro ao listar colaboradores'}), 500
+
+@api_bp.route('/logradouros_view', methods=['GET'])
+@jwt_required()
+def list_logradouros_simple():
+    """Listar logradouros para filtros do frontend."""
+    try:
+        nome = request.args.get('nome', '')
+        query = VWLogradouros.query
+        
+        if nome:
+            query = query.filter(VWLogradouros.nome.ilike(f'%{nome}%'))
+        
+        logradouros = query.order_by(VWLogradouros.nome).limit(10).all()
+        
+        return jsonify({
+            'logradouros': [{
+                'id': log.id,
+                'nome': log.nome,
+                'bairro': log.bairro,
+                'cidade': log.cidade
+            } for log in logradouros]
+        }), 200
+    except Exception as e:
+        return jsonify({'error': 'Erro ao listar logradouros'}), 500 
