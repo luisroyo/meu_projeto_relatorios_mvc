@@ -82,8 +82,8 @@
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDashboardDropdown">
               <li><a class="dropdown-item {% if request.endpoint == 'admin.dashboard_metrics' %}active{% endif %}"
                   href="{{ url_for('admin.dashboard_metrics') }}">Métricas Gerais</a></li>
-              <li><a class="dropdown-item {% if request.endpoint == 'admin.ronda_dashboard' %}active{% endif %}"
-                  href="{{ url_for('admin.ronda_dashboard') }}">Métricas de Rondas</a></li>
+                              <li><a class="dropdown-item {% if request.endpoint == 'admin.ronda_dashboard' %}active{% endif %}"
+                    href="{{ url_for('admin.ronda_dashboard') }}">Métricas de Rondas</a></li>
               <li><a class="dropdown-item {% if request.endpoint == 'admin.ocorrencia_dashboard' %}active{% endif %}"
                   href="{{ url_for('admin.ocorrencia_dashboard') }}">Métricas de Ocorrências</a></li>
               <li><a class="dropdown-item {% if request.endpoint == 'admin.dashboard_comparativo' %}active{% endif %}"

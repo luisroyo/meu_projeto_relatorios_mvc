@@ -7,7 +7,7 @@ from sqlalchemy import func
 
 from app import db
 from app.models import (Colaborador, Condominio, Ocorrencia, OcorrenciaTipo,
-                        User)
+                        User, VWOcorrenciasDetalhadas)
 from app.services import ocorrencia_service
 from app.utils.date_utils import parse_date_range
 
@@ -32,12 +32,12 @@ def get_ocorrencia_dashboard_data(filters):
         date_start_range_dt = datetime.combine(date_start_range, time.min, tzinfo=timezone.utc)
         date_end_range_dt = datetime.combine(date_end_range, time.max, tzinfo=timezone.utc)
         return query.filter(
-            Ocorrencia.data_hora_ocorrencia >= date_start_range_dt,
-            Ocorrencia.data_hora_ocorrencia <= date_end_range_dt
+            VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range_dt,
+            VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range_dt
         )
 
-    # 2. Query base para KPIs (com filtro de datas)
-    base_kpi_query = db.session.query(Ocorrencia)
+    # 2. Query base para KPIs (com filtro de datas) - usando a view
+    base_kpi_query = db.session.query(VWOcorrenciasDetalhadas)
     base_kpi_query = ocorrencia_service.apply_ocorrencia_filters(
         base_kpi_query, filters
     )
@@ -51,19 +51,19 @@ def get_ocorrencia_dashboard_data(filters):
         'Em Andamento',
     ]
     ocorrencias_abertas = base_kpi_query.filter(
-        Ocorrencia.status.in_(status_abertos)
+        VWOcorrenciasDetalhadas.status.in_(status_abertos)
     ).count()
 
     ocorrencias_por_tipo_q = db.session.query(
-        OcorrenciaTipo.nome, func.count(Ocorrencia.id)
-    ).join(Ocorrencia, OcorrenciaTipo.id == Ocorrencia.ocorrencia_tipo_id)
+        VWOcorrenciasDetalhadas.tipo, func.count(VWOcorrenciasDetalhadas.id)
+    ).filter(VWOcorrenciasDetalhadas.tipo.isnot(None))
     ocorrencias_por_tipo_q = ocorrencia_service.apply_ocorrencia_filters(
         ocorrencias_por_tipo_q, filters
     )
     ocorrencias_por_tipo_q = add_date_filter(ocorrencias_por_tipo_q)
     ocorrencias_por_tipo = (
-        ocorrencias_por_tipo_q.group_by(OcorrenciaTipo.nome)
-        .order_by(func.count(Ocorrencia.id).desc())
+        ocorrencias_por_tipo_q.group_by(VWOcorrenciasDetalhadas.tipo)
+        .order_by(func.count(VWOcorrenciasDetalhadas.id).desc())
         .all()
     )
     tipo_labels = [item[0] for item in ocorrencias_por_tipo]
@@ -71,15 +71,15 @@ def get_ocorrencia_dashboard_data(filters):
     tipo_mais_comum = tipo_labels[0] if tipo_labels else "N/A"
 
     ocorrencias_por_condominio_q = db.session.query(
-        Condominio.nome, func.count(Ocorrencia.id)
-    ).join(Ocorrencia, Condominio.id == Ocorrencia.condominio_id)
+        VWOcorrenciasDetalhadas.condominio, func.count(VWOcorrenciasDetalhadas.id)
+    ).filter(VWOcorrenciasDetalhadas.condominio.isnot(None))
     ocorrencias_por_condominio_q = ocorrencia_service.apply_ocorrencia_filters(
         ocorrencias_por_condominio_q, filters
     )
     ocorrencias_por_condominio_q = add_date_filter(ocorrencias_por_condominio_q)
     ocorrencias_por_condominio = (
-        ocorrencias_por_condominio_q.group_by(Condominio.nome)
-        .order_by(func.count(Ocorrencia.id).desc())
+        ocorrencias_por_condominio_q.group_by(VWOcorrenciasDetalhadas.condominio)
+        .order_by(func.count(VWOcorrenciasDetalhadas.id).desc())
         .all()
     )
     condominio_labels = [item[0] for item in ocorrencias_por_condominio]
@@ -189,13 +189,22 @@ def get_ocorrencia_dashboard_data(filters):
     )
 
     # [NOVO] Tempo médio de resolução das ocorrências concluídas
-    ocorrencias_concluidas_q = base_kpi_query.filter(Ocorrencia.status == 'Concluída', Ocorrencia.data_modificacao.isnot(None))
-    tempos_resolucao = [
-        (o.data_modificacao - o.data_hora_ocorrencia).total_seconds() / 60.0
-        for o in ocorrencias_concluidas_q.all()
-        if o.data_modificacao and o.data_hora_ocorrencia and o.data_modificacao > o.data_hora_ocorrencia
-    ]
-    tempo_medio_resolucao_minutos = round(sum(tempos_resolucao) / len(tempos_resolucao), 1) if tempos_resolucao else None
+    # Detecta se estamos usando a view ou a tabela
+    is_view = hasattr(base_kpi_query.column_descriptions[0]['type'], '__tablename__') and \
+              base_kpi_query.column_descriptions[0]['type'].__tablename__ == 'vw_ocorrencias_detalhadas'
+    
+    if is_view:
+        # A view não tem data_modificacao, então não podemos calcular o tempo de resolução
+        tempo_medio_resolucao_minutos = None
+    else:
+        # Usando a tabela original, podemos calcular o tempo de resolução
+        ocorrencias_concluidas_q = base_kpi_query.filter(Ocorrencia.status == 'Concluída', Ocorrencia.data_modificacao.isnot(None))
+        tempos_resolucao = [
+            (o.data_modificacao - o.data_hora_ocorrencia).total_seconds() / 60.0
+            for o in ocorrencias_concluidas_q.all()
+            if o.data_modificacao and o.data_hora_ocorrencia and o.data_modificacao > o.data_hora_ocorrencia
+        ]
+        tempo_medio_resolucao_minutos = round(sum(tempos_resolucao) / len(tempos_resolucao), 1) if tempos_resolucao else None
 
     # [NOVO] Média diária de ocorrências
     dias_com_dados = periodo_info["dias_com_dados"] if periodo_info and "dias_com_dados" in periodo_info else 0

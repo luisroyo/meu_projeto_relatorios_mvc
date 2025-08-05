@@ -98,12 +98,8 @@ def listar_ocorrencias():
         "texto_relatorio": request.args.get("texto_relatorio", ""),
     }
 
-    query = Ocorrencia.query.options(
-        db.joinedload(Ocorrencia.tipo),
-        db.joinedload(Ocorrencia.registrado_por),
-        db.joinedload(Ocorrencia.condominio),
-        db.joinedload(Ocorrencia.supervisor),
-    )
+    from app.models.vw_ocorrencias_detalhadas import VWOcorrenciasDetalhadas
+    query = VWOcorrenciasDetalhadas.query
 
     ## [REMOVIDO] Bloco inteiro de IFs para filtragem manual foi removido daqui.
     # if selected_status: query = query.filter(Ocorrencia.status == selected_status)
@@ -112,8 +108,9 @@ def listar_ocorrencias():
     ## [ADICIONADO] Chamada única para a função de serviço centralizada.
     query = ocorrencia_service.apply_ocorrencia_filters(query, filters)
 
+    from app.models.vw_ocorrencias_detalhadas import VWOcorrenciasDetalhadas
     ocorrencias_pagination = query.order_by(
-        Ocorrencia.data_hora_ocorrencia.desc()
+        VWOcorrenciasDetalhadas.data_hora_ocorrencia.desc()
     ).paginate(page=page, per_page=15, error_out=False)
 
     # Carrega dados para preencher os formulários de filtro no template
