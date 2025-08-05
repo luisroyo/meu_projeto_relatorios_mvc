@@ -47,28 +47,35 @@ class UserOnline(db.Model):
     @classmethod
     def update_activity(cls, user_id, session_id, ip_address=None, user_agent=None):
         """Atualiza ou cria uma sessão de usuário online."""
-        session = cls.query.filter_by(session_id=session_id).first()
-        
-        if session:
-            # Atualiza sessão existente
-            session.last_activity = datetime.now()
-            if ip_address:
-                session.ip_address = ip_address
-            if user_agent:
-                session.user_agent = user_agent
-        else:
-            # Cria nova sessão
-            session = cls(
-                user_id=user_id,
-                session_id=session_id,
-                ip_address=ip_address,
-                user_agent=user_agent,
-                last_activity=datetime.now()
-            )
-            db.session.add(session)
-        
-        db.session.commit()
-        return session
+        try:
+            session = cls.query.filter_by(session_id=session_id).first()
+            
+            if session:
+                # Atualiza sessão existente
+                session.last_activity = datetime.now()
+                if ip_address:
+                    session.ip_address = ip_address
+                if user_agent:
+                    session.user_agent = user_agent
+            else:
+                # Cria nova sessão
+                session = cls(
+                    user_id=user_id,
+                    session_id=session_id,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    last_activity=datetime.now()
+                )
+                db.session.add(session)
+            
+            db.session.commit()
+            return session
+        except Exception as e:
+            db.session.rollback()
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Erro ao atualizar atividade do usuário {user_id}: {e}")
+            raise
     
     @classmethod
     def remove_session(cls, session_id):

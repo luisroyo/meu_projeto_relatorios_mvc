@@ -17,6 +17,9 @@
                     <button class="btn btn-outline-danger btn-sm" onclick="cleanupSessions()">
                         <i class="bi bi-trash me-1"></i>Limpar Sessões
                     </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="debugSessions()">
+                        <i class="bi bi-bug me-1"></i>Debug Sessões
+                    </button>
                 </div>
             </div>
 
@@ -228,6 +231,36 @@ function cleanupSessions() {
         console.error('Erro:', error);
         showToast('Erro ao conectar com o servidor', 'danger');
     });
+}
+
+// Função para debug das sessões
+function debugSessions() {
+    fetch('/admin/online/api/debug-sessions')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Debug das sessões:', data);
+                let debugInfo = `Total de sessões: ${data.total_sessions}\n\n`;
+                
+                data.sessions.forEach(session => {
+                    debugInfo += `ID: ${session.id}\n`;
+                    debugInfo += `User ID: ${session.user_id}\n`;
+                    debugInfo += `Session ID: ${session.session_id}\n`;
+                    debugInfo += `IP: ${session.ip_address}\n`;
+                    debugInfo += `Última atividade: ${session.last_activity}\n`;
+                    debugInfo += `Criado em: ${session.created_at}\n`;
+                    debugInfo += '---\n';
+                });
+                
+                showModal('Debug das Sessões', `<pre>${debugInfo}</pre>`);
+            } else {
+                showToast('Erro ao obter debug: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            showToast('Erro ao conectar com o servidor', 'danger');
+        });
 }
 
 // Inicializar atualização automática

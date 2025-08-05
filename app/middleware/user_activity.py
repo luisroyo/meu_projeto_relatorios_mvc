@@ -15,6 +15,10 @@ def track_user_activity():
             ip_address = request.remote_addr
             user_agent = request.headers.get('User-Agent', '')
             
+            # Log para debug (apenas em desenvolvimento)
+            if current_app.debug:
+                logger.debug(f"Rastreando atividade: User={current_user.username}, Session={session_id[:10]}...")
+            
             # Atualiza atividade do usuário
             UserOnline.update_activity(
                 user_id=current_user.id,
@@ -23,13 +27,26 @@ def track_user_activity():
                 user_agent=user_agent
             )
             
+            # Log de sucesso para debug
+            if current_app.debug:
+                logger.debug(f"Atividade registrada com sucesso para {current_user.username}")
+            
             # Limpa sessões antigas periodicamente (a cada 10% das requisições)
             import random
             if random.randint(1, 10) == 1:
                 UserOnline.cleanup_old_sessions()
+        else:
+            # Log quando usuário não está autenticado
+            if current_app.debug:
+                logger.debug("Usuário não autenticado, pulando rastreamento")
                 
     except Exception as e:
         logger.error(f"Erro ao rastrear atividade do usuário: {e}")
+        # Log mais detalhado em caso de erro
+        if current_user.is_authenticated:
+            logger.error(f"Detalhes do erro - User ID: {current_user.id}, Session: {session.get('_id', 'N/A')}")
+        else:
+            logger.error("Erro ocorreu com usuário não autenticado")
 
 def get_online_users_count():
     """Retorna o número de usuários online."""
