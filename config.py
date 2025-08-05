@@ -1,6 +1,10 @@
 # config.py
 import os
 from datetime import timedelta
+from dotenv import load_dotenv
+
+# Carrega as variáveis do arquivo .env
+load_dotenv()
 
 
 class Config:
@@ -39,17 +43,33 @@ class DevelopmentConfig(Config):
 
     DEBUG = True
 
-    # Configuração do banco de dados com suporte a SSL para PostgreSQL
+    # Usa a DATABASE_URL do arquivo .env
     database_url = os.environ.get("DATABASE_URL")
-    if not database_url:
-        # Fallback para PostgreSQL em desenvolvimento se DATABASE_URL não estiver definida
-        database_url = "postgresql://postgres:edu123cs@localhost:5432/swiss_db"
-
-    # Garante que a URL use postgresql:// ao invés de postgres:// (para PostgreSQL)
-    if database_url and database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
-
-    SQLALCHEMY_DATABASE_URI = database_url
+    
+    if database_url:
+        # Garante que a URL use postgresql:// ao invés de postgres://
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+        
+        # Remove configurações SSL duplicadas se existirem
+        if "sslmode=require" in database_url and "channel_binding=require" in database_url:
+            # Se já tem ambas as configurações, usa como está
+            SQLALCHEMY_DATABASE_URI = database_url
+        elif "sslmode=require" in database_url:
+            # Se só tem sslmode, adiciona channel_binding
+            if "?" not in database_url:
+                SQLALCHEMY_DATABASE_URI = database_url + "&channel_binding=require"
+            else:
+                SQLALCHEMY_DATABASE_URI = database_url + "&channel_binding=require"
+        else:
+            # Se não tem nenhuma, adiciona ambas
+            if "?" not in database_url:
+                SQLALCHEMY_DATABASE_URI = database_url + "?sslmode=require&channel_binding=require"
+            else:
+                SQLALCHEMY_DATABASE_URI = database_url + "&sslmode=require&channel_binding=require"
+    else:
+        # Fallback para SQLite se não encontrar DATABASE_URL
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///dev.db'
 
 
 class LocalConfig(Config):
