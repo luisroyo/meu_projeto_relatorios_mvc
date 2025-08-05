@@ -8,6 +8,34 @@ from flask import current_app
 logger = logging.getLogger(__name__)
 
 
+def parse_date_string(date_str):
+    """
+    Tenta fazer o parse de uma string de data em diferentes formatos.
+    
+    :param date_str: String da data
+    :return: datetime object ou None se falhar
+    """
+    if not date_str:
+        return None
+        
+    # Lista de formatos possíveis
+    date_formats = [
+        '%Y-%m-%d',  # 2025-08-04 (ISO)
+        '%d/%m/%Y',  # 04/08/2025 (Brasileiro)
+        '%d-%m-%Y',  # 04-08-2025 (Alternativo)
+        '%Y/%m/%d',  # 2025/08/04 (Alternativo)
+    ]
+    
+    for fmt in date_formats:
+        try:
+            return datetime.strptime(date_str, fmt)
+        except ValueError:
+            continue
+    
+    logger.warning(f"Formato de data não reconhecido: '{date_str}'")
+    return None
+
+
 def apply_ocorrencia_filters(query, filters):
     """
     Aplica filtros a uma query de Ocorrência de forma centralizada.
@@ -29,48 +57,56 @@ def apply_ocorrencia_filters(query, filters):
     if filters.get("tipo_id"):
         query = query.filter(Ocorrencia.ocorrencia_tipo_id == filters["tipo_id"])
 
-    # Filtros de Data (com tratamento de timezone)
+    # Filtros de Data (com tratamento de timezone e múltiplos formatos)
     data_inicio_str = filters.get("data_inicio_str") or filters.get("data_inicio")
     if data_inicio_str:
-        try:
-            # Obtém o timezone da configuração da aplicação para flexibilidade
-            default_tz_str = current_app.config.get(
-                "DEFAULT_TIMEZONE", "America/Sao_Paulo"
-            )
-            local_tz = pytz.timezone(default_tz_str)
+        start_date_naive = parse_date_string(data_inicio_str)
+        if start_date_naive:
+            try:
+                # Obtém o timezone da configuração da aplicação para flexibilidade
+                default_tz_str = current_app.config.get(
+                    "DEFAULT_TIMEZONE", "America/Sao_Paulo"
+                )
+                local_tz = pytz.timezone(default_tz_str)
 
-            # Converte a data de início para um datetime ciente do fuso horário e em UTC
-            start_date_naive = datetime.strptime(data_inicio_str, "%Y-%m-%d")
-            start_date_aware = local_tz.localize(start_date_naive)
-            start_date_utc = start_date_aware.astimezone(pytz.utc)
+                # Converte a data de início para um datetime ciente do fuso horário e em UTC
+                start_date_aware = local_tz.localize(start_date_naive)
+                start_date_utc = start_date_aware.astimezone(pytz.utc)
 
-            query = query.filter(Ocorrencia.data_hora_ocorrencia >= start_date_utc)
-        except (ValueError, TypeError) as e:
-            logger.warning(
-                f"Formato de data de início inválido fornecido: '{data_inicio_str}'. Erro: {e}"
-            )
-            # Opcional: pode-se adicionar um flash de erro aqui se o contexto permitir
+                query = query.filter(Ocorrencia.data_hora_ocorrencia >= start_date_utc)
+                logger.info(f"Filtro de data de início aplicado: {data_inicio_str} -> {start_date_utc}")
+            except Exception as e:
+                logger.warning(
+                    f"Erro ao processar data de início '{data_inicio_str}': {e}"
+                )
+        else:
+            logger.warning(f"Formato de data de início inválido: '{data_inicio_str}'")
 
     data_fim_str = filters.get("data_fim_str") or filters.get("data_fim")
     if data_fim_str:
-        try:
-            default_tz_str = current_app.config.get(
-                "DEFAULT_TIMEZONE", "America/Sao_Paulo"
-            )
-            local_tz = pytz.timezone(default_tz_str)
+        end_date_naive = parse_date_string(data_fim_str)
+        if end_date_naive:
+            try:
+                default_tz_str = current_app.config.get(
+                    "DEFAULT_TIMEZONE", "America/Sao_Paulo"
+                )
+                local_tz = pytz.timezone(default_tz_str)
 
-            # Para a data final, pegamos o final do dia (23:59:59)
-            end_date_naive = datetime.strptime(data_fim_str, "%Y-%m-%d").replace(
-                hour=23, minute=59, second=59
-            )
-            end_date_aware = local_tz.localize(end_date_naive)
-            end_date_utc = end_date_aware.astimezone(pytz.utc)
+                # Para a data final, pegamos o final do dia (23:59:59)
+                end_date_naive = end_date_naive.replace(
+                    hour=23, minute=59, second=59
+                )
+                end_date_aware = local_tz.localize(end_date_naive)
+                end_date_utc = end_date_aware.astimezone(pytz.utc)
 
-            query = query.filter(Ocorrencia.data_hora_ocorrencia <= end_date_utc)
-        except (ValueError, TypeError) as e:
-            logger.warning(
-                f"Formato de data de fim inválido fornecido: '{data_fim_str}'. Erro: {e}"
-            )
+                query = query.filter(Ocorrencia.data_hora_ocorrencia <= end_date_utc)
+                logger.info(f"Filtro de data de fim aplicado: {data_fim_str} -> {end_date_utc}")
+            except Exception as e:
+                logger.warning(
+                    f"Erro ao processar data de fim '{data_fim_str}': {e}"
+                )
+        else:
+            logger.warning(f"Formato de data de fim inválido: '{data_fim_str}'")
 
     if filters.get("texto_relatorio"):
         query = query.filter(Ocorrencia.relatorio_final.ilike(f"%{filters['texto_relatorio']}%"))

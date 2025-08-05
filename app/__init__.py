@@ -5,7 +5,7 @@ import os
 from logging.handlers import RotatingFileHandler
 
 import pytz
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_caching import Cache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -15,6 +15,10 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from whitenoise import WhiteNoise
 from flask_cors import CORS
+from app.auth.jwt_auth import init_jwt
+from sqlalchemy import event, text
+from sqlalchemy.exc import OperationalError, DisconnectionError
+import time
 
 
 
@@ -88,18 +92,24 @@ def create_app(
     """Cria e configura a aplicação Flask."""
     app_instance = Flask(__name__)
 
-    # Habilita CORS para rotas /api/*, /ocorrencias/* e /login
+    # Habilita CORS para todas as rotas da API
     CORS(
         app_instance,
         resources={
-            r"/api/*": {"origins": ["http://localhost:8081", "*"]},
-            r"/ocorrencias/*": {"origins": ["http://localhost:8081", "*"]},
-            r"/login": {"origins": ["http://localhost:8081", "*"]}
+            r"/api/*": {
+                "origins": ["http://localhost:5173", "http://localhost:5174", "http://localhost:8081", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://[::1]:5173", "http://[::1]:5174", "https://processador-relatorios-ia.onrender.com"],
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+                "expose_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+                "supports_credentials": True,
+                "max_age": 86400
+            }
         },
         supports_credentials=True,
-        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
         expose_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:8081", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://[::1]:5173", "http://[::1]:5174"]
     )
 
     # 2. Carrega a configuração a partir do objeto fornecido
@@ -116,6 +126,9 @@ def create_app(
     cache.init_app(app_instance)
     limiter.init_app(app_instance)
     csrf.init_app(app_instance)
+    
+    # Inicializa JWT
+    init_jwt(app_instance)
 
     # Configura o login_view após o init_app
     login_manager.login_view = "auth.login"  # type: ignore
@@ -161,14 +174,134 @@ def create_app(
         from app.blueprints import register_blueprints
         register_blueprints(app_instance)
 
-        # Desabilita CSRF para rotas da API
-        api_blueprint = app_instance.blueprints.get('api')
-        if api_blueprint:
-            csrf.exempt(api_blueprint)
+        # Desabilita CSRF para todas as rotas da API
+        api_blueprints = ['api', 'auth_api', 'dashboard_api', 'ocorrencia_api', 'ronda_api', 'admin_api']
+        for blueprint_name in api_blueprints:
+            api_blueprint = app_instance.blueprints.get(blueprint_name)
+            if api_blueprint:
+                csrf.exempt(api_blueprint)
+
+        # Adiciona handler para OPTIONS requests (preflight CORS)
+        @app_instance.route('/api/<path:path>', methods=['OPTIONS'])
+        def handle_options(path):
+            response = app_instance.make_response('')
+            # Permitir múltiplas origens
+            origin = request.headers.get('Origin')
+            allowed_origins = [
+                'http://localhost:5173',
+                'http://localhost:5174', 
+                'http://localhost:8081',
+                'http://localhost:3000',
+                'http://127.0.0.1:5173',
+                'http://127.0.0.1:5174',
+                'http://[::1]:5173',
+                'http://[::1]:5174'
+            ]
+            
+            if origin in allowed_origins:
+                response.headers.add('Access-Control-Allow-Origin', origin)
+            else:
+                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+                
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept,Origin')
+            response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
+            response.headers.add('Access-Control-Max-Age', '86400')
+            return response
 
         # Registra todos os comandos CLI de uma vez
         from .commands import register_commands
         register_commands(app_instance)
+
+    # Configurar tratamento de erros de conexão SSL
+    @app_instance.errorhandler(OperationalError)
+    def handle_operational_error(error):
+        """Trata erros de conexão com o banco de dados."""
+        if "SSL connection has been closed" in str(error):
+            module_logger.warning("Conexão SSL fechada, tentando reconectar...")
+            
+            # Aguarda um pouco antes de tentar novamente
+            time.sleep(1)
+            
+            try:
+                # Tenta reconectar
+                db.session.rollback()
+                db.session.close()
+                db.engine.dispose()
+                
+                # Retorna erro 503 para indicar serviço temporariamente indisponível
+                return jsonify({
+                    'error': 'Serviço temporariamente indisponível. Tente novamente em alguns segundos.',
+                    'code': 'DB_CONNECTION_ERROR'
+                }), 503
+                
+            except Exception as e:
+                module_logger.error(f"Erro ao tentar reconectar: {e}")
+                return jsonify({
+                    'error': 'Erro interno do servidor',
+                    'code': 'DB_RECONNECTION_FAILED'
+                }), 500
+        else:
+            # Para outros erros operacionais, log e retorna erro genérico
+            module_logger.error(f"Erro operacional do banco: {error}")
+            return jsonify({
+                'error': 'Erro interno do servidor',
+                'code': 'DB_OPERATIONAL_ERROR'
+            }), 500
+    
+    @app_instance.errorhandler(DisconnectionError)
+    def handle_disconnection_error(error):
+        """Trata erros de desconexão."""
+        module_logger.error(f"Erro de desconexão: {error}")
+        
+        try:
+            db.session.rollback()
+            db.session.close()
+        except:
+            pass
+            
+        return jsonify({
+            'error': 'Conexão com o banco perdida. Tente novamente.',
+            'code': 'DB_DISCONNECTION'
+        }), 503
+    
+    # Middleware para verificar conexão antes de cada request
+    @app_instance.before_request
+    def check_db_connection():
+        """Verifica se a conexão com o banco está ativa antes de cada request."""
+        if request.endpoint and 'static' not in request.endpoint:
+            try:
+                # Testa a conexão com uma query simples
+                db.session.execute(text('SELECT 1'))
+            except (OperationalError, DisconnectionError) as e:
+                module_logger.warning(f"Conexão com banco perdida, tentando reconectar: {e}")
+                
+                try:
+                    db.session.rollback()
+                    db.session.close()
+                    db.engine.dispose()
+                except:
+                    pass
+    
+    # Configurar eventos do SQLAlchemy para logging (dentro do contexto da aplicação)
+    with app_instance.app_context():
+        @event.listens_for(db.engine, "connect")
+        def set_sqlite_pragma(dbapi_connection, connection_record):
+            """Configurações específicas para SQLite (se usado)."""
+            if 'sqlite' in str(dbapi_connection):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA foreign_keys=ON")
+                cursor.close()
+        
+        @event.listens_for(db.engine, "checkout")
+        def receive_checkout(dbapi_connection, connection_record, connection_proxy):
+            """Log quando uma conexão é obtida do pool."""
+            module_logger.debug("Conexão obtida do pool")
+        
+        @event.listens_for(db.engine, "checkin")
+        def receive_checkin(dbapi_connection, connection_record):
+            """Log quando uma conexão é devolvida ao pool."""
+            module_logger.debug("Conexão devolvida ao pool")
 
     module_logger.info(
         "Aplicação Flask completamente configurada e pronta para ser retornada."
