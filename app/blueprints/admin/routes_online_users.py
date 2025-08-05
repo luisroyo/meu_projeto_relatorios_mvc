@@ -104,4 +104,36 @@ def api_cleanup_sessions():
         return jsonify({
             'success': False,
             'error': 'Erro ao limpar sessões'
+        }), 500
+
+@online_users_bp.route('/api/debug-sessions')
+@login_required
+@admin_required
+def api_debug_sessions():
+    """API para debug das sessões."""
+    try:
+        # Busca todas as sessões (não apenas as online)
+        all_sessions = UserOnline.query.all()
+        sessions_data = []
+        
+        for session in all_sessions:
+            sessions_data.append({
+                'id': session.id,
+                'user_id': session.user_id,
+                'session_id': session.session_id[:20] + '...' if len(session.session_id) > 20 else session.session_id,
+                'ip_address': session.ip_address,
+                'last_activity': session.last_activity.strftime('%d/%m/%Y %H:%M:%S') if session.last_activity else 'N/A',
+                'created_at': session.created_at.strftime('%d/%m/%Y %H:%M:%S') if session.created_at else 'N/A'
+            })
+        
+        return jsonify({
+            'success': True,
+            'total_sessions': len(sessions_data),
+            'sessions': sessions_data
+        })
+    except Exception as e:
+        logger.error(f"Erro no debug de sessões: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro ao obter debug de sessões'
         }), 500 
