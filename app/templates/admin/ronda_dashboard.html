@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', function () {
     renderBarChart('rondasPorSupervisorChart', {{ supervisor_labels | tojson | safe }}, {{ rondas_por_supervisor_data | tojson | safe }}, 'Nº de Rondas', '#fac858');
     
     // Gráfico de Barras: Rondas por Condomínio
-    renderBarChart('rondasPorCondominioChart', {{ condominio_labels | tojson | safe }}, {{ rondas_por_condominio_data | tojson | safe }}, 'Nº de Rondas', '#73c0de');
+    renderBarChart('rondasPorCondominioChart', {{ condominio_labels | tojson | safe }}, {{ condominio_data | tojson | safe }}, 'Nº de Rondas', '#73c0de');
 
     // Gráfico de Pizza: Rondas por Turno
     const turnoLabels = {{ turno_labels | tojson | safe }};

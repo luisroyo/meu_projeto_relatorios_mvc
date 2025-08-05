@@ -31,10 +31,25 @@ def get_ronda_dashboard_data(filters):
     # Rondas por Condomínio - usando a view
     rondas_por_condominio_q = db.session.query(
         VWRondasDetalhadas.condominio_nome, func.sum(VWRondasDetalhadas.total_rondas_no_log)
-    ).filter(VWRondasDetalhadas.condominio_nome.isnot(None))
-    rondas_por_condominio_q = filters_helper.apply_ronda_filters(
-        rondas_por_condominio_q, filters, date_start_range, date_end_range
+    ).filter(
+        VWRondasDetalhadas.condominio_nome.isnot(None),
+        VWRondasDetalhadas.data_plantao_ronda >= date_start_range,
+        VWRondasDetalhadas.data_plantao_ronda <= date_end_range
     )
+    
+    # Aplicar filtros adicionais
+    if filters.get("supervisor_id"):
+        rondas_por_condominio_q = rondas_por_condominio_q.filter(
+            VWRondasDetalhadas.supervisor_id == filters["supervisor_id"]
+        )
+    if filters.get("condominio_id"):
+        rondas_por_condominio_q = rondas_por_condominio_q.filter(
+            VWRondasDetalhadas.condominio_id == filters["condominio_id"]
+        )
+    if filters.get("turno"):
+        rondas_por_condominio_q = rondas_por_condominio_q.filter(
+            VWRondasDetalhadas.turno_ronda == filters["turno"]
+        )
     rondas_por_condominio = (
         rondas_por_condominio_q.group_by(VWRondasDetalhadas.condominio_nome)
         .order_by(func.sum(VWRondasDetalhadas.total_rondas_no_log).desc())
@@ -48,10 +63,25 @@ def get_ronda_dashboard_data(filters):
         VWRondasDetalhadas.condominio_nome,
         func.sum(VWRondasDetalhadas.duracao_total_rondas_minutos),
         func.sum(VWRondasDetalhadas.total_rondas_no_log),
-    ).filter(VWRondasDetalhadas.condominio_nome.isnot(None))
-    duracao_somas_q = filters_helper.apply_ronda_filters(
-        duracao_somas_q, filters, date_start_range, date_end_range
+    ).filter(
+        VWRondasDetalhadas.condominio_nome.isnot(None),
+        VWRondasDetalhadas.data_plantao_ronda >= date_start_range,
+        VWRondasDetalhadas.data_plantao_ronda <= date_end_range
     )
+    
+    # Aplicar filtros adicionais
+    if filters.get("supervisor_id"):
+        duracao_somas_q = duracao_somas_q.filter(
+            VWRondasDetalhadas.supervisor_id == filters["supervisor_id"]
+        )
+    if filters.get("condominio_id"):
+        duracao_somas_q = duracao_somas_q.filter(
+            VWRondasDetalhadas.condominio_id == filters["condominio_id"]
+        )
+    if filters.get("turno"):
+        duracao_somas_q = duracao_somas_q.filter(
+            VWRondasDetalhadas.turno_ronda == filters["turno"]
+        )
     duracao_somas_raw = duracao_somas_q.group_by(VWRondasDetalhadas.condominio_nome).all()
 
     # [ALTERADO] Lógica de cálculo movida para o helper de KPIs
@@ -64,10 +94,22 @@ def get_ronda_dashboard_data(filters):
     # Rondas por Turno - usando a view
     rondas_por_turno_q = db.session.query(
         VWRondasDetalhadas.turno_ronda, func.sum(VWRondasDetalhadas.total_rondas_no_log)
-    ).filter(VWRondasDetalhadas.turno_ronda.isnot(None), VWRondasDetalhadas.total_rondas_no_log.isnot(None))
-    rondas_por_turno_q = filters_helper.apply_ronda_filters(
-        rondas_por_turno_q, filters, date_start_range, date_end_range
+    ).filter(
+        VWRondasDetalhadas.turno_ronda.isnot(None), 
+        VWRondasDetalhadas.total_rondas_no_log.isnot(None),
+        VWRondasDetalhadas.data_plantao_ronda >= date_start_range,
+        VWRondasDetalhadas.data_plantao_ronda <= date_end_range
     )
+    
+    # Aplicar filtros adicionais
+    if filters.get("supervisor_id"):
+        rondas_por_turno_q = rondas_por_turno_q.filter(
+            VWRondasDetalhadas.supervisor_id == filters["supervisor_id"]
+        )
+    if filters.get("condominio_id"):
+        rondas_por_turno_q = rondas_por_turno_q.filter(
+            VWRondasDetalhadas.condominio_id == filters["condominio_id"]
+        )
     rondas_por_turno = (
         rondas_por_turno_q.group_by(VWRondasDetalhadas.turno_ronda)
         .order_by(func.sum(VWRondasDetalhadas.total_rondas_no_log).desc())
@@ -79,10 +121,21 @@ def get_ronda_dashboard_data(filters):
     # Rondas por Supervisor - usando a view
     rondas_por_supervisor_q = db.session.query(
         VWRondasDetalhadas.supervisor_username, func.coalesce(func.sum(VWRondasDetalhadas.total_rondas_no_log), 0)
-    ).filter(VWRondasDetalhadas.supervisor_username.isnot(None))
-    rondas_por_supervisor_q = filters_helper.apply_ronda_filters(
-        rondas_por_supervisor_q, filters, date_start_range, date_end_range
+    ).filter(
+        VWRondasDetalhadas.supervisor_username.isnot(None),
+        VWRondasDetalhadas.data_plantao_ronda >= date_start_range,
+        VWRondasDetalhadas.data_plantao_ronda <= date_end_range
     )
+    
+    # Aplicar filtros adicionais
+    if filters.get("condominio_id"):
+        rondas_por_supervisor_q = rondas_por_supervisor_q.filter(
+            VWRondasDetalhadas.condominio_id == filters["condominio_id"]
+        )
+    if filters.get("turno"):
+        rondas_por_supervisor_q = rondas_por_supervisor_q.filter(
+            VWRondasDetalhadas.turno_ronda == filters["turno"]
+        )
     rondas_por_supervisor = (
         rondas_por_supervisor_q.group_by(VWRondasDetalhadas.supervisor_username)
         .order_by(func.coalesce(func.sum(VWRondasDetalhadas.total_rondas_no_log), 0).desc())
@@ -94,10 +147,25 @@ def get_ronda_dashboard_data(filters):
     # Atividade de Rondas por Dia (Evolução) - usando a view
     rondas_por_dia_q = db.session.query(
         func.date(VWRondasDetalhadas.data_plantao_ronda), func.sum(VWRondasDetalhadas.total_rondas_no_log)
-    ).filter(VWRondasDetalhadas.total_rondas_no_log.isnot(None))
-    rondas_por_dia_q = filters_helper.apply_ronda_filters(
-        rondas_por_dia_q, filters, date_start_range, date_end_range
+    ).filter(
+        VWRondasDetalhadas.total_rondas_no_log.isnot(None),
+        VWRondasDetalhadas.data_plantao_ronda >= date_start_range,
+        VWRondasDetalhadas.data_plantao_ronda <= date_end_range
     )
+    
+    # Aplicar filtros adicionais
+    if filters.get("supervisor_id"):
+        rondas_por_dia_q = rondas_por_dia_q.filter(
+            VWRondasDetalhadas.supervisor_id == filters["supervisor_id"]
+        )
+    if filters.get("condominio_id"):
+        rondas_por_dia_q = rondas_por_dia_q.filter(
+            VWRondasDetalhadas.condominio_id == filters["condominio_id"]
+        )
+    if filters.get("turno"):
+        rondas_por_dia_q = rondas_por_dia_q.filter(
+            VWRondasDetalhadas.turno_ronda == filters["turno"]
+        )
     rondas_por_dia = (
         rondas_por_dia_q.group_by(func.date(VWRondasDetalhadas.data_plantao_ronda))
         .order_by(func.date(VWRondasDetalhadas.data_plantao_ronda))
@@ -148,9 +216,24 @@ def get_ronda_dashboard_data(filters):
             flash("Data para análise detalhada em formato inválido.", "warning")
 
     # 3. Cálculo dos KPIs principais - usando a view
-    base_kpi_query = filters_helper.apply_ronda_filters(
-        db.session.query(VWRondasDetalhadas), filters, date_start_range, date_end_range
+    base_kpi_query = db.session.query(VWRondasDetalhadas).filter(
+        VWRondasDetalhadas.data_plantao_ronda >= date_start_range,
+        VWRondasDetalhadas.data_plantao_ronda <= date_end_range
     )
+    
+    # Aplicar filtros adicionais
+    if filters.get("supervisor_id"):
+        base_kpi_query = base_kpi_query.filter(
+            VWRondasDetalhadas.supervisor_id == filters["supervisor_id"]
+        )
+    if filters.get("condominio_id"):
+        base_kpi_query = base_kpi_query.filter(
+            VWRondasDetalhadas.condominio_id == filters["condominio_id"]
+        )
+    if filters.get("turno"):
+        base_kpi_query = base_kpi_query.filter(
+            VWRondasDetalhadas.turno_ronda == filters["turno"]
+        )
 
     # [ALTERADO] Lógica de cálculo movida para o helper de KPIs
     total_rondas, duracao_media_geral, supervisor_mais_ativo = (
@@ -179,7 +262,7 @@ def get_ronda_dashboard_data(filters):
         "supervisor_mais_ativo": supervisor_mais_ativo,
         "media_rondas_dia": media_rondas_dia,
         "condominio_labels": condominio_labels,
-        "rondas_por_condominio_data": rondas_por_condominio_data,
+        "condominio_data": rondas_por_condominio_data,
         "duracao_condominio_labels": duracao_condominio_labels,
         "duracao_media_data": duracao_media_data,
         "turno_labels": turno_labels,

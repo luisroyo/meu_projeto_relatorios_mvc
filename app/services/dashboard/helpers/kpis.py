@@ -10,7 +10,6 @@ from app.services import ocorrencia_service
 
 logger = logging.getLogger(__name__)
 
-
 def calculate_average_duration_by_condominio(duracao_somas_raw: list) -> list:
     """
     Calcula a duração média da ronda por condomínio e ordena o resultado.
@@ -23,7 +22,6 @@ def calculate_average_duration_by_condominio(duracao_somas_raw: list) -> list:
         dados_para_ordenar.append({"condominio": nome, "media": media})
 
     return sorted(dados_para_ordenar, key=lambda item: item["media"], reverse=True)
-
 
 def calculate_main_ronda_kpis(base_kpi_query, supervisor_labels: list) -> tuple:
     """
@@ -141,28 +139,46 @@ def find_top_ocorrencia_supervisor(filters: dict) -> str:
     Encontra o nome do supervisor com mais ocorrências com base nos filtros aplicados.
     """
     try:
-        query = (
-            db.session.query(
-                Ocorrencia.supervisor_id,
-                func.count(Ocorrencia.id).label("ocorrencia_count"),
-            )
-            .join(User, Ocorrencia.supervisor_id == User.id)
-            .filter(User.is_supervisor == True, Ocorrencia.supervisor_id.isnot(None))
+        from app.models import VWOcorrenciasDetalhadas
+        from app.utils.date_utils import parse_date_range
+        
+        # Preparar filtros de data
+        data_inicio_str = filters.get("data_inicio_str")
+        data_fim_str = filters.get("data_fim_str")
+        date_start_range, date_end_range = parse_date_range(data_inicio_str, data_fim_str)
+        
+        # Query usando a view diretamente
+        query = db.session.query(
+            VWOcorrenciasDetalhadas.supervisor,
+            func.count(VWOcorrenciasDetalhadas.id).label("ocorrencia_count")
+        ).filter(
+            VWOcorrenciasDetalhadas.supervisor.isnot(None),
+            VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
+            VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range
         )
-
-        # Reutiliza o serviço de filtro de ocorrências
-        query = ocorrencia_service.apply_ocorrencia_filters(query, filters)
+        
+        # Aplicar filtros adicionais
+        if filters.get("condominio_id"):
+            # Buscar o nome do condomínio pelo ID
+            from app.models import Condominio
+            condominio = Condominio.query.get(filters["condominio_id"])
+            if condominio:
+                query = query.filter(VWOcorrenciasDetalhadas.condominio == condominio.nome)
+        
+        if filters.get("turno"):
+            query = query.filter(VWOcorrenciasDetalhadas.turno == filters["turno"])
+            
+        if filters.get("status"):
+            query = query.filter(VWOcorrenciasDetalhadas.status == filters["status"])
 
         top_supervisor_data = (
-            query.group_by(Ocorrencia.supervisor_id)
-            .order_by(func.count(Ocorrencia.id).desc())
+            query.group_by(VWOcorrenciasDetalhadas.supervisor)
+            .order_by(func.count(VWOcorrenciasDetalhadas.id).desc())
             .first()
         )
 
-        if top_supervisor_data and top_supervisor_data.supervisor_id:
-            supervisor = User.query.get(top_supervisor_data.supervisor_id)
-            if supervisor:
-                return supervisor.username
+        if top_supervisor_data and top_supervisor_data.supervisor:
+            return top_supervisor_data.supervisor
 
         return "N/A"
 
@@ -227,13 +243,13 @@ def get_ocorrencia_period_info(base_kpi_query, date_start_range, date_end_range)
     Garante que as datas nunca extrapolem o range filtrado.
     """
     try:
-        from app.models import Ocorrencia
+        from app.models import VWOcorrenciasDetalhadas
         # Busca a primeira e última data registrada no período (com fallback para o range filtrado)
         primeira_data = base_kpi_query.with_entities(
-            func.min(Ocorrencia.data_hora_ocorrencia)
+            func.min(VWOcorrenciasDetalhadas.data_hora_ocorrencia)
         ).scalar()
         ultima_data = base_kpi_query.with_entities(
-            func.max(Ocorrencia.data_hora_ocorrencia)
+            func.max(VWOcorrenciasDetalhadas.data_hora_ocorrencia)
         ).scalar()
 
         # Converter para date se for datetime
@@ -274,14 +290,14 @@ def get_ocorrencia_period_info(base_kpi_query, date_start_range, date_end_range)
                 func.count(
                     func.distinct(
                         func.date(
-                            Ocorrencia.data_hora_ocorrencia.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('America/Sao_Paulo')
+                            VWOcorrenciasDetalhadas.data_hora_ocorrencia.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('America/Sao_Paulo')
                         )
                     )
                 )
             )
             .filter(
-                Ocorrencia.data_hora_ocorrencia >= date_start_range,
-                Ocorrencia.data_hora_ocorrencia <= date_end_range
+                VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
+                VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range
             )
             .scalar()
         ) or 0
@@ -382,13 +398,13 @@ def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range
             "dias_desde_ultima": None
         }
 
-
 def calculate_ocorrencia_period_comparison(base_kpi_query, date_start_range, date_end_range) -> dict:
     """
     Calcula comparações com o período anterior para mostrar tendências nos KPIs de ocorrências.
     """
     try:
         from datetime import timedelta
+        from app.models import VWOcorrenciasDetalhadas
         
         # Calcula o período anterior (mesmo tamanho)
         periodo_dias = (date_end_range - date_start_range).days + 1
@@ -399,9 +415,9 @@ def calculate_ocorrencia_period_comparison(base_kpi_query, date_start_range, dat
         total_atual = base_kpi_query.count()
         
         # Query para o período anterior
-        total_anterior = db.session.query(Ocorrencia).filter(
-            Ocorrencia.data_hora_ocorrencia >= anterior_start,
-            Ocorrencia.data_hora_ocorrencia <= anterior_end
+        total_anterior = db.session.query(VWOcorrenciasDetalhadas).filter(
+            VWOcorrenciasDetalhadas.data_hora_ocorrencia >= anterior_start,
+            VWOcorrenciasDetalhadas.data_hora_ocorrencia <= anterior_end
         ).count()
         
         # Calcula variação percentual
@@ -423,7 +439,7 @@ def calculate_ocorrencia_period_comparison(base_kpi_query, date_start_range, dat
         
         # Verifica se os dados estão atualizados (última data não é muito antiga)
         ultima_data = base_kpi_query.with_entities(
-            func.max(Ocorrencia.data_hora_ocorrencia)
+            func.max(VWOcorrenciasDetalhadas.data_hora_ocorrencia)
         ).scalar()
         
         dados_atualizados = True

@@ -41,7 +41,7 @@ csrf = CSRFProtect()
 # Use a URL do Redis de variável de ambiente, ou padrão para memory:// se não definida
 redis_url = os.environ.get("REDIS_URL", "memory://")
 
-# Limites diferentes para desenvolvimento e produção
+# Limites mais permissivos para resolver problema de rate limiting
 if os.environ.get("FLASK_ENV", "development") == "development":
     limiter = Limiter(
         key_func=get_remote_address,
@@ -49,9 +49,10 @@ if os.environ.get("FLASK_ENV", "development") == "development":
         storage_uri=redis_url
     )
 else:
+    # Limites mais permissivos para produção
     limiter = Limiter(
         key_func=get_remote_address,
-        default_limits=["200 per day", "50 per hour"],
+        default_limits=["1000 per hour", "10000 per day"],  # Aumentado significativamente
         storage_uri=redis_url
     )
 
@@ -92,25 +93,23 @@ def create_app(
     """Cria e configura a aplicação Flask."""
     app_instance = Flask(__name__)
 
-    # Habilita CORS para todas as rotas da API
+    # Habilita CORS para todas as rotas da API - Configuração simplificada
     CORS(
         app_instance,
-        resources={
-            r"/api/*": {
-                "origins": ["http://localhost:5173", "http://localhost:5174", "http://localhost:8081", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://[::1]:5173", "http://[::1]:5174", "https://processador-relatorios-ia.onrender.com"],
-                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
-                "expose_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-                "supports_credentials": True,
-                "max_age": 86400
-            }
-        },
-        supports_credentials=True,
-        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
-        expose_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+        origins=["*"],  # Permitir todas as origens temporariamente
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:8081", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://[::1]:5173", "http://[::1]:5174"]
+        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+        supports_credentials=True
     )
+    
+    # Middleware adicional para garantir CORS
+    @app_instance.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept,Origin')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
 
     # 2. Carrega a configuração a partir do objeto fornecido
     # Isto substitui todo o bloco de carregamento manual do .env e os os.getenv()
@@ -185,24 +184,11 @@ def create_app(
         @app_instance.route('/api/<path:path>', methods=['OPTIONS'])
         def handle_options(path):
             response = app_instance.make_response('')
-            # Permitir múltiplas origens
-            origin = request.headers.get('Origin')
-            allowed_origins = [
-                'http://localhost:5173',
-                'http://localhost:5174', 
-                'http://localhost:8081',
-                'http://localhost:3000',
-                'http://127.0.0.1:5173',
-                'http://127.0.0.1:5174',
-                'http://[::1]:5173',
-                'http://[::1]:5174'
-            ]
+            # Permitir todas as origens temporariamente para debug
+            origin = request.headers.get('Origin', '*')
             
-            if origin in allowed_origins:
-                response.headers.add('Access-Control-Allow-Origin', origin)
-            else:
-                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
-                
+            # Permitir qualquer origem para resolver o problema de CORS
+            response.headers.add('Access-Control-Allow-Origin', origin)
             response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept,Origin')
             response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
             response.headers.add('Access-Control-Allow-Credentials', 'true')
