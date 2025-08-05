@@ -104,9 +104,7 @@ def list_logradouros_simple():
         return jsonify({
             'logradouros': [{
                 'id': log.id,
-                'nome': log.nome,
-                'bairro': log.bairro,
-                'cidade': log.cidade
+                'nome': log.nome
             } for log in logradouros]
         }), 200
     except Exception as e:
