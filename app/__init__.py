@@ -152,10 +152,8 @@ def create_app(config_class=DevelopmentConfig):
             if bp:
                 csrf.exempt(bp)
 
-        @app.before_request
-        def disable_csrf_for_api():
-            if request.path.startswith('/api/'):
-                csrf.exempt(request)
+        # CSRF já está desabilitado para os blueprints da API acima
+        # Não precisamos do before_request para isso
 
         # Evita erro 500 no preflight - Handler simples e robusto
         @app.route('/api/<path:path>', methods=['OPTIONS'])
