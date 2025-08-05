@@ -29,11 +29,13 @@ def calculate_main_ronda_kpis(base_kpi_query, supervisor_labels: list) -> tuple:
     """
     Calcula os principais KPIs de rondas: total, duração média geral e supervisor mais ativo.
     """
+    from app.models import VWRondasDetalhadas
+    
     total_rondas = base_kpi_query.with_entities(
-        func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)
+        func.coalesce(func.sum(VWRondasDetalhadas.total_rondas_no_log), 0)
     ).scalar()
     soma_duracao = base_kpi_query.with_entities(
-        func.coalesce(func.sum(Ronda.duracao_total_rondas_minutos), 0)
+        func.coalesce(func.sum(VWRondasDetalhadas.duracao_total_rondas_minutos), 0)
     ).scalar()
 
     duracao_media_geral = (
@@ -56,9 +58,11 @@ def calculate_average_rondas_per_day(
     num_dias_divisor = 0
 
     # [NOVO] Busca a última data registrada no sistema dentro do período
+    from app.models import VWRondasDetalhadas
+    
     if base_kpi_query:
         ultima_data_registrada = base_kpi_query.with_entities(
-            func.max(Ronda.data_plantao_ronda)
+            func.max(VWRondasDetalhadas.data_plantao_ronda)
         ).scalar()
     else:
         # Fallback: busca diretamente na tabela Ronda
@@ -175,13 +179,14 @@ def get_ronda_period_info(base_kpi_query, date_start_range, date_end_range) -> d
     Retorna informações sobre a última data registrada e período real de dados.
     """
     try:
+        from app.models import VWRondasDetalhadas
         # Busca a primeira e última data registrada no período
         primeira_data = base_kpi_query.with_entities(
-            func.min(Ronda.data_plantao_ronda)
+            func.min(VWRondasDetalhadas.data_plantao_ronda)
         ).scalar()
         
         ultima_data = base_kpi_query.with_entities(
-            func.max(Ronda.data_plantao_ronda)
+            func.max(VWRondasDetalhadas.data_plantao_ronda)
         ).scalar()
         
         # Calcula o período real de dados
@@ -191,7 +196,7 @@ def get_ronda_period_info(base_kpi_query, date_start_range, date_end_range) -> d
         
         # Calcula quantos dias do período solicitado têm dados
         dias_com_dados = base_kpi_query.with_entities(
-            func.count(func.distinct(Ronda.data_plantao_ronda))
+            func.count(func.distinct(VWRondasDetalhadas.data_plantao_ronda))
         ).scalar() or 0
         
         return {
@@ -307,6 +312,7 @@ def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range
     Calcula comparações com o período anterior para mostrar tendências nos KPIs.
     """
     try:
+        from app.models import VWRondasDetalhadas
         # Calcula o período anterior (mesmo tamanho)
         periodo_dias = (date_end_range - date_start_range).days + 1
         anterior_start = date_start_range - timedelta(days=periodo_dias)
@@ -314,15 +320,15 @@ def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range
         
         # Query para o período atual
         total_atual = base_kpi_query.with_entities(
-            func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)
+            func.coalesce(func.sum(VWRondasDetalhadas.total_rondas_no_log), 0)
         ).scalar()
         
         # Query para o período anterior
         total_anterior = db.session.query(
-            func.coalesce(func.sum(Ronda.total_rondas_no_log), 0)
+            func.coalesce(func.sum(VWRondasDetalhadas.total_rondas_no_log), 0)
         ).filter(
-            Ronda.data_plantao_ronda >= anterior_start,
-            Ronda.data_plantao_ronda <= anterior_end
+            VWRondasDetalhadas.data_plantao_ronda >= anterior_start,
+            VWRondasDetalhadas.data_plantao_ronda <= anterior_end
         ).scalar()
         
         # Calcula variação percentual
@@ -344,7 +350,7 @@ def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range
         
         # Verifica se os dados estão atualizados (última data não é muito antiga)
         ultima_data = base_kpi_query.with_entities(
-            func.max(Ronda.data_plantao_ronda)
+            func.max(VWRondasDetalhadas.data_plantao_ronda)
         ).scalar()
         
         dados_atualizados = True
