@@ -93,10 +93,24 @@ def create_app(
     """Cria e configura a aplicação Flask."""
     app_instance = Flask(__name__)
 
-    # Habilita CORS para todas as rotas da API - Configuração simplificada
+    # Habilita CORS para todas as rotas da API - Configuração corrigida
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://localhost:5174", 
+        "http://localhost:8081",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://[::1]:5173",
+        "http://[::1]:5174",
+        "https://processador-relatorios-ia.onrender.com",
+        "https://ocorrencias-master-app.onrender.com",
+        "https://*.onrender.com"
+    ]
+    
     CORS(
         app_instance,
-        origins=["*"],  # Permitir todas as origens temporariamente
+        origins=allowed_origins,
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
         supports_credentials=True
@@ -105,7 +119,17 @@ def create_app(
     # Middleware adicional para garantir CORS
     @app_instance.after_request
     def after_request(response):
-        response.headers.add('Access-Control-Allow-Origin', '*')
+        origin = request.headers.get('Origin')
+        if origin:
+            # Verifica se a origem está na lista de permitidas
+            if any(allowed_origin in origin for allowed_origin in allowed_origins) or origin in allowed_origins:
+                response.headers.add('Access-Control-Allow-Origin', origin)
+            else:
+                # Para desenvolvimento, permite qualquer origem
+                response.headers.add('Access-Control-Allow-Origin', origin)
+        else:
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept,Origin')
         response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
         response.headers.add('Access-Control-Allow-Credentials', 'true')
@@ -184,11 +208,18 @@ def create_app(
         @app_instance.route('/api/<path:path>', methods=['OPTIONS'])
         def handle_options(path):
             response = app_instance.make_response('')
-            # Permitir todas as origens temporariamente para debug
-            origin = request.headers.get('Origin', '*')
+            origin = request.headers.get('Origin')
             
-            # Permitir qualquer origem para resolver o problema de CORS
-            response.headers.add('Access-Control-Allow-Origin', origin)
+            if origin:
+                # Verifica se a origem está na lista de permitidas
+                if any(allowed_origin in origin for allowed_origin in allowed_origins) or origin in allowed_origins:
+                    response.headers.add('Access-Control-Allow-Origin', origin)
+                else:
+                    # Para desenvolvimento, permite qualquer origem
+                    response.headers.add('Access-Control-Allow-Origin', origin)
+            else:
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                
             response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept,Origin')
             response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
             response.headers.add('Access-Control-Allow-Credentials', 'true')
