@@ -84,14 +84,25 @@ def create_app(config_class=DevelopmentConfig):
         "https://processador-relatorios-ia.onrender.com",
         "https://ocorrencias-master-app.onrender.com"
     ]
+    # CORS básico
     CORS(
         app,
         origins=allowed_origins,
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
-        supports_credentials=True,
-        always_send=True
+        supports_credentials=True
     )
+    
+    # ATUALIZAÇÃO DO CORS: Lidando corretamente com preflight
+    @app.after_request
+    def add_cors_headers(response):
+        origin = request.headers.get('Origin')
+        if origin in allowed_origins:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept, Origin'
+        return response
 
     # Inicialização de extensões
     db.init_app(app)
@@ -146,18 +157,10 @@ def create_app(config_class=DevelopmentConfig):
             if request.path.startswith('/api/'):
                 csrf.exempt(request)
 
-        # CORS preflight para rotas /api/*
+        # Evita erro 500 no preflight - Handler simples e robusto
         @app.route('/api/<path:path>', methods=['OPTIONS'])
-        def handle_options(path):
-            response = app.make_response('')
-            response.status_code = 204
-            return response
-
-        @app.route('/api/auth/login', methods=['OPTIONS'])
-        def handle_login_options():
-            response = app.make_response('')
-            response.status_code = 204
-            return response
+        def handle_api_options(path):
+            return '', 204
 
         # CLI
         from .commands import register_commands
