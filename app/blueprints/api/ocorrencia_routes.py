@@ -29,6 +29,7 @@ def get_user_name(user_id):
 
 
 @ocorrencia_api_bp.route('/', methods=['GET'])
+@ocorrencia_api_bp.route('/historico', methods=['GET'])
 @jwt_required()
 def listar_ocorrencias():
     """Listar ocorrências com filtros e paginação."""

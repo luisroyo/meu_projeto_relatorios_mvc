@@ -51,22 +51,19 @@ class DevelopmentConfig(Config):
         if database_url.startswith("postgres://"):
             database_url = database_url.replace("postgres://", "postgresql://", 1)
         
-        # Remove configurações SSL duplicadas se existirem
-        if "sslmode=require" in database_url and "channel_binding=require" in database_url:
-            # Se já tem ambas as configurações, usa como está
+        # Para desenvolvimento, não força SSL se for localhost
+        if "localhost" in database_url or "127.0.0.1" in database_url:
+            # Desenvolvimento local - não força SSL
             SQLALCHEMY_DATABASE_URI = database_url
-        elif "sslmode=require" in database_url:
-            # Se só tem sslmode, adiciona channel_binding
-            if "?" not in database_url:
-                SQLALCHEMY_DATABASE_URI = database_url + "&channel_binding=require"
-            else:
-                SQLALCHEMY_DATABASE_URI = database_url + "&channel_binding=require"
         else:
-            # Se não tem nenhuma, adiciona ambas
-            if "?" not in database_url:
-                SQLALCHEMY_DATABASE_URI = database_url + "?sslmode=require&channel_binding=require"
+            # Desenvolvimento remoto - adiciona SSL se necessário
+            if "sslmode=require" not in database_url:
+                if "?" not in database_url:
+                    SQLALCHEMY_DATABASE_URI = database_url + "?sslmode=require"
+                else:
+                    SQLALCHEMY_DATABASE_URI = database_url + "&sslmode=require"
             else:
-                SQLALCHEMY_DATABASE_URI = database_url + "&sslmode=require&channel_binding=require"
+                SQLALCHEMY_DATABASE_URI = database_url
     else:
         # Fallback para SQLite se não encontrar DATABASE_URL
         SQLALCHEMY_DATABASE_URI = 'sqlite:///dev.db'

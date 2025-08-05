@@ -113,12 +113,9 @@ def api_login():
         db.session.commit()  # Garante que o last_login seja salvo imediatamente
         # Registra o login no histórico
         _registrar_login(user, True, request, None)
-        # Gera o token JWT
-        payload = {
-            "user_id": user.id,
-            "exp": datetime.utcnow() + timedelta(hours=12)
-        }
-        token = jwt.encode(payload, current_app.config["SECRET_KEY"], algorithm="HS256")
+        # Gera o token JWT usando flask_jwt_extended
+        from flask_jwt_extended import create_access_token
+        token = create_access_token(identity=user.id)
         return jsonify({
             "token": token,
             "message": f"Bem-vindo, {user.username}!",
