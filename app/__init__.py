@@ -283,6 +283,16 @@ def create_app(
                 except:
                     pass
     
+    # Middleware para rastrear atividade dos usuários
+    @app_instance.before_request
+    def track_user_activity():
+        """Rastreia atividade dos usuários online."""
+        try:
+            from .middleware.user_activity import track_user_activity as track_activity
+            track_activity()
+        except Exception as e:
+            module_logger.error(f"Erro no middleware de atividade: {e}")
+    
     # Configurar eventos do SQLAlchemy para logging (dentro do contexto da aplicação)
     with app_instance.app_context():
         @event.listens_for(db.engine, "connect")
