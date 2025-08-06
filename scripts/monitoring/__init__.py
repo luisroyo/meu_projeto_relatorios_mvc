@@ -1,1 +1,0 @@
-# Scripts de monitoramento para Redis e cache 
