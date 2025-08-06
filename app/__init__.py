@@ -74,6 +74,9 @@ logging.getLogger().addHandler(file_handler)
 def create_app(config_class=DevelopmentConfig):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    
+    # Desabilitar redirecionamento automático para evitar problemas CORS
+    app.url_map.strict_slashes = False
 
     # CORS
     allowed_origins = [
@@ -155,10 +158,22 @@ def create_app(config_class=DevelopmentConfig):
         # CSRF já está desabilitado para os blueprints da API acima
         # Não precisamos do before_request para isso
 
-        # Evita erro 500 no preflight - Handler simples e robusto
+        # Handler específico para OPTIONS que evita redirecionamentos
+        @app.route('/api/ocorrencias', methods=['OPTIONS'])
+        @app.route('/api/ocorrencias/', methods=['OPTIONS'])
+        @app.route('/api/rondas', methods=['OPTIONS'])
+        @app.route('/api/rondas/', methods=['OPTIONS'])
+        def handle_specific_options():
+            response = jsonify({'message': 'OK'})
+            response.status_code = 200
+            return response
+        
+        # Handler genérico para outras rotas da API
         @app.route('/api/<path:path>', methods=['OPTIONS'])
         def handle_api_options(path):
-            return '', 204
+            response = jsonify({'message': 'OK'})
+            response.status_code = 200
+            return response
 
         # CLI
         from .commands import register_commands
@@ -230,13 +245,14 @@ def create_app(config_class=DevelopmentConfig):
                     except:
                         pass
 
-        @app.before_request
-        def track_user_activity():
-            try:
-                from .middleware.user_activity import track_user_activity as track
-                track()
-            except Exception as e:
-                module_logger.error(f"Erro no middleware de atividade: {e}")
+    # Middleware de tracking de atividade - aplicado em todos os ambientes
+    @app.before_request
+    def track_user_activity():
+        try:
+            from .middleware.user_activity import track_user_activity as track
+            track()
+        except Exception as e:
+            module_logger.error(f"Erro no middleware de atividade: {e}")
 
     with app.app_context():
         @event.listens_for(db.engine, "connect")
