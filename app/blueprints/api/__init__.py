@@ -109,3 +109,12 @@ def list_logradouros_simple():
         }), 200
     except Exception as e:
         return jsonify({'error': 'Erro ao listar logradouros'}), 500 
+
+# Adicionar alias para login para compatibilidade com frontend
+@api_bp.route('/login', methods=['POST', 'OPTIONS'])
+@jwt_required(optional=True)  # Opcional para login
+def login_alias():
+    """Alias para /api/auth/login para compatibilidade com frontend."""
+    # Redirecionar para a rota de login do auth blueprint
+    from app.blueprints.auth.routes import api_login
+    return api_login() 
