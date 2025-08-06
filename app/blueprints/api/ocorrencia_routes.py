@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import desc
 
 from app import db
-from app.models import Ocorrencia, OcorrenciaTipo, Condominio, User
+from app.models import Ocorrencia, OcorrenciaTipo, Condominio, User, Colaborador, OrgaoPublico
 from app.services import ocorrencia_service
 from flask import Blueprint
 
@@ -28,6 +28,7 @@ def get_user_name(user_id):
         return 'N/A'
 
 
+@ocorrencia_api_bp.route('', methods=['GET'])
 @ocorrencia_api_bp.route('/', methods=['GET'])
 @ocorrencia_api_bp.route('/historico', methods=['GET'])
 @jwt_required()
@@ -85,7 +86,9 @@ def listar_ocorrencias():
                     'registrado_por': get_user_name(o.registrado_por_user_id),
                     'supervisor': get_user_name(o.supervisor_id),
                     'registrado_por_user_id': o.registrado_por_user_id,
-                    'supervisor_id': o.supervisor_id
+                    'supervisor_id': o.supervisor_id,
+                    'colaboradores_envolvidos': [{'id': col.id, 'nome': col.nome_completo} for col in o.colaboradores_envolvidos],
+                    'orgaos_acionados': [{'id': org.id, 'nome': org.nome} for org in o.orgaos_acionados]
                 })
             except Exception as e:
                 logger.error(f"Erro ao serializar ocorrência {o.id}: {e}")
@@ -148,6 +151,85 @@ def listar_condominios_ocorrencia():
         logger.error(f"Erro ao listar condomínios: {e}")
         return jsonify({'error': 'Erro interno do servidor'}), 500
 
+@ocorrencia_api_bp.route('/colaboradores', methods=['GET'])
+@jwt_required()
+def listar_colaboradores_ocorrencia():
+    """Listar colaboradores para ocorrências."""
+    try:
+        colaboradores = Colaborador.query.filter_by(status='Ativo').order_by(Colaborador.nome_completo).all()
+        
+        return jsonify({
+            'colaboradores': [{
+                'id': col.id,
+                'nome': col.nome_completo,
+                'cargo': col.cargo,
+                'matricula': col.matricula
+            } for col in colaboradores]
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erro ao listar colaboradores: {e}")
+        return jsonify({'error': 'Erro interno do servidor'}), 500
+
+@ocorrencia_api_bp.route('/orgaos-publicos', methods=['GET'])
+@jwt_required()
+def listar_orgaos_publicos_ocorrencia():
+    """Listar órgãos públicos para ocorrências."""
+    try:
+        orgaos = OrgaoPublico.query.order_by(OrgaoPublico.nome).all()
+        
+        return jsonify({
+            'orgaos_publicos': [{
+                'id': org.id,
+                'nome': org.nome,
+                'contato': org.contato
+            } for org in orgaos]
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erro ao listar órgãos públicos: {e}")
+        return jsonify({'error': 'Erro interno do servidor'}), 500
+
+@ocorrencia_api_bp.route('/supervisores', methods=['GET'])
+@jwt_required()
+def listar_supervisores_ocorrencia():
+    """Listar supervisores para ocorrências."""
+    try:
+        supervisores = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
+        
+        return jsonify({
+            'supervisores': [{
+                'id': sup.id,
+                'nome': sup.username,
+                'email': sup.email
+            } for sup in supervisores]
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erro ao listar supervisores: {e}")
+        return jsonify({'error': 'Erro interno do servidor'}), 500
+
+@ocorrencia_api_bp.route('/status', methods=['GET'])
+@jwt_required()
+def listar_status_ocorrencia():
+    """Listar status disponíveis para ocorrências."""
+    try:
+        status_list = [
+            "Registrada",
+            "Em Andamento", 
+            "Concluída",
+            "Pendente",
+            "Rejeitada"
+        ]
+        
+        return jsonify({
+            'status': status_list
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erro ao listar status: {e}")
+        return jsonify({'error': 'Erro interno do servidor'}), 500
+
 @ocorrencia_api_bp.route('/<int:ocorrencia_id>', methods=['GET'])
 @jwt_required()
 def obter_ocorrencia(ocorrencia_id):
@@ -165,18 +247,21 @@ def obter_ocorrencia(ocorrencia_id):
             'endereco': ocorrencia.endereco_especifico,
             'turno': ocorrencia.turno,
             'data_criacao': ocorrencia.data_criacao.isoformat() if ocorrencia.data_criacao else None,
-                                'registrado_por': get_user_name(ocorrencia.registrado_por_user_id),
-                    'supervisor': get_user_name(ocorrencia.supervisor_id),
+            'registrado_por': get_user_name(ocorrencia.registrado_por_user_id),
+            'supervisor': get_user_name(ocorrencia.supervisor_id),
             'registrado_por_user_id': ocorrencia.registrado_por_user_id,
             'supervisor_id': ocorrencia.supervisor_id,
             'ocorrencia_tipo_id': ocorrencia.ocorrencia_tipo_id,
-            'condominio_id': ocorrencia.condominio_id
+            'condominio_id': ocorrencia.condominio_id,
+            'colaboradores_envolvidos': [{'id': col.id, 'nome': col.nome_completo} for col in ocorrencia.colaboradores_envolvidos],
+            'orgaos_acionados': [{'id': org.id, 'nome': org.nome} for org in ocorrencia.orgaos_acionados]
         }), 200
         
     except Exception as e:
         logger.error(f"Erro ao obter ocorrência {ocorrencia_id}: {e}")
         return jsonify({'error': 'Erro interno do servidor'}), 500
 
+@ocorrencia_api_bp.route('', methods=['POST'])
 @ocorrencia_api_bp.route('/', methods=['POST'])
 @jwt_required()
 def criar_ocorrencia():
@@ -195,16 +280,61 @@ def criar_ocorrencia():
             if not data.get(field):
                 return jsonify({'error': f'Campo obrigatório: {field}'}), 400
         
+        # Verificar se precisa criar novo tipo de ocorrência
+        tipo_ocorrencia_id = data['ocorrencia_tipo_id']
+        if data.get('novo_tipo_ocorrencia'):
+            tipo_existente = OcorrenciaTipo.query.filter(
+                OcorrenciaTipo.nome.ilike(data['novo_tipo_ocorrencia'].strip())
+            ).first()
+            if tipo_existente:
+                tipo_ocorrencia_id = tipo_existente.id
+            else:
+                novo_tipo = OcorrenciaTipo(nome=data['novo_tipo_ocorrencia'].strip())
+                db.session.add(novo_tipo)
+                db.session.flush()
+                tipo_ocorrencia_id = novo_tipo.id
+        
+        # Processar data/hora se fornecida
+        data_hora_ocorrencia = None
+        if data.get('data_hora_ocorrencia'):
+            try:
+                # Aceita tanto ISO format quanto DD/MM/YYYY HH:MM
+                if 'T' in data['data_hora_ocorrencia']:
+                    data_hora_ocorrencia = datetime.fromisoformat(data['data_hora_ocorrencia'].replace('Z', '+00:00'))
+                else:
+                    data_hora_ocorrencia = datetime.strptime(data['data_hora_ocorrencia'], '%d/%m/%Y %H:%M')
+                    # Converter para UTC
+                    from app.blueprints.ocorrencia.routes import local_to_utc
+                    data_hora_ocorrencia = local_to_utc(data_hora_ocorrencia)
+            except ValueError:
+                pass
+        
         # Criar nova ocorrência
         nova_ocorrencia = Ocorrencia()
         nova_ocorrencia.relatorio_final = data['relatorio_final']
-        nova_ocorrencia.ocorrencia_tipo_id = data['ocorrencia_tipo_id']
+        nova_ocorrencia.ocorrencia_tipo_id = tipo_ocorrencia_id
         nova_ocorrencia.condominio_id = data.get('condominio_id')
         nova_ocorrencia.supervisor_id = data.get('supervisor_id')
         nova_ocorrencia.turno = data.get('turno')
         nova_ocorrencia.status = data.get('status', 'Registrada')
         nova_ocorrencia.endereco_especifico = data.get('endereco_especifico')
         nova_ocorrencia.registrado_por_user_id = current_user_id
+        if data_hora_ocorrencia:
+            nova_ocorrencia.data_hora_ocorrencia = data_hora_ocorrencia
+        
+        # Adicionar colaboradores envolvidos
+        if data.get('colaboradores_envolvidos'):
+            colaboradores = Colaborador.query.filter(
+                Colaborador.id.in_(data['colaboradores_envolvidos'])
+            ).all()
+            nova_ocorrencia.colaboradores_envolvidos.extend(colaboradores)
+        
+        # Adicionar órgãos acionados
+        if data.get('orgaos_acionados'):
+            orgaos = OrgaoPublico.query.filter(
+                OrgaoPublico.id.in_(data['orgaos_acionados'])
+            ).all()
+            nova_ocorrencia.orgaos_acionados.extend(orgaos)
         
         db.session.add(nova_ocorrencia)
         db.session.commit()
@@ -228,8 +358,12 @@ def editar_ocorrencia(ocorrencia_id):
     if not user:
         return jsonify({'error': 'Usuário não encontrado'}), 404
     
+    # Verificar permissão para editar
+    ocorrencia = Ocorrencia.query.get_or_404(ocorrencia_id)
+    if not (user.is_admin or user.id == ocorrencia.registrado_por_user_id):
+        return jsonify({'error': 'Você não tem permissão para editar esta ocorrência'}), 403
+    
     try:
-        ocorrencia = Ocorrencia.query.get_or_404(ocorrencia_id)
         data = request.get_json()
         
         # Atualizar campos
@@ -247,6 +381,35 @@ def editar_ocorrencia(ocorrencia_id):
             ocorrencia.status = data['status']
         if 'endereco_especifico' in data:
             ocorrencia.endereco_especifico = data['endereco_especifico']
+        
+        # Processar data/hora se fornecida
+        if 'data_hora_ocorrencia' in data and data['data_hora_ocorrencia']:
+            try:
+                # Aceita tanto ISO format quanto DD/MM/YYYY HH:MM
+                if 'T' in data['data_hora_ocorrencia']:
+                    data_hora_ocorrencia = datetime.fromisoformat(data['data_hora_ocorrencia'].replace('Z', '+00:00'))
+                else:
+                    data_hora_ocorrencia = datetime.strptime(data['data_hora_ocorrencia'], '%d/%m/%Y %H:%M')
+                    # Converter para UTC
+                    from app.blueprints.ocorrencia.routes import local_to_utc
+                    data_hora_ocorrencia = local_to_utc(data_hora_ocorrencia)
+                ocorrencia.data_hora_ocorrencia = data_hora_ocorrencia
+            except ValueError:
+                pass
+        
+        # Atualizar colaboradores envolvidos
+        if 'colaboradores_envolvidos' in data:
+            colaboradores = Colaborador.query.filter(
+                Colaborador.id.in_(data['colaboradores_envolvidos'] or [])
+            ).all()
+            ocorrencia.colaboradores_envolvidos = colaboradores
+        
+        # Atualizar órgãos acionados
+        if 'orgaos_acionados' in data:
+            orgaos = OrgaoPublico.query.filter(
+                OrgaoPublico.id.in_(data['orgaos_acionados'] or [])
+            ).all()
+            ocorrencia.orgaos_acionados = orgaos
         
         db.session.commit()
         
@@ -269,8 +432,12 @@ def deletar_ocorrencia(ocorrencia_id):
     if not user:
         return jsonify({'error': 'Usuário não encontrado'}), 404
     
+    # Verificar permissão para deletar
+    ocorrencia = Ocorrencia.query.get_or_404(ocorrencia_id)
+    if not (user.is_admin or user.id == ocorrencia.registrado_por_user_id):
+        return jsonify({'error': 'Você não tem permissão para deletar esta ocorrência'}), 403
+    
     try:
-        ocorrencia = Ocorrencia.query.get_or_404(ocorrencia_id)
         db.session.delete(ocorrencia)
         db.session.commit()
         
@@ -286,13 +453,13 @@ def deletar_ocorrencia(ocorrencia_id):
 @ocorrencia_api_bp.route('/<int:ocorrencia_id>/approve', methods=['POST'])
 @jwt_required()
 def approve_ocorrencia(ocorrencia_id):
-    """Aprovar uma ocorrência."""
+    """Aprovar uma ocorrência pendente."""
     ocorrencia = Ocorrencia.query.get_or_404(ocorrencia_id)
     
-    if ocorrencia.status == 'Aprovada':
-        return jsonify({'message': 'Ocorrência já está aprovada'}), 400
+    if ocorrencia.status != 'Pendente':
+        return jsonify({'message': 'Apenas ocorrências pendentes podem ser aprovadas'}), 400
     
-    ocorrencia.status = 'Aprovada'
+    ocorrencia.status = 'Registrada'
     db.session.commit()
     
     logger.info(f"Ocorrência {ocorrencia_id} aprovada")
@@ -301,11 +468,11 @@ def approve_ocorrencia(ocorrencia_id):
 @ocorrencia_api_bp.route('/<int:ocorrencia_id>/reject', methods=['POST'])
 @jwt_required()
 def reject_ocorrencia(ocorrencia_id):
-    """Rejeitar uma ocorrência."""
+    """Rejeitar uma ocorrência pendente."""
     ocorrencia = Ocorrencia.query.get_or_404(ocorrencia_id)
     
-    if ocorrencia.status == 'Rejeitada':
-        return jsonify({'message': 'Ocorrência já está rejeitada'}), 400
+    if ocorrencia.status != 'Pendente':
+        return jsonify({'message': 'Apenas ocorrências pendentes podem ser rejeitadas'}), 400
     
     ocorrencia.status = 'Rejeitada'
     db.session.commit()
@@ -317,24 +484,82 @@ def reject_ocorrencia(ocorrencia_id):
 @ocorrencia_api_bp.route('/analisar-relatorio', methods=['POST'])
 @jwt_required()
 def analyze_report():
-    """Analisar relatório usando IA."""
+    """Analisar relatório usando IA e extrair dados."""
     data = request.get_json()
     
     if not data or not data.get('relatorio_bruto'):
         return jsonify({'error': 'Relatório bruto é obrigatório'}), 400
     
     try:
+        import re
         from app.utils.classificador import classificar_ocorrencia
         from app.services.patrimonial_report_service import PatrimonialReportService
         
-        # Classificar ocorrência
-        classificacao = classificar_ocorrencia(data['relatorio_bruto'])
+        texto = data['relatorio_bruto']
+        texto_limpo = texto.replace("\xa0", " ").strip()
+        dados_extraidos = {}
         
-        # Processar relatório patrimonial
+        # 1. DATA, HORA E TURNO
+        match_data = re.search(r"Data:\s*(\d{2}/\d{2}/\d{4})", texto_limpo)
+        match_hora = re.search(r"Hora:\s*(\d{2}:\d{2})", texto_limpo)
+        if match_data and match_hora:
+            data_str, hora_str = match_data.group(1).strip(), match_hora.group(1).strip()
+            try:
+                datetime_obj = datetime.strptime(f"{data_str} {hora_str}", "%d/%m/%Y %H:%M")
+                dados_extraidos["data_hora_ocorrencia"] = datetime_obj.strftime("%Y-%m-%dT%H:%M")
+                dados_extraidos["turno"] = "Noturno" if 18 <= datetime_obj.hour or datetime_obj.hour < 6 else "Diurno"
+            except ValueError:
+                pass
+        
+        # 2. LOCAL, ENDEREÇO E CONDOMÍNIO
+        match_local = re.search(r"(?:Endereço|Local):\s*([^\n\r]+)", texto_limpo)
+        if match_local:
+            endereco_completo = match_local.group(1).strip()
+            dados_extraidos["endereco_especifico"] = endereco_completo
+            # Lógica para encontrar condomínio
+            condominio_encontrado = next(
+                (c for c in Condominio.query.all() if c.nome.lower() in endereco_completo.lower() or endereco_completo.lower() in c.nome.lower()),
+                None
+            )
+            if condominio_encontrado:
+                dados_extraidos["condominio_id"] = condominio_encontrado.id
+        
+        # 3. TIPO DA OCORRÊNCIA
+        nome_tipo_encontrado = classificar_ocorrencia(texto_limpo)
+        if nome_tipo_encontrado:
+            tipo_obj = OcorrenciaTipo.query.filter(OcorrenciaTipo.nome.ilike(nome_tipo_encontrado)).first()
+            if tipo_obj:
+                dados_extraidos["ocorrencia_tipo_id"] = tipo_obj.id
+            else:
+                # Se o tipo não existir no banco, cria um novo
+                novo_tipo = OcorrenciaTipo(nome=nome_tipo_encontrado)
+                db.session.add(novo_tipo)
+                db.session.flush()
+                dados_extraidos["ocorrencia_tipo_id"] = novo_tipo.id
+        else:
+            # Se nenhum tipo for encontrado, usa o tipo padrão
+            tipo_padrao = OcorrenciaTipo.query.filter_by(nome="verificação").first()
+            if tipo_padrao:
+                dados_extraidos["ocorrencia_tipo_id"] = tipo_padrao.id
+        
+        # 4. RESPONSÁVEL (COLABORADOR)
+        match_responsavel = re.search(r"Responsável pelo registro:\s*([^\n\r(]+)", texto_limpo)
+        if match_responsavel:
+            nome_responsavel = match_responsavel.group(1).strip()
+            colaborador = Colaborador.query.filter(
+                Colaborador.nome_completo.ilike(f"%{nome_responsavel}%")
+            ).first()
+            if colaborador:
+                dados_extraidos["colaboradores_envolvidos"] = [colaborador.id]
+        
+        # 5. Classificação e relatório patrimonial
+        classificacao = classificar_ocorrencia(texto_limpo)
         patrimonial_service = PatrimonialReportService()
-        relatorio_processado = patrimonial_service.gerar_relatorio_seguranca(data['relatorio_bruto'])
+        relatorio_processado = patrimonial_service.gerar_relatorio_seguranca(texto_limpo)
         
         return jsonify({
+            'sucesso': True,
+            'dados': dados_extraidos,
             'classificacao': classificacao,
             'relatorio_processado': relatorio_processado
         }), 200

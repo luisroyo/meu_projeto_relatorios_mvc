@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 ronda_api_bp = Blueprint('ronda_api', __name__, url_prefix='/api/rondas')
 
+@ronda_api_bp.route('', methods=['GET'])
 @ronda_api_bp.route('/', methods=['GET'])
 @jwt_required()
 def listar_rondas():
@@ -136,6 +137,7 @@ def listar_condominios_rondas():
         logger.error(f"Erro ao listar condomínios: {e}")
         return jsonify({'error': 'Erro interno do servidor'}), 500 
 
+@ronda_api_bp.route('', methods=['POST'])
 @ronda_api_bp.route('/', methods=['POST'])
 @jwt_required()
 def create_ronda():

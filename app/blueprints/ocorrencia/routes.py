@@ -401,7 +401,7 @@ def analisar_relatorio():
             pass
 
     # 2. LOCAL, ENDEREÇO E CONDOMÍNIO
-    match_local = re.search(r"Local:\s*([^\n\r]+)", texto_limpo)
+    match_local = re.search(r"(?:Endereço|Local):\s*([^\n\r]+)", texto_limpo)
     if match_local:
         endereco_completo = match_local.group(1).strip()
         dados_extraidos["endereco_especifico"] = endereco_completo
@@ -410,7 +410,7 @@ def analisar_relatorio():
             (
                 c
                 for c in Condominio.query.all()
-                if c.nome.lower() in endereco_completo.lower()
+                if c.nome.lower() in endereco_completo.lower() or endereco_completo.lower() in c.nome.lower()
             ),
             None,
         )
