@@ -4,12 +4,32 @@ APIs de autenticação usando JWT.
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app.models.user import User
+from app.models.login_history import LoginHistory
 from app import db
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
 
 auth_api_bp = Blueprint('auth_api', __name__, url_prefix='/api/auth')
+
+def _registrar_login_api(user, sucesso, req, motivo_falha=None):
+    """Registra tentativa de login no histórico para API."""
+    try:
+        log = LoginHistory(
+            user_id=user.id if user else None,
+            attempted_username=req.get_json().get("email") if req.is_json else req.form.get("email"),
+            timestamp=datetime.now(timezone.utc),
+            success=sucesso,
+            ip_address=req.remote_addr,
+            user_agent=req.user_agent.string,
+            failure_reason=motivo_falha,
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao registrar tentativa de login na API: {e}")
 
 @auth_api_bp.route('/login', methods=['POST'])
 def login():
@@ -20,12 +40,22 @@ def login():
         return jsonify({'error': 'Email e senha são obrigatórios'}), 400
     
     user = User.query.filter_by(email=data['email']).first()
+    login_success = False
     
     if user and user.check_password(data['password']):
         if not user.is_approved:
+            _registrar_login_api(user, False, request, "Account not approved")
             return jsonify({'error': 'Usuário não aprovado'}), 403
         
+        # Atualiza last_login
+        user.last_login = datetime.now(timezone.utc)
+        db.session.commit()
+        
         access_token = create_access_token(identity=user.id)
+        login_success = True
+        
+        # Registra login bem-sucedido
+        _registrar_login_api(user, True, request, None)
         
         logger.info(f"Login bem-sucedido para usuário: {user.email}")
         
@@ -41,6 +71,8 @@ def login():
             }
         }), 200
     
+    # Registra tentativa falhada
+    _registrar_login_api(user, False, request, "Credenciais inválidas")
     logger.warning(f"Tentativa de login falhou para email: {data.get('email')}")
     return jsonify({'error': 'Credenciais inválidas'}), 401
 
