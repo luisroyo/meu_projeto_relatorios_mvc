@@ -38,6 +38,10 @@ class Ronda(db.Model):
     tipo = db.Column(db.String(50), nullable=True, default="tradicional")  # tradicional, esporadica
 
     condominio = db.relationship("Condominio", backref="rondas")
+    
+    # Relacionamentos com User (criador e supervisor)
+    criador = db.relationship("User", foreign_keys=[user_id], back_populates="rondas_criadas")
+    supervisor = db.relationship("User", foreign_keys=[supervisor_id], back_populates="rondas_supervisionadas")
 
     def __repr__(self) -> str:
         return f'<Ronda {self.id} - {self.data_plantao_ronda}>' 

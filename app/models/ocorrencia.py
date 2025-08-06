@@ -64,8 +64,8 @@ class Ocorrencia(db.Model):
     )
     condominio = db.relationship("Condominio", backref="ocorrencias")
     tipo = db.relationship("OcorrenciaTipo", backref="ocorrencias")
-    registrado_por = db.relationship("User", foreign_keys=[registrado_por_user_id])
-    supervisor = db.relationship("User", foreign_keys=[supervisor_id])
+    registrado_por = db.relationship("User", foreign_keys=[registrado_por_user_id], back_populates="ocorrencias_registradas")
+    supervisor = db.relationship("User", foreign_keys=[supervisor_id], back_populates="ocorrencias_supervisionadas")
 
     orgaos_acionados = db.relationship(
         "OrgaoPublico",

@@ -22,10 +22,10 @@ class User(UserMixin, db.Model):
     )
     rondas_criadas = db.relationship(
         "Ronda",
-        backref="criador",
         lazy="dynamic",
         cascade="all, delete-orphan",
         foreign_keys="Ronda.user_id",
+        back_populates="criador"
     )
     processing_history = db.relationship(
         "ProcessingHistory",
@@ -40,6 +40,7 @@ class User(UserMixin, db.Model):
         "Ocorrencia",
         lazy="dynamic",
         foreign_keys="Ocorrencia.registrado_por_user_id",
+        back_populates="registrado_por"
     )
 
     # Relações de supervisão
@@ -47,12 +48,13 @@ class User(UserMixin, db.Model):
         "Ocorrencia",
         lazy="dynamic",
         foreign_keys="Ocorrencia.supervisor_id",
+        back_populates="supervisor"
     )
     rondas_supervisionadas = db.relationship(
         "Ronda",
-        backref="supervisor",
         lazy="dynamic",
         foreign_keys="Ronda.supervisor_id",
+        back_populates="supervisor"
     )
 
     def set_password(self, password: str) -> None:
