@@ -168,16 +168,38 @@ def test_cors_headers():
     assert response.headers['Access-Control-Allow-Origin'] == 'https://ocorrencias-master-app.onrender.com'
 ```
 
+## 🚨 Problema Identificado e Corrigido
+
+### Erro Real Encontrado:
+```
+AttributeError: 'Request' object has no attribute '__name__'. Did you mean: '__ne__'?
+```
+
+**Causa:** O `before_request` estava passando o objeto `request` para `csrf.exempt()`, mas essa função espera uma função/blueprint.
+
+### Correção Aplicada:
+```python
+# ANTES (causava erro 500):
+@app.before_request
+def disable_csrf_for_api():
+    if request.path.startswith('/api/'):
+        csrf.exempt(request)  # ❌ ERRO: request não é uma função
+
+# DEPOIS (corrigido):
+# CSRF já está desabilitado para os blueprints da API acima
+# Não precisamos do before_request para isso
+```
+
 ## 📝 Status Atual
 
-✅ **PROBLEMA COMPLETAMENTE RESOLVIDO**
+✅ **PROBLEMA IDENTIFICADO E CORRIGIDO**
 
+- ✅ Erro AttributeError no CSRF corrigido
 - ✅ CORS configurado de forma limpa e eficiente
 - ✅ Handlers OPTIONS simplificados e funcionando
-- ✅ CSRF desabilitado para todas as rotas da API
-- ✅ Testes confirmam funcionamento perfeito
-- ✅ Frontend pode fazer requisições cross-origin sem problemas
-- ✅ Configuração otimizada e mantível
+- ✅ CSRF desabilitado corretamente para blueprints da API
+- ✅ Código commitado e pronto para deploy
+- ⏳ Aguardando push e deploy para confirmação final
 
 ## 🎯 Benefícios da Solução Final
 
