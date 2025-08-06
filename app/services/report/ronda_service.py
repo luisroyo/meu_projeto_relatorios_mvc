@@ -62,15 +62,18 @@ class RondaReportService:
                 story.extend(self.builder.create_period_info_table(dashboard_data['periodo_info']))
 
             # Tabela de condomínios
-            if dashboard_data.get('condominio_labels') and dashboard_data.get('rondas_por_condominio_data'):
+            if dashboard_data.get('condominio_labels') and dashboard_data.get('condominio_data'):
                 condominio_data = [['Condomínio', 'Total de Rondas']]
-                for label, value in zip(dashboard_data['condominio_labels'], dashboard_data['rondas_por_condominio_data']):
+                for label, value in zip(dashboard_data['condominio_labels'], dashboard_data['condominio_data']):
                     condominio_data.append([label, str(value)])
                 story.extend(self.builder.create_zebra_table(
                     condominio_data,
                     'Todos os Condomínios com Ronda no Período',
                     [3, 2]
                 ))
+
+            # [NOVO] Seção detalhada de quantidades por residencial
+            story.extend(self._create_residencial_quantities_section(dashboard_data, periodo_inicio, periodo_fim))
 
             # Análise por turno
             if dashboard_data.get('turno_labels') and dashboard_data.get('rondas_por_turno_data'):
@@ -183,14 +186,34 @@ class RondaReportService:
             tables_data = []
             
             # Condomínios
-            if dashboard_data.get('condominio_labels') and dashboard_data.get('rondas_por_condominio_data'):
+            if dashboard_data.get('condominio_labels') and dashboard_data.get('condominio_data'):
                 condominio_data = [['Condomínio', 'Total']]
-                for label, value in zip(dashboard_data['condominio_labels'], dashboard_data['rondas_por_condominio_data']):
+                for label, value in zip(dashboard_data['condominio_labels'], dashboard_data['condominio_data']):
                     condominio_data.append([label, str(value)])
                 tables_data.append({
                     'title': 'Rondas por Condomínio',
                     'data': condominio_data,
                     'col_widths': [3, 1]
+                })
+
+            # [NOVO] Seção compacta de residenciais
+            if dashboard_data.get('condominio_labels') and dashboard_data.get('condominio_data'):
+                residencial_data = [['Residencial', 'Total', 'Status']]
+                for label, value in zip(dashboard_data['condominio_labels'], dashboard_data['condominio_data']):
+                    # Determina status baseado na quantidade
+                    if value == 0:
+                        status = "❌"
+                    elif value < 5:
+                        status = "⚠️"
+                    elif value < 15:
+                        status = "✅"
+                    else:
+                        status = "🟢"
+                    residencial_data.append([label, str(value), status])
+                tables_data.append({
+                    'title': 'Status por Residencial',
+                    'data': residencial_data,
+                    'col_widths': [3, 1, 0.5]
                 })
 
             # Turnos
@@ -256,6 +279,170 @@ class RondaReportService:
         except Exception as e:
             logger.error(f'Erro ao gerar relatório PDF compacto de rondas: {e}', exc_info=True)
             raise
+
+    def _create_residencial_quantities_section(self, dashboard_data: Dict, periodo_inicio: str, periodo_fim: str) -> List:
+        """Cria seção detalhada com quantidades de rondas por residencial no período."""
+        from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch
+        
+        story = []
+        styles = getSampleStyleSheet()
+        
+        # Título da seção
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading2'],
+            fontSize=14,
+            spaceAfter=12,
+            textColor=colors.darkblue
+        )
+        story.append(Paragraph("📊 Quantidades de Rondas por Residencial", title_style))
+        story.append(Spacer(1, 6))
+        
+        # Descrição do período
+        desc_style = ParagraphStyle(
+            'CustomDesc',
+            parent=styles['Normal'],
+            fontSize=10,
+            spaceAfter=12,
+            textColor=colors.grey
+        )
+        periodo_text = f"Período analisado: {periodo_inicio} a {periodo_fim}" if periodo_inicio and periodo_fim else "Período: Todos os dados disponíveis"
+        story.append(Paragraph(periodo_text, desc_style))
+        story.append(Spacer(1, 12))
+        
+        # Dados dos condomínios
+        if dashboard_data.get('condominio_labels') and dashboard_data.get('condominio_data'):
+            # Cria tabela com informações detalhadas
+            table_data = [['Residencial', 'Total de Rondas', 'Média por Dia*', 'Status']]
+            
+            total_periodo = sum(dashboard_data['condominio_data'])
+            total_dias = 1  # Valor padrão
+            
+            # Calcula total de dias se temos datas
+            if periodo_inicio and periodo_fim:
+                try:
+                    from datetime import datetime
+                    inicio = datetime.strptime(periodo_inicio, "%Y-%m-%d").date()
+                    fim = datetime.strptime(periodo_fim, "%Y-%m-%d").date()
+                    total_dias = (fim - inicio).days + 1
+                except:
+                    total_dias = 1
+            
+            for i, (label, value) in enumerate(zip(dashboard_data['condominio_labels'], dashboard_data['condominio_data'])):
+                # Calcula média por dia
+                media_dia = round(value / total_dias, 1) if total_dias > 0 else 0
+                
+                # Determina status baseado na quantidade
+                if value == 0:
+                    status = "❌ Sem rondas"
+                    status_color = colors.red
+                elif value < 5:
+                    status = "⚠️ Baixa frequência"
+                    status_color = colors.orange
+                elif value < 15:
+                    status = "✅ Frequência normal"
+                    status_color = colors.green
+                else:
+                    status = "🟢 Alta frequência"
+                    status_color = colors.darkgreen
+                
+                table_data.append([label, str(value), f"{media_dia}", status])
+            
+            # Adiciona linha de total
+            media_total = round(total_periodo / total_dias, 1) if total_dias > 0 else 0
+            table_data.append(['**TOTAL GERAL**', f"**{total_periodo}**", f"**{media_total}**", "**Resumo**"])
+            
+            # Cria a tabela
+            table = Table(table_data, colWidths=[3*inch, 1.2*inch, 1.2*inch, 1.5*inch])
+            
+            # Estilo da tabela
+            table_style = TableStyle([
+                # Cabeçalho
+                ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                
+                # Linhas de dados
+                ('ALIGN', (0, 1), (0, -2), 'LEFT'),  # Nome do residencial
+                ('ALIGN', (1, 1), (2, -2), 'CENTER'),  # Números
+                ('ALIGN', (3, 1), (3, -2), 'CENTER'),  # Status
+                ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -2), 9),
+                
+                # Linha de total
+                ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, -1), (-1, -1), 10),
+                ('ALIGN', (0, -1), (-1, -1), 'CENTER'),
+                
+                # Bordas
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('BOX', (0, 0), (-1, -1), 2, colors.black),
+            ])
+            
+            table.setStyle(table_style)
+            story.append(table)
+            story.append(Spacer(1, 12))
+            
+            # Nota explicativa
+            nota_style = ParagraphStyle(
+                'CustomNota',
+                parent=styles['Normal'],
+                fontSize=8,
+                spaceAfter=6,
+                textColor=colors.grey,
+                leftIndent=20
+            )
+            story.append(Paragraph("* Média calculada considerando o período total selecionado", nota_style))
+            
+            # Estatísticas adicionais
+            if total_periodo > 0:
+                stats_style = ParagraphStyle(
+                    'CustomStats',
+                    parent=styles['Normal'],
+                    fontSize=9,
+                    spaceAfter=6,
+                    textColor=colors.darkblue
+                )
+                
+                # Encontra o residencial com mais rondas
+                max_rondas = max(dashboard_data['condominio_data'])
+                max_residencial = dashboard_data['condominio_labels'][dashboard_data['condominio_data'].index(max_rondas)]
+                
+                # Encontra o residencial com menos rondas (excluindo zeros)
+                rondas_nao_zero = [r for r in dashboard_data['condominio_data'] if r > 0]
+                if rondas_nao_zero:
+                    min_rondas = min(rondas_nao_zero)
+                    min_residencial = dashboard_data['condominio_labels'][dashboard_data['condominio_data'].index(min_rondas)]
+                else:
+                    min_rondas = 0
+                    min_residencial = "N/A"
+                
+                stats_text = f"""
+                <b>Estatísticas:</b><br/>
+                • Residencial com mais rondas: <b>{max_residencial}</b> ({max_rondas} rondas)<br/>
+                • Residencial com menos rondas: <b>{min_residencial}</b> ({min_rondas} rondas)<br/>
+                • Residenciais com atividade: {len([r for r in dashboard_data['condominio_data'] if r > 0])} de {len(dashboard_data['condominio_labels'])}
+                """
+                story.append(Paragraph(stats_text, stats_style))
+        else:
+            # Mensagem quando não há dados
+            no_data_style = ParagraphStyle(
+                'CustomNoData',
+                parent=styles['Normal'],
+                fontSize=10,
+                spaceAfter=6,
+                textColor=colors.red
+            )
+            story.append(Paragraph("⚠️ Nenhum dado de residencial disponível para o período selecionado.", no_data_style))
+        
+        story.append(Spacer(1, 20))
+        return story
 
     def _create_executive_summary(self, dashboard_data: Dict, periodo_inicio: str, periodo_fim: str) -> List:
         story = []
