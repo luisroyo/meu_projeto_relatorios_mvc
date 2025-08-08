@@ -1,8 +1,14 @@
 # tests/test_main_routes.py (VERSÃO FINAL E CORRIGIDA)
 
-import pytest
+import os, sys, pytest
 from unittest.mock import patch, MagicMock
 from flask import url_for
+
+# Ajuste de path para importar o backend após separação
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+BACKEND_DIR = os.path.join(PROJECT_ROOT, 'backend')
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
 
 def test_index_page_requires_login(client):
     """Testa se a página inicial redireciona para o login se não estiver logado."""

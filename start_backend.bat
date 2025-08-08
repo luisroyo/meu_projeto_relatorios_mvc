@@ -5,7 +5,7 @@ echo ========================================
 echo.
 
 REM Verificar se estamos no diretório correto
-if not exist "run.py" (
+if not exist "backend\run.py" (
     echo ERRO: Arquivo run.py nao encontrado!
     echo Certifique-se de estar no diretório backend
     pause
@@ -14,7 +14,7 @@ if not exist "run.py" (
 
 REM Ativar ambiente virtual
 echo [1/3] Ativando ambiente virtual...
-call venv\Scripts\activate.bat
+call backend\venv\Scripts\activate.bat
 if errorlevel 1 (
     echo ERRO: Falha ao ativar ambiente virtual!
     echo Verifique se o ambiente virtual existe: python -m venv venv
@@ -24,7 +24,7 @@ if errorlevel 1 (
 
 REM Verificar dependências
 echo [2/3] Verificando dependências...
-python -m pip install -r requirements.txt
+python -m pip install -r backend\requirements.txt
 if errorlevel 1 (
     echo ERRO: Falha ao instalar dependências!
     pause
@@ -40,6 +40,6 @@ echo    Pressione Ctrl+C para parar
 echo ========================================
 echo.
 
-python run.py
+python backend\run.py
 
 pause 

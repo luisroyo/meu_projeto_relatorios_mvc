@@ -1,6 +1,15 @@
 # tests/conftest.py (VERSÃO FINAL CORRIGIDA)
 from datetime import date
+import os
+import sys
 import pytest
+
+# Garante que o Python encontre os módulos dentro de backend/
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+BACKEND_DIR = os.path.join(PROJECT_ROOT, 'backend')
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
 from app import create_app, db as _db
 from app.models import Condominio, Ronda, User
 from config import TestingConfig

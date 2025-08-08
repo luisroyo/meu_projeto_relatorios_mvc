@@ -72,7 +72,12 @@ logging.getLogger().addHandler(file_handler)
 
 # --- Fábrica da aplicação ---
 def create_app(config_class=DevelopmentConfig):
-    app = Flask(__name__)
+    # Diretórios de templates e estáticos ficam fora do pacote backend/app
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    templates_dir = os.path.join(project_root, 'frontend', 'templates')
+    static_dir = os.path.join(project_root, 'frontend', 'static')
+
+    app = Flask(__name__, template_folder=templates_dir, static_folder=static_dir)
     app.config.from_object(config_class)
     
     # Desabilitar redirecionamento automático para evitar problemas CORS
@@ -120,7 +125,8 @@ def create_app(config_class=DevelopmentConfig):
     login_manager.login_message = "Por favor, faça login para acessar esta página."
     login_manager.login_message_category = "info"
 
-    app.wsgi_app = WhiteNoise(app.wsgi_app, root="app/static/")
+    # Servir arquivos estáticos do diretório frontend/static via WhiteNoise
+    app.wsgi_app = WhiteNoise(app.wsgi_app, root=static_dir)
 
     # Filtros de template
     @app.template_filter("localtime")
