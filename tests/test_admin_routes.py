@@ -1,5 +1,13 @@
 # tests/test_admin_routes.py (VERSÃO PARA ISOLAR O BUG)
 from flask import url_for
+import os, sys
+
+# Ajuste de path para importar o backend após separação
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+BACKEND_DIR = os.path.join(PROJECT_ROOT, 'backend')
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
 from app.models import User
 
 def test_admin_dashboard_unauthenticated(client):

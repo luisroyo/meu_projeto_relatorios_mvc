@@ -1,6 +1,14 @@
 # tests/test_ronda_routes.py (VERSÃO FINAL E CORRIGIDA)
 
 from flask import url_for
+import os, sys
+
+# Ajuste de path para importar o backend após separação
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+BACKEND_DIR = os.path.join(PROJECT_ROOT, 'backend')
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
 from app.models import Ronda, Condominio, User
 from datetime import date
 import re

@@ -5,7 +5,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Verificar se estamos no diretório correto
-if (-not (Test-Path "run.py")) {
+if (-not (Test-Path "backend/run.py")) {
     Write-Host "ERRO: Arquivo run.py não encontrado!" -ForegroundColor Red
     Write-Host "Certifique-se de estar no diretório backend" -ForegroundColor Yellow
     Read-Host "Pressione Enter para sair"
@@ -15,7 +15,7 @@ if (-not (Test-Path "run.py")) {
 # Ativar ambiente virtual
 Write-Host "[1/3] Ativando ambiente virtual..." -ForegroundColor Green
 try {
-    & ".\venv\Scripts\Activate.ps1"
+    & ".\backend\venv\Scripts\Activate.ps1"
     if ($LASTEXITCODE -ne 0) {
         throw "Falha ao ativar ambiente virtual"
     }
@@ -30,7 +30,7 @@ catch {
 # Verificar dependências
 Write-Host "[2/3] Verificando dependências..." -ForegroundColor Green
 try {
-    python -m pip install -r requirements.txt
+    python -m pip install -r backend\requirements.txt
     if ($LASTEXITCODE -ne 0) {
         throw "Falha ao instalar dependências"
     }
@@ -51,4 +51,4 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Executar o Flask
-python run.py 
+python backend\run.py
