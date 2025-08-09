@@ -15,7 +15,7 @@ echo "Aplicando migrations..."
 export PYTHONPATH="backend:${PYTHONPATH}"
 export FLASK_APP="app:create_app()"
 
-timeout 300 flask db upgrade || {
+timeout 300 flask db upgrade -d backend/migrations || {
     echo "ERRO: Timeout ao aplicar migrations"
     exit 1
 }
