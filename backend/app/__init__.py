@@ -235,8 +235,18 @@ def create_app(config_class=DevelopmentConfig):
             'code': 'DB_DISCONNECTION'
         }), 503
 
-    # Dev: verificação da conexão
-    if os.environ.get("FLASK_ENV", "development") == "development":
+    # Fecha a sessão ao final de cada request para evitar sessões penduradas
+    @app.teardown_appcontext
+    def shutdown_session(exception=None):
+        try:
+            if app.config.get('DB_CLOSE_ON_TEARDOWN', True):
+                db.session.remove()
+        except Exception as e:
+            module_logger.error(f"Erro ao encerrar sessão do DB no teardown: {e}")
+
+    # Dev: verificação da conexão (desabilitada para economizar horas de DB)
+    # Mantemos a função disponível via flag para debug pontual
+    if os.environ.get("DB_CHECK_EACH_REQUEST", "false").lower() == "true":
         @app.before_request
         def check_db_connection():
             if request.endpoint and 'static' not in request.endpoint:
@@ -255,8 +265,10 @@ def create_app(config_class=DevelopmentConfig):
     @app.before_request
     def track_user_activity():
         try:
-            from .middleware.user_activity import track_user_activity as track
-            track()
+            # Permite desligar rastreamento para evitar hits desnecessários ao DB
+            if app.config.get('USER_ACTIVITY_ENABLED', False) is True:
+                from .middleware.user_activity import track_user_activity as track
+                track()
         except Exception as e:
             module_logger.error(f"Erro no middleware de atividade: {e}")
 
@@ -267,14 +279,6 @@ def create_app(config_class=DevelopmentConfig):
                 cursor = dbapi_connection.cursor()
                 cursor.execute("PRAGMA foreign_keys=ON")
                 cursor.close()
-
-        @event.listens_for(db.engine, "checkout")
-        def receive_checkout(dbapi_connection, connection_record, connection_proxy):
-            module_logger.debug("Conexão obtida do pool")
-
-        @event.listens_for(db.engine, "checkin")
-        def receive_checkin(dbapi_connection, connection_record):
-            module_logger.debug("Conexão devolvida ao pool")
 
     module_logger.info("Aplicação Flask configurada e pronta.")
     return app
