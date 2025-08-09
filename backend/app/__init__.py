@@ -263,6 +263,18 @@ def create_app(config_class=DevelopmentConfig):
             now_utc = datetime.now(timezone.utc)
             max_idle = timedelta(minutes=app.config.get('INACTIVITY_TIMEOUT_MIN', 5))
 
+            # Invalidação global de sessão via cache (se setada por admin)
+            try:
+                invalidation_ts = cache.get('SESSION_INVALIDATION_TS')
+                if invalidation_ts and session.get('login_epoch') and session['login_epoch'] < invalidation_ts:
+                    logout_user()
+                    if request.path.startswith('/api/'):
+                        return jsonify({'message': 'Sessão invalidada pelo administrador.'}), 401
+                    flash('Sessão invalidada pelo administrador.', 'warning')
+                    return redirect(url_for('auth.login'))
+            except Exception:
+                pass
+
             # Lê última atividade da sessão (string ISO) e calcula idle
             last_seen_str = session.get('last_seen_utc')
             if last_seen_str:

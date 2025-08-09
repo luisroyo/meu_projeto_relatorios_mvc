@@ -9,6 +9,8 @@ from flask_login import current_user, login_required
 from app.decorators.admin_required import admin_required
 from app.forms import FormatEmailReportForm
 from app.models import User
+from app import db, cache
+import time
 from app.services.escala_service import get_escala_mensal, salvar_escala_mensal
 from app.services.justificativa_service import JustificativaAtestadoService
 from app.services.justificativa_troca_plantao_service import \
@@ -156,6 +158,40 @@ def admin_tools():
     return render_template(
         "admin/ferramentas.html", title="Ferramentas Administrativas"
     )
+
+
+@admin_bp.route("/ferramentas/api/derrubar-conexoes", methods=["POST"])
+@login_required
+@admin_required
+def api_derrubar_conexoes():
+    """Derruba conexões do pool e invalida todas as sessões atuais.
+
+    - Fecha sessões e desconecta o pool do SQLAlchemy (nova conexão só quando necessário)
+    - Invalida todas as sessões de login gravando um timestamp global em cache
+    """
+    try:
+        # 1) Derruba conexões do pool
+        try:
+            db.session.remove()
+            db.engine.dispose()
+        except Exception as e:
+            logger.warning(f"Falha ao derrubar conexões do DB: {e}")
+
+        # 2) Invalida sessões atuais
+        invalidation_epoch = int(time.time())
+        try:
+            cache.set("SESSION_INVALIDATION_TS", invalidation_epoch, timeout=0)
+        except Exception as e:
+            logger.warning(f"Falha ao gravar invalidacao de sessao no cache: {e}")
+
+        return jsonify({
+            "success": True,
+            "message": "Conexões derrubadas e sessões invalidadas. Usuários precisarão logar novamente.",
+            "invalidation_epoch": invalidation_epoch
+        }), 200
+    except Exception as e:
+        logger.error(f"Erro ao derrubar conexões: {e}")
+        return jsonify({"success": False, "error": "Erro ao derrubar conexões"}), 500
 
 
 @admin_bp.route("/ferramentas/formatar-email", methods=["GET", "POST"])
