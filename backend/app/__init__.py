@@ -245,6 +245,38 @@ def create_app(config_class=DevelopmentConfig):
         except Exception as e:
             module_logger.error(f"Erro ao encerrar sessão do DB no teardown: {e}")
 
+    # Logout automático por inatividade
+    @app.before_request
+    def enforce_inactivity_timeout():
+        try:
+            from flask_login import current_user, logout_user
+            from datetime import datetime, timezone, timedelta
+            # Ignora requests estáticos
+            if request.endpoint and 'static' in request.endpoint:
+                return
+            # Apenas para usuários autenticados
+            if current_user.is_authenticated:
+                # last_activity é atualizado pelo middleware se USER_ACTIVITY_ENABLED=true
+                last = getattr(current_user, 'last_login', None)
+                # Tenta recuperar last_activity de sessão online se existir
+                if not last:
+                    try:
+                        from .models.user_online import UserOnline
+                        sess = UserOnline.query.filter_by(user_id=current_user.id).order_by(UserOnline.last_activity.desc()).first()
+                        if sess and sess.last_activity:
+                            last = sess.last_activity
+                    except Exception:
+                        pass
+                if last:
+                    now_utc = datetime.now(timezone.utc)
+                    idle = now_utc - (last if last.tzinfo else now_utc)
+                    max_idle = timedelta(minutes=app.config.get('INACTIVITY_TIMEOUT_MIN', 5))
+                    if idle > max_idle:
+                        logout_user()
+                        return jsonify({'message': 'Sessão expirada por inatividade.'}), 401
+        except Exception as e:
+            module_logger.error(f"Erro no controle de inatividade: {e}")
+
     # Dev: verificação da conexão (desabilitada para economizar horas de DB)
     # Mantemos a função disponível via flag para debug pontual
     if os.environ.get("DB_CHECK_EACH_REQUEST", "false").lower() == "true":
