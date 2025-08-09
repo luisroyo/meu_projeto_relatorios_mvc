@@ -114,7 +114,8 @@ def create_app(config_class=DevelopmentConfig):
 
     # Inicialização de extensões
     db.init_app(app)
-    migrate.init_app(app, db)
+    # Aponta o Flask-Migrate para o diretório correto após a reorganização
+    migrate.init_app(app, db, directory=os.path.join(project_root, 'backend', 'migrations'))
     login_manager.init_app(app)
     cache.init_app(app)
     limiter.init_app(app)
