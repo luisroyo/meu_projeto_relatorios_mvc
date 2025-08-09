@@ -92,8 +92,7 @@
               <li><a class="dropdown-item {% if request.endpoint == 'gemini_dashboard.dashboard' %}active{% endif %}"
                   href="{{ url_for('gemini_dashboard.dashboard') }}"><i class="bi bi-robot me-2"></i>Monitoramento Gemini</a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item {% if request.endpoint == 'online_users.online_users_dashboard' %}active{% endif %}"
-                  href="{{ url_for('online_users.online_users_dashboard') }}"><i class="bi bi-people-fill me-2"></i>Usuários Online</a></li>
+              {# Item de Usuários Online removido #}
             </ul>
           </li>
 
@@ -232,11 +231,11 @@
   function updateOnlineCount() {
     const onlineIndicator = document.getElementById('online-indicator');
     if (onlineIndicator) {
-      fetch('/admin/online/api/online-count')
+      // fetch('/admin/online/api/online-count')  // removido
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            document.getElementById('online-count').textContent = data.count;
+           // document.getElementById('online-count').textContent = data.count;
           }
         })
         .catch(error => {
