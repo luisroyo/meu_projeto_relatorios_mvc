@@ -76,18 +76,7 @@ def track_user_activity():
             logger.error("Erro ao obter detalhes do usuário para log")
 
 def get_online_users_count():
-    """Retorna o número de usuários online."""
-    try:
-        online_users = UserOnline.get_online_users()
-        return len(online_users)
-    except Exception as e:
-        logger.error(f"Erro ao obter contagem de usuários online: {e}")
-        return 0
+    return 0
 
 def get_online_users_list():
-    """Retorna lista de usuários online."""
-    try:
-        return UserOnline.get_online_users()
-    except Exception as e:
-        logger.error(f"Erro ao obter lista de usuários online: {e}")
-        return [] 
+    return []
