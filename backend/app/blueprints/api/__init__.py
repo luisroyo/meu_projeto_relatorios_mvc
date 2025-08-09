@@ -14,6 +14,7 @@ from . import (
     analisador_routes,
     config_routes
 )
+from . import text_routes
 
 # Adicionar rotas específicas para compatibilidade com frontend
 from flask import jsonify, request
