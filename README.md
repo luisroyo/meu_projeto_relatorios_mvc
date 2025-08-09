@@ -50,6 +50,8 @@ source venv/bin/activate    # No Windows: venv\Scripts\activate
 
 pip install -r requirements.txt
 
+Observação: o `requirements.txt` da raiz inclui `backend/requirements.txt`. Em plataformas como Render, mantenha o comando de build como `pip install -r requirements.txt`.
+
 ### 4. Definir Variáveis de Ambiente
 
 Crie um arquivo .env na raiz do projeto (nunca comite este arquivo):
