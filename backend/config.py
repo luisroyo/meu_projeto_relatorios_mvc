@@ -28,6 +28,9 @@ class Config:
     # Fuso horário padrão da aplicação
     DEFAULT_TIMEZONE = os.environ.get("DEFAULT_TIMEZONE", "America/Sao_Paulo")
 
+    # Timeout de inatividade (minutos) para logout forçado
+    INACTIVITY_TIMEOUT_MIN = int(os.environ.get("INACTIVITY_TIMEOUT_MIN", "5"))
+
     # Configuração do Redis - suporta tanto REDIS_URL quanto CACHE_REDIS_URL
     REDIS_URL = os.environ.get("REDIS_URL") or os.environ.get("CACHE_REDIS_URL")
     if REDIS_URL:
