@@ -13,6 +13,10 @@
 
   <div class="d-flex flex-wrap gap-2 mb-3">
     <button id="btn-clean" class="btn btn-outline-secondary">Limpar formatação</button>
+    <label class="btn btn-outline-secondary mb-0">
+      Importar .eml
+      <input id="eml-file" type="file" accept=".eml" hidden />
+    </label>
     <button data-mode="formal" class="btn btn-outline-primary btn-transform">Formalizar</button>
     <button data-mode="simplify" class="btn btn-outline-primary btn-transform">Simplificar</button>
     <button data-mode="tone" data-tone="amigável" class="btn btn-outline-primary btn-transform">Tom amigável</button>
@@ -75,6 +79,21 @@ $('#btn-clean').addEventListener('click', async () => {
     setAfter(res.cleaned);
     showToast('Formatação invisível removida.', 'success');
   }catch(e){ showToast('Erro ao limpar texto.', 'danger'); }
+});
+
+$('#eml-file').addEventListener('change', async (ev) => {
+  const f = ev.target.files?.[0];
+  if(!f) return;
+  const fd = new FormData();
+  fd.append('file', f);
+  try{
+    const r = await fetch('/api/text/clean-eml', { method: 'POST', body: fd, credentials: 'include' });
+    const data = await r.json();
+    input.value = data.cleaned || '';
+    setBefore('');
+    setAfter('');
+    showToast('E-mail importado com sucesso.', 'success');
+  }catch(e){ showToast('Erro ao importar .eml', 'danger'); }
 });
 
 document.querySelectorAll('.btn-transform').forEach(btn => {

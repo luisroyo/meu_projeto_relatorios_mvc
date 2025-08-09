@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional
 
 import requests
 from flask import current_app
+from email import policy
+from email.parser import BytesParser
 
 
 ZERO_WIDTH_RE = re.compile(r"[\u200B-\u200D\uFEFF]")
@@ -139,5 +141,67 @@ def ai_transform(text: str, mode: str = "formal", tone: Optional[str] = None, ma
     ])
     output = resp.text or ""
     return clean_text(output)
+
+
+def parse_eml_to_text(eml_data: bytes | str) -> str:
+    """Extrai texto legível de um arquivo .eml.
+
+    - Prioriza partes text/plain
+    - Se só houver text/html, remove tags básicas e preserva quebras
+    - Decodifica quoted-printable/base64 automaticamente
+    """
+    if isinstance(eml_data, str):
+        eml_bytes = eml_data.encode('utf-8', errors='ignore')
+    else:
+        eml_bytes = eml_data
+
+    try:
+        msg = BytesParser(policy=policy.default).parsebytes(eml_bytes)
+    except Exception:
+        return clean_text(eml_data.decode('utf-8', errors='ignore') if isinstance(eml_data, (bytes, bytearray)) else eml_data)
+
+    plain_parts: List[str] = []
+    html_parts: List[str] = []
+
+    if msg.is_multipart():
+        for part in msg.walk():
+            ctype = part.get_content_type()
+            if ctype == 'text/plain':
+                try:
+                    plain_parts.append(part.get_content())
+                except Exception:
+                    payload = part.get_payload(decode=True) or b''
+                    plain_parts.append(payload.decode(part.get_content_charset() or 'utf-8', errors='ignore'))
+            elif ctype == 'text/html':
+                try:
+                    html_parts.append(part.get_content())
+                except Exception:
+                    payload = part.get_payload(decode=True) or b''
+                    html_parts.append(payload.decode(part.get_content_charset() or 'utf-8', errors='ignore'))
+    else:
+        ctype = msg.get_content_type()
+        try:
+            content = msg.get_content()
+        except Exception:
+            payload = msg.get_payload(decode=True) or b''
+            content = payload.decode(msg.get_content_charset() or 'utf-8', errors='ignore')
+        if ctype == 'text/plain':
+            plain_parts.append(content)
+        elif ctype == 'text/html':
+            html_parts.append(content)
+
+    if plain_parts:
+        return clean_text("\n\n".join(plain_parts))
+
+    # Converter HTML em texto simples básico
+    def html_to_text(html: str) -> str:
+        html = re.sub(r'<\s*br\s*/?>', '\n', html, flags=re.I)
+        html = re.sub(r'</\s*p\s*>', '\n\n', html, flags=re.I)
+        return clean_text(HTML_TAG_RE.sub('', html))
+
+    if html_parts:
+        return html_to_text("\n\n".join(html_parts))
+
+    return ""
 
 
