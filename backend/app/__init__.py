@@ -4,7 +4,7 @@ import time
 from logging.handlers import RotatingFileHandler
 
 import pytz
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session, redirect, url_for, flash
 from flask_caching import Cache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -248,32 +248,43 @@ def create_app(config_class=DevelopmentConfig):
     # Logout automático por inatividade
     @app.before_request
     def enforce_inactivity_timeout():
+        """Força logout por inatividade usando apenas sessão (sem tocar no DB)."""
         try:
             from flask_login import current_user, logout_user
             from datetime import datetime, timezone, timedelta
-            # Ignora requests estáticos
-            if request.endpoint and 'static' in request.endpoint:
+
+            # Ignora estáticos e preflight
+            if request.method == 'OPTIONS' or (request.endpoint and 'static' in request.endpoint):
                 return
-            # Apenas para usuários autenticados
-            if current_user.is_authenticated:
-                # last_activity é atualizado pelo middleware se USER_ACTIVITY_ENABLED=true
-                last = getattr(current_user, 'last_login', None)
-                # Tenta recuperar last_activity de sessão online se existir
-                if not last:
-                    try:
-                        from .models.user_online import UserOnline
-                        sess = UserOnline.query.filter_by(user_id=current_user.id).order_by(UserOnline.last_activity.desc()).first()
-                        if sess and sess.last_activity:
-                            last = sess.last_activity
-                    except Exception:
-                        pass
-                if last:
-                    now_utc = datetime.now(timezone.utc)
-                    idle = now_utc - (last if last.tzinfo else now_utc)
-                    max_idle = timedelta(minutes=app.config.get('INACTIVITY_TIMEOUT_MIN', 5))
+
+            if not current_user.is_authenticated:
+                return
+
+            now_utc = datetime.now(timezone.utc)
+            max_idle = timedelta(minutes=app.config.get('INACTIVITY_TIMEOUT_MIN', 5))
+
+            # Lê última atividade da sessão (string ISO) e calcula idle
+            last_seen_str = session.get('last_seen_utc')
+            if last_seen_str:
+                try:
+                    # Compatível com valores sem tz (assume UTC)
+                    last_seen = datetime.fromisoformat(last_seen_str.replace('Z', '+00:00'))
+                    if last_seen.tzinfo is None:
+                        last_seen = last_seen.replace(tzinfo=timezone.utc)
+                    idle = now_utc - last_seen
                     if idle > max_idle:
                         logout_user()
-                        return jsonify({'message': 'Sessão expirada por inatividade.'}), 401
+                        # Resposta adequada para API vs HTML
+                        if request.path.startswith('/api/'):
+                            return jsonify({'message': 'Sessão expirada por inatividade.'}), 401
+                        flash('Sessão expirada por inatividade.', 'warning')
+                        return redirect(url_for('auth.login'))
+                except Exception:
+                    # Se parsing falhar, apenas redefine abaixo
+                    pass
+
+            # Atualiza última atividade na sessão
+            session['last_seen_utc'] = now_utc.isoformat()
         except Exception as e:
             module_logger.error(f"Erro no controle de inatividade: {e}")
 
