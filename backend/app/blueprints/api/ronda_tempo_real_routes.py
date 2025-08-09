@@ -215,7 +215,10 @@ def get_estatisticas():
 def get_hora_atual():
     """Obter hora atual do servidor."""
     try:
-        hora_atual = datetime.now().strftime('%H:%M:%S')
+        from flask import current_app
+        import pytz
+        tz = pytz.timezone(current_app.config.get('DEFAULT_TIMEZONE', 'America/Sao_Paulo'))
+        hora_atual = datetime.now(tz).strftime('%H:%M:%S')
         return jsonify({
             'hora_atual': hora_atual
         }), 200

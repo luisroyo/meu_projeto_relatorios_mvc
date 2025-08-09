@@ -1,5 +1,5 @@
 from app import db
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from .user import User
 
@@ -21,7 +21,7 @@ class UserOnline(db.Model):
     @classmethod
     def get_online_users(cls, minutes_threshold=15):
         """Retorna usuários que estiveram ativos nos últimos X minutos."""
-        threshold = datetime.now() - timedelta(minutes=minutes_threshold)
+        threshold = datetime.now(timezone.utc) - timedelta(minutes=minutes_threshold)
         return cls.query.filter(
             cls.last_activity >= threshold
         ).join(User).with_entities(
@@ -40,7 +40,7 @@ class UserOnline(db.Model):
     @classmethod
     def cleanup_old_sessions(cls, minutes_threshold=30):
         """Remove sessões antigas."""
-        threshold = datetime.now() - timedelta(minutes=minutes_threshold)
+        threshold = datetime.now(timezone.utc) - timedelta(minutes=minutes_threshold)
         cls.query.filter(cls.last_activity < threshold).delete()
         db.session.commit()
     
@@ -52,7 +52,7 @@ class UserOnline(db.Model):
             
             if session:
                 # Atualiza sessão existente
-                session.last_activity = datetime.now()
+                session.last_activity = datetime.now(timezone.utc)
                 if ip_address:
                     session.ip_address = ip_address
                 if user_agent:
@@ -64,7 +64,7 @@ class UserOnline(db.Model):
                     session_id=session_id,
                     ip_address=ip_address,
                     user_agent=user_agent,
-                    last_activity=datetime.now()
+                    last_activity=datetime.now(timezone.utc)
                 )
                 db.session.add(session)
             

@@ -25,6 +25,9 @@ class Config:
     DB_CLOSE_ON_TEARDOWN = os.environ.get("DB_CLOSE_ON_TEARDOWN", "true").lower() == "true"
     SQLALCHEMY_USE_NULLPOOL = os.environ.get("SQLALCHEMY_USE_NULLPOOL", "false").lower() == "true"
 
+    # Fuso horário padrão da aplicação
+    DEFAULT_TIMEZONE = os.environ.get("DEFAULT_TIMEZONE", "America/Sao_Paulo")
+
     # Configuração do Redis - suporta tanto REDIS_URL quanto CACHE_REDIS_URL
     REDIS_URL = os.environ.get("REDIS_URL") or os.environ.get("CACHE_REDIS_URL")
     if REDIS_URL:

@@ -1,11 +1,24 @@
 # utils/date_utils.py (ou onde preferir)
 from datetime import datetime, timedelta, timezone
+import pytz
+from flask import flash, current_app
 
-from flask import flash
+
+def get_local_tz():
+    tz_name = (current_app.config.get("DEFAULT_TIMEZONE") if current_app else "America/Sao_Paulo")
+    return pytz.timezone(tz_name)
+
+
+def now_utc():
+    return datetime.now(timezone.utc)
+
+
+def now_local():
+    return now_utc().astimezone(get_local_tz())
 
 
 def parse_date_range(data_inicio_str, data_fim_str):
-    today = datetime.now().date()  # Use local timezone instead of UTC
+    today = now_local().date()
     first_day = today.replace(day=1)
     last_day = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(
         days=1

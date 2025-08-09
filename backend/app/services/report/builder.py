@@ -1,5 +1,7 @@
 # app/services/report/builder.py
 from datetime import datetime
+import pytz
+from flask import current_app
 from typing import Dict, List, Optional
 from reportlab.platypus import Paragraph, Spacer, Table, TableStyle, Image, PageBreak
 from reportlab.lib.styles import ParagraphStyle
@@ -69,7 +71,11 @@ class ReportBuilder:
     def add_generation_info(self) -> List:
         """Adiciona informações de geração do relatório."""
         story = []
-        generation_date = f"Gerado em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}"
+        try:
+            tz = pytz.timezone(current_app.config.get('DEFAULT_TIMEZONE', 'America/Sao_Paulo'))
+        except Exception:
+            tz = pytz.timezone('America/Sao_Paulo')
+        generation_date = f"Gerado em: {datetime.now(tz).strftime('%d/%m/%Y às %H:%M')}"
         story.append(Paragraph(generation_date, self.styles.normal_style))
         story.append(Spacer(1, 12))  # Reduzido de 20 para 12
         return story
@@ -300,6 +306,10 @@ class ReportBuilder:
         canvas.saveState()
         canvas.setFont('Helvetica', 7)  # Reduzido de 8 para 7
         canvas.setFillColor(colors.grey)
-        canvas.drawString(72, 50, f'Gerado em: {datetime.now().strftime("%d/%m/%Y %H:%M")}')
+        try:
+            tz = pytz.timezone(current_app.config.get('DEFAULT_TIMEZONE', 'America/Sao_Paulo'))
+        except Exception:
+            tz = pytz.timezone('America/Sao_Paulo')
+        canvas.drawString(72, 50, f'Gerado em: {datetime.now(tz).strftime("%d/%m/%Y %H:%M")}')
         canvas.drawRightString(595, 50, f'Página {doc.page}')
         canvas.restoreState() 
