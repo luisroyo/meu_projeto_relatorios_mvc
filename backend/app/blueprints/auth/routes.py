@@ -67,6 +67,8 @@ def login():
 
             login_user(user, remember=form.remember.data)
             session.permanent = True  # Garante expiração por inatividade
+            # Reinicia marcador de atividade para evitar expirar logo após login
+            session['last_seen_utc'] = datetime.now(timezone.utc).isoformat()
             login_success = True
             user.last_login = datetime.now(timezone.utc)
             db.session.commit()  # Garante que o last_login seja salvo imediatamente
@@ -109,6 +111,8 @@ def api_login():
             return jsonify({"success": False, "message": "Conta ainda não aprovada."}), 403
         login_user(user)
         session.permanent = True  # Garante expiração por inatividade
+        # Reinicia marcador de atividade para evitar expirar logo após login
+        session['last_seen_utc'] = datetime.now(timezone.utc).isoformat()
         user.last_login = datetime.now(timezone.utc)
         db.session.commit()  # Garante que o last_login seja salvo imediatamente
         # Registra o login no histórico
@@ -131,6 +135,11 @@ def logout():
         current_user.username if current_user.is_authenticated else "Desconhecido"
     )
     logout_user()
+    # Limpa marcador de atividade da sessão
+    try:
+        session.pop('last_seen_utc', None)
+    except Exception:
+        pass
     flash("Logout realizado com sucesso.", "info")
     current_app.logger.info(f"Usuário {user_name} deslogado.")
     return redirect(url_for("main.index"))
