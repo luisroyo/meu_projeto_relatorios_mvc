@@ -2,6 +2,7 @@
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+from sqlalchemy.pool import NullPool
 
 # Carrega as variáveis do arquivo .env
 load_dotenv()
@@ -19,6 +20,11 @@ class Config:
     PERMANENT_SESSION_LIFETIME = timedelta(minutes=15)
     SESSION_PERMANENT = True
 
+    # Controle de recursos/DB
+    USER_ACTIVITY_ENABLED = os.environ.get("USER_ACTIVITY_ENABLED", "false").lower() == "true"
+    DB_CLOSE_ON_TEARDOWN = os.environ.get("DB_CLOSE_ON_TEARDOWN", "true").lower() == "true"
+    SQLALCHEMY_USE_NULLPOOL = os.environ.get("SQLALCHEMY_USE_NULLPOOL", "false").lower() == "true"
+
     # Configuração do Redis - suporta tanto REDIS_URL quanto CACHE_REDIS_URL
     REDIS_URL = os.environ.get("REDIS_URL") or os.environ.get("CACHE_REDIS_URL")
     if REDIS_URL:
@@ -28,14 +34,20 @@ class Config:
         # Fallback para SimpleCache se Redis não estiver disponível
         CACHE_TYPE = "SimpleCache"
 
-    # Configurações de pool de conexões para PostgreSQL
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 10,  # Número de conexões no pool
-        'pool_timeout': 20,  # Timeout para obter conexão do pool
-        'pool_recycle': 3600,  # Reciclar conexões a cada 1 hora
-        'pool_pre_ping': True,  # Verificar conexão antes de usar
-        'max_overflow': 20,  # Máximo de conexões extras
-    }
+    # Configurações padrão de pool para ambientes não-serverless
+    if os.environ.get("SQLALCHEMY_USE_NULLPOOL", "false").lower() == "true":
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'poolclass': NullPool,
+            'pool_pre_ping': True,
+        }
+    else:
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'pool_size': 10,
+            'pool_timeout': 20,
+            'pool_recycle': 3600,
+            'pool_pre_ping': True,
+            'max_overflow': 20,
+        }
 
 
 class DevelopmentConfig(Config):
@@ -150,30 +162,39 @@ class ProductionConfig(Config):
     
     SQLALCHEMY_DATABASE_URI = database_url
     
-    # Configurações de pool otimizadas para produção
-    if "neon.tech" in database_url:
-        # Configurações específicas para Neon (auto-suspension)
+    # Configurações de pool otimizadas para produção (honra SQLALCHEMY_USE_NULLPOOL)
+    if os.environ.get("SQLALCHEMY_USE_NULLPOOL", "false").lower() == "true":
         SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_size': 3,  # Menos conexões para economizar horas Neon
-            'pool_timeout': 45,  # Mais tempo para Neon reativar
-            'pool_recycle': 900,  # Reciclar a cada 15 minutos
-            'pool_pre_ping': True,  # Verificar conexão antes de usar
-            'max_overflow': 5,  # Menos overflow para Neon
+            'poolclass': NullPool,
+            'pool_pre_ping': True,
             'connect_args': {
-                'connect_timeout': 15,  # Timeout maior para Neon
+                'connect_timeout': 15,
+                'application_name': 'gestao_seguranca_app_nullpool',
+            }
+        }
+    elif "neon.tech" in database_url:
+        # Configurações específicas para Neon (reduz conexões para facilitar auto-suspensão)
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'pool_size': 3,
+            'pool_timeout': 45,
+            'pool_recycle': 900,
+            'pool_pre_ping': True,
+            'max_overflow': 5,
+            'connect_args': {
+                'connect_timeout': 15,
                 'application_name': 'gestao_seguranca_app_neon',
             }
         }
     else:
         # Configurações padrão para produção
         SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_size': 5,  # Menos conexões para economizar recursos
-            'pool_timeout': 30,  # Timeout maior para produção
-            'pool_recycle': 1800,  # Reciclar a cada 30 minutos
-            'pool_pre_ping': True,  # Verificar conexão antes de usar
-            'max_overflow': 10,  # Menos overflow para produção
+            'pool_size': 5,
+            'pool_timeout': 30,
+            'pool_recycle': 1800,
+            'pool_pre_ping': True,
+            'max_overflow': 10,
             'connect_args': {
-                'connect_timeout': 10,  # Timeout de conexão
+                'connect_timeout': 10,
                 'application_name': 'gestao_seguranca_app',
             }
         }

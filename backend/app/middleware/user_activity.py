@@ -42,12 +42,14 @@ def track_user_activity():
                 logger.debug(f"Rastreando atividade: User={username}, Session={session_id[:10]}...")
             
             # Atualiza atividade do usuário
-            UserOnline.update_activity(
-                user_id=user_id,
-                session_id=session_id,
-                ip_address=ip_address,
-                user_agent=user_agent
-            )
+            # Evita tocar no banco em requests que não são da API/páginas úteis
+            if request.endpoint and not request.endpoint.startswith('static'):
+                UserOnline.update_activity(
+                    user_id=user_id,
+                    session_id=session_id,
+                    ip_address=ip_address,
+                    user_agent=user_agent
+                )
             
             # Log de sucesso para debug
             if current_app.debug:
@@ -55,7 +57,7 @@ def track_user_activity():
             
             # Limpa sessões antigas periodicamente (a cada 10% das requisições)
             import random
-            if random.randint(1, 10) == 1:
+            if random.randint(1, 10) == 1 and request.endpoint and not request.endpoint.startswith('static'):
                 UserOnline.cleanup_old_sessions()
         else:
             # Log quando usuário não está autenticado
