@@ -53,11 +53,14 @@ def api_online_users():
                 'last_activity': user.last_activity.strftime('%d/%m/%Y %H:%M:%S') if user.last_activity else 'N/A'
             })
         
+        import pytz
+        from flask import current_app
+        tz = pytz.timezone(current_app.config.get('DEFAULT_TIMEZONE', 'America/Sao_Paulo'))
         return jsonify({
             'success': True,
             'users': users_data,
             'count': len(users_data),
-            'timestamp': datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+            'timestamp': datetime.now(tz).strftime('%d/%m/%Y %H:%M:%S')
         })
     except Exception as e:
         logger.error(f"Erro na API de usuários online: {e}")
@@ -75,10 +78,13 @@ def api_online_count():
     """API para obter apenas a contagem de usuários online."""
     try:
         count = get_online_users_count()
+        import pytz
+        from flask import current_app
+        tz = pytz.timezone(current_app.config.get('DEFAULT_TIMEZONE', 'America/Sao_Paulo'))
         return jsonify({
             'success': True,
             'count': count,
-            'timestamp': datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+            'timestamp': datetime.now(tz).strftime('%d/%m/%Y %H:%M:%S')
         })
     except Exception as e:
         logger.error(f"Erro na API de contagem online: {e}")
