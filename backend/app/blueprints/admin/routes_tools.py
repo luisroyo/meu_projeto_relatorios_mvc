@@ -160,6 +160,13 @@ def admin_tools():
     )
 
 
+@admin_bp.route('/editor-inteligente', methods=['GET'])
+@login_required
+@admin_required
+def editor_inteligente():
+    return render_template('admin/editor_inteligente.html', title='Editor Inteligente')
+
+
 @admin_bp.route("/ferramentas/api/derrubar-conexoes", methods=["POST"])
 @login_required
 @admin_required
