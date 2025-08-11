@@ -74,6 +74,11 @@
                                 placeholder="O resultado da análise aparecerá aqui...">{{ relatorio_corrigido or '' }}</textarea>
                         </div>
                         
+                        <!-- Container para botões de ação (será preenchido dinamicamente pelo JavaScript) -->
+                        <div id="container-botoes-acoes" class="mt-auto d-flex flex-column flex-md-row gap-2" style="display: none;">
+                            <!-- Botões serão inseridos aqui dinamicamente -->
+                        </div>
+                        
                         {% if relatorio_corrigido %}
                         <div class="mt-auto d-flex flex-column flex-md-row gap-2">
                             <button type="button" class="btn btn-info w-100" id="copiarResultado" data-bs-toggle="tooltip" title="Copiar o texto corrigido">

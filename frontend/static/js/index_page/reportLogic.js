@@ -19,15 +19,17 @@ import { callProcessReportAPI } from "./apiService.js";
  * @param {string} relatorioProcessado O texto final corrigido pela IA.
  */
 function exibirBotaoRegistrarOcorrencia(logBruto, relatorioProcessado) {
-  // Encontra o container onde os botões de ação (copiar, whatsapp) são inseridos.
-  const containerBotoes = document.querySelector("#resultadoProcessamento")
-    .parentElement.nextElementSibling;
+  // Encontra o container específico para botões de ação
+  const containerBotoes = document.querySelector("#container-botoes-acoes");
   if (!containerBotoes) {
     console.error(
       "Container de botões para o relatório padrão não foi encontrado."
     );
     return;
   }
+  
+  // Mostra o container
+  containerBotoes.style.display = "flex";
 
   // Remove qualquer botão antigo para evitar duplicados se o utilizador processar novamente.
   const botaoAntigo = document.getElementById("registrarOcorrenciaOficial");
