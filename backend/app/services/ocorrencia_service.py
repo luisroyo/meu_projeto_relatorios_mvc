@@ -143,8 +143,10 @@ def apply_ocorrencia_filters(query, filters):
             logger.warning(f"Formato de data de fim inválido: '{data_fim_str}'")
 
     if filters.get("texto_relatorio"):
-        # Nota: A view não tem o campo relatorio_final, então este filtro só funciona com a tabela
-        if not is_view:
+        # Agora a view tem o campo relatorio_final, então podemos filtrar
+        if is_view:
+            query = query.filter(VWOcorrenciasDetalhadas.relatorio_final.ilike(f"%{filters['texto_relatorio']}%"))
+        else:
             query = query.filter(Ocorrencia.relatorio_final.ilike(f"%{filters['texto_relatorio']}%"))
 
     return query

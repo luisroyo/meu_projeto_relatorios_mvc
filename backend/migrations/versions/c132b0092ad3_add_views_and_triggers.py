@@ -24,6 +24,7 @@ def upgrade():
         o.status,
         o.turno,
         o.endereco_especifico,
+        o.relatorio_final,
         t.nome AS tipo,
         c.nome AS condominio,
         u.username AS registrado_por,
