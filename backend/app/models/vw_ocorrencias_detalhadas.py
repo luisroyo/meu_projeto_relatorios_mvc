@@ -11,4 +11,5 @@ class VWOcorrenciasDetalhadas(db.Model):
     tipo = db.Column(db.String)
     condominio = db.Column(db.String)
     registrado_por = db.Column(db.String)
-    supervisor = db.Column(db.String) 
+    supervisor = db.Column(db.String)
+    relatorio_final = db.Column(db.Text) 
