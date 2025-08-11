@@ -227,28 +227,17 @@
     modal.show();
   }
   
-  // Atualizar contador de usuários online
+  // Função para atualizar contador de usuários online (desabilitada temporariamente)
   function updateOnlineCount() {
-    const onlineIndicator = document.getElementById('online-indicator');
-    if (onlineIndicator) {
-      // fetch('/admin/online/api/online-count')  // removido
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-           // document.getElementById('online-count').textContent = data.count;
-          }
-        })
-        .catch(error => {
-          console.error('Erro ao atualizar contador online:', error);
-        });
-    }
+    // Função desabilitada para evitar erros de JavaScript
+    // TODO: Implementar quando necessário
   }
   
-  // Atualizar contador apenas para administradores (evita acordar o DB para não-admin)
-  {% if current_user.is_authenticated and current_user.is_admin %}
-  setInterval(updateOnlineCount, 60000); // 60s para reduzir consultas
-  updateOnlineCount(); // Atualizar imediatamente
-  {% endif %}
+  // Comentado temporariamente para evitar erros
+  // {% if current_user.is_authenticated and current_user.is_admin %}
+  // setInterval(updateOnlineCount, 60000); // 60s para reduzir consultas
+  // updateOnlineCount(); // Atualizar imediatamente
+  // {% endif %}
   </script>
   {% endblock %}
 
