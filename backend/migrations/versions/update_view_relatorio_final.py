@@ -15,20 +15,24 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    # Atualizar a view vw_ocorrencias_detalhadas para incluir relatorio_final
+    # Abordagem mais segura: dropar e recriar a view
+    # Primeiro, dropar a view existente
+    op.execute("DROP VIEW IF EXISTS vw_ocorrencias_detalhadas;")
+    
+    # Agora criar a nova view com a estrutura correta
     op.execute("""
-    CREATE OR REPLACE VIEW vw_ocorrencias_detalhadas AS
+    CREATE VIEW vw_ocorrencias_detalhadas AS
     SELECT 
         o.id,
         o.data_hora_ocorrencia,
         o.status,
         o.turno,
         o.endereco_especifico,
-        o.relatorio_final,
         t.nome AS tipo,
         c.nome AS condominio,
         u.username AS registrado_por,
-        s.username AS supervisor
+        s.username AS supervisor,
+        o.relatorio_final
     FROM 
         ocorrencia o
     LEFT JOIN ocorrencia_tipo t ON o.ocorrencia_tipo_id = t.id
@@ -39,8 +43,10 @@ def upgrade():
 
 def downgrade():
     # Reverter para a view original sem relatorio_final
+    op.execute("DROP VIEW IF EXISTS vw_ocorrencias_detalhadas;")
+    
     op.execute("""
-    CREATE OR REPLACE VIEW vw_ocorrencias_detalhadas AS
+    CREATE VIEW vw_ocorrencias_detalhadas AS
     SELECT 
         o.id,
         o.data_hora_ocorrencia,
