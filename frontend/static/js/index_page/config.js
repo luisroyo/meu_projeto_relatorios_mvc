@@ -5,8 +5,8 @@ export const CONFIG = {
     copySuccessMessageDuration: 2000,
     apiEndpoint: '/processar_relatorio', // Endpoint da API
     selectors: {
-        btnProcessar: '#processarRelatorio',
-        relatorioBruto: '#relatorioBruto',
+        btnProcessar: '#submit',
+        relatorioBruto: '#relatorio_bruto',
         resultadoProcessamento: '#resultadoProcessamento',
         resultadoEmail: '#resultadoEmail',
         colunaRelatorioEmail: '#colunaRelatorioEmail',
@@ -14,9 +14,9 @@ export const CONFIG = {
         statusProcessamentoEmail: '#statusProcessamentoEmail',
         btnCopiar: '#copiarResultado',
         btnCopiarEmail: '#copiarResultadoEmail',
-        btnEnviarWhatsAppResultado: '#enviarWhatsAppResultado', // NOVO
-        btnEnviarWhatsAppEmail: '#enviarWhatsAppEmail',     // NOVO
-        btnLimpar: '#limparCampos',
+        btnEnviarWhatsAppResultado: '#enviarWhatsAppResultado',
+        btnEnviarWhatsAppEmail: '#enviarWhatsAppEmail',
+        btnLimpar: '#limpar-campos',
         charCount: '#charCount',
         formatarParaEmailCheckbox: '#formatarParaEmail',
     },
@@ -52,7 +52,7 @@ export const CONFIG = {
         isAppInstalled: () => {
             // Para mobile, tentamos detectar se o app está instalado
             if (CONFIG.isMobile()) {
-                // No iOS, podemos tentar abrir o app e ver se funciona
+                // No iOS, podemos tentar detectar se o app está instalado
                 if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
                     // iOS: sempre tentar app primeiro
                     return true;
@@ -67,7 +67,27 @@ export const CONFIG = {
     }
 };
 
+// DOMElements será inicializado dinamicamente quando o DOM estiver pronto
 export const DOMElements = {};
-for (const key in CONFIG.selectors) {
-    DOMElements[key] = document.querySelector(CONFIG.selectors[key]);
+
+// Função para inicializar os elementos DOM
+export function initializeDOMElements() {
+    for (const key in CONFIG.selectors) {
+        DOMElements[key] = document.querySelector(CONFIG.selectors[key]);
+    }
+    
+    // Log para debug
+    console.log('config.js: DOMElements inicializados:', Object.keys(DOMElements));
+    
+    // Verificar elementos essenciais (apenas os que realmente existem no HTML)
+    const essentialElements = ['relatorioBruto', 'btnProcessar', 'resultadoProcessamento'];
+    const missingElements = essentialElements.filter(key => !DOMElements[key]);
+    
+    if (missingElements.length > 0) {
+        console.warn('config.js: Elementos não encontrados:', missingElements);
+        console.warn('config.js: Selectors correspondentes:', 
+            missingElements.map(key => CONFIG.selectors[key]));
+    }
+    
+    return DOMElements;
 }

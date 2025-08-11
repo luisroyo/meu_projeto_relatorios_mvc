@@ -1,5 +1,5 @@
 // app/static/js/index_page/main.js
-import { CONFIG, DOMElements } from "./config.js";
+import { CONFIG, DOMElements, initializeDOMElements } from "./config.js";
 import { updateCharCount, displayStatus } from "./uiHandlers.js";
 import {
   handleProcessReport,
@@ -8,116 +8,176 @@ import {
   handleSendToWhatsApp,
 } from "./reportLogic.js";
 
-// A função duplicada 'exibirBotaoRegistrarOcorrencia' foi removida daqui.
+// Cache para elementos DOM frequentemente acessados
+const DOMCache = new Map();
+
+// Função para obter elemento DOM com cache
+function getCachedElement(key) {
+  if (!DOMCache.has(key)) {
+    DOMCache.set(key, DOMElements[key]);
+  }
+  return DOMCache.get(key);
+}
+
+// Função para inicializar botões com HTML inicial
+function initializeButton(buttonKey, configKey) {
+  const button = getCachedElement(buttonKey);
+  if (button && CONFIG[configKey]) {
+    button.innerHTML = CONFIG[configKey];
+    button.dataset.originalHTML = button.innerHTML;
+  }
+}
+
+// Função para configurar event listeners
+function setupEventListeners() {
+  // Botão processar
+  const btnProcessar = getCachedElement('btnProcessar');
+  if (btnProcessar) {
+    btnProcessar.addEventListener("click", handleProcessReport);
+  }
+
+  // Botão copiar padrão
+  const btnCopiar = getCachedElement('btnCopiar');
+  if (btnCopiar) {
+    btnCopiar.addEventListener("click", () => handleCopyResult("standard"));
+    btnCopiar.style.display = "none";
+  }
+
+  // Botão copiar email
+  const btnCopiarEmail = getCachedElement('btnCopiarEmail');
+  if (btnCopiarEmail) {
+    btnCopiarEmail.addEventListener("click", () => handleCopyResult("email"));
+    btnCopiarEmail.style.display = "none";
+  }
+
+  // Botão WhatsApp padrão
+  const btnEnviarWhatsAppResultado = getCachedElement('btnEnviarWhatsAppResultado');
+  if (btnEnviarWhatsAppResultado) {
+    btnEnviarWhatsAppResultado.addEventListener("click", () => 
+      handleSendToWhatsApp("standard")
+    );
+    btnEnviarWhatsAppResultado.style.display = "none";
+  }
+
+  // Botão WhatsApp email
+  const btnEnviarWhatsAppEmail = getCachedElement('btnEnviarWhatsAppEmail');
+  if (btnEnviarWhatsAppEmail) {
+    btnEnviarWhatsAppEmail.addEventListener("click", () => 
+      handleSendToWhatsApp("email")
+    );
+    btnEnviarWhatsAppEmail.style.display = "none";
+  }
+
+  // Botão limpar
+  const btnLimpar = getCachedElement('btnLimpar');
+  if (btnLimpar) {
+    btnLimpar.addEventListener("click", handleClearFields);
+  }
+
+  // Relatório bruto com contador de caracteres
+  const relatorioBruto = getCachedElement('relatorioBruto');
+  if (relatorioBruto) {
+    relatorioBruto.addEventListener("input", updateCharCount);
+    updateCharCount(); // Contagem inicial
+  }
+}
+
+// Função para configurar checkbox de email
+function setupEmailCheckbox() {
+  const checkbox = getCachedElement('formatarParaEmailCheckbox');
+  const colunaEmail = getCachedElement('colunaRelatorioEmail');
+  
+  if (checkbox && colunaEmail) {
+    checkbox.addEventListener("change", function() {
+      const showEmailColumn = this.checked;
+      colunaEmail.style.display = showEmailColumn ? "block" : "none";
+      
+      if (!showEmailColumn) {
+        // Limpa e esconde elementos relacionados ao email
+        const resultadoEmail = getCachedElement('resultadoEmail');
+        const statusEmail = getCachedElement('statusProcessamentoEmail');
+        const btnCopiarEmail = getCachedElement('btnCopiarEmail');
+        const btnWhatsAppEmail = getCachedElement('btnEnviarWhatsAppEmail');
+        
+        if (resultadoEmail) resultadoEmail.value = "";
+        if (statusEmail) displayStatus("", "info", "email");
+        if (btnCopiarEmail) btnCopiarEmail.style.display = "none";
+        if (btnWhatsAppEmail) btnWhatsAppEmail.style.display = "none";
+      }
+    });
+  }
+}
+
+// Função para inicializar botões com HTML inicial
+function initializeButtons() {
+  initializeButton('btnProcessar', 'initialProcessButtonHTML');
+  initializeButton('btnCopiar', 'initialCopyButtonHTML');
+  initializeButton('btnCopiarEmail', 'initialCopyEmailButtonHTML');
+  initializeButton('btnLimpar', 'initialClearButtonHTML');
+}
+
+// Função para verificar elementos essenciais
+function validateEssentialElements() {
+  const essentialElements = [
+    'relatorioBruto',
+    'btnProcessar', 
+    'resultadoProcessamento'
+  ];
+  
+  const missingElements = essentialElements.filter(key => !getCachedElement(key));
+  
+  if (missingElements.length > 0) {
+    console.error(
+      `index_page/main.js: Elementos DOM essenciais não encontrados: ${missingElements.join(', ')}`
+    );
+    
+    // Log adicional para debug
+    console.error('index_page/main.js: DOMElements disponíveis:', Object.keys(DOMElements));
+    console.error('index_page/main.js: Selectors configurados:', CONFIG.selectors);
+    
+    const btnProcessar = getCachedElement('btnProcessar');
+    if (btnProcessar) btnProcessar.disabled = true;
+    
+    return false;
+  }
+  
+  return true;
+}
+
+// Função para configurar estado inicial da interface
+function setupInitialUIState() {
+  const colunaEmail = getCachedElement('colunaRelatorioEmail');
+  if (colunaEmail) {
+    colunaEmail.style.display = "none";
+  }
+}
 
 document.addEventListener("DOMContentLoaded", function () {
   function init() {
-    if (
-      !DOMElements.relatorioBruto ||
-      !DOMElements.btnProcessar ||
-      !DOMElements.resultadoProcessamento ||
-      !DOMElements.statusProcessamento
-    ) {
-      console.error(
-        "index_page/main.js: Um ou mais elementos DOM essenciais não foram encontrados."
-      );
-      if (DOMElements.btnProcessar) DOMElements.btnProcessar.disabled = true;
-      return;
-    }
+    console.log("index_page/main.js: Iniciando inicialização...");
+    
+    try {
+      // Inicializar elementos DOM primeiro
+      console.log("index_page/main.js: Inicializando elementos DOM...");
+      initializeDOMElements();
+      
+      // Validação de elementos essenciais
+      if (!validateEssentialElements()) {
+        console.error("index_page/main.js: Falha na validação de elementos essenciais.");
+        return;
+      }
 
-    // Define o HTML inicial dos botões a partir do CONFIG
-    if (DOMElements.btnProcessar && CONFIG.initialProcessButtonHTML) {
-      DOMElements.btnProcessar.innerHTML = CONFIG.initialProcessButtonHTML;
-      DOMElements.btnProcessar.dataset.originalHTML =
-        DOMElements.btnProcessar.innerHTML;
+      // Inicialização dos componentes
+      initializeButtons();
+      setupEventListeners();
+      setupEmailCheckbox();
+      setupInitialUIState();
+      
+      console.log("index_page/main.js: Inicialização concluída com sucesso.");
+    } catch (error) {
+      console.error("index_page/main.js: Erro durante a inicialização:", error);
     }
-    if (DOMElements.btnCopiar && CONFIG.initialCopyButtonHTML) {
-      DOMElements.btnCopiar.innerHTML = CONFIG.initialCopyButtonHTML;
-      DOMElements.btnCopiar.dataset.originalHTML =
-        DOMElements.btnCopiar.innerHTML;
-    }
-    if (DOMElements.btnCopiarEmail && CONFIG.initialCopyEmailButtonHTML) {
-      DOMElements.btnCopiarEmail.innerHTML = CONFIG.initialCopyEmailButtonHTML;
-      DOMElements.btnCopiarEmail.dataset.originalHTML =
-        DOMElements.btnCopiarEmail.innerHTML;
-    }
-    if (DOMElements.btnLimpar && CONFIG.initialClearButtonHTML) {
-      DOMElements.btnLimpar.innerHTML = CONFIG.initialClearButtonHTML;
-    }
-
-    if (DOMElements.relatorioBruto) {
-      DOMElements.relatorioBruto.addEventListener("input", updateCharCount);
-      updateCharCount();
-    }
-
-    // --- ALTERAÇÃO PRINCIPAL ---
-    // Simplificamos o event listener. Apenas chamamos handleProcessReport.
-    // A lógica de exibir o botão de registro agora é tratada internamente por essa função.
-    if (DOMElements.btnProcessar) {
-      DOMElements.btnProcessar.addEventListener("click", handleProcessReport);
-    }
-
-    if (DOMElements.btnCopiar) {
-      DOMElements.btnCopiar.addEventListener("click", () =>
-        handleCopyResult("standard")
-      );
-      DOMElements.btnCopiar.style.display = "none";
-    }
-
-    if (DOMElements.btnCopiarEmail) {
-      DOMElements.btnCopiarEmail.addEventListener("click", () =>
-        handleCopyResult("email")
-      );
-      DOMElements.btnCopiarEmail.style.display = "none";
-    }
-
-    if (DOMElements.btnEnviarWhatsAppResultado) {
-      DOMElements.btnEnviarWhatsAppResultado.addEventListener("click", () =>
-        handleSendToWhatsApp("standard")
-      );
-      DOMElements.btnEnviarWhatsAppResultado.style.display = "none";
-    }
-
-    if (DOMElements.btnEnviarWhatsAppEmail) {
-      DOMElements.btnEnviarWhatsAppEmail.addEventListener("click", () =>
-        handleSendToWhatsApp("email")
-      );
-      DOMElements.btnEnviarWhatsAppEmail.style.display = "none";
-    }
-
-    if (DOMElements.btnLimpar) {
-      DOMElements.btnLimpar.addEventListener("click", handleClearFields);
-    }
-
-    if (DOMElements.colunaRelatorioEmail)
-      DOMElements.colunaRelatorioEmail.style.display = "none";
-
-    if (
-      DOMElements.formatarParaEmailCheckbox &&
-      DOMElements.colunaRelatorioEmail
-    ) {
-      DOMElements.formatarParaEmailCheckbox.addEventListener(
-        "change",
-        function () {
-          const showEmailColumn = this.checked;
-          DOMElements.colunaRelatorioEmail.style.display = showEmailColumn
-            ? "block"
-            : "none";
-          if (!showEmailColumn) {
-            // Limpa e esconde se desmarcado
-            if (DOMElements.resultadoEmail)
-              DOMElements.resultadoEmail.value = "";
-            if (DOMElements.statusProcessamentoEmail)
-              displayStatus("", "info", "email");
-            if (DOMElements.btnCopiarEmail)
-              DOMElements.btnCopiarEmail.style.display = "none";
-            if (DOMElements.btnEnviarWhatsAppEmail)
-              DOMElements.btnEnviarWhatsAppEmail.style.display = "none";
-          }
-        }
-      );
-    }
-    console.log("index_page/main.js: Inicialização concluída.");
   }
+  
   init();
 });

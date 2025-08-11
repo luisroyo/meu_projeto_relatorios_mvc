@@ -41,19 +41,19 @@
                             {{ form.relatorio_bruto.label(class="form-label") }}
                             
                             {% if form.relatorio_bruto.errors %}
-                                {{ form.relatorio_bruto(class="form-control is-invalid") }}
+                                {{ form.relatorio_bruto(class="form-control is-invalid", id="relatorio_bruto") }}
                                 <div class="invalid-feedback">
                                     {% for error in form.relatorio_bruto.errors %}
                                         <span>{{ error }}</span>
                                     {% endfor %}
                                 </div>
                             {% else %}
-                                {{ form.relatorio_bruto(class="form-control") }}
+                                {{ form.relatorio_bruto(class="form-control", id="relatorio_bruto") }}
                             {% endif %}
                             <small id="charCount" class="form-text text-muted">Caracteres: 0 / 12000</small>
                         </div>
                         <div class="mt-auto d-grid gap-2">
-                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                            {{ form.submit(class="btn btn-primary btn-lg", id="submit") }}
                             <button type="button" class="btn btn-outline-secondary" id="limpar-campos">
                                 <i class="bi bi-eraser me-2"></i>Limpar Campos
                             </button>
