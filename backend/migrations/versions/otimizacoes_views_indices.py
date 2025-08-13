@@ -34,7 +34,8 @@ def upgrade():
         t.nome AS tipo,
         c.nome AS condominio,
         u.username AS registrado_por,
-        s.username AS supervisor
+        s.username AS supervisor,
+        o.relatorio_final
     FROM 
         ocorrencia o
     LEFT JOIN ocorrencia_tipo t ON o.ocorrencia_tipo_id = t.id
