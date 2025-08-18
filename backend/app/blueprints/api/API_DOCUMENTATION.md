@@ -146,21 +146,22 @@ Listar condomínios.
 ### Rondas (`/api/rondas`)
 
 #### GET `/api/rondas`
-Listar rondas com filtros e paginação.
+Listar rondas com filtros e paginação (modelo unificado).
 **Parâmetros:**
 - `page`: Página (padrão: 1)
 - `per_page`: Itens por página (padrão: 10)
-- `status`: Status da ronda
+- `status`: Status da ronda (Agendada, Em Andamento, Concluída, Cancelada, Pausada)
 - `condominio_id`: ID do condomínio
 - `supervisor_id`: ID do supervisor
 - `data_inicio`: Data de início (YYYY-MM-DD)
 - `data_fim`: Data de fim (YYYY-MM-DD)
+- `tipo`: Tipo da ronda (Regular, Esporádica, Emergencial, Noturna, Diurna)
 
 #### GET `/api/rondas/<id>`
 Obter detalhes de uma ronda específica.
 
 #### POST `/api/rondas`
-Criar nova ronda.
+Criar nova ronda (modelo unificado).
 ```json
 {
   "condominio_id": 1,
@@ -168,7 +169,9 @@ Criar nova ronda.
   "escala_plantao": "Diurno",
   "log_ronda_bruto": "Log da ronda",
   "supervisor_id": 1,
-  "relatorio_processado": "Relatório processado"
+  "relatorio_processado": "Relatório processado",
+  "status": "Agendada",
+  "tipo": "Regular"
 }
 ```
 
@@ -188,14 +191,30 @@ Upload e processamento de arquivo de ronda.
 **Form Data:**
 - `file`: Arquivo de ronda
 
-#### GET `/api/rondas/tempo-real`
-Obter rondas em tempo real.
+#### GET `/api/rondas/condominios`
+Listar condomínios para rondas.
+
+#### GET `/api/rondas/supervisores`
+Listar supervisores para rondas.
+
+#### GET `/api/rondas/status`
+Listar status disponíveis para rondas.
+
+#### GET `/api/rondas/tipos`
+Listar tipos disponíveis para rondas.
 
 #### GET `/api/rondas/tempo-real/hora-atual`
 Obter hora atual do servidor.
 
-#### GET `/api/rondas/condominios`
-Listar condomínios para rondas.
+#### POST `/api/rondas/process-whatsapp`
+Processar arquivo WhatsApp para ronda.
+**Form Data:**
+- `file`: Arquivo WhatsApp (.txt, .csv)
+
+#### POST `/api/rondas/upload-process`
+Upload e processamento de arquivo de ronda.
+**Form Data:**
+- `file`: Arquivo de ronda (.txt, .csv, .xlsx, .pdf)
 
 ### Administração (`/api/admin`)
 
