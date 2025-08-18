@@ -1,5 +1,6 @@
 # Serviço para consolidar e exportar relatório de rondas no formato do prompt
-from app.models.ronda_esporadica import RondaEsporadica
+# ATUALIZADO: Usando modelo Ronda unificado
+from app.models.ronda import Ronda
 from app.models.condominio import Condominio
 from app.services.ronda_format_utils import (
     agrupar_rondas_por_condominio_e_plantao,
@@ -14,17 +15,19 @@ def consolidar_relatorio_rondas(user_id=None, data_inicio=None, data_fim=None):
     Filtros opcionais: user_id, data_inicio, data_fim
     Retorna: lista de strings (um relatório por grupo)
     """
-    query = RondaEsporadica.query
+    from sqlalchemy import func
+    
+    query = Ronda.query
     if user_id:
         query = query.filter_by(user_id=user_id)
     if data_inicio:
-        query = query.filter(RondaEsporadica.data_plantao >= data_inicio)
+        query = query.filter(func.date(Ronda.data_plantao_ronda) >= data_inicio)
     if data_fim:
-        query = query.filter(RondaEsporadica.data_plantao <= data_fim)
+        query = query.filter(func.date(Ronda.data_plantao_ronda) <= data_fim)
     rondas = query.order_by(
-        RondaEsporadica.condominio_id,
-        RondaEsporadica.data_plantao,
-        RondaEsporadica.hora_entrada,
+        Ronda.condominio_id,
+        Ronda.data_plantao_ronda,
+        Ronda.data_criacao,
     ).all()
     grupos = agrupar_rondas_por_condominio_e_plantao(rondas)
     relatorios = []

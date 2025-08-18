@@ -2,19 +2,20 @@ from flask import Blueprint
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
-# Importar todas as rotas da API
+# Importar todas as rotas da API (APENAS as ativas e estáveis)
 from . import (
     auth_routes,
     dashboard_routes,
     ocorrencia_routes,
     ronda_routes,
     admin_routes,
-    ronda_tempo_real_routes,
-    ronda_esporadica_consolidacao_routes,
     analisador_routes,
     config_routes
 )
 from . import text_routes
+
+# 🚨 REMOVIDO: ronda_esporadica_routes.py está DEPRECATED
+# Use ronda_tempo_real_routes.py em vez disso
 
 # Adicionar rotas específicas para compatibilidade com frontend
 from flask import jsonify, request
@@ -57,9 +58,6 @@ def list_condominios_simple():
         }), 200
     except Exception as e:
         return jsonify({'error': 'Erro ao listar condomínios'}), 500
-
-# NOTA: ronda_esporadica_routes.py está DEPRECATED
-# Use ronda_tempo_real_routes.py em vez disso
 
 # Adicionar rotas de colaboradores e logradouros para compatibilidade com frontend
 from app.models.colaborador import Colaborador
@@ -109,13 +107,7 @@ def list_logradouros_simple():
             } for log in logradouros]
         }), 200
     except Exception as e:
-        return jsonify({'error': 'Erro ao listar logradouros'}), 500 
+        return jsonify({'error': 'Erro ao listar logradouros'}), 500
 
-# Adicionar alias para login para compatibilidade com frontend
-@api_bp.route('/login', methods=['POST', 'OPTIONS'])
-@jwt_required(optional=True)  # Opcional para login
-def login_alias():
-    """Alias para /api/auth/login para compatibilidade com frontend."""
-    # Redirecionar para a rota de login do auth blueprint
-    from app.blueprints.auth.routes import api_login
-    return api_login() 
+# 🚨 REMOVIDO: Alias de login desnecessário que causava conflitos
+# A rota /api/auth/login já existe e é suficiente 

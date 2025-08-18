@@ -6,7 +6,7 @@ Este módulo contém funções comuns usadas por diferentes serviços de ronda.
 import logging
 from datetime import datetime, time, date
 from typing import Tuple, Optional
-from app.models.ronda_esporadica import RondaEsporadica
+from app.models.ronda import Ronda
 from app.models.condominio import Condominio
 from app.models.user import User
 
@@ -49,7 +49,7 @@ def inferir_turno(escala_plantao: str) -> str:
         return "Diurno" if 6 <= hora_atual < 18 else "Noturno"
 
 
-def verificar_ronda_em_andamento(condominio_id: int, data_plantao: date, user_id: Optional[int] = None) -> Optional[RondaEsporadica]:
+def verificar_ronda_em_andamento(condominio_id: int, data_plantao: date, user_id: Optional[int] = None) -> Optional[Ronda]:
     """
     Verifica se existe uma ronda em andamento para o condomínio na data.
     
@@ -59,16 +59,18 @@ def verificar_ronda_em_andamento(condominio_id: int, data_plantao: date, user_id
         user_id: ID do usuário (opcional, para filtrar por usuário)
         
     Returns:
-        RondaEsporadica ou None
+        Ronda ou None
     """
-    query = RondaEsporadica.query.filter(
-        RondaEsporadica.condominio_id == condominio_id,
-        RondaEsporadica.data_plantao == data_plantao,
-        RondaEsporadica.status == "em_andamento"
+    from sqlalchemy import func
+    
+    query = Ronda.query.filter(
+        Ronda.condominio_id == condominio_id,
+        func.date(Ronda.data_plantao_ronda) == data_plantao,
+        Ronda.status == "Em Andamento"
     )
     
     if user_id:
-        query = query.filter(RondaEsporadica.user_id == user_id)
+        query = query.filter(Ronda.user_id == user_id)
     
     return query.first()
 
@@ -149,7 +151,7 @@ def obter_condominio_por_id(condominio_id: int) -> Optional[Condominio]:
         return None
 
 
-def obter_ronda_por_id(ronda_id: int) -> Optional[RondaEsporadica]:
+def obter_ronda_por_id(ronda_id: int) -> Optional[Ronda]:
     """
     Obtém uma ronda por ID com tratamento de erro.
     
@@ -157,10 +159,10 @@ def obter_ronda_por_id(ronda_id: int) -> Optional[RondaEsporadica]:
         ronda_id: ID da ronda
         
     Returns:
-        RondaEsporadica ou None se não encontrada
+        Ronda ou None se não encontrada
     """
     try:
-        return RondaEsporadica.query.get(ronda_id)
+        return Ronda.query.get(ronda_id)
     except Exception as e:
         logger.error(f"Erro ao buscar ronda {ronda_id}: {e}")
         return None
