@@ -17,6 +17,7 @@ from app.services.dashboard.ocorrencia_dashboard import \
     get_ocorrencia_dashboard_data
 from app.services.report.ronda_service import RondaReportService
 from app.services.report.ocorrencia_service import OcorrenciaReportService
+from app.utils.locale_config import LocaleConfig
 
 from . import admin_bp
 
@@ -38,7 +39,8 @@ def _setup_locale():
             )
 
 
-_setup_locale()
+# Configuração de localização usando a nova classe
+LocaleConfig.setup_locale()
 
 
 def _get_date_range_from_month(year, month):
@@ -61,7 +63,7 @@ def _get_period_description(year, month, start_date_str, end_date_str):
 
     def get_month_name(y, m):
         try:
-            return datetime(y, m, 1).strftime("%B").capitalize()
+            return LocaleConfig.get_month_name(m, 'pt_BR')
         except Exception:
             # Fallback para o nome do mês padrão do sistema
             return datetime(y, m, 1).strftime("%B")
@@ -87,10 +89,12 @@ def _get_period_description(year, month, start_date_str, end_date_str):
 def _get_months_of_year(year):
     """Retorna uma lista de dicionários com os meses do ano para filtros."""
     meses = []
+    
     for i in range(1, 13):
         try:
-            mes_nome = datetime(year, i, 1).strftime("%B").capitalize()
+            mes_nome = LocaleConfig.get_month_name(i, 'pt_BR')
         except Exception:
+            # Fallback para o nome do mês padrão do sistema
             mes_nome = datetime(year, i, 1).strftime("%B")
         meses.append({"id": i, "nome": mes_nome})
     return meses
