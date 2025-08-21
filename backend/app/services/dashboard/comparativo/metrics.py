@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Tuple
 from sqlalchemy import func
 from app import db
 from app.models import Ronda
+from app.utils.locale_config import LocaleConfig
 
 
 class MetricsCalculator:
@@ -129,8 +130,5 @@ class MetricsCalculator:
             return "N/A"
             
         mes_index = data_series.index(max_value)
-        month_names = [
-            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-        ]
+        month_names = LocaleConfig.get_all_month_names('pt_BR')
         return f"{month_names[mes_index]} ({max_value})" 

@@ -36,6 +36,58 @@ def parse_date_range(data_inicio_str, data_fim_str):
             else last_day
         )
     except ValueError:
-        flash("Formato de data inválido. Use AAAA-MM-DD.", "danger")
+        flash("Formato de data inválido. Use dd/mm/aaaa ou aaaa-mm-dd.", "danger")
         return first_day, last_day
     return data_inicio, data_fim
+
+
+def format_date_brazilian(date_obj, format_type="display"):
+    """
+    Formata uma data para o formato brasileiro.
+    
+    Args:
+        date_obj: Objeto date ou datetime
+        format_type: Tipo de formatação ("display", "short", "month_year")
+    
+    Returns:
+        String formatada no padrão brasileiro
+    """
+    if not date_obj:
+        return ""
+    
+    if format_type == "display":
+        return date_obj.strftime("%d/%m/%Y")
+    elif format_type == "short":
+        return date_obj.strftime("%d/%m/%y")
+    elif format_type == "month_year":
+        return date_obj.strftime("%B/%Y")
+    elif format_type == "datetime":
+        return date_obj.strftime("%d/%m/%Y %H:%M")
+    else:
+        return date_obj.strftime("%d/%m/%Y")
+
+
+def parse_brazilian_date(date_str):
+    """
+    Converte uma data do formato brasileiro (dd/mm/yyyy) para date object.
+    
+    Args:
+        date_str: String no formato dd/mm/yyyy
+    
+    Returns:
+        Objeto date ou None se inválido
+    """
+    if not date_str:
+        return None
+    
+    try:
+        # Tenta formato brasileiro primeiro
+        if "/" in date_str:
+            return datetime.strptime(date_str, "%d/%m/%Y").date()
+        # Fallback para formato ISO
+        elif "-" in date_str:
+            return datetime.strptime(date_str, "%Y-%m-%d").date()
+        else:
+            return None
+    except ValueError:
+        return None

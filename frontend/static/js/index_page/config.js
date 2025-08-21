@@ -4,6 +4,11 @@ export const CONFIG = {
     maxInputLengthServerDisplay: 12000, // Conforme definido em seu app.config em conftest.py
     copySuccessMessageDuration: 2000,
     apiEndpoint: '/processar_relatorio', // Endpoint da API
+    
+    // Configurações de data e localização
+    dateFormat: 'dd/mm/yyyy',
+    locale: 'pt-BR',
+    timezone: 'America/Sao_Paulo',
     selectors: {
         btnProcessar: '#submit',
         relatorioBruto: '#relatorio_bruto',

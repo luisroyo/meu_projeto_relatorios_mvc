@@ -7,6 +7,7 @@ from .comparativo.metrics import MetricsCalculator
 from .comparativo.breakdown import BreakdownAnalyzer
 from .comparativo.processor import DataProcessor
 from calendar import monthrange
+from app.utils.locale_config import LocaleConfig
 
 
 def get_monthly_comparison_data(
@@ -80,10 +81,7 @@ def get_monthly_comparison_data(
         "Jul", "Ago", "Set", "Out", "Nov", "Dez"
     ]
 
-    month_names = [
-        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-    ]
+    month_names = LocaleConfig.get_all_month_names('pt_BR')
 
     # Busca dados para filtros
     filter_options = FilterOptionsProvider.get_filter_options()
