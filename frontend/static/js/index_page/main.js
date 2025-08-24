@@ -16,7 +16,16 @@ function getCachedElement(key) {
   if (!DOMCache.has(key)) {
     DOMCache.set(key, DOMElements[key]);
   }
-  return DOMCache.get(key);
+  const element = DOMCache.get(key);
+  
+  // Log para debug
+  if (!element) {
+    console.warn(`getCachedElement: Elemento não encontrado para chave: ${key}`);
+    console.warn(`getCachedElement: DOMElements[${key}]:`, DOMElements[key]);
+    console.warn(`getCachedElement: DOMElements disponíveis:`, Object.keys(DOMElements));
+  }
+  
+  return element;
 }
 
 // Função para inicializar botões com HTML inicial
@@ -34,6 +43,9 @@ function setupEventListeners() {
   const btnProcessar = getCachedElement('btnProcessar');
   if (btnProcessar) {
     btnProcessar.addEventListener("click", handleProcessReport);
+    console.log('main.js: Event listener adicionado ao botão processar');
+  } else {
+    console.warn('main.js: Botão processar não encontrado');
   }
 
   // Botão copiar padrão
@@ -41,6 +53,9 @@ function setupEventListeners() {
   if (btnCopiar) {
     btnCopiar.addEventListener("click", () => handleCopyResult("standard"));
     btnCopiar.style.display = "none";
+    console.log('main.js: Event listener adicionado ao botão copiar, display definido como none');
+  } else {
+    console.warn('main.js: Botão copiar não encontrado');
   }
 
   // Botão copiar email
@@ -48,6 +63,8 @@ function setupEventListeners() {
   if (btnCopiarEmail) {
     btnCopiarEmail.addEventListener("click", () => handleCopyResult("email"));
     btnCopiarEmail.style.display = "none";
+  } else {
+    console.warn('main.js: Botão copiar email não encontrado');
   }
 
   // Botão WhatsApp padrão

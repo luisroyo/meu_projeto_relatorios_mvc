@@ -5,8 +5,15 @@
 {% block content %}
 <div class="container-fluid mt-lg-3">
     <div class="page-header text-center">
-        <h1><i class="bi bi-shield-lock-fill me-2"></i>Analisador de Relatórios com IA</h1>
-        <p class="lead text-muted">Cole o relatório bruto abaixo para processamento e correção.</p>
+        <h1>
+            <i class="bi bi-shield-lock-fill me-2"></i>Analisador de Relatórios com IA
+            <i class="bi bi-question-circle text-muted ms-2" 
+               data-bs-toggle="tooltip" 
+               data-bs-placement="bottom" 
+               title="Sistema inteligente que corrige automaticamente relatórios de segurança, melhorando gramática, pontuação e formatação usando IA."
+               style="cursor: help; font-size: 0.7em;"></i>
+        </h1>
+        <p class="lead text-muted">Cole o relatório bruto abaixo para processamento e correção automática.</p>
     </div>
 
     {% if ocorrencias_pendentes_count and ocorrencias_pendentes_count > 0 %}
@@ -38,19 +45,34 @@
                     </div>
                     <div class="card-body d-flex flex-column p-lg-4">
                         <div class="form-group mb-3 flex-grow-1">
-                            {{ form.relatorio_bruto.label(class="form-label") }}
+                            <label class="form-label d-flex align-items-center gap-2" for="relatorio_bruto">
+                                <i class="bi bi-textarea-t text-primary"></i>
+                                <span>{{ form.relatorio_bruto.label.text }}</span>
+                                <span class="text-danger" title="Campo obrigatório">*</span>
+                                <i class="bi bi-question-circle text-muted" 
+                                   data-bs-toggle="tooltip" 
+                                   data-bs-placement="top" 
+                                   title="Cole aqui o texto do relatório que precisa ser corrigido. O sistema aceita textos com erros de digitação, pontuação incorreta, palavras coladas e outros problemas comuns."
+                                   style="cursor: help;"></i>
+                            </label>
                             
                             {% if form.relatorio_bruto.errors %}
-                                {{ form.relatorio_bruto(class="form-control is-invalid", id="relatorio_bruto") }}
+                                {{ form.relatorio_bruto(class="form-control is-invalid", id="relatorio_bruto", placeholder="Cole aqui o texto do relatório bruto que precisa ser corrigido...", rows="15", style="min-height: 300px;") }}
                                 <div class="invalid-feedback">
                                     {% for error in form.relatorio_bruto.errors %}
-                                        <span>{{ error }}</span>
+                                        <i class="bi bi-exclamation-triangle me-1"></i><span>{{ error }}</span>
                                     {% endfor %}
                                 </div>
                             {% else %}
-                                {{ form.relatorio_bruto(class="form-control", id="relatorio_bruto") }}
+                                {{ form.relatorio_bruto(class="form-control", id="relatorio_bruto", placeholder="Cole aqui o texto do relatório bruto que precisa ser corrigido...", rows="15", style="min-height: 300px;") }}
                             {% endif %}
-                            <small id="charCount" class="form-text text-muted">Caracteres: 0 / 12000</small>
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>Aceita texto copiado do WhatsApp, Word ou qualquer fonte. A IA corrigirá automaticamente.
+                                </small>
+                                <small id="charCount" class="form-text text-muted">Caracteres: 0 / 12000</small>
+                            </div>
                         </div>
                         <div class="mt-auto d-grid gap-2">
                             {{ form.submit(class="btn btn-primary btn-lg", id="submit") }}

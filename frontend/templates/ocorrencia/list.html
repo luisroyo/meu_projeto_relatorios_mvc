@@ -116,13 +116,31 @@
                                 </a>
                                 {% endif %}
                                 {% if current_user.is_admin %}
-                                <form action="{{ url_for('ocorrencia.deletar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta ocorrência? Esta ação não pode ser desfeita.');">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                    <button type="submit" class="btn btn-danger rounded-end" data-bs-toggle="tooltip" data-bs-placement="top" title="Excluir Ocorrência">
-                                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                                        <i class="bi bi-trash fs-5"></i>
-                                    </button>
-                                </form>
+                                <button type="button" 
+                                        class="btn btn-danger rounded-end" 
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="top" 
+                                        title="Excluir Ocorrência"
+                                        data-confirm="Tem certeza que deseja excluir esta ocorrência? Esta ação não pode ser desfeita."
+                                        onclick="window.helpSystem?.showConfirmationModal(
+                                            'Tem certeza que deseja excluir esta ocorrência?<br><small class=\'text-muted\'>Esta ação não pode ser desfeita e todos os dados serão permanentemente removidos.</small>',
+                                            () => {
+                                                const form = document.createElement('form');
+                                                form.method = 'POST';
+                                                form.action = '{{ url_for('ocorrencia.deletar_ocorrencia', ocorrencia_id=ocorrencia.id) }}';
+                                                form.innerHTML = '<input type=\'hidden\' name=\'csrf_token\' value=\'{{ csrf_token() }}\'/>';
+                                                document.body.appendChild(form);
+                                                form.submit();
+                                            },
+                                            {
+                                                title: 'Excluir Ocorrência',
+                                                confirmText: 'Sim, Excluir',
+                                                cancelText: 'Cancelar',
+                                                type: 'danger'
+                                            }
+                                        )">
+                                    <i class="bi bi-trash fs-5"></i>
+                                </button>
                                 {% endif %}
                             </div>
                         </td>
