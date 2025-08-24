@@ -370,83 +370,88 @@ def rejeitar_ocorrencia(ocorrencia_id):
 def analisar_relatorio():
     if request.method == "OPTIONS":
         return '', 200
-    data = request.get_json()
-    texto = data.get("texto_relatorio", "")
-    if not texto:
-        return (
-            jsonify({"sucesso": False, "message": "Texto do relatório está vazio."}),
-            400,
-        )
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"erro": "Dados JSON não fornecidos"}), 400
+        
+        # Aceita tanto 'relatorio_bruto' quanto 'texto_relatorio' para compatibilidade
+        texto = data.get("relatorio_bruto") or data.get("texto_relatorio", "")
+        formatar_para_email = data.get("formatar_para_email", False)
+        
+        if not texto:
+            return jsonify({"erro": "Texto do relatório está vazio"}), 400
 
-    texto_limpo = texto.replace("\xa0", " ").strip()
+        texto_limpo = texto.replace("\xa0", " ").strip()
+        
+        # Processamento e correção do texto
+        relatorio_processado = processar_e_corrigir_texto(texto_limpo)
+        
+        # Preparar resposta
+        resposta = {
+            "relatorio_processado": relatorio_processado,
+            "sucesso": True
+        }
+        
+        # Se solicitado, gerar versão para email
+        if formatar_para_email:
+            relatorio_email = formatar_para_email_profissional(relatorio_processado)
+            resposta["relatorio_email"] = relatorio_email
+        
+        return jsonify(resposta), 200
+        
+    except Exception as e:
+        print(f"Erro ao analisar relatório: {e}")
+        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
 
-    dados_extraidos = {}
-
-    # 1. DATA, HORA E TURNO
-    match_data = re.search(r"Data:\s*(\d{2}/\d{2}/\d{4})", texto_limpo)
-    match_hora = re.search(r"Hora:\s*(\d{2}:\d{2})", texto_limpo)
-    if match_data and match_hora:
-        data_str, hora_str = match_data.group(1).strip(), match_hora.group(1).strip()
-        try:
-            datetime_obj = datetime.strptime(f"{data_str} {hora_str}", "%d/%m/%Y %H:%M")
-            dados_extraidos["data_hora_ocorrencia"] = datetime_obj.strftime(
-                "%Y-%m-%dT%H:%M"
-            )
-            dados_extraidos["turno"] = (
-                "Noturno"
-                if 18 <= datetime_obj.hour or datetime_obj.hour < 6
-                else "Diurno"
-            )
-        except ValueError:
-            pass
-
-    # 2. LOCAL, ENDEREÇO E CONDOMÍNIO
-    match_local = re.search(r"(?:Endereço|Local):\s*([^\n\r]+)", texto_limpo)
-    if match_local:
-        endereco_completo = match_local.group(1).strip()
-        dados_extraidos["endereco_especifico"] = endereco_completo
-        # Lógica para encontrar condomínio...
-        condominio_encontrado = next(
-            (
-                c
-                for c in Condominio.query.all()
-                if c.nome.lower() in endereco_completo.lower() or endereco_completo.lower() in c.nome.lower()
-            ),
-            None,
-        )
-        if condominio_encontrado:
-            dados_extraidos["condominio_id"] = condominio_encontrado.id
-
-    # 3. TIPO DA OCORRÊNCIA
-    nome_tipo_encontrado = classificar_ocorrencia(texto_limpo)
-    if nome_tipo_encontrado:
-        tipo_obj = OcorrenciaTipo.query.filter(
-            OcorrenciaTipo.nome.ilike(nome_tipo_encontrado)
-        ).first()
-        if tipo_obj:
-            dados_extraidos["ocorrencia_tipo_id"] = tipo_obj.id
+def processar_e_corrigir_texto(texto):
+    """Processa e corrige o texto do relatório"""
+    # Correções básicas
+    correcoes = {
+        "hoirario": "horário",
+        "conatto": "contato",
+        "marador": "morador",
+        "fernado": "Fernando",
+        "ocorrencia": "ocorrência",
+        "marad": "morador"
+    }
+    
+    texto_corrigido = texto
+    for erro, correcao in correcoes.items():
+        texto_corrigido = texto_corrigido.replace(erro, correcao)
+    
+    # Melhorias de formatação
+    texto_corrigido = texto_corrigido.strip()
+    texto_corrigido = re.sub(r'\s+', ' ', texto_corrigido)  # Remove espaços extras
+    texto_corrigido = re.sub(r'([.!?])\s*([A-Za-z])', r'\1 \2', texto_corrigido)  # Espaços após pontuação
+    
+    # Capitalização de início de frases
+    linhas = texto_corrigido.split('\n')
+    linhas_corrigidas = []
+    for linha in linhas:
+        if linha.strip():
+            linha = linha.strip()
+            if linha and not linha[0].isupper():
+                linha = linha[0].upper() + linha[1:]
+            linhas_corrigidas.append(linha)
         else:
-            # Se o tipo não existir no banco, cria um novo
-            novo_tipo = OcorrenciaTipo(nome=nome_tipo_encontrado)
-            db.session.add(novo_tipo)
-            db.session.flush()
-            dados_extraidos["ocorrencia_tipo_id"] = novo_tipo.id
-    else:
-        # Se nenhum tipo for encontrado, usa o tipo padrão
-        tipo_padrao = OcorrenciaTipo.query.filter_by(nome="verificação").first()
-        if tipo_padrao:
-            dados_extraidos["ocorrencia_tipo_id"] = tipo_padrao.id
+            linhas_corrigidas.append('')
+    
+    return '\n'.join(linhas_corrigidas)
 
-    # 4. RESPONSÁVEL (COLABORADOR)
-    match_responsavel = re.search(
-        r"Responsável pelo registro:\s*([^\n\r(]+)", texto_limpo
-    )
-    if match_responsavel:
-        nome_responsavel = match_responsavel.group(1).strip()
-        colaborador = Colaborador.query.filter(
-            Colaborador.nome_completo.ilike(f"%{nome_responsavel}%")
-        ).first()
-        if colaborador:
-            dados_extraidos["colaboradores_envolvidos"] = [colaborador.id]
-
-    return jsonify({"sucesso": True, "dados": dados_extraidos})
+def formatar_para_email_profissional(texto):
+    """Formata o texto para envio profissional por email"""
+    # Adiciona cabeçalho profissional
+    cabecalho = "RELATÓRIO DE OCORRÊNCIA\n"
+    cabecalho += "=" * 30 + "\n\n"
+    
+    # Formata o corpo
+    corpo = texto.replace('\n', '\n    ')
+    
+    # Adiciona rodapé
+    rodape = "\n\n" + "=" * 30 + "\n"
+    rodape += "Este relatório foi gerado automaticamente pelo sistema de gestão de segurança.\n"
+    rodape += "Data de geração: " + datetime.now().strftime("%d/%m/%Y %H:%M")
+    
+    return cabecalho + corpo + rodape

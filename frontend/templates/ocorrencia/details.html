@@ -66,25 +66,72 @@ endblock %} {% block content %}
     <a href="{{ url_for('ocorrencia.listar_ocorrencias') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar ao Histórico</a>
     <div>
       {% if ocorrencia.status == "Pendente" %}
-        <form action="{{ url_for('ocorrencia.aprovar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" method="POST" class="d-inline">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-          <button type="submit" class="btn btn-success" onclick="return confirm('Confirmar aprovação desta ocorrência?')">
-            <i class="bi bi-check-circle me-1"></i>Aprovar Ocorrência
-          </button>
-        </form>
-        <form action="{{ url_for('ocorrencia.rejeitar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" method="POST" class="d-inline ms-2">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-          <button type="submit" class="btn btn-danger" onclick="return confirm('Confirmar rejeição desta ocorrência?')">
-            <i class="bi bi-x-circle me-1"></i>Rejeitar Ocorrência
-          </button>
-        </form>
+        <button type="button" 
+                class="btn btn-success" 
+                onclick="window.helpSystem?.showConfirmationModal(
+                    'Deseja aprovar esta ocorrência?<br><small class=\'text-muted\'>A ocorrência será marcada como aprovada e será incluída nos relatórios oficiais.</small>',
+                    () => {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '{{ url_for('ocorrencia.aprovar_ocorrencia', ocorrencia_id=ocorrencia.id) }}';
+                        form.innerHTML = '<input type=\'hidden\' name=\'csrf_token\' value=\'{{ csrf_token() }}\'/>';
+                        document.body.appendChild(form);
+                        form.submit();
+                    },
+                    {
+                        title: 'Aprovar Ocorrência',
+                        confirmText: 'Sim, Aprovar',
+                        cancelText: 'Cancelar',
+                        type: 'success'
+                    }
+                )">
+          <i class="bi bi-check-circle me-1"></i>Aprovar Ocorrência
+        </button>
+        <button type="button" 
+                class="btn btn-danger ms-2" 
+                onclick="window.helpSystem?.showConfirmationModal(
+                    'Deseja rejeitar esta ocorrência?<br><small class=\'text-muted\'>A ocorrência será marcada como rejeitada e não será incluída nos relatórios oficiais.</small>',
+                    () => {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '{{ url_for('ocorrencia.rejeitar_ocorrencia', ocorrencia_id=ocorrencia.id) }}';
+                        form.innerHTML = '<input type=\'hidden\' name=\'csrf_token\' value=\'{{ csrf_token() }}\'/>';
+                        document.body.appendChild(form);
+                        form.submit();
+                    },
+                    {
+                        title: 'Rejeitar Ocorrência',
+                        confirmText: 'Sim, Rejeitar',
+                        cancelText: 'Cancelar',
+                        type: 'danger'
+                    }
+                )">
+          <i class="bi bi-x-circle me-1"></i>Rejeitar Ocorrência
+        </button>
       {% else %}
         <a href="{{ url_for('ocorrencia.editar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-warning"><i class="bi bi-pencil me-1"></i>Editar Ocorrência</a>
         {% if current_user.is_admin %}
-        <form action="{{ url_for('ocorrencia.deletar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta ocorrência? Esta ação não pode ser desfeita.');">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-          <button type="submit" class="btn btn-danger ms-2"><i class="bi bi-trash me-1"></i>Excluir Ocorrência</button>
-        </form>
+        <button type="button" 
+                class="btn btn-danger ms-2" 
+                onclick="window.helpSystem?.showConfirmationModal(
+                    'Tem certeza que deseja excluir esta ocorrência?<br><small class=\'text-muted\'>Esta ação não pode ser desfeita e todos os dados serão permanentemente removidos.</small>',
+                    () => {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '{{ url_for('ocorrencia.deletar_ocorrencia', ocorrencia_id=ocorrencia.id) }}';
+                        form.innerHTML = '<input type=\'hidden\' name=\'csrf_token\' value=\'{{ csrf_token() }}\'/>';
+                        document.body.appendChild(form);
+                        form.submit();
+                    },
+                    {
+                        title: 'Excluir Ocorrência',
+                        confirmText: 'Sim, Excluir',
+                        cancelText: 'Cancelar',
+                        type: 'danger'
+                    }
+                )">
+          <i class="bi bi-trash me-1"></i>Excluir Ocorrência
+        </button>
         {% endif %}
       {% endif %}
     </div>

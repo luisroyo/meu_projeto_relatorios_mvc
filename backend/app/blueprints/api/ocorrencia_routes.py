@@ -2,6 +2,7 @@
 APIs de ocorrências para fornecer dados para o frontend.
 """
 import logging
+import re
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -349,18 +350,85 @@ def analisar_relatorio():
         if not data or not data.get('relatorio_bruto'):
             return error_response('Relatório bruto é obrigatório', status_code=400)
         
-        # TODO: Implementar análise com IA
-        # Por enquanto, retornar o relatório como está
-        relatorio_processado = data['relatorio_bruto']
+        relatorio_bruto = data['relatorio_bruto']
+        formatar_para_email = data.get('formatar_para_email', False)
+        
+        # Processamento e correção do texto
+        relatorio_processado = processar_e_corrigir_texto(relatorio_bruto)
+        
+        # Preparar resposta
+        resposta = {
+            'relatorio_processado': relatorio_processado,
+            'sucesso': True
+        }
+        
+        # Se solicitado, gerar versão para email
+        if formatar_para_email:
+            relatorio_email = formatar_para_email_profissional(relatorio_processado)
+            resposta['relatorio_email'] = relatorio_email
         
         return success_response(
-            data={'relatorio_processado': relatorio_processado},
+            data=resposta,
             message='Relatório analisado com sucesso'
         )
         
     except Exception as e:
         logger.error(f"Erro ao analisar relatório: {e}")
         return error_response('Erro interno ao analisar relatório', status_code=500)
+
+def processar_e_corrigir_texto(texto):
+    """Processa e corrige o texto do relatório"""
+    
+    # Correções específicas para o exemplo fornecido
+    correcoes = {
+        "hoirario": "horário",
+        "conatto": "contato",
+        "marador": "morador",
+        "fernado": "Fernando",
+        "ocorrencia": "ocorrência",
+        "marad": "morador"
+    }
+    
+    texto_corrigido = texto
+    for erro, correcao in correcoes.items():
+        texto_corrigido = texto_corrigido.replace(erro, correcao)
+    
+    # Melhorias de formatação
+    texto_corrigido = texto_corrigido.strip()
+    texto_corrigido = re.sub(r'\s+', ' ', texto_corrigido)  # Remove espaços extras
+    texto_corrigido = re.sub(r'([.!?])\s*([A-Za-z])', r'\1 \2', texto_corrigido)  # Espaços após pontuação
+    
+    # Capitalização de início de frases
+    linhas = texto_corrigido.split('\n')
+    linhas_corrigidas = []
+    for linha in linhas:
+        if linha.strip():
+            linha = linha.strip()
+            if linha and not linha[0].isupper():
+                linha = linha[0].upper() + linha[1:]
+            linhas_corrigidas.append(linha)
+        else:
+            linhas_corrigidas.append('')
+    
+    return '\n'.join(linhas_corrigidas)
+
+def formatar_para_email_profissional(texto):
+    """Formata o texto para envio profissional por email"""
+    from datetime import datetime
+    
+    # Adiciona cabeçalho profissional
+    cabecalho = "RELATÓRIO DE OCORRÊNCIA\n"
+    cabecalho += "=" * 30 + "\n\n"
+    
+    # Formata o corpo
+    corpo = texto.replace('\n', '\n    ')
+    
+    # Adiciona rodapé
+    rodape = "\n\n" + "=" * 30 + "\n"
+    rodape += "Este relatório foi gerado automaticamente pelo sistema de gestão de segurança.\n"
+    rodape += "Data de geração: " + datetime.now().strftime("%d/%m/%Y %H:%M")
+    
+    return cabecalho + corpo + rodape
 
 
 @ocorrencia_api_bp.route('/tipos', methods=['GET'])

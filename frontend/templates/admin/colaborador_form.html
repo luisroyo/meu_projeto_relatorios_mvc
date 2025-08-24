@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{# Removido: {% import "bootstrap_wtf.html" as wtf %} #}
+{% from "_form_helpers.html" import render_field, render_date_field %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -9,56 +9,42 @@
         <div class="col-md-8 col-lg-6">
             <div class="card shadow-lg animate__animated animate__fadeIn">
                 <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">{{ title }}</h3>
+                    <h3 class="mb-0">
+                        <i class="bi bi-person-plus me-2"></i>{{ title }}
+                    </h3>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="" novalidate autocomplete="off">
                         {{ form.hidden_tag() }}
-                        <div class="mb-3 form-floating">
-                            {{ form.nome_completo(class="form-control" + (" is-invalid" if form.nome_completo.errors else ""), placeholder="Ex: João da Silva", id="nomeCompletoInput") }}
-                            {{ form.nome_completo.label(class="form-label", for="nomeCompletoInput") }}
-                            {% if form.nome_completo.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.nome_completo.errors %}<span>{{ error }}</span><br>{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        <div class="mb-3 form-floating">
-                            {{ form.cargo(class="form-control" + (" is-invalid" if form.cargo.errors else ""), placeholder="Ex: Vigilante", id="cargoInput") }}
-                            {{ form.cargo.label(class="form-label", for="cargoInput") }}
-                            {% if form.cargo.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.cargo.errors %}<span>{{ error }}</span><br>{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        <div class="mb-3 form-floating">
-                            {{ form.matricula(class="form-control" + (" is-invalid" if form.matricula.errors else ""), placeholder="Ex: 12345 (Opcional)", id="matriculaInput") }}
-                            {{ form.matricula.label(class="form-label", for="matriculaInput") }}
-                            {% if form.matricula.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.matricula.errors %}<span>{{ error }}</span><br>{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        <div class="mb-3 form-floating">
-                            {{ form.data_admissao(class="form-control" + (" is-invalid" if form.data_admissao.errors else ""), type="date", id="dataAdmissaoInput", placeholder=" ") }}
-                            {{ form.data_admissao.label(class="form-label", for="dataAdmissaoInput") }}
-                            {% if form.data_admissao.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.data_admissao.errors %}<span>{{ error }}</span><br>{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        <div class="mb-3">
-                            {{ form.status.label(class="form-label") }}
-                            {{ form.status(class="form-select" + (" is-invalid" if form.status.errors else "")) }}
-                            {% if form.status.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.status.errors %}<span>{{ error }}</span><br>{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
+                        
+                        {{ render_field(form.nome_completo, 
+                                       placeholder="Ex: João da Silva Santos", 
+                                       help_text="Digite o nome completo do colaborador (mínimo 2 nomes)",
+                                       tooltip="Nome deve conter pelo menos nome e sobrenome",
+                                       icon="bi bi-person") }}
+                        
+                        {{ render_field(form.cargo, 
+                                       placeholder="Ex: Vigilante, Porteiro, Supervisor", 
+                                       help_text="Cargo ou função exercida pelo colaborador",
+                                       tooltip="Selecione o cargo apropriado para as funções exercidas",
+                                       icon="bi bi-briefcase") }}
+                        
+                        {{ render_field(form.matricula, 
+                                       placeholder="Ex: 12345 (Opcional)", 
+                                       help_text="Número de matrícula do colaborador (campo opcional)",
+                                       tooltip="Se não tiver matrícula específica, pode deixar em branco",
+                                       icon="bi bi-hash",
+                                       required_indicator=false) }}
+                        
+                        {{ render_date_field(form.data_admissao,
+                                           help_text="Data de admissão do colaborador na empresa",
+                                           tooltip="Data em que o colaborador iniciou as atividades") }}
+                        
+                        {{ render_field(form.status, 
+                                       help_text="Status atual do colaborador no sistema",
+                                       tooltip="Ativo: colaborador em exercício / Inativo: afastado ou desligado",
+                                       icon="bi bi-toggle-on") }}
+                        
                         <div class="d-grid gap-2 mt-4">
                             {{ form.submit(class="btn btn-primary btn-block btn-lg") }}
                         </div>

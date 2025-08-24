@@ -19,6 +19,10 @@ import { callProcessReportAPI } from "./apiService.js";
  * @param {string} relatorioProcessado O texto final corrigido pela IA.
  */
 function exibirBotaoRegistrarOcorrencia(logBruto, relatorioProcessado) {
+  console.log('exibirBotaoRegistrarOcorrencia: Iniciando...');
+  console.log('exibirBotaoRegistrarOcorrencia: logBruto:', logBruto ? logBruto.substring(0, 100) + '...' : 'N/A');
+  console.log('exibirBotaoRegistrarOcorrencia: relatorioProcessado:', relatorioProcessado ? relatorioProcessado.substring(0, 100) + '...' : 'N/A');
+  
   // Encontra o container específico para botões de ação
   const containerBotoes = document.querySelector("#container-botoes-acoes");
   if (!containerBotoes) {
@@ -27,6 +31,8 @@ function exibirBotaoRegistrarOcorrencia(logBruto, relatorioProcessado) {
     );
     return;
   }
+  
+  console.log('exibirBotaoRegistrarOcorrencia: Container encontrado:', containerBotoes);
   
   // Mostra o container
   containerBotoes.style.display = "flex";
@@ -62,11 +68,20 @@ function exibirBotaoRegistrarOcorrencia(logBruto, relatorioProcessado) {
 
   // Ativa o tooltip do Bootstrap para o novo botão.
   new bootstrap.Tooltip(botaoSalvar);
+  
+  console.log('exibirBotaoRegistrarOcorrencia: Botão criado e inserido com sucesso');
 }
 
 export async function handleProcessReport() {
-  if (!DOMElements.relatorioBruto || !DOMElements.resultadoProcessamento)
+  console.log('handleProcessReport: Iniciando...');
+  console.log('handleProcessReport: DOMElements disponíveis:', Object.keys(DOMElements));
+  console.log('handleProcessReport: btnProcessar:', DOMElements.btnProcessar);
+  console.log('handleProcessReport: btnCopiar:', DOMElements.btnCopiar);
+  
+  if (!DOMElements.relatorioBruto || !DOMElements.resultadoProcessamento) {
+    console.error('handleProcessReport: Elementos essenciais não encontrados');
     return false;
+  }
 
   if (
     DOMElements.btnProcessar &&
@@ -74,6 +89,7 @@ export async function handleProcessReport() {
   ) {
     DOMElements.btnProcessar.dataset.originalHTML =
       DOMElements.btnProcessar.innerHTML;
+    console.log('handleProcessReport: HTML original do botão salvo:', DOMElements.btnProcessar.dataset.originalHTML);
   }
 
   const relatorioBrutoValue = DOMElements.relatorioBruto.value;
@@ -81,6 +97,7 @@ export async function handleProcessReport() {
     ? DOMElements.formatarParaEmailCheckbox.checked
     : false;
 
+  console.log('handleProcessReport: Chamando resetOutputUI...');
   resetOutputUI(formatarParaEmailChecked);
 
   if (!relatorioBrutoValue.trim()) {
@@ -101,6 +118,7 @@ export async function handleProcessReport() {
     return false;
   }
 
+  console.log('handleProcessReport: Chamando setProcessingUI(true)...');
   setProcessingUI(true);
   displayStatus(CONFIG.messages.processing, "info", "standard");
   if (formatarParaEmailChecked && DOMElements.statusProcessamentoEmail) {
@@ -112,11 +130,14 @@ export async function handleProcessReport() {
       relatorioBrutoValue,
       formatarParaEmailChecked
     );
+    console.log('handleProcessReport: Dados recebidos da API:', data);
     const standardReportSuccess = updateReportUI(data);
+    console.log('handleProcessReport: Resultado do updateReportUI:', standardReportSuccess);
 
     // --- INTEGRAÇÃO CORRIGIDA ---
     // Se o relatório padrão foi gerado com sucesso, mostramos o botão para salvar.
     if (standardReportSuccess) {
+      console.log('handleProcessReport: Exibindo botão de registrar ocorrência...');
       const relatorioBrutoOriginal = DOMElements.relatorioBruto.value;
       // CORREÇÃO: Usar 'relatorio_processado' para consistência com a resposta da API.
       const relatorioProcessadoFinal = data.relatorio_processado;
@@ -124,6 +145,8 @@ export async function handleProcessReport() {
         relatorioBrutoOriginal,
         relatorioProcessadoFinal
       );
+    } else {
+      console.log('handleProcessReport: Não foi possível exibir botão de registrar ocorrência');
     }
     // --- FIM DA CORREÇÃO ---
 
@@ -136,6 +159,7 @@ export async function handleProcessReport() {
         DOMElements.colunaRelatorioEmail.style.display = "none";
     }
 
+    console.log('handleProcessReport: Processamento concluído com sucesso');
     return standardReportSuccess; // Retorna o status do sucesso para o main.js
   } catch (error) {
     console.error("Erro em handleProcessReport:", error);
@@ -149,31 +173,53 @@ export async function handleProcessReport() {
     }
     return false; // Retorna falso em caso de erro
   } finally {
+    console.log('handleProcessReport: Chamando setProcessingUI(false)...');
     setProcessingUI(false);
   }
 }
 
 export function handleClearFields() {
+  console.log('handleClearFields: Iniciando...');
+  
   if (DOMElements.relatorioBruto) {
     DOMElements.relatorioBruto.value = "";
     updateCharCount();
     DOMElements.relatorioBruto.focus();
+    console.log('handleClearFields: Campo relatório bruto limpo');
+  } else {
+    console.warn('handleClearFields: Campo relatório bruto não encontrado');
   }
+  
   if (DOMElements.formatarParaEmailCheckbox) {
     DOMElements.formatarParaEmailCheckbox.checked = false;
     if (DOMElements.colunaRelatorioEmail)
       DOMElements.colunaRelatorioEmail.style.display = "none";
+    console.log('handleClearFields: Checkbox de email desmarcado');
+  } else {
+    console.warn('handleClearFields: Checkbox de email não encontrado');
   }
+  
+  console.log('handleClearFields: Chamando resetOutputUI...');
   resetOutputUI(false);
 
   // Remove o botão de registrar ocorrência se ele existir
   const botaoRegistrar = document.getElementById("registrarOcorrenciaOficial");
   if (botaoRegistrar) {
     botaoRegistrar.remove();
+    console.log('handleClearFields: Botão de registrar ocorrência removido');
+  } else {
+    console.log('handleClearFields: Botão de registrar ocorrência não encontrado');
   }
+  
+  console.log('handleClearFields: Concluído');
 }
 
 export function handleCopyResult(target = "standard") {
+  console.log('handleCopyResult: Iniciando com target:', target);
+  console.log('handleCopyResult: DOMElements disponíveis:', Object.keys(DOMElements));
+  console.log('handleCopyResult: btnCopiar:', DOMElements.btnCopiar);
+  console.log('handleCopyResult: btnCopiarEmail:', DOMElements.btnCopiarEmail);
+  
   let textoParaCopiar = "";
   let buttonElement = null;
 
@@ -184,6 +230,7 @@ export function handleCopyResult(target = "standard") {
   ) {
     textoParaCopiar = DOMElements.resultadoEmail.value;
     buttonElement = DOMElements.btnCopiarEmail;
+    console.log('handleCopyResult: Usando botão de copiar email');
   } else if (
     target === "standard" &&
     DOMElements.resultadoProcessamento &&
@@ -191,9 +238,13 @@ export function handleCopyResult(target = "standard") {
   ) {
     textoParaCopiar = DOMElements.resultadoProcessamento.value;
     buttonElement = DOMElements.btnCopiar;
+    console.log('handleCopyResult: Usando botão de copiar padrão');
   }
 
-  if (!buttonElement) return;
+  if (!buttonElement) {
+    console.error('handleCopyResult: Nenhum botão encontrado para o target:', target);
+    return;
+  }
 
   if (!buttonElement.dataset.originalHTML) {
     buttonElement.dataset.originalHTML = buttonElement.innerHTML;
@@ -204,43 +255,62 @@ export function handleCopyResult(target = "standard") {
     return;
   }
 
+  console.log('handleCopyResult: Tentando copiar texto com length:', textoParaCopiar.length);
+  
   if (navigator.clipboard) {
+    console.log('handleCopyResult: Usando navigator.clipboard');
     navigator.clipboard
       .writeText(textoParaCopiar)
-      .then(() => showCopyFeedback(buttonElement))
+      .then(() => {
+        console.log('handleCopyResult: Texto copiado com sucesso via navigator.clipboard');
+        showCopyFeedback(buttonElement);
+      })
       .catch((err) => {
         console.error("Falha ao copiar com navigator.clipboard: ", err);
         tryFallbackCopy(textoParaCopiar, buttonElement);
       });
   } else {
+    console.log('handleCopyResult: Usando fallback copy');
     tryFallbackCopy(textoParaCopiar, buttonElement);
   }
 }
 
 export function handleSendToWhatsApp(target = "standard") {
+  console.log('handleSendToWhatsApp: Iniciando com target:', target);
+  console.log('handleSendToWhatsApp: DOMElements disponíveis:', Object.keys(DOMElements));
+  
   let textoParaEnviar = "";
 
   if (target === "email" && DOMElements.resultadoEmail) {
     textoParaEnviar = DOMElements.resultadoEmail.value;
+    console.log('handleSendToWhatsApp: Usando resultado de email');
   } else if (target === "standard" && DOMElements.resultadoProcessamento) {
     textoParaEnviar = DOMElements.resultadoProcessamento.value;
+    console.log('handleSendToWhatsApp: Usando resultado padrão');
+  } else {
+    console.warn('handleSendToWhatsApp: Elementos não encontrados para target:', target);
   }
 
   if (!textoParaEnviar || !textoParaEnviar.trim()) {
+    console.warn('handleSendToWhatsApp: Nada para enviar');
     alert("Nada para enviar via WhatsApp!");
     return;
   }
 
   const textoCodificado = encodeURIComponent(textoParaEnviar.trim());
+  console.log('handleSendToWhatsApp: Texto codificado:', textoCodificado.substring(0, 100) + '...');
   
   // Função para tentar abrir WhatsApp com fallback para web
   const openWhatsApp = (text) => {
     const isMobile = CONFIG.isMobile();
+    console.log('handleSendToWhatsApp: Dispositivo mobile:', isMobile);
     
     if (isMobile) {
       // Para mobile: tentar app primeiro, depois web
       const appUrl = `whatsapp://send?text=${text}`;
       const webUrl = `https://wa.me/?text=${text}`;
+      
+      console.log('handleSendToWhatsApp: Tentando abrir app mobile');
       
       // Tentar abrir o app
       const appWindow = window.open(appUrl, '_blank');
@@ -249,6 +319,7 @@ export function handleSendToWhatsApp(target = "standard") {
       setTimeout(() => {
         if (appWindow && appWindow.closed) {
           // App não abriu, tentar web
+          console.log('handleSendToWhatsApp: App não abriu, tentando web');
           window.open(webUrl, '_blank');
         }
       }, 1000);
@@ -256,9 +327,12 @@ export function handleSendToWhatsApp(target = "standard") {
     } else {
       // Para desktop: sempre usar web
       const webUrl = `https://wa.me/?text=${text}`;
+      console.log('handleSendToWhatsApp: Abrindo WhatsApp web');
       window.open(webUrl, '_blank');
     }
   };
   
+  console.log('handleSendToWhatsApp: Chamando openWhatsApp...');
   openWhatsApp(textoCodificado);
+  console.log('handleSendToWhatsApp: Concluído');
 }

@@ -101,13 +101,30 @@
                                     <i class="bi bi-pencil fs-5"></i>
                                 </a>
                                 {% if current_user.is_admin %}
-                                <form action="{{ url_for('ronda.excluir_ronda', ronda_id=ronda.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta ronda?');">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                    <button type="submit" class="btn btn-danger rounded-end" data-bs-toggle="tooltip" data-bs-placement="top" title="Excluir Ronda">
-                                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                                        <i class="bi bi-trash fs-5"></i>
-                                    </button>
-                                </form>
+                                <button type="button" 
+                                        class="btn btn-danger rounded-end" 
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="top" 
+                                        title="Excluir Ronda"
+                                        onclick="window.helpSystem?.showConfirmationModal(
+                                            'Tem certeza que deseja excluir esta ronda?<br><small class=\'text-muted\'>Esta ação não pode ser desfeita e todos os dados da ronda serão permanentemente removidos.</small>',
+                                            () => {
+                                                const form = document.createElement('form');
+                                                form.method = 'POST';
+                                                form.action = '{{ url_for('ronda.excluir_ronda', ronda_id=ronda.id) }}';
+                                                form.innerHTML = '<input type=\'hidden\' name=\'csrf_token\' value=\'{{ csrf_token() }}\'/>';
+                                                document.body.appendChild(form);
+                                                form.submit();
+                                            },
+                                            {
+                                                title: 'Excluir Ronda',
+                                                confirmText: 'Sim, Excluir',
+                                                cancelText: 'Cancelar',
+                                                type: 'danger'
+                                            }
+                                        )">
+                                    <i class="bi bi-trash fs-5"></i>
+                                </button>
                                 {% endif %}
                             </div>
                         </td>
