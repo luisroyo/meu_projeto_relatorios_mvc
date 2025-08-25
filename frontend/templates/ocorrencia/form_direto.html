@@ -196,27 +196,50 @@
         data: JSON.stringify({ texto_relatorio: relatorioTexto }),
         headers: { "X-CSRFToken": "{{ form.csrf_token._value() }}" },
         success: function (response) {
+          console.log("Resposta completa da API:", response);
+          
           if (response.sucesso) {
             const dados = response.dados;
-            console.log("Dados recebidos do backend:", dados);
+            console.log("Dados extraídos:", dados);
 
             // Atualização dos campos
             if (dados.data_hora_ocorrencia) {
+              console.log("Definindo data:", dados.data_hora_ocorrencia);
               $("#data_hora_ocorrencia").val(dados.data_hora_ocorrencia);
             }
+            
+            if (dados.hora_ocorrencia) {
+              console.log("Hora extraída:", dados.hora_ocorrencia);
+              // Combinar data e hora se ambos existirem
+              if (dados.data_hora_ocorrencia) {
+                const dataHoraCompleta = dados.data_hora_ocorrencia + "T" + dados.hora_ocorrencia;
+                console.log("Data e hora combinadas:", dataHoraCompleta);
+                $("#data_hora_ocorrencia").val(dataHoraCompleta);
+              }
+            }
+            
             if (dados.turno) {
+              console.log("Definindo turno:", dados.turno);
               $("#turno").val(dados.turno);
             }
+            
             if (dados.endereco_especifico) {
+              console.log("Definindo endereço:", dados.endereco_especifico);
               $("#endereco_especifico").val(dados.endereco_especifico);
             }
+            
             if (dados.condominio_id) {
+              console.log("Definindo condomínio:", dados.condominio_id);
               $("#condominio_id").val(dados.condominio_id).trigger("change");
             }
+            
             if (dados.ocorrencia_tipo_id) {
+              console.log("Definindo tipo de ocorrência:", dados.ocorrencia_tipo_id);
               $("#ocorrencia_tipo_id").val(dados.ocorrencia_tipo_id).trigger("change");
             }
+            
             if (dados.colaboradores_envolvidos && dados.colaboradores_envolvidos.length > 0) {
+              console.log("Definindo colaboradores:", dados.colaboradores_envolvidos);
               $("#colaboradores_envolvidos").val(dados.colaboradores_envolvidos).trigger("change");
             }
 
@@ -226,6 +249,7 @@
               alert("Análise concluída, mas nenhum dado correspondente foi encontrado para preenchimento automático.");
             }
           } else {
+            console.error("Falha na análise:", response);
             alert("Falha na análise: " + (response.message || "Não foi possível extrair dados."));
           }
         },

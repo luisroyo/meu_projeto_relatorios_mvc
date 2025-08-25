@@ -388,10 +388,14 @@ def analisar_relatorio():
         # Processamento e correção do texto
         relatorio_processado = processar_e_corrigir_texto(texto_limpo)
         
+        # Extrair dados estruturados do relatório
+        dados_extraidos = extrair_dados_relatorio(relatorio_processado)
+        
         # Preparar resposta
         resposta = {
             "relatorio_processado": relatorio_processado,
-            "sucesso": True
+            "sucesso": True,
+            "dados": dados_extraidos  # ✅ Adiciona os dados estruturados
         }
         
         # Se solicitado, gerar versão para email
@@ -455,3 +459,87 @@ def formatar_para_email_profissional(texto):
     rodape += "Data de geração: " + datetime.now().strftime("%d/%m/%Y %H:%M")
     
     return cabecalho + corpo + rodape
+
+def extrair_dados_relatorio(texto):
+    """Extrai dados estruturados do relatório de ocorrência"""
+    dados = {}
+    
+    try:
+        # Extrair data
+        import re
+        data_match = re.search(r'Data:\s*(\d{2}/\d{2}/\d{4})', texto)
+        if data_match:
+            data_str = data_match.group(1)
+            # Converter formato DD/MM/YYYY para YYYY-MM-DD
+            dia, mes, ano = data_str.split('/')
+            dados['data_hora_ocorrencia'] = f"{ano}-{mes}-{dia}"
+            print(f"Data extraída: {data_str} -> {dados['data_hora_ocorrencia']}")
+        
+        # Extrair hora
+        hora_match = re.search(r'Hora:\s*(\d{2}:\d{2})', texto)
+        if hora_match:
+            dados['hora_ocorrencia'] = hora_match.group(1)
+            print(f"Hora extraída: {dados['hora_ocorrencia']}")
+        
+        # Extrair local/endereço
+        local_match = re.search(r'Local:\s*([^\n]+)', texto)
+        if local_match:
+            dados['endereco_especifico'] = local_match.group(1).strip()
+            print(f"Local extraído: {dados['endereco_especifico']}")
+        
+        # Extrair endereço específico
+        endereco_match = re.search(r'Endereço:\s*([^\n]+)', texto)
+        if endereco_match:
+            dados['endereco_especifico'] = endereco_match.group(1).strip()
+            print(f"Endereço extraído: {dados['endereco_especifico']}")
+        
+        # Extrair turno (baseado na hora)
+        if 'hora_ocorrencia' in dados:
+            hora = int(dados['hora_ocorrencia'].split(':')[0])
+            if 6 <= hora < 18:
+                dados['turno'] = 'Diurno'
+            else:
+                dados['turno'] = 'Noturno'
+            print(f"Turno determinado: {dados['turno']} (hora: {hora})")
+        
+        # Tentar identificar condomínio pelo texto
+        condominios = Condominio.query.all()
+        for condominio in condominios:
+            if condominio.nome.lower() in texto.lower():
+                dados['condominio_id'] = condominio.id
+                print(f"Condomínio identificado: {condominio.nome} (ID: {condominio.id})")
+                break
+        
+        # Tentar identificar tipo de ocorrência pelo texto
+        tipos_ocorrencia = OcorrenciaTipo.query.all()
+        for tipo in tipos_ocorrencia:
+            if tipo.nome.lower() in texto.lower():
+                dados['ocorrencia_tipo_id'] = tipo.id
+                print(f"Tipo de ocorrência identificado: {tipo.nome} (ID: {tipo.id})")
+                break
+        
+        # Se não encontrou tipo específico, usar padrão
+        if 'ocorrencia_tipo_id' not in dados:
+            tipo_padrao = OcorrenciaTipo.query.filter_by(nome="verificação").first()
+            if tipo_padrao:
+                dados['ocorrencia_tipo_id'] = tipo_padrao.id
+                print(f"Usando tipo padrão: verificação (ID: {tipo_padrao.id})")
+        
+        # Extrair colaboradores mencionados
+        colaboradores_envolvidos = []
+        colaboradores = Colaborador.query.all()
+        for colaborador in colaboradores:
+            if colaborador.nome_completo.lower() in texto.lower():
+                colaboradores_envolvidos.append(colaborador.id)
+                print(f"Colaborador identificado: {colaborador.nome_completo} (ID: {colaborador.id})")
+        
+        if colaboradores_envolvidos:
+            dados['colaboradores_envolvidos'] = colaboradores_envolvidos
+        
+        print(f"Dados extraídos finais: {dados}")
+            
+    except Exception as e:
+        print(f"Erro ao extrair dados: {e}")
+        dados = {}
+    
+    return dados
