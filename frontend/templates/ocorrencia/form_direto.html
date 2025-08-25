@@ -201,6 +201,8 @@
           if (response.sucesso) {
             const dados = response.dados;
             console.log("Dados extraídos:", dados);
+            console.log("Tipo de dados:", typeof dados);
+            console.log("Chaves disponíveis:", Object.keys(dados));
 
             // Atualização dos campos
             if (dados.data_hora_ocorrencia) {
@@ -225,7 +227,13 @@
             
             if (dados.endereco_especifico) {
               console.log("Definindo endereço:", dados.endereco_especifico);
+              console.log("Tipo do endereço:", typeof dados.endereco_especifico);
+              console.log("Comprimento do endereço:", dados.endereco_especifico.length);
+              console.log("Campo endereco_especifico existe?", $("#endereco_especifico").length > 0);
               $("#endereco_especifico").val(dados.endereco_especifico);
+              console.log("Valor definido no campo:", $("#endereco_especifico").val());
+            } else {
+              console.log("Endereço não encontrado nos dados");
             }
             
             if (dados.condominio_id) {
