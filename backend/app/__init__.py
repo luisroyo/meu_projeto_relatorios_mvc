@@ -236,16 +236,19 @@ def create_app(config_class=DevelopmentConfig):
             'code': 'DB_DISCONNECTION'
         }), 503
 
-    # Fecha a sessão ao final de cada request para evitar sessões penduradas
+    # Fecha a sessão ao final de cada request para ECONOMIZAR DB
     @app.teardown_appcontext
     def shutdown_session(exception=None):
         try:
-            if app.config.get('DB_CLOSE_ON_TEARDOWN', True):
-                db.session.remove()
+            # SEMPRE fecha a sessão para economizar horas de DB
+            db.session.remove()
+            # Força fechamento da conexão para economizar DB
+            if hasattr(db.engine, 'dispose'):
+                db.engine.dispose()
         except Exception as e:
             module_logger.error(f"Erro ao encerrar sessão do DB no teardown: {e}")
 
-    # Logout automático por inatividade
+    # Logout automático por inatividade - OTIMIZADO para economizar DB
     @app.before_request
     def enforce_inactivity_timeout():
         """Força logout por inatividade usando apenas sessão (sem tocar no DB)."""
@@ -253,23 +256,23 @@ def create_app(config_class=DevelopmentConfig):
             from flask_login import current_user, logout_user
             from datetime import datetime, timezone, timedelta
 
-            # Ignora estáticos e preflight
-            if request.method == 'OPTIONS' or (request.endpoint and 'static' in request.endpoint):
+            # Ignora estáticos, preflight e APIs para economizar DB
+            if (request.method == 'OPTIONS' or 
+                (request.endpoint and 'static' in request.endpoint) or
+                request.path.startswith('/api/')):
                 return
 
             if not current_user.is_authenticated:
                 return
 
             now_utc = datetime.now(timezone.utc)
-            max_idle = timedelta(minutes=app.config.get('INACTIVITY_TIMEOUT_MIN', 5))
+            max_idle = timedelta(minutes=app.config.get('INACTIVITY_TIMEOUT_MIN', 3))
 
             # Invalidação global de sessão via cache (se setada por admin)
             try:
                 invalidation_ts = cache.get('SESSION_INVALIDATION_TS')
                 if invalidation_ts and session.get('login_epoch') and session['login_epoch'] < invalidation_ts:
                     logout_user()
-                    if request.path.startswith('/api/'):
-                        return jsonify({'message': 'Sessão invalidada pelo administrador.'}), 401
                     flash('Sessão invalidada pelo administrador.', 'warning')
                     return redirect(url_for('auth.login'))
             except Exception:
@@ -286,9 +289,6 @@ def create_app(config_class=DevelopmentConfig):
                     idle = now_utc - last_seen
                     if idle > max_idle:
                         logout_user()
-                        # Resposta adequada para API vs HTML
-                        if request.path.startswith('/api/'):
-                            return jsonify({'message': 'Sessão expirada por inatividade.'}), 401
                         flash('Sessão expirada por inatividade.', 'warning')
                         return redirect(url_for('auth.login'))
                 except Exception:
@@ -317,16 +317,18 @@ def create_app(config_class=DevelopmentConfig):
                     except:
                         pass
 
-    # Middleware de tracking de atividade - aplicado em todos os ambientes
-    @app.before_request
-    def track_user_activity():
-        try:
-            # Permite desligar rastreamento para evitar hits desnecessários ao DB
-            if app.config.get('USER_ACTIVITY_ENABLED', False) is True:
-                from .middleware.user_activity import track_user_activity as track
-                track()
-        except Exception as e:
-            module_logger.error(f"Erro no middleware de atividade: {e}")
+    # Middleware de tracking de atividade - DESABILITADO para economizar DB
+    # @app.before_request
+    # def track_user_activity():
+    #     try:
+    #         # Permite desligar rastreamento para evitar hits desnecessários ao DB
+    #         if app.config.get('USER_ACTIVITY_ENABLED', False) is True:
+    #             from .middleware.user_activity import track_user_activity as track
+    #             track()
+    #     except Exception as e:
+    #         module_logger.error(f"Erro no middleware de atividade: {e}")
+    
+    # DESABILITADO para economizar horas de banco de dados
 
     with app.app_context():
         @event.listens_for(db.engine, "connect")

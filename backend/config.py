@@ -16,9 +16,9 @@ class Config:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
-    # Expiração de sessão por inatividade (15 minutos)
-    PERMANENT_SESSION_LIFETIME = timedelta(minutes=15)
-    SESSION_PERMANENT = True
+    # Expiração de sessão por inatividade (5 minutos para economizar DB)
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=5)
+    SESSION_PERMANENT = False  # Desabilita sessões permanentes para economizar DB
 
     # Controle de recursos/DB
     USER_ACTIVITY_ENABLED = os.environ.get("USER_ACTIVITY_ENABLED", "false").lower() == "true"
@@ -28,8 +28,8 @@ class Config:
     # Fuso horário padrão da aplicação
     DEFAULT_TIMEZONE = os.environ.get("DEFAULT_TIMEZONE", "America/Sao_Paulo")
 
-    # Timeout de inatividade (minutos) para logout forçado
-    INACTIVITY_TIMEOUT_MIN = int(os.environ.get("INACTIVITY_TIMEOUT_MIN", "5"))
+    # Timeout de inatividade (minutos) para logout forçado - REDUZIDO para economizar DB
+    INACTIVITY_TIMEOUT_MIN = int(os.environ.get("INACTIVITY_TIMEOUT_MIN", "3"))
 
     # Configuração do Redis - suporta tanto REDIS_URL quanto CACHE_REDIS_URL
     REDIS_URL = os.environ.get("REDIS_URL") or os.environ.get("CACHE_REDIS_URL")
@@ -40,19 +40,19 @@ class Config:
         # Fallback para SimpleCache se Redis não estiver disponível
         CACHE_TYPE = "SimpleCache"
 
-    # Configurações padrão de pool para ambientes não-serverless
+    # Configurações de pool OTIMIZADAS para economizar horas de DB
     if os.environ.get("SQLALCHEMY_USE_NULLPOOL", "false").lower() == "true":
         SQLALCHEMY_ENGINE_OPTIONS = {
             'poolclass': NullPool,
-            'pool_pre_ping': True,
+            'pool_pre_ping': False,  # Desabilita para economizar DB
         }
     else:
         SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_size': 10,
-            'pool_timeout': 20,
-            'pool_recycle': 3600,
-            'pool_pre_ping': True,
-            'max_overflow': 20,
+            'pool_size': 1,          # REDUZIDO de 10 para 1
+            'pool_timeout': 10,      # REDUZIDO de 20 para 10
+            'pool_recycle': 1800,    # REDUZIDO de 3600 para 1800 (30 min)
+            'pool_pre_ping': False,  # DESABILITADO para economizar DB
+            'max_overflow': 2,       # REDUZIDO de 20 para 2
         }
 
 
@@ -179,29 +179,29 @@ class ProductionConfig(Config):
             }
         }
     elif "neon.tech" in database_url:
-        # Configurações específicas para Neon (reduz conexões para facilitar auto-suspensão)
+        # Configurações ULTRA OTIMIZADAS para Neon (máxima economia de DB)
         SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_size': 3,
-            'pool_timeout': 45,
-            'pool_recycle': 900,
-            'pool_pre_ping': True,
-            'max_overflow': 5,
+            'pool_size': 1,          # REDUZIDO para 1 conexão
+            'pool_timeout': 30,      # REDUZIDO para 30 segundos
+            'pool_recycle': 600,     # REDUZIDO para 10 minutos
+            'pool_pre_ping': False,  # DESABILITADO para economizar DB
+            'max_overflow': 1,       # REDUZIDO para 1 conexão extra
             'connect_args': {
-                'connect_timeout': 15,
-                'application_name': 'gestao_seguranca_app_neon',
+                'connect_timeout': 10,
+                'application_name': 'gestao_seguranca_app_neon_eco',
             }
         }
     else:
-        # Configurações padrão para produção
+        # Configurações ULTRA OTIMIZADAS para produção (máxima economia de DB)
         SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_size': 5,
-            'pool_timeout': 30,
-            'pool_recycle': 1800,
-            'pool_pre_ping': True,
-            'max_overflow': 10,
+            'pool_size': 1,          # REDUZIDO para 1 conexão
+            'pool_timeout': 20,      # REDUZIDO para 20 segundos
+            'pool_recycle': 900,     # REDUZIDO para 15 minutos
+            'pool_pre_ping': False,  # DESABILITADO para economizar DB
+            'max_overflow': 1,       # REDUZIDO para 1 conexão extra
             'connect_args': {
-                'connect_timeout': 10,
-                'application_name': 'gestao_seguranca_app',
+                'connect_timeout': 8,
+                'application_name': 'gestao_seguranca_app_eco',
             }
         }
     
