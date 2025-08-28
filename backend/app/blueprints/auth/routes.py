@@ -121,7 +121,15 @@ def api_login():
         from flask_jwt_extended import create_access_token
         token = create_access_token(identity=user.id)
         return jsonify({
-            "token": token,
+            "data": {
+                "token": token,
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "is_admin": user.is_admin
+                }
+            },
             "message": f"Bem-vindo, {user.username}!",
             "success": True
         })
