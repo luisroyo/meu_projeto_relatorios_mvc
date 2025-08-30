@@ -5,7 +5,7 @@ from flask import (flash, jsonify, redirect, render_template, request, url_for)
 from flask_login import login_required
 from sqlalchemy import func
 
-from app import db
+from app import db, limiter
 from app.decorators.admin_required import admin_required
 from app.forms import ColaboradorForm
 from app.models import Colaborador
@@ -118,6 +118,7 @@ def deletar_colaborador(colaborador_id):
 @admin_bp.route("/api/colaboradores/search", methods=["GET"])
 @login_required
 @admin_required
+@limiter.limit("30 per minute")  # Limita a 30 buscas por minuto por usuário
 def api_search_colaboradores():
     search_term = request.args.get("term", "").strip()
     if not search_term or len(search_term) < 2:

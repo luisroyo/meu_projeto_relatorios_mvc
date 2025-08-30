@@ -16,6 +16,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const spinner = document.getElementById('spinnerGerarJustificativa');
     const resultadoWrapper = document.getElementById('resultado_justificativa_wrapper');
 
+    // Variáveis para controle de debounce
+    let searchTimeout = null;
+    const SEARCH_DELAY = 300; // 300ms de delay entre buscas
+
     function criarCampoColaboradorHTML(baseId, labelText) {
         return `
             <div class="mb-3 autocomplete-container" data-field-group="${baseId}">
@@ -43,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        inputNomeEl.addEventListener('input', async function () {
+        inputNomeEl.addEventListener('input', function () {
             const termo = this.value.trim();
             targetIdEl.value = '';
             targetCargoEl.value = '';
@@ -54,40 +58,48 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            try {
-                const response = await fetch(`${apiUrlSearchColaboradores}?term=${encodeURIComponent(termo)}`);
-                if (!response.ok) {
-                    throw new Error(`Erro na API de busca: ${response.status}`);
-                }
-                const colaboradores = await response.json();
-                
-                suggestionsDivEl.innerHTML = '';
-                if (colaboradores.length > 0) {
-                    colaboradores.forEach(col => {
-                        const divItem = document.createElement('div');
-                        divItem.textContent = `${col.nome_completo} (${col.cargo || 'Cargo não informado'})`;
-                        divItem.dataset.colaboradorId = col.id;
-                        divItem.dataset.colaboradorNome = col.nome_completo;
-                        divItem.dataset.colaboradorCargo = col.cargo || '';
-                        
-                        divItem.addEventListener('click', function () {
-                            inputNomeEl.value = this.dataset.colaboradorNome;
-                            targetIdEl.value = this.dataset.colaboradorId;
-                            targetCargoEl.value = this.dataset.colaboradorCargo;
-                            suggestionsDivEl.innerHTML = '';
-                            suggestionsDivEl.style.display = 'none';
-                        });
-                        suggestionsDivEl.appendChild(divItem);
-                    });
-                    suggestionsDivEl.style.display = 'block';
-                } else {
-                    suggestionsDivEl.style.display = 'none';
-                }
-            } catch (error) {
-                console.error("Erro ao buscar colaboradores:", error);
-                suggestionsDivEl.innerHTML = '<div class="text-danger p-2">Erro ao buscar.</div>';
-                suggestionsDivEl.style.display = 'block';
+            // Limpar timeout anterior se existir
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
             }
+
+            // Configurar novo timeout para debounce
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${apiUrlSearchColaboradores}?term=${encodeURIComponent(termo)}`);
+                    if (!response.ok) {
+                        throw new Error(`Erro na API de busca: ${response.status}`);
+                    }
+                    const colaboradores = await response.json();
+                    
+                    suggestionsDivEl.innerHTML = '';
+                    if (colaboradores.length > 0) {
+                        colaboradores.forEach(col => {
+                            const divItem = document.createElement('div');
+                            divItem.textContent = `${col.nome_completo} (${col.cargo || 'Cargo não informado'})`;
+                            divItem.dataset.colaboradorId = col.id;
+                            divItem.dataset.colaboradorNome = col.nome_completo;
+                            divItem.dataset.colaboradorCargo = col.cargo || '';
+                            
+                            divItem.addEventListener('click', function () {
+                                inputNomeEl.value = this.dataset.colaboradorNome;
+                                targetIdEl.value = this.dataset.colaboradorId;
+                                targetCargoEl.value = this.dataset.colaboradorCargo;
+                                suggestionsDivEl.innerHTML = '';
+                                suggestionsDivEl.style.display = 'none';
+                            });
+                            suggestionsDivEl.appendChild(divItem);
+                        });
+                        suggestionsDivEl.style.display = 'block';
+                    } else {
+                        suggestionsDivEl.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error("Erro ao buscar colaboradores:", error);
+                    suggestionsDivEl.innerHTML = '<div class="text-danger p-2">Erro ao buscar.</div>';
+                    suggestionsDivEl.style.display = 'block';
+                }
+            }, SEARCH_DELAY);
         });
 
         document.addEventListener('click', function(e) {

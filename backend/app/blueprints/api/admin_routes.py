@@ -13,7 +13,7 @@ from app.services.justificativa_troca_plantao_service import JustificativaTrocaP
 from app.services.dashboard.comparativo_dashboard import get_monthly_comparison_data
 from app.services.dashboard.ocorrencia_dashboard import get_ocorrencia_dashboard_data
 from app.services.dashboard.ronda_dashboard import get_ronda_dashboard_data
-from app import db
+from app import db, limiter
 import logging
 from datetime import datetime
 
@@ -192,6 +192,7 @@ def delete_user(user_id):
 @admin_api_bp.route('/colaboradores/search', methods=['GET'])
 @jwt_required()
 @admin_required
+@limiter.limit("30 per minute")  # Limita a 30 buscas por minuto por usuário
 def list_colaboradores():
     """Listar colaboradores com paginação e busca."""
     page = request.args.get('page', 1, type=int)
