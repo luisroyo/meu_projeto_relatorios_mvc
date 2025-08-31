@@ -6,7 +6,7 @@ from flask import current_app
 from sqlalchemy import func
 
 from app import db
-from app.models import (Colaborador, Condominio, Ocorrencia, OcorrenciaTipo,
+from app.models import (Colaborador, Condominio, OcorrenciaTipo,
                         User, VWOcorrenciasDetalhadas, ocorrencia_colaboradores)
 from app.services import ocorrencia_service
 from app.utils.date_utils import parse_date_range
@@ -181,6 +181,10 @@ def get_ocorrencia_dashboard_data(filters):
     )
 
     # Query para top colaboradores que ATENDERAM ocorrências (não quem registrou)
+    # [CORRIGIDO] Simplificar para evitar JOINs problemáticos com a view
+    # Por enquanto, vamos usar uma abordagem mais simples baseada na tabela Ocorrencia
+    from app.models import Ocorrencia
+    
     top_colaboradores_q = db.session.query(
         Colaborador.nome_completo, 
         func.count(Ocorrencia.id).label("total_ocorrencias")
