@@ -61,11 +61,10 @@ def get_ocorrencia_dashboard_data(filters):
         VWOcorrenciasDetalhadas.tipo.isnot(None)
     )
     
-    # Aplicar os mesmos filtros da base_kpi_query
+    # Aplicar os mesmos filtros da base_kpi_query (inclui filtros de data)
     ocorrencias_por_tipo_q = ocorrencia_service.apply_ocorrencia_filters(
         ocorrencias_por_tipo_q, filters
     )
-    ocorrencias_por_tipo_q = add_date_filter(ocorrencias_por_tipo_q)
     ocorrencias_por_tipo = (
         ocorrencias_por_tipo_q.group_by(VWOcorrenciasDetalhadas.tipo)
         .order_by(func.count(VWOcorrenciasDetalhadas.id).desc())
@@ -82,11 +81,10 @@ def get_ocorrencia_dashboard_data(filters):
         VWOcorrenciasDetalhadas.condominio.isnot(None)
     )
     
-    # Aplicar os mesmos filtros da base_kpi_query
+    # Aplicar os mesmos filtros da base_kpi_query (inclui filtros de data)
     ocorrencias_por_condominio_q = ocorrencia_service.apply_ocorrencia_filters(
         ocorrencias_por_condominio_q, filters
     )
-    ocorrencias_por_condominio_q = add_date_filter(ocorrencias_por_condominio_q)
     ocorrencias_por_condominio = (
         ocorrencias_por_condominio_q.group_by(VWOcorrenciasDetalhadas.condominio)
         .order_by(func.count(VWOcorrenciasDetalhadas.id).desc())
@@ -115,11 +113,10 @@ def get_ocorrencia_dashboard_data(filters):
         VWOcorrenciasDetalhadas.turno.isnot(None)
     )
     
-    # Aplicar os mesmos filtros da base_kpi_query
+    # Aplicar os mesmos filtros da base_kpi_query (inclui filtros de data)
     ocorrencias_por_turno_dia_q = ocorrencia_service.apply_ocorrencia_filters(
         ocorrencias_por_turno_dia_q, filters
     )
-    ocorrencias_por_turno_dia_q = add_date_filter(ocorrencias_por_turno_dia_q)
     
     ocorrencias_por_turno_dia = (
         ocorrencias_por_turno_dia_q.group_by(
@@ -173,11 +170,10 @@ def get_ocorrencia_dashboard_data(filters):
     # [CORRIGIDO] Query para últimas ocorrências usando a mesma lógica de filtros
     ultimas_ocorrencias_q = db.session.query(VWOcorrenciasDetalhadas)
     
-    # Aplicar os mesmos filtros da base_kpi_query
+    # Aplicar os mesmos filtros da base_kpi_query (inclui filtros de data)
     ultimas_ocorrencias_q = ocorrencia_service.apply_ocorrencia_filters(
         ultimas_ocorrencias_q, filters
     )
-    ultimas_ocorrencias_q = add_date_filter(ultimas_ocorrencias_q)
     ultimas_ocorrencias = (
         ultimas_ocorrencias_q.order_by(VWOcorrenciasDetalhadas.data_hora_ocorrencia.desc())
         .limit(10)
