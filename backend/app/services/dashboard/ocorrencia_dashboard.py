@@ -1,3 +1,4 @@
+
 # app/services/dashboard/ocorrencia_dashboard.py
 import logging
 from datetime import datetime
@@ -55,36 +56,76 @@ def get_ocorrencia_dashboard_data(filters):
     ).count()
 
     # [CORRIGIDO] Usar a mesma lógica de filtros da base_kpi_query
+    logger.info("🔍 DEBUG: Iniciando query de ocorrências por tipo")
+    logger.info(f"   Filtros recebidos: {filters}")
+    
     ocorrencias_por_tipo_q = db.session.query(
         VWOcorrenciasDetalhadas.tipo, func.count(VWOcorrenciasDetalhadas.id)
     ).filter(
         VWOcorrenciasDetalhadas.tipo.isnot(None)
     )
     
+    logger.info(f"   Query inicial: {ocorrencias_por_tipo_q}")
+    
     # Aplicar os mesmos filtros da base_kpi_query (inclui filtros de data)
     ocorrencias_por_tipo_q = ocorrencia_service.apply_ocorrencia_filters(
         ocorrencias_por_tipo_q, filters
     )
+    
+    # [CRÍTICO] Aplicar filtro de data manualmente se não foi aplicado
+    if not filters.get("data_inicio_str") and not filters.get("data_fim_str"):
+        logger.info("   ⚠️  Aplicando filtro de data manualmente (período padrão)")
+        ocorrencias_por_tipo_q = ocorrencias_por_tipo_q.filter(
+            VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
+            VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range
+        )
+    
+    logger.info(f"   Query após filtros: {ocorrencias_por_tipo_q}")
+    logger.info(f"   SQL gerado: {str(ocorrencias_por_tipo_q)}")
     ocorrencias_por_tipo = (
         ocorrencias_por_tipo_q.group_by(VWOcorrenciasDetalhadas.tipo)
         .order_by(func.count(VWOcorrenciasDetalhadas.id).desc())
         .all()
     )
+    
+    logger.info("🔍 DEBUG: Resultados da query de ocorrências por tipo")
+    logger.info(f"   Total de registros retornados: {len(ocorrencias_por_tipo)}")
+    logger.info(f"   Dados brutos: {ocorrencias_por_tipo}")
+    
     tipo_labels = [item[0] for item in ocorrencias_por_tipo]
     ocorrencias_por_tipo_data = [item[1] for item in ocorrencias_por_tipo]
     tipo_mais_comum = tipo_labels[0] if tipo_labels else "N/A"
+    
+    logger.info(f"   Labels finais: {tipo_labels}")
+    logger.info(f"   Dados finais: {ocorrencias_por_tipo_data}")
+    logger.info(f"   Tipo mais comum: {tipo_mais_comum}")
 
     # [CORRIGIDO] Usar a mesma lógica de filtros da base_kpi_query
+    logger.info("🔍 DEBUG: Iniciando query de ocorrências por condomínio")
+    
     ocorrencias_por_condominio_q = db.session.query(
         VWOcorrenciasDetalhadas.condominio, func.count(VWOcorrenciasDetalhadas.id)
     ).filter(
         VWOcorrenciasDetalhadas.condominio.isnot(None)
     )
     
+    logger.info(f"   Query inicial: {ocorrencias_por_condominio_q}")
+    
     # Aplicar os mesmos filtros da base_kpi_query (inclui filtros de data)
     ocorrencias_por_condominio_q = ocorrencia_service.apply_ocorrencia_filters(
         ocorrencias_por_condominio_q, filters
     )
+    
+    # [CRÍTICO] Aplicar filtro de data manualmente se não foi aplicado
+    if not filters.get("data_inicio_str") and not filters.get("data_fim_str"):
+        logger.info("   ⚠️  Aplicando filtro de data manualmente (período padrão)")
+        ocorrencias_por_condominio_q = ocorrencias_por_condominio_q.filter(
+            VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
+            VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range
+        )
+    
+    logger.info(f"   Query após filtros: {ocorrencias_por_condominio_q}")
+    logger.info(f"   SQL gerado: {str(ocorrencias_por_condominio_q)}")
     ocorrencias_por_condominio = (
         ocorrencias_por_condominio_q.group_by(VWOcorrenciasDetalhadas.condominio)
         .order_by(func.count(VWOcorrenciasDetalhadas.id).desc())
@@ -92,6 +133,12 @@ def get_ocorrencia_dashboard_data(filters):
     )
     condominio_labels = [item[0] for item in ocorrencias_por_condominio]
     ocorrencias_por_condominio_data = [item[1] for item in ocorrencias_por_condominio]
+    
+    logger.info("🔍 DEBUG: Resultados da query de ocorrências por condomínio")
+    logger.info(f"   Total de registros retornados: {len(ocorrencias_por_condominio)}")
+    logger.info(f"   Dados brutos: {ocorrencias_por_condominio}")
+    logger.info(f"   Labels finais: {condominio_labels}")
+    logger.info(f"   Dados finais: {ocorrencias_por_condominio_data}")
 
     # --- DEBUG: Logs para evolução diária ---
     logger.info(f"Filtros aplicados: {filters}")
@@ -105,6 +152,8 @@ def get_ocorrencia_dashboard_data(filters):
     local_tz = pytz.timezone(local_tz_str)
     
     # [CORRIGIDO] Query para ocorrências por turno e data usando a mesma lógica de filtros
+    logger.info("🔍 DEBUG: Iniciando query de ocorrências por turno e dia")
+    
     ocorrencias_por_turno_dia_q = db.session.query(
         func.date(VWOcorrenciasDetalhadas.data_hora_ocorrencia),
         VWOcorrenciasDetalhadas.turno,
@@ -113,10 +162,25 @@ def get_ocorrencia_dashboard_data(filters):
         VWOcorrenciasDetalhadas.turno.isnot(None)
     )
     
+    logger.info(f"   Query inicial: {ocorrencias_por_turno_dia_q}")
+    
     # Aplicar os mesmos filtros da base_kpi_query (inclui filtros de data)
     ocorrencias_por_turno_dia_q = ocorrencia_service.apply_ocorrencia_filters(
         ocorrencias_por_turno_dia_q, filters
     )
+    
+    # [CRÍTICO] Adicionar filtro de data específico para garantir período correto
+    from datetime import time, timezone, datetime
+    date_start_range_dt = datetime.combine(date_start_range, time.min, tzinfo=timezone.utc)
+    date_end_range_dt = datetime.combine(date_end_range, time.max, tzinfo=timezone.utc)
+    
+    ocorrencias_por_turno_dia_q = ocorrencias_por_turno_dia_q.filter(
+        VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range_dt,
+        VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range_dt
+    )
+    
+    logger.info(f"   Query após filtros + data: {ocorrencias_por_turno_dia_q}")
+    logger.info(f"   SQL gerado: {str(ocorrencias_por_turno_dia_q)}")
     
     ocorrencias_por_turno_dia = (
         ocorrencias_por_turno_dia_q.group_by(
@@ -127,7 +191,14 @@ def get_ocorrencia_dashboard_data(filters):
         .all()
     )
 
-    logger.info(f"Dados de ocorrências por turno e dia: {ocorrencias_por_turno_dia}")
+    logger.info("🔍 DEBUG: Resultados da query de ocorrências por turno e dia")
+    logger.info(f"   Total de registros retornados: {len(ocorrencias_por_turno_dia)}")
+    logger.info(f"   Dados brutos: {ocorrencias_por_turno_dia}")
+    
+    # Verificar se há números suspeitos
+    for data, turno, count in ocorrencias_por_turno_dia:
+        if count > 100:
+            logger.warning(f"   ⚠️  ATENÇÃO: Data {data}, Turno {turno} tem {count} ocorrências (número suspeito!)")
 
     # Processar dados para gráfico de barras empilhadas
     evolucao_date_labels, evolucao_diurno_data, evolucao_noturno_data = [], [], []
@@ -168,17 +239,28 @@ def get_ocorrencia_dashboard_data(filters):
         logger.info(f"Dados noturno: {evolucao_noturno_data[:5]}")
 
     # [CORRIGIDO] Query para últimas ocorrências usando a mesma lógica de filtros
+    logger.info("🔍 DEBUG: Iniciando query de últimas ocorrências")
+    
     ultimas_ocorrencias_q = db.session.query(VWOcorrenciasDetalhadas)
+    
+    logger.info(f"   Query inicial: {ultimas_ocorrencias_q}")
     
     # Aplicar os mesmos filtros da base_kpi_query (inclui filtros de data)
     ultimas_ocorrencias_q = ocorrencia_service.apply_ocorrencia_filters(
         ultimas_ocorrencias_q, filters
     )
+    
+    logger.info(f"   Query após filtros: {ultimas_ocorrencias_q}")
+    logger.info(f"   SQL gerado: {str(ultimas_ocorrencias_q)}")
     ultimas_ocorrencias = (
         ultimas_ocorrencias_q.order_by(VWOcorrenciasDetalhadas.data_hora_ocorrencia.desc())
         .limit(10)
         .all()
     )
+    
+    logger.info("🔍 DEBUG: Resultados da query de últimas ocorrências")
+    logger.info(f"   Total de registros retornados: {len(ultimas_ocorrencias)}")
+    logger.info(f"   Primeiras 3 ocorrências: {ultimas_ocorrencias[:3] if ultimas_ocorrencias else 'Nenhuma'}")
 
     # Query para top colaboradores que ATENDERAM ocorrências (não quem registrou)
     # [CORRIGIDO] Simplificar para evitar JOINs problemáticos com a view
@@ -269,6 +351,21 @@ def get_ocorrencia_dashboard_data(filters):
     else:
         media_diaria_ocorrencias = None
 
+    # Log final com todos os dados
+    logger.info("🔍 DEBUG: DASHBOARD FINALIZADO - RESUMO DOS DADOS")
+    logger.info(f"   Total de ocorrências: {total_ocorrencias}")
+    logger.info(f"   Ocorrências abertas: {ocorrencias_abertas}")
+    logger.info(f"   Tipo mais comum: {tipo_mais_comum}")
+    logger.info(f"   Supervisor: {kpi_supervisor_name}")
+    logger.info(f"   Gráfico tipos - Labels: {tipo_labels}")
+    logger.info(f"   Gráfico tipos - Dados: {ocorrencias_por_tipo_data}")
+    logger.info(f"   Gráfico condomínios - Labels: {condominio_labels}")
+    logger.info(f"   Gráfico condomínios - Dados: {ocorrencias_por_condominio_data}")
+    logger.info(f"   Evolução diária - Labels: {len(evolucao_date_labels) if evolucao_date_labels else 0}")
+    logger.info(f"   Evolução diária - Dados: {len(evolucao_total_data) if evolucao_total_data else 0}")
+    logger.info(f"   Últimas ocorrências: {len(ultimas_ocorrencias)}")
+    logger.info(f"   Top colaboradores: {len(top_colaboradores_labels)}")
+    
     return {
         "total_ocorrencias": total_ocorrencias,
         "ocorrencias_abertas": ocorrencias_abertas,
