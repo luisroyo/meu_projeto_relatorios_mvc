@@ -50,24 +50,41 @@ def apply_ocorrencia_filters(query, filters):
 
     # Detecta se estamos usando a view ou a tabela
     # Para queries com func.count() ou outras funções, precisamos verificar de forma diferente
+    logger.info("🔍 DEBUG: apply_ocorrencia_filters - Detectando view vs tabela")
+    logger.info(f"   Filtros recebidos: {filters}")
+    
     is_view = False
     
     # Verificar se a query tem a view como entidade principal
     if hasattr(query, 'column_descriptions') and query.column_descriptions:
+        logger.info(f"   Column descriptions: {query.column_descriptions}")
         # Verificar se a primeira coluna é da view
         first_col = query.column_descriptions[0]
+        logger.info(f"   Primeira coluna: {first_col}")
+        
         if 'entity' in first_col and first_col['entity']:
             entity = first_col['entity']
+            logger.info(f"   Entity encontrada: {entity}")
+            logger.info(f"   Entity type: {type(entity)}")
+            
             if hasattr(entity, '__tablename__'):
-                is_view = entity.__tablename__ == 'vw_ocorrencias_detalhadas'
+                tablename = entity.__tablename__
+                is_view = tablename == 'vw_ocorrencias_detalhadas'
+                logger.info(f"   Tablename: {tablename}, É view? {is_view}")
             elif hasattr(entity, '__name__'):
                 # Para casos onde entity é a classe da view
-                is_view = 'VWOcorrenciasDetalhadas' in str(entity)
+                entity_name = str(entity)
+                is_view = 'VWOcorrenciasDetalhadas' in entity_name
+                logger.info(f"   Entity name: {entity_name}, É view? {is_view}")
     
     # Se não conseguiu detectar, verificar se a query SQL contém a view
     if not is_view:
         query_str = str(query)
         is_view = 'vw_ocorrencias_detalhadas' in query_str.lower()
+        logger.info(f"   Fallback - Query SQL contém view? {is_view}")
+        logger.info(f"   Query SQL: {query_str}")
+    
+    logger.info(f"   RESULTADO FINAL - É view? {is_view}")
     
     if is_view:
         # Usando a view
@@ -103,8 +120,11 @@ def apply_ocorrencia_filters(query, filters):
             query = query.filter(Ocorrencia.ocorrencia_tipo_id == filters["tipo_id"])
 
     # Filtros de Data (com tratamento de timezone e múltiplos formatos)
+    logger.info("🔍 DEBUG: Aplicando filtros de data")
+    
     data_inicio_str = filters.get("data_inicio_str") or filters.get("data_inicio")
     if data_inicio_str:
+        logger.info(f"   Data início recebida: {data_inicio_str}")
         start_date_naive = parse_date_string(data_inicio_str)
         if start_date_naive:
             try:
@@ -118,10 +138,16 @@ def apply_ocorrencia_filters(query, filters):
                 start_date_aware = local_tz.localize(start_date_naive)
                 start_date_utc = start_date_aware.astimezone(pytz.utc)
 
+                logger.info(f"   Data início processada: {start_date_naive} -> {start_date_utc}")
+                logger.info(f"   Aplicando filtro de data início (is_view={is_view})")
+
                 if is_view:
                     query = query.filter(VWOcorrenciasDetalhadas.data_hora_ocorrencia >= start_date_utc)
+                    logger.info("   ✅ Filtro aplicado na VIEW")
                 else:
                     query = query.filter(Ocorrencia.data_hora_ocorrencia >= start_date_utc)
+                    logger.info("   ✅ Filtro aplicado na TABELA")
+                    
                 logger.info(f"Filtro de data de início aplicado: {data_inicio_str} -> {start_date_utc}")
             except Exception as e:
                 logger.warning(
@@ -132,6 +158,7 @@ def apply_ocorrencia_filters(query, filters):
 
     data_fim_str = filters.get("data_fim_str") or filters.get("data_fim")
     if data_fim_str:
+        logger.info(f"   Data fim recebida: {data_fim_str}")
         end_date_naive = parse_date_string(data_fim_str)
         if end_date_naive:
             try:
@@ -147,10 +174,16 @@ def apply_ocorrencia_filters(query, filters):
                 end_date_aware = local_tz.localize(end_date_naive)
                 end_date_utc = end_date_aware.astimezone(pytz.utc)
 
+                logger.info(f"   Data fim processada: {end_date_naive} -> {end_date_utc}")
+                logger.info(f"   Aplicando filtro de data fim (is_view={is_view})")
+
                 if is_view:
                     query = query.filter(VWOcorrenciasDetalhadas.data_hora_ocorrencia <= end_date_utc)
+                    logger.info("   ✅ Filtro aplicado na VIEW")
                 else:
                     query = query.filter(Ocorrencia.data_hora_ocorrencia <= end_date_utc)
+                    logger.info("   ✅ Filtro aplicado na TABELA")
+                    
                 logger.info(f"Filtro de data de fim aplicado: {data_fim_str} -> {end_date_utc}")
             except Exception as e:
                 logger.warning(
@@ -166,6 +199,10 @@ def apply_ocorrencia_filters(query, filters):
         else:
             query = query.filter(Ocorrencia.relatorio_final.ilike(f"%{filters['texto_relatorio']}%"))
 
+    logger.info("🔍 DEBUG: apply_ocorrencia_filters - Finalizando")
+    logger.info(f"   Query final: {query}")
+    logger.info(f"   SQL final: {str(query)}")
+    
     return query
 
 
