@@ -49,8 +49,25 @@ def apply_ocorrencia_filters(query, filters):
     from app.models.vw_ocorrencias_detalhadas import VWOcorrenciasDetalhadas
 
     # Detecta se estamos usando a view ou a tabela
-    is_view = hasattr(query.column_descriptions[0]['type'], '__tablename__') and \
-              query.column_descriptions[0]['type'].__tablename__ == 'vw_ocorrencias_detalhadas'
+    # Para queries com func.count() ou outras funções, precisamos verificar de forma diferente
+    is_view = False
+    
+    # Verificar se a query tem a view como entidade principal
+    if hasattr(query, 'column_descriptions') and query.column_descriptions:
+        # Verificar se a primeira coluna é da view
+        first_col = query.column_descriptions[0]
+        if 'entity' in first_col and first_col['entity']:
+            entity = first_col['entity']
+            if hasattr(entity, '__tablename__'):
+                is_view = entity.__tablename__ == 'vw_ocorrencias_detalhadas'
+            elif hasattr(entity, '__name__'):
+                # Para casos onde entity é a classe da view
+                is_view = 'VWOcorrenciasDetalhadas' in str(entity)
+    
+    # Se não conseguiu detectar, verificar se a query SQL contém a view
+    if not is_view:
+        query_str = str(query)
+        is_view = 'vw_ocorrencias_detalhadas' in query_str.lower()
     
     if is_view:
         # Usando a view
