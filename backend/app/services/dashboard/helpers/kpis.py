@@ -189,10 +189,13 @@ def find_top_ocorrencia_supervisor(filters: dict) -> str:
         return "Erro ao calcular"
 
 
-def get_ronda_period_info(base_kpi_query, date_start_range, date_end_range) -> dict:
+def get_ronda_period_info(base_kpi_query, date_start_range, date_end_range, supervisor_id=None) -> dict:
     """
     Calcula informações adicionais sobre o período de rondas para melhorar os KPIs.
     Retorna informações sobre a última data registrada e período real de dados.
+    
+    Se supervisor_id for fornecido, calcula apenas os dias trabalhados pelo supervisor
+    considerando sua jornada 12x36 baseada na escala mensal.
     """
     try:
         from app.models import VWRondasDetalhadas
@@ -210,18 +213,32 @@ def get_ronda_period_info(base_kpi_query, date_start_range, date_end_range) -> d
         if primeira_data and ultima_data:
             periodo_real_dias = (ultima_data - primeira_data).days + 1
         
-        # Calcula quantos dias do período solicitado têm dados
-        dias_com_dados = base_kpi_query.with_entities(
-            func.count(func.distinct(VWRondasDetalhadas.data_plantao_ronda))
-        ).scalar() or 0
+        # [NOVO] Se supervisor_id for fornecido, calcula apenas os dias trabalhados
+        if supervisor_id:
+            dias_com_dados = _calculate_supervisor_working_days(
+                supervisor_id, date_start_range, date_end_range
+            )
+        else:
+            # Calcula quantos dias do período solicitado têm dados
+            dias_com_dados = base_kpi_query.with_entities(
+                func.count(func.distinct(VWRondasDetalhadas.data_plantao_ronda))
+            ).scalar() or 0
+
+        # [CORRIGIDO] Se supervisor_id for fornecido, ajusta o período solicitado para os dias trabalhados
+        if supervisor_id:
+            periodo_solicitado_dias = dias_com_dados
+            cobertura_periodo = 100.0 if dias_com_dados > 0 else 0.0
+        else:
+            periodo_solicitado_dias = (date_end_range - date_start_range).days + 1
+            cobertura_periodo = round((dias_com_dados / ((date_end_range - date_start_range).days + 1)) * 100, 1) if (date_end_range - date_start_range).days > 0 else 0
         
         return {
             "primeira_data_registrada": primeira_data,
             "ultima_data_registrada": ultima_data,
             "periodo_real_dias": periodo_real_dias,
             "dias_com_dados": dias_com_dados,
-            "periodo_solicitado_dias": (date_end_range - date_start_range).days + 1,
-            "cobertura_periodo": round((dias_com_dados / ((date_end_range - date_start_range).days + 1)) * 100, 1) if (date_end_range - date_start_range).days > 0 else 0
+            "periodo_solicitado_dias": periodo_solicitado_dias,
+            "cobertura_periodo": cobertura_periodo
         }
         
     except Exception as e:
@@ -311,13 +328,21 @@ def get_ocorrencia_period_info(base_kpi_query, date_start_range, date_end_range,
                 .scalar()
             ) or 0
 
+        # [CORRIGIDO] Se supervisor_id for fornecido, ajusta o período solicitado para os dias trabalhados
+        if supervisor_id:
+            periodo_solicitado_dias = dias_com_dados
+            cobertura_periodo = 100.0 if dias_com_dados > 0 else 0.0
+        else:
+            periodo_solicitado_dias = (date_end_range - date_start_range).days + 1
+            cobertura_periodo = round((dias_com_dados / ((date_end_range - date_start_range).days + 1)) * 100, 1) if (date_end_range - date_start_range).days > 0 else 0
+
         return {
             "primeira_data_registrada": primeira_data_date,
             "ultima_data_registrada": ultima_data_date,
             "periodo_real_dias": periodo_real_dias,
             "dias_com_dados": dias_com_dados,
-            "periodo_solicitado_dias": (date_end_range - date_start_range).days + 1,
-            "cobertura_periodo": round((dias_com_dados / ((date_end_range - date_start_range).days + 1)) * 100, 1) if (date_end_range - date_start_range).days > 0 else 0
+            "periodo_solicitado_dias": periodo_solicitado_dias,
+            "cobertura_periodo": cobertura_periodo
         }
 
     except Exception as e:
@@ -353,11 +378,25 @@ def _calculate_supervisor_working_days(supervisor_id: int, date_start: datetime.
     try:
         from app.models import EscalaMensal
         
-        # Busca escalas do supervisor para o período específico (ano/mês)
+        # [CORRIGIDO] Busca escalas do supervisor para todos os meses do período
+        meses_anos = set()
+        current_date = date_start
+        while current_date <= date_end:
+            meses_anos.add((current_date.year, current_date.month))
+            # Avança para o próximo mês
+            next_month_year = current_date.year + (
+                current_date.month // 12
+            )
+            next_month = current_date.month % 12 + 1
+            current_date = current_date.replace(
+                year=next_month_year, month=next_month, day=1
+            )
+            if current_date > date_end:
+                break
+        
         escalas = EscalaMensal.query.filter(
             EscalaMensal.supervisor_id == supervisor_id,
-            EscalaMensal.ano == date_start.year,
-            EscalaMensal.mes == date_start.month
+            tuple_(EscalaMensal.ano, EscalaMensal.mes).in_(meses_anos)
         ).all()
         
         if not escalas:
@@ -372,6 +411,7 @@ def _calculate_supervisor_working_days(supervisor_id: int, date_start: datetime.
         current_date = date_start
         
         logger.info(f"Turnos do supervisor: {turnos_supervisor}")
+        logger.info(f"Período analisado: {date_start} a {date_end}")
         
         while current_date <= date_end:
             # Verifica se o supervisor trabalha neste dia baseado na escala

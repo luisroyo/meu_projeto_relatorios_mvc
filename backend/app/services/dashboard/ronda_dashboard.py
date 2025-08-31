@@ -245,7 +245,8 @@ def get_ronda_dashboard_data(filters):
     
     # [NOVO] Informações adicionais sobre o período
     periodo_info = kpis_helper.get_ronda_period_info(
-        base_kpi_query, date_start_range, date_end_range
+        base_kpi_query, date_start_range, date_end_range, 
+        supervisor_id=filters.get("supervisor_id")
     )
     
     # [NOVO] Comparação com período anterior
