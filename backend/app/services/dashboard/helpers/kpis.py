@@ -236,11 +236,14 @@ def get_ronda_period_info(base_kpi_query, date_start_range, date_end_range) -> d
         }
 
 
-def get_ocorrencia_period_info(base_kpi_query, date_start_range, date_end_range) -> dict:
+def get_ocorrencia_period_info(base_kpi_query, date_start_range, date_end_range, supervisor_id=None) -> dict:
     """
     Calcula informações adicionais sobre o período de ocorrências para melhorar os KPIs.
     Retorna informações sobre a última data registrada e período real de dados.
     Garante que as datas nunca extrapolem o range filtrado.
+    
+    Se supervisor_id for fornecido, calcula apenas os dias trabalhados pelo supervisor
+    considerando sua jornada 12x36 baseada na escala mensal.
     """
     try:
         from app.models import VWOcorrenciasDetalhadas
@@ -284,23 +287,29 @@ def get_ocorrencia_period_info(base_kpi_query, date_start_range, date_end_range)
         if primeira_data_date and ultima_data_date:
             periodo_real_dias = (ultima_data_date - primeira_data_date).days + 1
 
-        # Corrigir: contar dias distintos com ocorrências dentro do período filtrado, considerando o timezone America/Sao_Paulo
-        dias_com_dados = (
-            base_kpi_query.session.query(
-                func.count(
-                    func.distinct(
-                        func.date(
-                            VWOcorrenciasDetalhadas.data_hora_ocorrencia.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('America/Sao_Paulo')
+        # [NOVO] Se supervisor_id for fornecido, calcula apenas os dias trabalhados
+        if supervisor_id:
+            dias_com_dados = _calculate_supervisor_working_days(
+                supervisor_id, date_start_range, date_end_range
+            )
+        else:
+            # Corrigir: contar dias distintos com ocorrências dentro do período filtrado, considerando o timezone America/Sao_Paulo
+            dias_com_dados = (
+                base_kpi_query.session.query(
+                    func.count(
+                        func.distinct(
+                            func.date(
+                                VWOcorrenciasDetalhadas.data_hora_ocorrencia.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('America/Sao_Paulo')
+                            )
                         )
                     )
                 )
-            )
-            .filter(
-                VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
-                VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range
-            )
-            .scalar()
-        ) or 0
+                .filter(
+                    VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
+                    VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range
+                )
+                .scalar()
+            ) or 0
 
         return {
             "primeira_data_registrada": primeira_data_date,
@@ -321,6 +330,96 @@ def get_ocorrencia_period_info(base_kpi_query, date_start_range, date_end_range)
             "periodo_solicitado_dias": (date_end_range - date_start_range).days + 1,
             "cobertura_periodo": 0
         }
+
+
+def _calculate_supervisor_working_days(supervisor_id: int, date_start: datetime.date, date_end: datetime.date) -> int:
+    """
+    Calcula quantos dias um supervisor trabalhou em um período específico,
+    considerando sua jornada 12x36 baseada na escala mensal.
+    
+    A jornada 12x36 significa:
+    - Trabalha 12 horas por dia
+    - Trabalha em dias alternados (par ou ímpar)
+    - Trabalha em turnos alternados (diurno ou noturno)
+    
+    Args:
+        supervisor_id: ID do supervisor
+        date_start: Data de início do período
+        date_end: Data de fim do período
+    
+    Returns:
+        Número de dias trabalhados pelo supervisor no período
+    """
+    try:
+        from app.models import EscalaMensal
+        
+        # Busca escalas do supervisor para o período específico (ano/mês)
+        escalas = EscalaMensal.query.filter(
+            EscalaMensal.supervisor_id == supervisor_id,
+            EscalaMensal.ano == date_start.year,
+            EscalaMensal.mes == date_start.month
+        ).all()
+        
+        if not escalas:
+            logger.warning(f"Supervisor {supervisor_id} não tem escala definida no período {date_start} a {date_end}")
+            return 0
+        
+        # Mapeia os turnos para determinar quais dias da semana o supervisor trabalha
+        turnos_supervisor = {escala.nome_turno for escala in escalas}
+        
+        # Calcula os dias trabalhados
+        dias_trabalhados = 0
+        current_date = date_start
+        
+        logger.info(f"Turnos do supervisor: {turnos_supervisor}")
+        
+        while current_date <= date_end:
+            # Verifica se o supervisor trabalha neste dia baseado na escala
+            trabalha = _is_supervisor_working_day(current_date, turnos_supervisor)
+            if trabalha:
+                dias_trabalhados += 1
+                logger.info(f"  {current_date.strftime('%d/%m/%Y')} (dia {'par' if current_date.day % 2 == 0 else 'ímpar'}): ✅ Trabalha")
+            else:
+                logger.info(f"  {current_date.strftime('%d/%m/%Y')} (dia {'par' if current_date.day % 2 == 0 else 'ímpar'}): ❌ Folga")
+            
+            current_date += timedelta(days=1)
+        
+        logger.info(f"Supervisor {supervisor_id} trabalhou {dias_trabalhados} dias no período {date_start} a {date_end}")
+        return dias_trabalhados
+        
+    except Exception as e:
+        logger.error(f"Erro ao calcular dias trabalhados do supervisor {supervisor_id}: {e}", exc_info=True)
+        return 0
+
+
+def _is_supervisor_working_day(date: datetime.date, turnos_supervisor: set) -> bool:
+    """
+    Determina se um supervisor trabalha em uma data específica baseado nos turnos da escala.
+    
+    A jornada 12x36 funciona da seguinte forma:
+    - "Diurno Par": trabalha nos dias pares durante o dia (6h às 18h)
+    - "Diurno Impar": trabalha nos dias ímpares durante o dia (6h às 18h)
+    - "Noturno Par": trabalha nos dias pares durante a noite (18h às 6h)
+    - "Noturno Impar": trabalha nos dias ímpares durante a noite (18h às 6h)
+    
+    Args:
+        date: Data a verificar
+        turnos_supervisor: Conjunto de turnos atribuídos ao supervisor
+    
+    Returns:
+        True se o supervisor trabalha na data, False caso contrário
+    """
+    # Determina se o dia é par ou ímpar
+    is_par = date.day % 2 == 0
+    
+    # Verifica se o supervisor tem escala para este tipo de dia
+    # IMPORTANTE: O supervisor só trabalha se tiver escala EXATA para o tipo de dia
+    if is_par:
+        # Dia par - verifica se tem escala para dias pares (Diurno Par OU Noturno Par)
+        return any("Par" in turno for turno in turnos_supervisor)
+    else:
+        # Dia ímpar - verifica se tem escala para dias ímpares (Diurno Impar OU Noturno Impar)
+        return any("Impar" in turno for turno in turnos_supervisor)
 
 
 def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range) -> dict:
