@@ -54,13 +54,18 @@ def get_ocorrencia_dashboard_data(filters):
         VWOcorrenciasDetalhadas.status.in_(status_abertos)
     ).count()
 
+    # [CORRIGIDO] Usar a mesma lógica de filtros da base_kpi_query
     ocorrencias_por_tipo_q = db.session.query(
         VWOcorrenciasDetalhadas.tipo, func.count(VWOcorrenciasDetalhadas.id)
     ).filter(
-        VWOcorrenciasDetalhadas.tipo.isnot(None),
-        VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
-        VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range
+        VWOcorrenciasDetalhadas.tipo.isnot(None)
     )
+    
+    # Aplicar os mesmos filtros da base_kpi_query
+    ocorrencias_por_tipo_q = ocorrencia_service.apply_ocorrencia_filters(
+        ocorrencias_por_tipo_q, filters
+    )
+    ocorrencias_por_tipo_q = add_date_filter(ocorrencias_por_tipo_q)
     ocorrencias_por_tipo = (
         ocorrencias_por_tipo_q.group_by(VWOcorrenciasDetalhadas.tipo)
         .order_by(func.count(VWOcorrenciasDetalhadas.id).desc())
@@ -70,13 +75,18 @@ def get_ocorrencia_dashboard_data(filters):
     ocorrencias_por_tipo_data = [item[1] for item in ocorrencias_por_tipo]
     tipo_mais_comum = tipo_labels[0] if tipo_labels else "N/A"
 
+    # [CORRIGIDO] Usar a mesma lógica de filtros da base_kpi_query
     ocorrencias_por_condominio_q = db.session.query(
         VWOcorrenciasDetalhadas.condominio, func.count(VWOcorrenciasDetalhadas.id)
     ).filter(
-        VWOcorrenciasDetalhadas.condominio.isnot(None),
-        VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
-        VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range
+        VWOcorrenciasDetalhadas.condominio.isnot(None)
     )
+    
+    # Aplicar os mesmos filtros da base_kpi_query
+    ocorrencias_por_condominio_q = ocorrencia_service.apply_ocorrencia_filters(
+        ocorrencias_por_condominio_q, filters
+    )
+    ocorrencias_por_condominio_q = add_date_filter(ocorrencias_por_condominio_q)
     ocorrencias_por_condominio = (
         ocorrencias_por_condominio_q.group_by(VWOcorrenciasDetalhadas.condominio)
         .order_by(func.count(VWOcorrenciasDetalhadas.id).desc())
@@ -96,30 +106,20 @@ def get_ocorrencia_dashboard_data(filters):
     local_tz_str = current_app.config.get("DEFAULT_TIMEZONE", "America/Sao_Paulo")
     local_tz = pytz.timezone(local_tz_str)
     
-    # Query para ocorrências por turno e data
+    # [CORRIGIDO] Query para ocorrências por turno e data usando a mesma lógica de filtros
     ocorrencias_por_turno_dia_q = db.session.query(
         func.date(VWOcorrenciasDetalhadas.data_hora_ocorrencia),
         VWOcorrenciasDetalhadas.turno,
         func.count(VWOcorrenciasDetalhadas.id)
     ).filter(
-        VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
-        VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range,
         VWOcorrenciasDetalhadas.turno.isnot(None)
     )
     
-    # Aplicar filtros adicionais
-    if filters.get("supervisor_id"):
-        supervisor = User.query.get(filters["supervisor_id"])
-        if supervisor:
-            ocorrencias_por_turno_dia_q = ocorrencias_por_turno_dia_q.filter(
-                VWOcorrenciasDetalhadas.supervisor == supervisor.username
-            )
-    if filters.get("condominio_id"):
-        condominio = Condominio.query.get(filters["condominio_id"])
-        if condominio:
-            ocorrencias_por_turno_dia_q = ocorrencias_por_turno_dia_q.filter(
-                VWOcorrenciasDetalhadas.condominio == condominio.nome
-            )
+    # Aplicar os mesmos filtros da base_kpi_query
+    ocorrencias_por_turno_dia_q = ocorrencia_service.apply_ocorrencia_filters(
+        ocorrencias_por_turno_dia_q, filters
+    )
+    ocorrencias_por_turno_dia_q = add_date_filter(ocorrencias_por_turno_dia_q)
     
     ocorrencias_por_turno_dia = (
         ocorrencias_por_turno_dia_q.group_by(
@@ -170,30 +170,14 @@ def get_ocorrencia_dashboard_data(filters):
         logger.info(f"Dados diurno: {evolucao_diurno_data[:5]}")
         logger.info(f"Dados noturno: {evolucao_noturno_data[:5]}")
 
-    ultimas_ocorrencias_q = db.session.query(VWOcorrenciasDetalhadas).filter(
-        VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range,
-        VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range
-    )
+    # [CORRIGIDO] Query para últimas ocorrências usando a mesma lógica de filtros
+    ultimas_ocorrencias_q = db.session.query(VWOcorrenciasDetalhadas)
     
-    # Aplicar filtros adicionais
-    if filters.get("supervisor_id"):
-        # Buscar o nome do supervisor pelo ID
-        supervisor = User.query.get(filters["supervisor_id"])
-        if supervisor:
-            ultimas_ocorrencias_q = ultimas_ocorrencias_q.filter(
-                VWOcorrenciasDetalhadas.supervisor == supervisor.username
-            )
-    if filters.get("condominio_id"):
-        # Buscar o nome do condomínio pelo ID
-        condominio = Condominio.query.get(filters["condominio_id"])
-        if condominio:
-            ultimas_ocorrencias_q = ultimas_ocorrencias_q.filter(
-                VWOcorrenciasDetalhadas.condominio == condominio.nome
-            )
-    if filters.get("turno"):
-        ultimas_ocorrencias_q = ultimas_ocorrencias_q.filter(
-            VWOcorrenciasDetalhadas.turno == filters["turno"]
-        )
+    # Aplicar os mesmos filtros da base_kpi_query
+    ultimas_ocorrencias_q = ocorrencia_service.apply_ocorrencia_filters(
+        ultimas_ocorrencias_q, filters
+    )
+    ultimas_ocorrencias_q = add_date_filter(ultimas_ocorrencias_q)
     ultimas_ocorrencias = (
         ultimas_ocorrencias_q.order_by(VWOcorrenciasDetalhadas.data_hora_ocorrencia.desc())
         .limit(10)
