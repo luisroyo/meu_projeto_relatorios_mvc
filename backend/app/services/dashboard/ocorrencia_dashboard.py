@@ -249,7 +249,8 @@ def get_ocorrencia_dashboard_data(filters):
 
     # [NOVO] Informações adicionais sobre o período
     periodo_info = kpis_helper.get_ocorrencia_period_info(
-        base_kpi_query, date_start_range, date_end_range
+        base_kpi_query, date_start_range, date_end_range, 
+        supervisor_id=filters.get("supervisor_id")
     )
 
     # [NOVO] Comparação com período anterior
@@ -276,6 +277,8 @@ def get_ocorrencia_dashboard_data(filters):
         tempo_medio_resolucao_minutos = round(sum(tempos_resolucao) / len(tempos_resolucao), 1) if tempos_resolucao else None
 
     # [NOVO] Média diária de ocorrências
+    # Se supervisor_id for fornecido, calcula apenas nos dias trabalhados pelo supervisor (jornada 12x36)
+    # Caso contrário, calcula nos dias com ocorrências registradas
     dias_com_dados = periodo_info["dias_com_dados"] if periodo_info and "dias_com_dados" in periodo_info else 0
     if dias_com_dados > 0:
         media_diaria_ocorrencias = round(total_ocorrencias / dias_com_dados, 2)
@@ -306,4 +309,16 @@ def get_ocorrencia_dashboard_data(filters):
         "tempo_medio_resolucao_minutos": tempo_medio_resolucao_minutos,
         # [NOVO] Média diária de ocorrências
         "media_diaria_ocorrencias": media_diaria_ocorrencias,
+        # [NOVO] Descrição da métrica de média
+        "media_diaria_descricao": _get_media_diaria_description(filters.get("supervisor_id"), periodo_info),
     }
+
+
+def _get_media_diaria_description(supervisor_id, periodo_info):
+    """
+    Gera uma descrição clara da métrica de média diária.
+    """
+    if supervisor_id:
+        return f"Média por dia trabalhado (jornada 12x36)"
+    else:
+        return f"Média por dia com ocorrências registradas"

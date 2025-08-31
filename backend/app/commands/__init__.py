@@ -19,6 +19,8 @@ from .relatorios import (
     test_media_dias_reais_command,
     test_supervisor_specific_command,
     check_supervisor_working_days_command,
+    check_supervisor_escala_command,
+    test_dashboard_ocorrencia_supervisor_command,
     assign_supervisors_command,
     fix_ocorrencias_definitive_command,
     investigate_rondas_discrepancy_command,
@@ -43,6 +45,8 @@ def register_commands(app):
     app.cli.add_command(test_media_dias_reais_command)
     app.cli.add_command(test_supervisor_specific_command)
     app.cli.add_command(check_supervisor_working_days_command)
+    app.cli.add_command(check_supervisor_escala_command)
+    app.cli.add_command(test_dashboard_ocorrencia_supervisor_command)
     app.cli.add_command(assign_supervisors_command)
     app.cli.add_command(fix_ocorrencias_definitive_command)
     app.cli.add_command(investigate_rondas_discrepancy_command)
