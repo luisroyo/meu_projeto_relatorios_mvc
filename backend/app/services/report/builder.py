@@ -159,7 +159,7 @@ class ReportBuilder:
         story.append(Spacer(1, 12))  # Reduzido de 20 para 12
         return story
     
-    def create_period_info_table(self, periodo_info: Dict) -> List:
+    def create_period_info_table(self, periodo_info: Dict, filters_info: Optional[Dict] = None) -> List:
         """Cria tabela com informações do período."""
         story = []
         story.append(Paragraph('Informações do Período', self.styles.section_style))
@@ -167,12 +167,27 @@ class ReportBuilder:
         primeira_data = self._format_period_date(periodo_info.get('primeira_data_registrada'))
         ultima_data = self._format_period_date(periodo_info.get('ultima_data_registrada'))
         
+        # Verifica se um supervisor foi selecionado
+        supervisor_selected = filters_info and filters_info.get('supervisor_name')
+        
+        # Define os labels baseado na seleção do supervisor
+        if supervisor_selected:
+            dias_label = 'Dias Trabalhados'
+            cobertura_label = 'Cobertura Trabalhada'
+            dias_value = f"{periodo_info.get('dias_com_dados', 0)} / {periodo_info.get('dias_com_dados', 0)}"
+            cobertura_value = "100%"
+        else:
+            dias_label = 'Dias com Dados'
+            cobertura_label = 'Cobertura'
+            dias_value = f"{periodo_info.get('dias_com_dados', 0)} / {periodo_info.get('periodo_solicitado_dias', 0)}"
+            cobertura_value = f"{periodo_info.get('cobertura_periodo', 0)}%"
+        
         periodo_data = [
             ['Informação', 'Valor'],
             ['Primeira Data', primeira_data or 'N/A'],
             ['Última Data', ultima_data or 'N/A'],
-            ['Dias com Dados', f"{periodo_info.get('dias_com_dados', 0)} / {periodo_info.get('periodo_solicitado_dias', 0)}"],
-            ['Cobertura', f"{periodo_info.get('cobertura_periodo', 0)}%"]
+            [dias_label, dias_value],
+            [cobertura_label, cobertura_value]
         ]
         
         periodo_table = Table(periodo_data, colWidths=[2.5*inch, 4*inch])
@@ -237,7 +252,7 @@ class ReportBuilder:
         story.append(Spacer(1, 12))  # Reduzido de 20 para 12
         return story
     
-    def create_compact_summary_table(self, kpi_data: List[List[str]], periodo_info: Dict) -> List:
+    def create_compact_summary_table(self, kpi_data: List[List[str]], periodo_info: Dict, filters_info: Optional[Dict] = None) -> List:
         """Cria uma tabela compacta combinando KPIs e informações do período."""
         story = []
         story.append(Paragraph('Resumo Executivo', self.styles.section_style))
@@ -254,10 +269,18 @@ class ReportBuilder:
             primeira_data = self._format_period_date(periodo_info.get('primeira_data_registrada'))
             ultima_data = self._format_period_date(periodo_info.get('ultima_data_registrada'))
             
+            # Verifica se um supervisor foi selecionado
+            supervisor_selected = filters_info and filters_info.get('supervisor_name')
+            
+            if supervisor_selected:
+                cobertura_value = "100%"
+            else:
+                cobertura_value = f"{periodo_info.get('cobertura_periodo', 0)}%"
+            
             summary_data.extend([
                 ['Primeira Data', primeira_data or 'N/A'],
                 ['Última Data', ultima_data or 'N/A'],
-                ['Cobertura', f"{periodo_info.get('cobertura_periodo', 0)}%"]
+                ['Cobertura', cobertura_value]
             ])
         
         # Criar tabela compacta

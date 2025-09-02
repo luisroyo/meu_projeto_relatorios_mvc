@@ -462,9 +462,10 @@ def _is_supervisor_working_day(date: datetime.date, turnos_supervisor: set) -> b
         return any("Impar" in turno for turno in turnos_supervisor)
 
 
-def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range) -> dict:
+def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range, supervisor_id=None) -> dict:
     """
     Calcula comparações com o período anterior para mostrar tendências nos KPIs.
+    Se supervisor_id for fornecido, compara apenas as rondas desse supervisor.
     """
     try:
         from app.models import VWRondasDetalhadas
@@ -478,13 +479,21 @@ def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range
             func.coalesce(func.sum(VWRondasDetalhadas.total_rondas_no_log), 0)
         ).scalar()
         
-        # Query para o período anterior
-        total_anterior = db.session.query(
+        # Query para o período anterior - aplica os mesmos filtros do período atual
+        anterior_query = db.session.query(
             func.coalesce(func.sum(VWRondasDetalhadas.total_rondas_no_log), 0)
         ).filter(
             VWRondasDetalhadas.data_plantao_ronda >= anterior_start,
             VWRondasDetalhadas.data_plantao_ronda <= anterior_end
-        ).scalar()
+        )
+        
+        # Se um supervisor foi filtrado, aplica o mesmo filtro no período anterior
+        if supervisor_id:
+            anterior_query = anterior_query.filter(
+                VWRondasDetalhadas.supervisor_id == supervisor_id
+            )
+        
+        total_anterior = anterior_query.scalar()
         
         # Calcula variação percentual
         if total_anterior > 0:
@@ -537,9 +546,10 @@ def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range
             "dias_desde_ultima": None
         }
 
-def calculate_ocorrencia_period_comparison(base_kpi_query, date_start_range, date_end_range) -> dict:
+def calculate_ocorrencia_period_comparison(base_kpi_query, date_start_range, date_end_range, supervisor_id=None) -> dict:
     """
     Calcula comparações com o período anterior para mostrar tendências nos KPIs de ocorrências.
+    Se supervisor_id for fornecido, compara apenas as ocorrências desse supervisor.
     """
     try:
         from datetime import timedelta
@@ -553,11 +563,23 @@ def calculate_ocorrencia_period_comparison(base_kpi_query, date_start_range, dat
         # Query para o período atual
         total_atual = base_kpi_query.count()
         
-        # Query para o período anterior
-        total_anterior = db.session.query(VWOcorrenciasDetalhadas).filter(
+        # Query para o período anterior - aplica os mesmos filtros do período atual
+        anterior_query = db.session.query(VWOcorrenciasDetalhadas).filter(
             VWOcorrenciasDetalhadas.data_hora_ocorrencia >= anterior_start,
             VWOcorrenciasDetalhadas.data_hora_ocorrencia <= anterior_end
-        ).count()
+        )
+        
+        # Se um supervisor foi filtrado, aplica o mesmo filtro no período anterior
+        if supervisor_id:
+            # Busca o nome do supervisor para filtrar na view
+            from app.models import User
+            supervisor = User.query.get(supervisor_id)
+            if supervisor:
+                anterior_query = anterior_query.filter(
+                    VWOcorrenciasDetalhadas.supervisor == supervisor.username
+                )
+        
+        total_anterior = anterior_query.count()
         
         # Calcula variação percentual
         if total_anterior > 0:

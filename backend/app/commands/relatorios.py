@@ -266,4 +266,310 @@ def test_dashboard_ocorrencia_supervisor_command():
         
     except Exception as e:
         click.echo(f"❌ Erro durante o teste: {e}")
-        logger.error(f"Erro no comando test-dashboard-ocorrencia-supervisor: {e}", exc_info=True) 
+        logger.error(f"Erro no comando test-dashboard-ocorrencia-supervisor: {e}", exc_info=True)
+
+
+@click.command("test-ronda-pdf-export")
+@with_appcontext
+def test_ronda_pdf_export_command():
+    """Testa a exportação PDF de rondas com supervisor selecionado."""
+    try:
+        from app.services.dashboard.ronda_dashboard import get_ronda_dashboard_data
+        from app.services.report.ronda_service import RondaReportService
+        from app.models import User
+        
+        # Busca o supervisor Luis Royo
+        supervisor = User.query.filter_by(username="Luis Royo").first()
+        if not supervisor:
+            click.echo("❌ Supervisor 'Luis Royo' não encontrado")
+            return
+        
+        # Testa com supervisor específico
+        filters = {
+            "supervisor_id": supervisor.id,
+            "data_inicio_str": "2025-08-01",
+            "data_fim_str": "2025-08-31"
+        }
+        
+        click.echo("=== TESTE EXPORTAÇÃO PDF RONDAS COM SUPERVISOR ===")
+        click.echo(f"Supervisor: {supervisor.username} (ID: {supervisor.id})")
+        click.echo(f"Período: {filters['data_inicio_str']} a {filters['data_fim_str']}")
+        click.echo()
+        
+        # Busca os dados do dashboard
+        dashboard_data = get_ronda_dashboard_data(filters)
+        
+        # Prepara informações dos filtros
+        filters_info = {
+            "data_inicio": dashboard_data.get("selected_data_inicio_str", ""),
+            "data_fim": dashboard_data.get("selected_data_fim_str", ""),
+            "supervisor_name": supervisor.username,
+            "condominio_name": None,
+            "turno": "",
+            "mes": None
+        }
+        
+        click.echo("📊 DADOS DO DASHBOARD:")
+        click.echo(f"Total de rondas: {dashboard_data.get('total_rondas', 0)}")
+        click.echo(f"Média por dia: {dashboard_data.get('media_rondas_dia', 0)}")
+        click.echo()
+        
+        # Verifica informações do período
+        periodo_info = dashboard_data.get('periodo_info', {})
+        click.echo("📅 INFORMAÇÕES DO PERÍODO:")
+        click.echo(f"Dias com dados: {periodo_info.get('dias_com_dados', 0)}")
+        click.echo(f"Período solicitado: {periodo_info.get('periodo_solicitado_dias', 0)}")
+        click.echo(f"Cobertura: {periodo_info.get('cobertura_periodo', 0)}%")
+        click.echo()
+        
+        # Testa a geração do PDF
+        click.echo("📄 TESTANDO GERAÇÃO DO PDF...")
+        report_service = RondaReportService()
+        pdf_buffer = report_service.generate_ronda_dashboard_pdf(dashboard_data, filters_info)
+        
+        click.echo(f"✅ PDF gerado com sucesso! Tamanho: {len(pdf_buffer.getvalue())} bytes")
+        click.echo()
+        
+        click.echo("✅ Teste de exportação PDF concluído com sucesso!")
+        
+    except Exception as e:
+        click.echo(f"❌ Erro no teste: {e}")
+        logger.error(f"Erro no comando test-ronda-pdf-export: {e}", exc_info=True)
+
+
+@click.command("test-period-comparison")
+@with_appcontext
+def test_period_comparison_command():
+    """Testa a comparação com período anterior quando supervisor é selecionado."""
+    try:
+        from app.services.dashboard.ronda_dashboard import get_ronda_dashboard_data
+        from app.services.dashboard.ocorrencia_dashboard import get_ocorrencia_dashboard_data
+        from app.models import User
+        
+        # Busca o supervisor Luis Royo
+        supervisor = User.query.filter_by(username="Luis Royo").first()
+        if not supervisor:
+            click.echo("❌ Supervisor 'Luis Royo' não encontrado")
+            return
+        
+        click.echo("=== TESTE COMPARAÇÃO COM PERÍODO ANTERIOR ===")
+        click.echo(f"Supervisor: {supervisor.username} (ID: {supervisor.id})")
+        click.echo()
+        
+        # Testa com supervisor específico - agosto 2025
+        filters = {
+            "supervisor_id": supervisor.id,
+            "data_inicio_str": "2025-08-01",
+            "data_fim_str": "2025-08-31"
+        }
+        
+        click.echo("📊 TESTANDO DASHBOARD DE RONDAS:")
+        ronda_data = get_ronda_dashboard_data(filters)
+        comparacao_ronda = ronda_data.get('comparacao_periodo', {})
+        
+        click.echo(f"Período atual: {comparacao_ronda.get('total_atual', 0)} rondas")
+        click.echo(f"Período anterior: {comparacao_ronda.get('total_anterior', 0)} rondas")
+        click.echo(f"Variação: {comparacao_ronda.get('variacao_percentual', 0)}%")
+        click.echo(f"Status: {comparacao_ronda.get('status_text', 'N/A')}")
+        click.echo()
+        
+        click.echo("📊 TESTANDO DASHBOARD DE OCORRÊNCIAS:")
+        ocorrencia_data = get_ocorrencia_dashboard_data(filters)
+        comparacao_ocorrencia = ocorrencia_data.get('comparacao_periodo', {})
+        
+        click.echo(f"Período atual: {comparacao_ocorrencia.get('total_atual', 0)} ocorrências")
+        click.echo(f"Período anterior: {comparacao_ocorrencia.get('total_anterior', 0)} ocorrências")
+        click.echo(f"Variação: {comparacao_ocorrencia.get('variacao_percentual', 0)}%")
+        click.echo(f"Status: {comparacao_ocorrencia.get('status_text', 'N/A')}")
+        click.echo()
+        
+        # Testa sem supervisor (comparação geral)
+        click.echo("📊 TESTANDO SEM SUPERVISOR (COMPARAÇÃO GERAL):")
+        filters_geral = {
+            "data_inicio_str": "2025-08-01",
+            "data_fim_str": "2025-08-31"
+        }
+        
+        ronda_data_geral = get_ronda_dashboard_data(filters_geral)
+        comparacao_ronda_geral = ronda_data_geral.get('comparacao_periodo', {})
+        
+        click.echo(f"Período atual (geral): {comparacao_ronda_geral.get('total_atual', 0)} rondas")
+        click.echo(f"Período anterior (geral): {comparacao_ronda_geral.get('total_anterior', 0)} rondas")
+        click.echo(f"Variação (geral): {comparacao_ronda_geral.get('variacao_percentual', 0)}%")
+        click.echo()
+        
+        # Verifica se as comparações são diferentes (o que indica que está funcionando)
+        if comparacao_ronda.get('total_atual', 0) != comparacao_ronda_geral.get('total_atual', 0):
+            click.echo("✅ SUCESSO! A comparação está considerando apenas o supervisor filtrado")
+        else:
+            click.echo("⚠️ ATENÇÃO: As comparações são iguais - pode indicar que não há dados do supervisor no período")
+        
+        click.echo("✅ Teste de comparação concluído com sucesso!")
+        
+    except Exception as e:
+        click.echo(f"❌ Erro no teste: {e}")
+        logger.error(f"Erro no comando test-period-comparison: {e}", exc_info=True)
+
+
+@click.command("test-residencial-metrics")
+@with_appcontext
+def test_residencial_metrics_command():
+    """Testa especificamente as métricas de residenciais no PDF com supervisor selecionado."""
+    try:
+        from app.services.dashboard.ronda_dashboard import get_ronda_dashboard_data
+        from app.models import User
+        
+        # Busca o supervisor Luis Royo
+        supervisor = User.query.filter_by(username="Luis Royo").first()
+        if not supervisor:
+            click.echo("❌ Supervisor 'Luis Royo' não encontrado")
+            return
+        
+        click.echo("=== TESTE MÉTRICAS DE RESIDENCIAIS COM SUPERVISOR ===")
+        click.echo(f"Supervisor: {supervisor.username} (ID: {supervisor.id})")
+        click.echo()
+        
+        # Testa com supervisor específico - agosto 2025
+        filters = {
+            "supervisor_id": supervisor.id,
+            "data_inicio_str": "2025-08-01",
+            "data_fim_str": "2025-08-31"
+        }
+        
+        # Busca os dados do dashboard
+        dashboard_data = get_ronda_dashboard_data(filters)
+        
+        # Verifica informações do período
+        periodo_info = dashboard_data.get('periodo_info', {})
+        dias_trabalhados = periodo_info.get('dias_com_dados', 0)
+        
+        click.echo("📊 DADOS DOS RESIDENCIAIS:")
+        click.echo(f"Dias trabalhados pelo supervisor: {dias_trabalhados}")
+        click.echo()
+        
+        # Simula o cálculo das métricas como no PDF
+        if dashboard_data.get('condominio_labels') and dashboard_data.get('condominio_data'):
+            click.echo("🏠 CÁLCULO DAS MÉTRICAS POR RESIDENCIAL:")
+            click.echo("Residencial | Total | Média por Dia | Status")
+            click.echo("-" * 50)
+            
+            total_periodo = sum(dashboard_data['condominio_data'])
+            
+            for label, value in zip(dashboard_data['condominio_labels'], dashboard_data['condominio_data']):
+                # Calcula média por dia usando dias trabalhados
+                media_dia = round(value / dias_trabalhados, 1) if dias_trabalhados > 0 else 0
+                
+                # Determina status baseado na quantidade
+                if value == 0:
+                    status = "❌ Sem rondas"
+                elif value < 5:
+                    status = "⚠️ Baixa frequência"
+                elif value < 15:
+                    status = "✅ Frequência normal"
+                else:
+                    status = "🟢 Alta frequência"
+                
+                click.echo(f"{label[:15]:<15} | {value:>5} | {media_dia:>12} | {status}")
+            
+            # Total geral
+            media_total = round(total_periodo / dias_trabalhados, 1) if dias_trabalhados > 0 else 0
+            click.echo("-" * 50)
+            click.echo(f"{'TOTAL GERAL':<15} | {total_periodo:>5} | {media_total:>12} | Resumo")
+            click.echo()
+            
+            click.echo("📝 NOTA EXPLICATIVA:")
+            click.echo("* Média calculada considerando apenas os dias trabalhados pelo supervisor (jornada 12x36)")
+            click.echo()
+            
+            # Comparação com cálculo antigo (31 dias)
+            click.echo("🔄 COMPARAÇÃO COM CÁLCULO ANTIGO (31 dias):")
+            click.echo("Residencial | Média Antiga | Média Nova | Diferença")
+            click.echo("-" * 55)
+            
+            for label, value in zip(dashboard_data['condominio_labels'][:5], dashboard_data['condominio_data'][:5]):
+                media_antiga = round(value / 31, 1)
+                media_nova = round(value / dias_trabalhados, 1) if dias_trabalhados > 0 else 0
+                diferenca = round(media_nova - media_antiga, 1)
+                click.echo(f"{label[:15]:<15} | {media_antiga:>11} | {media_nova:>9} | {diferenca:>8}")
+            
+            media_total_antiga = round(total_periodo / 31, 1)
+            media_total_nova = round(total_periodo / dias_trabalhados, 1) if dias_trabalhados > 0 else 0
+            diferenca_total = round(media_total_nova - media_total_antiga, 1)
+            click.echo("-" * 55)
+            click.echo(f"{'TOTAL GERAL':<15} | {media_total_antiga:>11} | {media_total_nova:>9} | {diferenca_total:>8}")
+        
+        click.echo("✅ Teste de métricas de residenciais concluído com sucesso!")
+        
+    except Exception as e:
+        click.echo(f"❌ Erro no teste: {e}")
+        logger.error(f"Erro no comando test-residencial-metrics: {e}", exc_info=True)
+
+
+@click.command("test-shift-logic")
+@with_appcontext
+def test_shift_logic_command():
+    """Testa a lógica de turnos para determinar a data do plantão de ocorrências."""
+    try:
+        from app.utils.date_utils import get_plantao_date_from_ocorrencia, get_plantao_datetime_range
+        from datetime import datetime, date
+        
+        click.echo("=== TESTE LÓGICA DE TURNOS PARA OCORRÊNCIAS ===")
+        click.echo()
+        
+        # Casos de teste
+        test_cases = [
+            # (data_ocorrencia, turno, descricao)
+            ("31/08/2025 20:00", "Noturno Par", "Ocorrência às 20h - turno noturno"),
+            ("01/09/2025 02:00", "Noturno Par", "Ocorrência às 2h da madrugada - turno noturno"),
+            ("01/09/2025 05:30", "Noturno Par", "Ocorrência às 5h30 da madrugada - turno noturno"),
+            ("01/09/2025 10:00", "Diurno Par", "Ocorrência às 10h - turno diurno"),
+            ("01/09/2025 15:00", "Diurno Par", "Ocorrência às 15h - turno diurno"),
+            ("01/09/2025 19:00", "Noturno Impar", "Ocorrência às 19h - turno noturno"),
+            ("02/09/2025 01:00", "Noturno Impar", "Ocorrência às 1h da madrugada - turno noturno"),
+        ]
+        
+        click.echo("🧪 TESTANDO CASOS DE OCORRÊNCIAS:")
+        click.echo("Data/Hora Ocorrência | Turno Supervisor | Data Plantão | Descrição")
+        click.echo("-" * 80)
+        
+        for data_str, turno, descricao in test_cases:
+            # Converte string para datetime
+            try:
+                data_ocorrencia = datetime.strptime(data_str, "%d/%m/%Y %H:%M")
+                data_plantao = get_plantao_date_from_ocorrencia(data_ocorrencia, turno)
+                
+                click.echo(f"{data_str:<20} | {turno:<15} | {data_plantao} | {descricao}")
+            except Exception as e:
+                click.echo(f"ERRO: {data_str} - {e}")
+        
+        click.echo()
+        click.echo("🕐 TESTANDO RANGES DE TURNO:")
+        click.echo("Data Plantão | Turno | Início Plantão | Fim Plantão")
+        click.echo("-" * 60)
+        
+        # Testa ranges de turno
+        test_dates = [
+            (date(2025, 8, 31), "Noturno Par"),
+            (date(2025, 9, 1), "Diurno Par"),
+            (date(2025, 9, 1), "Noturno Impar"),
+        ]
+        
+        for plantao_date, turno in test_dates:
+            try:
+                inicio, fim = get_plantao_datetime_range(plantao_date, turno)
+                click.echo(f"{plantao_date} | {turno:<15} | {inicio.strftime('%d/%m %H:%M')} | {fim.strftime('%d/%m %H:%M')}")
+            except Exception as e:
+                click.echo(f"ERRO: {plantao_date} - {e}")
+        
+        click.echo()
+        click.echo("📋 RESUMO DA LÓGICA:")
+        click.echo("• Turnos Diurnos (6h-18h): ocorrência pertence ao mesmo dia")
+        click.echo("• Turnos Noturnos (18h-6h):")
+        click.echo("  - Ocorrência 18h-23h59: pertence ao mesmo dia")
+        click.echo("  - Ocorrência 0h-5h59: pertence ao dia anterior (plantão começou no dia anterior)")
+        click.echo()
+        click.echo("✅ Teste de lógica de turnos concluído com sucesso!")
+        
+    except Exception as e:
+        click.echo(f"❌ Erro no teste: {e}")
+        logger.error(f"Erro no comando test-shift-logic: {e}", exc_info=True) 
