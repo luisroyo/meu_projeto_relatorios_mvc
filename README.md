@@ -23,6 +23,8 @@
 - Limitação de Taxa e Segurança: Flask-Limiter, Flask-WTF CSRF, hashing de senha (Werkzeug)
 - Cache: Flask-Caching (com suporte para Redis, SimpleCache, etc.)
 - Integração com IA: Google Generative AI (API Gemini)
+- Relatórios PDF: ReportLab para geração de relatórios em PDF
+- Processamento de Datas: pytz para manipulação de timezones e turnos
 - Arquivos Estáticos: WhiteNoise
 - Testes: Pytest
 - Ferramentas CLI: Flask CLI, Click
@@ -103,16 +105,19 @@ O aplicativo estará disponível em http://localhost:5000.
 
 ### Principais Recursos
 
-- Autenticação e Autorização: Login seguro, registro (com aprovação do administrador) e acesso baseado em funções.
-- Dashboard: Métricas visuais para usuários, logins, relatórios e KPIs operacionais.
-- Rondas: Registrar, listar e analisar registros de patrulha.
-- Ocorrências: Registrar, classificar e gerenciar incidentes com análise assistida por IA.
-- Colaboradores: Gerenciar registros e atribuições de pessoal.
-- Analisador de Relatórios AI: Cole relatórios brutos e receba versões formatadas e corrigidas geradas por IA.
-- Ferramentas de Administração: Aprovar usuários, gerenciar funções, excluir usuários e muito mais.
-- Limitação de Taxa (Rate Limiting): Previne ataques de força bruta e abuso em logins e endpoints sensíveis.
-- Log (Registro): Logs detalhados para auditoria e depuração.
-- UI Responsiva: Interface moderna e amigável para dispositivos móveis (baseada em Bootstrap).
+- **Autenticação e Autorização**: Login seguro, registro (com aprovação do administrador) e acesso baseado em funções.
+- **Dashboard Inteligente**: Métricas visuais para usuários, logins, relatórios e KPIs operacionais com cálculo preciso por dias trabalhados.
+- **Rondas**: Registrar, listar e analisar registros de patrulha com métricas por supervisor e jornada 12x36.
+- **Ocorrências**: Registrar, classificar e gerenciar incidentes com análise assistida por IA e classificação por turno.
+- **Colaboradores**: Gerenciar registros e atribuições de pessoal.
+- **Analisador de Relatórios AI**: Cole relatórios brutos e receba versões formatadas e corrigidas geradas por IA.
+- **Ferramentas de Administração**: Aprovar usuários, gerenciar funções, excluir usuários e muito mais.
+- **Relatórios PDF**: Exportação de dashboards e relatórios em PDF com métricas precisas.
+- **Sistema de Turnos**: Lógica inteligente para classificação de ocorrências considerando jornada 12x36 dos supervisores.
+- **Métricas por Supervisor**: Cálculo de médias e comparações baseadas apenas nos dias trabalhados pelo supervisor.
+- **Limitação de Taxa (Rate Limiting)**: Previne ataques de força bruta e abuso em logins e endpoints sensíveis.
+- **Log (Registro)**: Logs detalhados para auditoria e depuração.
+- **UI Responsiva**: Interface moderna e amigável para dispositivos móveis (baseada em Bootstrap).
 
 ## Documentação da API
 
@@ -142,6 +147,47 @@ A resposta será:
   "sucesso": true,
   "dados": { ...campos extraídos... }
 }
+```
+
+## Funcionalidades Avançadas
+
+### Sistema de Turnos e Jornada 12x36
+
+O sistema implementa uma lógica inteligente para classificação de ocorrências baseada na jornada de trabalho dos supervisores:
+
+- **Turnos Diurnos (6h-18h)**: Ocorrências pertencem ao mesmo dia
+- **Turnos Noturnos (18h-6h)**: 
+  - Ocorrências entre 18h-23h59: pertencem ao mesmo dia
+  - Ocorrências entre 0h-5h59: pertencem ao dia anterior (plantão começou no dia anterior)
+
+**Exemplo**: Supervisor entra às 18h do dia 31/08 e atende ocorrência às 3h da madrugada do dia 01/09. A ocorrência é corretamente atribuída ao plantão do dia 31/08.
+
+### Métricas por Supervisor
+
+- **Cálculo de Média**: Baseado apenas nos dias trabalhados pelo supervisor (jornada 12x36)
+- **Comparação de Períodos**: Compara dados do supervisor específico com períodos anteriores
+- **Relatórios PDF**: Exportação com métricas precisas considerando dias trabalhados
+- **Dashboard Inteligente**: Exibe "Dias Trabalhados" e "Cobertura Trabalhada" quando supervisor é selecionado
+
+### Comandos CLI para Debug
+
+O sistema inclui comandos CLI especializados para testes e debug:
+
+```bash
+# Testar lógica de turnos
+flask test-shift-logic
+
+# Verificar escala de supervisor
+flask check-supervisor-escala
+
+# Testar métricas de residenciais
+flask test-residencial-metrics
+
+# Testar comparação de períodos
+flask test-period-comparison
+
+# Testar exportação PDF
+flask test-ronda-pdf-export
 ```
 
 ## Instruções de Teste
