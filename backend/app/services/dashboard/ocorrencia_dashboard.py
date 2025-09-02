@@ -321,7 +321,8 @@ def get_ocorrencia_dashboard_data(filters):
 
     # [NOVO] Comparação com período anterior
     comparacao_periodo = kpis_helper.calculate_ocorrencia_period_comparison(
-        base_kpi_query, date_start_range, date_end_range
+        base_kpi_query, date_start_range, date_end_range,
+        supervisor_id=filters.get("supervisor_id")
     )
 
     # [NOVO] Tempo médio de resolução das ocorrências concluídas

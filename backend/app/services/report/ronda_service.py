@@ -59,7 +59,7 @@ class RondaReportService:
 
             # Informações do período
             if dashboard_data.get('periodo_info'):
-                story.extend(self.builder.create_period_info_table(dashboard_data['periodo_info']))
+                story.extend(self.builder.create_period_info_table(dashboard_data['periodo_info'], filters_info))
 
             # Tabela de condomínios
             if dashboard_data.get('condominio_labels') and dashboard_data.get('condominio_data'):
@@ -73,7 +73,7 @@ class RondaReportService:
                 ))
 
             # [NOVO] Seção detalhada de quantidades por residencial
-            story.extend(self._create_residencial_quantities_section(dashboard_data, periodo_inicio, periodo_fim))
+            story.extend(self._create_residencial_quantities_section(dashboard_data, periodo_inicio, periodo_fim, filters_info))
 
             # Análise por turno
             if dashboard_data.get('turno_labels') and dashboard_data.get('rondas_por_turno_data'):
@@ -179,7 +179,8 @@ class RondaReportService:
             
             story.extend(self.builder.create_compact_summary_table(
                 kpi_data, 
-                dashboard_data.get('periodo_info', {})
+                dashboard_data.get('periodo_info', {}),
+                filters_info
             ))
 
             # Tabelas combinadas em layout compacto
@@ -280,7 +281,7 @@ class RondaReportService:
             logger.error(f'Erro ao gerar relatório PDF compacto de rondas: {e}', exc_info=True)
             raise
 
-    def _create_residencial_quantities_section(self, dashboard_data: Dict, periodo_inicio: str, periodo_fim: str) -> List:
+    def _create_residencial_quantities_section(self, dashboard_data: Dict, periodo_inicio: str, periodo_fim: str, filters_info: Optional[Dict] = None) -> List:
         """Cria seção detalhada com quantidades de rondas por residencial no período."""
         from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -321,15 +322,23 @@ class RondaReportService:
             total_periodo = sum(dashboard_data['condominio_data'])
             total_dias = 1  # Valor padrão
             
-            # Calcula total de dias se temos datas
-            if periodo_inicio and periodo_fim:
-                try:
-                    from datetime import datetime
-                    inicio = datetime.strptime(periodo_inicio, "%Y-%m-%d").date()
-                    fim = datetime.strptime(periodo_fim, "%Y-%m-%d").date()
-                    total_dias = (fim - inicio).days + 1
-                except:
-                    total_dias = 1
+            # Verifica se um supervisor foi selecionado
+            supervisor_selected = filters_info and filters_info.get('supervisor_name')
+            
+            if supervisor_selected:
+                # Se supervisor foi selecionado, usa os dias trabalhados do período_info
+                periodo_info = dashboard_data.get('periodo_info', {})
+                total_dias = periodo_info.get('dias_com_dados', 1)
+            else:
+                # Calcula total de dias se temos datas (comportamento original)
+                if periodo_inicio and periodo_fim:
+                    try:
+                        from datetime import datetime
+                        inicio = datetime.strptime(periodo_inicio, "%Y-%m-%d").date()
+                        fim = datetime.strptime(periodo_fim, "%Y-%m-%d").date()
+                        total_dias = (fim - inicio).days + 1
+                    except:
+                        total_dias = 1
             
             for i, (label, value) in enumerate(zip(dashboard_data['condominio_labels'], dashboard_data['condominio_data'])):
                 # Calcula média por dia
@@ -398,7 +407,11 @@ class RondaReportService:
                 textColor=colors.grey,
                 leftIndent=20
             )
-            story.append(Paragraph("* Média calculada considerando o período total selecionado", nota_style))
+            if supervisor_selected:
+                nota_text = "* Média calculada considerando apenas os dias trabalhados pelo supervisor (jornada 12x36)"
+            else:
+                nota_text = "* Média calculada considerando o período total selecionado"
+            story.append(Paragraph(nota_text, nota_style))
             
             # Estatísticas adicionais
             if total_periodo > 0:

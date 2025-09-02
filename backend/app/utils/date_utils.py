@@ -20,9 +20,15 @@ def now_local():
 def parse_date_range(data_inicio_str, data_fim_str):
     today = now_local().date()
     first_day = today.replace(day=1)
-    last_day = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(
-        days=1
-    )
+    
+    # [CORRIGIDO] Calcular o último dia do mês de forma mais robusta
+    # Avança para o próximo mês e volta um dia
+    if today.month == 12:
+        next_month = today.replace(year=today.year + 1, month=1, day=1)
+    else:
+        next_month = today.replace(month=today.month + 1, day=1)
+    
+    last_day = next_month - timedelta(days=1)
 
     try:
         data_inicio = (
@@ -91,3 +97,79 @@ def parse_brazilian_date(date_str):
             return None
     except ValueError:
         return None
+
+
+def get_plantao_date_from_ocorrencia(ocorrencia_datetime, turno_supervisor=None):
+    """
+    Determina a data do plantão baseada na data/hora da ocorrência e no turno do supervisor.
+    
+    Regras:
+    - Turnos Diurnos (6h às 18h): ocorrência pertence ao mesmo dia
+    - Turnos Noturnos (18h às 6h): 
+      * Se ocorrência entre 18h-23h59: pertence ao mesmo dia
+      * Se ocorrência entre 0h-5h59: pertence ao dia anterior (plantão começou no dia anterior)
+    
+    Args:
+        ocorrencia_datetime: datetime da ocorrência
+        turno_supervisor: turno do supervisor ("Diurno Par", "Noturno Par", etc.)
+    
+    Returns:
+        date: data do plantão ao qual a ocorrência pertence
+    """
+    if not ocorrencia_datetime:
+        return None
+    
+    # Se não há informação do turno, usa a data da ocorrência
+    if not turno_supervisor:
+        return ocorrencia_datetime.date()
+    
+    # Converte para timezone local se necessário
+    if ocorrencia_datetime.tzinfo is None:
+        local_tz = get_local_tz()
+        ocorrencia_datetime = local_tz.localize(ocorrencia_datetime)
+    elif ocorrencia_datetime.tzinfo != get_local_tz():
+        ocorrencia_datetime = ocorrencia_datetime.astimezone(get_local_tz())
+    
+    # Determina se é turno noturno
+    is_turno_noturno = "Noturno" in turno_supervisor
+    
+    if is_turno_noturno:
+        # Para turnos noturnos, verifica o horário
+        hora = ocorrencia_datetime.hour
+        
+        if 0 <= hora < 6:
+            # Madrugada (0h-5h59): pertence ao plantão do dia anterior
+            return (ocorrencia_datetime.date() - timedelta(days=1))
+        else:
+            # Resto do dia: pertence ao plantão do mesmo dia
+            return ocorrencia_datetime.date()
+    else:
+        # Turnos diurnos: sempre pertence ao mesmo dia
+        return ocorrencia_datetime.date()
+
+
+def get_plantao_datetime_range(plantao_date, turno_supervisor):
+    """
+    Retorna o range de datetime para um plantão específico.
+    
+    Args:
+        plantao_date: data do plantão
+        turno_supervisor: turno do supervisor
+    
+    Returns:
+        tuple: (inicio_datetime, fim_datetime) em UTC
+    """
+    local_tz = get_local_tz()
+    is_turno_noturno = "Noturno" in turno_supervisor
+    
+    if is_turno_noturno:
+        # Turno noturno: 18h do dia anterior até 6h do dia seguinte
+        inicio = local_tz.localize(datetime.combine(plantao_date, datetime.min.time().replace(hour=18)))
+        fim = local_tz.localize(datetime.combine(plantao_date + timedelta(days=1), datetime.min.time().replace(hour=6)))
+    else:
+        # Turno diurno: 6h até 18h do mesmo dia
+        inicio = local_tz.localize(datetime.combine(plantao_date, datetime.min.time().replace(hour=6)))
+        fim = local_tz.localize(datetime.combine(plantao_date, datetime.min.time().replace(hour=18)))
+    
+    # Converte para UTC
+    return inicio.astimezone(pytz.utc), fim.astimezone(pytz.utc)

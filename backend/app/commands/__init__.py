@@ -21,6 +21,10 @@ from .relatorios import (
     check_supervisor_working_days_command,
     check_supervisor_escala_command,
     test_dashboard_ocorrencia_supervisor_command,
+    test_ronda_pdf_export_command,
+    test_period_comparison_command,
+    test_residencial_metrics_command,
+    test_shift_logic_command,
     assign_supervisors_command,
     fix_ocorrencias_definitive_command,
     investigate_rondas_discrepancy_command,
@@ -47,6 +51,10 @@ def register_commands(app):
     app.cli.add_command(check_supervisor_working_days_command)
     app.cli.add_command(check_supervisor_escala_command)
     app.cli.add_command(test_dashboard_ocorrencia_supervisor_command)
+    app.cli.add_command(test_ronda_pdf_export_command)
+    app.cli.add_command(test_period_comparison_command)
+    app.cli.add_command(test_residencial_metrics_command)
+    app.cli.add_command(test_shift_logic_command)
     app.cli.add_command(assign_supervisors_command)
     app.cli.add_command(fix_ocorrencias_definitive_command)
     app.cli.add_command(investigate_rondas_discrepancy_command)
