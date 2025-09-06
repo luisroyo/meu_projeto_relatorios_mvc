@@ -1,3 +1,4 @@
+
 # app/services/dashboard/helpers/kpis.py
 import logging
 from datetime import timedelta, datetime
@@ -462,17 +463,36 @@ def _is_supervisor_working_day(date: datetime.date, turnos_supervisor: set) -> b
         return any("Impar" in turno for turno in turnos_supervisor)
 
 
-def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range, supervisor_id=None) -> dict:
+def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range, supervisor_id=None, filters=None) -> dict:
     """
     Calcula comparações com o período anterior para mostrar tendências nos KPIs.
     Se supervisor_id for fornecido, compara apenas as rondas desse supervisor.
+    
+    A comparação é feita com o período correspondente do mês anterior:
+    - Se o período atual é 01/08 a 15/08, compara com 01/07 a 15/07
+    - Se o período atual é 01/08 a 31/08, compara com 01/07 a 31/07
+    - Se o período atual é 29/08 a 05/09, compara com 29/07 a 05/08
     """
     try:
         from app.models import VWRondasDetalhadas
-        # Calcula o período anterior (mesmo tamanho)
-        periodo_dias = (date_end_range - date_start_range).days + 1
-        anterior_start = date_start_range - timedelta(days=periodo_dias)
-        anterior_end = date_start_range - timedelta(days=1)
+        from datetime import timedelta
+        
+        # Calcula o período anterior correspondente (mesmo dia do mês anterior)
+        # Exemplo: 01/08 a 15/08 -> 01/07 a 15/07
+        # Exemplo: 29/08 a 05/09 -> 29/07 a 05/08
+        
+        # Calcula a diferença em dias entre start e end
+        dias_diferenca = (date_end_range - date_start_range).days
+        
+        # Calcula o período anterior mantendo a mesma diferença de dias
+        if date_start_range.month == 1:
+            # Se estamos em janeiro, vai para dezembro do ano anterior
+            anterior_start = date_start_range.replace(year=date_start_range.year - 1, month=12)
+        else:
+            anterior_start = date_start_range.replace(month=date_start_range.month - 1)
+        
+        # Calcula o final do período anterior mantendo a mesma diferença de dias
+        anterior_end = anterior_start + timedelta(days=dias_diferenca)
         
         # Query para o período atual
         total_atual = base_kpi_query.with_entities(
@@ -487,11 +507,22 @@ def calculate_period_comparison(base_kpi_query, date_start_range, date_end_range
             VWRondasDetalhadas.data_plantao_ronda <= anterior_end
         )
         
-        # Se um supervisor foi filtrado, aplica o mesmo filtro no período anterior
+        # Aplica os mesmos filtros do período atual no período anterior
         if supervisor_id:
             anterior_query = anterior_query.filter(
                 VWRondasDetalhadas.supervisor_id == supervisor_id
             )
+        
+        # Aplica filtros adicionais se fornecidos
+        if filters:
+            if filters.get("condominio_id"):
+                anterior_query = anterior_query.filter(
+                    VWRondasDetalhadas.condominio_id == filters["condominio_id"]
+                )
+            if filters.get("turno"):
+                anterior_query = anterior_query.filter(
+                    VWRondasDetalhadas.turno_ronda == filters["turno"]
+                )
         
         total_anterior = anterior_query.scalar()
         
@@ -550,15 +581,32 @@ def calculate_ocorrencia_period_comparison(base_kpi_query, date_start_range, dat
     """
     Calcula comparações com o período anterior para mostrar tendências nos KPIs de ocorrências.
     Se supervisor_id for fornecido, compara apenas as ocorrências desse supervisor.
+    
+    A comparação é feita com o período correspondente do mês anterior:
+    - Se o período atual é 01/08 a 15/08, compara com 01/07 a 15/07
+    - Se o período atual é 01/08 a 31/08, compara com 01/07 a 31/07
+    - Se o período atual é 29/08 a 05/09, compara com 29/07 a 05/08
     """
     try:
         from datetime import timedelta
         from app.models import VWOcorrenciasDetalhadas
         
-        # Calcula o período anterior (mesmo tamanho)
-        periodo_dias = (date_end_range - date_start_range).days + 1
-        anterior_start = date_start_range - timedelta(days=periodo_dias)
-        anterior_end = date_start_range - timedelta(days=1)
+        # Calcula o período anterior correspondente (mesmo dia do mês anterior)
+        # Exemplo: 01/08 a 15/08 -> 01/07 a 15/07
+        # Exemplo: 29/08 a 05/09 -> 29/07 a 05/08
+        
+        # Calcula a diferença em dias entre start e end
+        dias_diferenca = (date_end_range - date_start_range).days
+        
+        # Calcula o período anterior mantendo a mesma diferença de dias
+        if date_start_range.month == 1:
+            # Se estamos em janeiro, vai para dezembro do ano anterior
+            anterior_start = date_start_range.replace(year=date_start_range.year - 1, month=12)
+        else:
+            anterior_start = date_start_range.replace(month=date_start_range.month - 1)
+        
+        # Calcula o final do período anterior mantendo a mesma diferença de dias
+        anterior_end = anterior_start + timedelta(days=dias_diferenca)
         
         # Query para o período atual
         total_atual = base_kpi_query.count()

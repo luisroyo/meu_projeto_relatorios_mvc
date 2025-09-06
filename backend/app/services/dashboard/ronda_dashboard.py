@@ -252,7 +252,8 @@ def get_ronda_dashboard_data(filters):
     # [NOVO] Comparação com período anterior
     comparacao_periodo = kpis_helper.calculate_period_comparison(
         base_kpi_query, date_start_range, date_end_range, 
-        supervisor_id=filters.get("supervisor_id")
+        supervisor_id=filters.get("supervisor_id"),
+        filters=filters
     )
 
     # [REMOVIDO] Blocos de código para calcular KPIs foram extraídos para helpers/kpis.py
