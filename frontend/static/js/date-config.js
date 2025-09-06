@@ -1,7 +1,7 @@
 // date-config.js - Configuração de formato de data para o sistema
 // Padroniza todas as datas para formato brasileiro (dd/mm/yyyy)
 
-export const DATE_CONFIG = {
+const DATE_CONFIG = {
     // Locale brasileiro para formatação de datas
     locale: 'pt-BR',
     
@@ -48,7 +48,7 @@ export const DATE_CONFIG = {
 };
 
 // Funções utilitárias para formatação de data
-export const DateUtils = {
+const DateUtils = {
     /**
      * Formata uma data para exibição no formato brasileiro
      * @param {Date|string} date - Data a ser formatada

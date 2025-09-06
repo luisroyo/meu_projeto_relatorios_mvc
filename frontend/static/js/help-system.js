@@ -159,48 +159,49 @@ class HelpSystem {
         console.log('setButtonLoading:', isLoading ? 'Iniciando loading' : 'Finalizando loading', button);
         
         if (isLoading) {
+            // Evita ativar loading se já estiver ativo
+            if (button.classList.contains('btn-loading')) {
+                console.log('setButtonLoading: Loading já ativo, ignorando');
+                return;
+            }
+            
             button.classList.add('btn-loading');
             button.disabled = true;
             
             // Salva o HTML original se ainda não foi salvo
             if (!button.dataset.originalHTML) {
                 button.dataset.originalHTML = button.innerHTML;
-                console.log('setButtonLoading: HTML original salvo:', button.dataset.originalHTML);
+                console.log('setButtonLoading: HTML original salvo');
             }
             
-            if (!button.querySelector('.btn-text')) {
-                const btnText = document.createElement('span');
-                btnText.className = 'btn-text';
-                btnText.textContent = button.textContent;
-                button.innerHTML = '';
-                button.appendChild(btnText);
-                console.log('setButtonLoading: Elemento btn-text criado');
-            }
+            // Substitui o conteúdo por um spinner
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processando...';
+            console.log('setButtonLoading: Loading ativado');
         } else {
+            // Evita desativar loading se já estiver desativo
+            if (!button.classList.contains('btn-loading')) {
+                console.log('setButtonLoading: Loading já desativo, ignorando');
+                return;
+            }
+            
             button.classList.remove('btn-loading');
             button.disabled = false;
             
-            // Restaura o HTML original com ícones e formatação
+            // Restaura o HTML original
             if (button.dataset.originalHTML) {
                 button.innerHTML = button.dataset.originalHTML;
-                console.log('setButtonLoading: HTML original restaurado:', button.dataset.originalHTML);
+                console.log('setButtonLoading: HTML original restaurado');
             } else {
-                // Fallback: restaura apenas o texto
-                const btnText = button.querySelector('.btn-text');
-                if (btnText) {
-                    button.textContent = btnText.textContent;
-                    console.log('setButtonLoading: Fallback - texto restaurado');
-                } else {
-                    console.warn('setButtonLoading: Nenhum HTML original ou btn-text encontrado para restaurar');
-                }
+                // Fallback: restaura texto padrão
+                button.innerHTML = '<i class="bi bi-save-fill me-1"></i>Registrar Ocorrência';
+                console.log('setButtonLoading: Fallback - texto padrão restaurado');
             }
         }
         
         console.log('setButtonLoading: Estado final do botão:', {
             disabled: button.disabled,
-            innerHTML: button.innerHTML.substring(0, 100),
-            hasOriginalHTML: !!button.dataset.originalHTML,
-            hasBtnText: !!button.querySelector('.btn-text')
+            innerHTML: button.innerHTML.substring(0, 50) + '...',
+            hasOriginalHTML: !!button.dataset.originalHTML
         });
     }
 
@@ -435,3 +436,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Exporta para uso global
 window.HelpSystem = HelpSystem;
+
+// Cria instância global para métodos estáticos
+window.HelpSystemInstance = new HelpSystem();
