@@ -271,7 +271,7 @@
       });
     });
 
-    // Validação elegante do tipo de ocorrência
+    // Validação elegante do tipo de ocorrência e controle de loading
     $("form").on("submit", function(e) {
       const tipoOcorrencia = $("#ocorrencia_tipo_id").val();
       if (!tipoOcorrencia) {
@@ -292,6 +292,12 @@
         // Remove destaque de erro se estiver selecionado
         $("#ocorrencia_tipo_id").removeClass("is-invalid");
         $("#ocorrencia_tipo_id").next(".invalid-feedback").remove();
+        
+        // Ativa loading no botão de submit apenas uma vez
+        const submitBtn = $(this).find('button[type="submit"]');
+        if (submitBtn.length && window.HelpSystemInstance && !submitBtn.hasClass('btn-loading')) {
+          window.HelpSystemInstance.setButtonLoading(submitBtn[0], true);
+        }
       }
     });
     
@@ -300,6 +306,14 @@
       if ($(this).val()) {
         $(this).removeClass("is-invalid");
         $(this).next(".invalid-feedback").remove();
+      }
+    });
+    
+    // Restaura o botão quando a página é carregada (caso de erro)
+    $(window).on('load', function() {
+      const submitBtn = $('button[type="submit"]');
+      if (submitBtn.length && window.HelpSystemInstance) {
+        window.HelpSystemInstance.setButtonLoading(submitBtn[0], false);
       }
     });
   });
