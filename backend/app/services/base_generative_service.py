@@ -14,7 +14,7 @@ from app.models.gemini_usage import GeminiUsageLog  # <-- NOVA IMPORTAÇÃO
 
 
 class BaseGenerativeService:
-    def __init__(self, model_name="gemini-1.5-flash-latest"):
+    def __init__(self, model_name="gemini-1.5-flash-8b-001"):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.model = None
         self._google_api_key = None
@@ -234,7 +234,7 @@ class BaseGenerativeService:
                     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
                 ]
                 model = genai.GenerativeModel(
-                    model_name=getattr(self, 'model', None).model_name if getattr(self, 'model', None) else "gemini-1.5-flash-latest",
+                    model_name=getattr(self, 'model', None).model_name if getattr(self, 'model', None) else "gemini-1.5-flash-8b-001",
                     safety_settings=safety_settings,
                     generation_config=generation_config,
                 )
