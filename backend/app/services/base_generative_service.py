@@ -223,7 +223,7 @@ class BaseGenerativeService:
                 generation_config = {
                     "temperature": 0.7,
                     "top_p": 0.95,
-                    "top_k": 64,
+                    "top_k": 40,  # Ajustado para compatibilidade com gemini-1.5-flash-8b-001
                     "max_output_tokens": 8192,
                     "response_mime_type": "text/plain",
                 }
