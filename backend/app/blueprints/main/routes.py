@@ -158,3 +158,50 @@ def processar_relatorio_redirect():
         
         logger.error(f"Erro ao processar relatório: {e}")
         return jsonify({'error': 'Erro ao processar relatório'}), 500
+
+
+# ======================================================================
+# ROTA DE TESTE ISOLADO PARA A API DO GEMINI - ADICIONAR NO FINAL DO ARQUIVO DE ROTAS
+# ======================================================================
+import google.generativeai as genai
+
+@main_bp.route('/test-gemini')
+def test_gemini_route():
+    """
+    Esta rota executa um teste limpo e direto da biblioteca google-generativeai
+    para verificar qual versão da API ela está realmente usando no ambiente.
+    """
+    logger = logging.getLogger('gemini_test')
+    logger.setLevel(logging.INFO)
+    
+    test_api_key = os.getenv("GOOGLE_API_KEY_1")
+    
+    if not test_api_key:
+        return "ERRO: GOOGLE_API_KEY_1 não está configurada no ambiente.", 500
+
+    try:
+        logger.info("--- INICIANDO TESTE GEMINI ISOLADO ---")
+        
+        # Passo 1: Configurar a API Key
+        genai.configure(api_key=test_api_key)
+        logger.info("genai.configure() executado com sucesso.")
+        
+        # Passo 2: Inicializar o modelo
+        model = genai.GenerativeModel('gemini-pro')
+        logger.info(f"Modelo '{model.model_name}' inicializado com sucesso.")
+        
+        # Passo 3: Gerar conteúdo
+        logger.info("Enviando prompt 'Qual a capital do Brasil?' para o modelo...")
+        response = model.generate_content("Qual a capital do Brasil?")
+        logger.info("Chamada para generate_content() retornou sem erro.")
+        
+        logger.info("--- TESTE GEMINI ISOLADO CONCLUÍDO COM SUCESSO ---")
+        return f"SUCESSO! Resposta da API: {response.text}", 200
+
+    except Exception as e:
+        logger.error(f"--- ERRO NO TESTE GEMINI ISOLADO ---")
+        logger.error(f"O teste falhou com a seguinte exceção: {e}", exc_info=True)
+        # Retornamos o traceback completo na resposta para facilitar o debug
+        import traceback
+        return f"FALHA NO TESTE: {e}\n\nTraceback:\n{traceback.format_exc()}", 500
+# ======================================================================
