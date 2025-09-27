@@ -134,7 +134,7 @@ def ai_transform(text: str, mode: str = "formal", tone: Optional[str] = None, ma
     else:
         user_prompt = cleaned
 
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-pro")
     resp = model.generate_content([
         {"role": "system", "parts": sys_prompt},
         {"role": "user", "parts": user_prompt},

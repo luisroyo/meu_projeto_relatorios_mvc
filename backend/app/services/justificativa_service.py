@@ -9,7 +9,7 @@ from .base_generative_service import BaseGenerativeService
 class JustificativaAtestadoService(BaseGenerativeService):
     def __init__(
         self,
-        model_name="gemini-1.5-flash",
+        model_name="gemini-pro",
         template_filename="justificativa_atestado_medico_template.txt",
     ):
         super().__init__(model_name=model_name)
