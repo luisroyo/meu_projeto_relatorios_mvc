@@ -163,7 +163,7 @@ def processar_relatorio_redirect():
 # ======================================================================
 # ROTA DE TESTE ISOLADO PARA A API DO GEMINI - ADICIONAR NO FINAL DO ARQUIVO DE ROTAS
 # ======================================================================
-import google.generativeai as genai
+from google import genai
 
 @main_bp.route('/test-gemini')
 def test_gemini_route():
@@ -182,17 +182,16 @@ def test_gemini_route():
     try:
         logger.info("--- INICIANDO TESTE GEMINI ISOLADO ---")
         
-        # Passo 1: Configurar a API Key
-        genai.configure(api_key=test_api_key)
-        logger.info("genai.configure() executado com sucesso.")
+        # Passo 1: Criar cliente com nova API
+        client = genai.Client(api_key=test_api_key)
+        logger.info("Cliente genai.Client() criado com sucesso.")
         
-        # Passo 2: Inicializar o modelo
-        model = genai.GenerativeModel('gemini-pro')
-        logger.info(f"Modelo '{model.model_name}' inicializado com sucesso.")
-        
-        # Passo 3: Gerar conteúdo
+        # Passo 2: Gerar conteúdo com nova API
         logger.info("Enviando prompt 'Qual a capital do Brasil?' para o modelo...")
-        response = model.generate_content("Qual a capital do Brasil?")
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents="Qual a capital do Brasil?"
+        )
         logger.info("Chamada para generate_content() retornou sem erro.")
         
         logger.info("--- TESTE GEMINI ISOLADO CONCLUÍDO COM SUCESSO ---")

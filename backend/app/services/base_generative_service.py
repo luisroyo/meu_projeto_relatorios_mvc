@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from flask import request, current_app
 from flask_login import current_user
 
-import google.generativeai as genai
+from google import genai
 
 from app import cache, db  # <-- NOVA IMPORTAÇÃO
 from app.models.gemini_usage import GeminiUsageLog  # <-- NOVA IMPORTAÇÃO
@@ -45,44 +45,14 @@ class BaseGenerativeService:
                     "API Key do Google (GOOGLE_API_KEY_1 ou GOOGLE_API_KEY_2) não configurada nas variáveis de ambiente."
                 )
 
-            genai.configure(api_key=self._google_api_key)
+            # Nova API oficial do Google
+            self.client = genai.Client(api_key=self._google_api_key)
+            self.model_name = model_name
             self.logger.info(
                 "Configuração da API Key do Google bem-sucedida para o serviço."
             )
-
-            generation_config = {
-                "temperature": 0.7,
-                "top_p": 0.95,
-                "top_k": 64,
-                "max_output_tokens": 8192,
-                "response_mime_type": "text/plain",
-            }
-            safety_settings = [
-                {
-                    "category": "HARM_CATEGORY_HARASSMENT",
-                    "threshold": "BLOCK_MEDIUM_AND_ABOVE",
-                },
-                {
-                    "category": "HARM_CATEGORY_HATE_SPEECH",
-                    "threshold": "BLOCK_MEDIUM_AND_ABOVE",
-                },
-                {
-                    "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    "threshold": "BLOCK_MEDIUM_AND_ABOVE",
-                },
-                {
-                    "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    "threshold": "BLOCK_MEDIUM_AND_ABOVE",
-                },
-            ]
-
-            self.model = genai.GenerativeModel(
-                model_name=model_name,
-                safety_settings=safety_settings,
-                generation_config=generation_config,
-            )
             self.logger.info(
-                f"Modelo Gemini '{self.model.model_name}' inicializado com sucesso para {self.__class__.__name__}."
+                f"Cliente Gemini '{self.model_name}' inicializado com sucesso para {self.__class__.__name__}."
             )
 
         except RuntimeError as rte:
@@ -183,7 +153,7 @@ class BaseGenerativeService:
     # APLICAÇÃO DO CACHE COM O DECORATOR @cache.memoize
     @cache.memoize(timeout=3600)  # Cache por 1 hora
     def _call_generative_model(self, prompt_final: str) -> str:
-        import google.generativeai as genai
+        from google import genai
         import os
         
         # Log detalhado do cache
@@ -216,88 +186,25 @@ class BaseGenerativeService:
                 continue
                 
             try:
-                genai.configure(api_key=api_key)
+                # Nova API: cria cliente com API key específica
+                client = genai.Client(api_key=api_key)
                 self.logger.info(f"🔑 Usando {api_key_name} para chamada Gemini.")
                 
                 # Recria o modelo para garantir que está usando a API Key correta
-                generation_config = {
-                    "temperature": 0.7,
-                    "top_p": 0.95,
-                    "top_k": 40,  # Ajustado para compatibilidade com gemini-pro
-                    "max_output_tokens": 8192,
-                    "response_mime_type": "text/plain",
-                }
-                safety_settings = [
-                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-                    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-                    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-                ]
-                model = genai.GenerativeModel(
-                    model_name=getattr(self, 'model', None).model_name if getattr(self, 'model', None) else "gemini-pro",
-                    safety_settings=safety_settings,
-                    generation_config=generation_config,
-                )
+                # Nova API oficial do Google
+                model_name = getattr(self, 'model_name', None) or "gemini-2.0-flash"
                 self.logger.info(f"🤖 Enviando prompt para o modelo Gemini ({api_key_name})")
-                response = model.generate_content(prompt_final)
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt_final
+                )
                 self.logger.debug(f"Resposta bruta da API Gemini: {response}")
 
                 # Atualiza contador de uso
                 self._update_usage(api_key_name)
 
-                if response.parts:
-                    texto_processado = "".join(
-                        part.text for part in response.parts if hasattr(part, "text")
-                    )
-                    if texto_processado:
-                        self.logger.info(f"✅ Resposta da IA processada com sucesso (via response.parts) - {len(texto_processado)} chars")
-                        self.logger.info(f"💾 Salvando no cache com chave: {cache_key[:16]}...")
-                        
-                        # Registra log de sucesso
-                        self._log_api_usage(
-                            api_key_name=api_key_name,
-                            prompt_length=len(prompt_final),
-                            response_length=len(texto_processado),
-                            cache_hit=False,
-                            success=True
-                        )
-                        
-                        return texto_processado
-                    elif (
-                        response.prompt_feedback
-                        and str(response.prompt_feedback.block_reason) != "BLOCK_REASON_UNSPECIFIED"
-                    ):
-                        block_reason_detail = (
-                            response.prompt_feedback.block_reason_message
-                            or str(response.prompt_feedback.block_reason)
-                        )
-                        self.logger.warning(f"🚫 Conteúdo bloqueado pela IA (detectado em parts). Motivo: {block_reason_detail}")
-                        
-                        # Registra log de erro
-                        self._log_api_usage(
-                            api_key_name=api_key_name,
-                            prompt_length=len(prompt_final),
-                            cache_hit=False,
-                            success=False,
-                            error_message=f"Conteúdo bloqueado: {block_reason_detail}"
-                        )
-                        
-                        raise ValueError(f"O conteúdo gerado foi bloqueado pela IA. Motivo: {block_reason_detail}")
-                    else:
-                        self.logger.warning("⚠️ Resposta da IA (via parts) não contém texto processado ou partes válidas.")
-                        
-                        # Registra log de erro
-                        self._log_api_usage(
-                            api_key_name=api_key_name,
-                            prompt_length=len(prompt_final),
-                            cache_hit=False,
-                            success=False,
-                            error_message="Resposta vazia ou inválida"
-                        )
-                        
-                        raise ValueError("Resposta da IA (via parts) está vazia ou inválida.")
-
-                elif hasattr(response, "text") and response.text:
+                # Nova API: resposta tem estrutura diferente
+                if hasattr(response, "text") and response.text:
                     self.logger.info(f"✅ Resposta da IA processada com sucesso (via response.text) - {len(response.text)} chars")
                     self.logger.info(f"💾 Salvando no cache com chave: {cache_key[:16]}...")
                     
