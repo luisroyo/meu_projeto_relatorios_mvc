@@ -112,12 +112,12 @@ def ai_transform(text: str, mode: str = "formal", tone: Optional[str] = None, ma
         cleaned = cleaned[:max_chars]
 
     # Import lazy para evitar overhead se não utilizado
-    import google.generativeai as genai
+    from google import genai
 
     api_key = os.environ.get("GOOGLE_API_KEY_1") or os.environ.get("GOOGLE_API_KEY_2")
     if not api_key:
         return cleaned
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 
     sys_prompt = (
         "Você é um assistente de escrita em PT-BR. Responda apenas com o texto transformado, sem comentários."
@@ -134,11 +134,12 @@ def ai_transform(text: str, mode: str = "formal", tone: Optional[str] = None, ma
     else:
         user_prompt = cleaned
 
-    model = genai.GenerativeModel("gemini-pro")
-    resp = model.generate_content([
-        {"role": "system", "parts": sys_prompt},
-        {"role": "user", "parts": user_prompt},
-    ])
+    # Nova API oficial
+    full_prompt = f"{sys_prompt}\n\n{user_prompt}"
+    resp = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=full_prompt
+    )
     output = resp.text or ""
     return clean_text(output)
 
