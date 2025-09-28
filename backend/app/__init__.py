@@ -57,18 +57,28 @@ logging.basicConfig(
 )
 module_logger = logging.getLogger(__name__)
 
-log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "logs")
-os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, "assistente_ia_seg.log")
+# Configuração de logs condicional para Vercel (sistema somente leitura)
+if os.getenv("VERCEL") or os.getenv("VERCEL_ENV"):
+    # No Vercel, apenas usar logging básico sem arquivo
+    module_logger.info("Executando no Vercel - usando logging básico sem arquivo")
+else:
+    # No Render/local, usar arquivo de log
+    try:
+        log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, "assistente_ia_seg.log")
 
-file_handler = RotatingFileHandler(
-    log_file, maxBytes=1_000_000, backupCount=5, encoding="utf-8"
-)
-file_handler.setFormatter(logging.Formatter(
-    "%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] %(message)s"
-))
-file_handler.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
-logging.getLogger().addHandler(file_handler)
+        file_handler = RotatingFileHandler(
+            log_file, maxBytes=1_000_000, backupCount=5, encoding="utf-8"
+        )
+        file_handler.setFormatter(logging.Formatter(
+            "%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] %(message)s"
+        ))
+        file_handler.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
+        logging.getLogger().addHandler(file_handler)
+        module_logger.info("Logging para arquivo configurado com sucesso")
+    except (OSError, PermissionError) as e:
+        module_logger.warning(f"Não foi possível criar arquivo de log: {e}. Usando apenas logging básico.")
 
 # --- Fábrica da aplicação ---
 def create_app(config_class=DevelopmentConfig):
