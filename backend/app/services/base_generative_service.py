@@ -8,6 +8,7 @@ from flask import request, current_app
 from flask_login import current_user
 
 import google.generativeai as genai
+from google.api_core.client_options import ClientOptions
 
 from app import cache, db  # <-- NOVA IMPORTAÇÃO
 from app.models.gemini_usage import GeminiUsageLog  # <-- NOVA IMPORTAÇÃO
@@ -21,7 +22,6 @@ class BaseGenerativeService:
         
         # Rate limiting para APIs Gemini
         self._api_usage = {
-            "GEMINI_API_KEY": {"last_used": None, "daily_count": 0, "last_reset": None},
             "GOOGLE_API_KEY_1": {"last_used": None, "daily_count": 0, "last_reset": None},
             "GOOGLE_API_KEY_2": {"last_used": None, "daily_count": 0, "last_reset": None}
         }
@@ -33,18 +33,17 @@ class BaseGenerativeService:
         }
 
         try:
-            # Tenta usar GEMINI_API_KEY primeiro (padrão oficial), depois fallbacks
+            # Tenta usar GOOGLE_API_KEY_1 primeiro, depois GOOGLE_API_KEY_2 como fallback
             # IMPORTANTE: Configure no .env ou variáveis de ambiente:
-            # - GEMINI_API_KEY (API Key oficial conforme documentação Google AI Studio)
-            # - GOOGLE_API_KEY_1 (API Key de backup)
-            # - GOOGLE_API_KEY_2 (API Key de backup adicional)
-            self._google_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY_1") or os.getenv("GOOGLE_API_KEY")
+            # - GOOGLE_API_KEY_1 (API Key principal)
+            # - GOOGLE_API_KEY_2 (API Key de backup)
+            self._google_api_key = os.getenv("GOOGLE_API_KEY_1") or os.getenv("GOOGLE_API_KEY_2")
             if not self._google_api_key:
                 self.logger.error(
-                    "API Key do Google (GEMINI_API_KEY, GOOGLE_API_KEY_1 ou GOOGLE_API_KEY) não encontrada nas variáveis de ambiente."
+                    "API Key do Google (GOOGLE_API_KEY_1 ou GOOGLE_API_KEY_2) não encontrada nas variáveis de ambiente."
                 )
                 raise RuntimeError(
-                    "API Key do Google (GEMINI_API_KEY, GOOGLE_API_KEY_1 ou GOOGLE_API_KEY) não configurada nas variáveis de ambiente."
+                    "API Key do Google (GOOGLE_API_KEY_1 ou GOOGLE_API_KEY_2) não configurada nas variáveis de ambiente."
                 )
 
             genai.configure(api_key=self._google_api_key)
@@ -78,10 +77,14 @@ class BaseGenerativeService:
                 },
             ]
 
+            client_options = ClientOptions(
+                api_endpoint="generativelanguage.googleapis.com"
+            )
             self.model = genai.GenerativeModel(
                 model_name=model_name,
                 safety_settings=safety_settings,
                 generation_config=generation_config,
+                client_options=client_options,
             )
             self.logger.info(
                 f"Modelo Gemini '{self.model.model_name}' inicializado com sucesso para {self.__class__.__name__}."
@@ -199,11 +202,9 @@ class BaseGenerativeService:
 
         # Configuração das API Keys para fallback automático
         # IMPORTANTE: Configure no .env ou variáveis de ambiente:
-        # - GEMINI_API_KEY (API Key oficial conforme documentação Google AI Studio)
-        # - GOOGLE_API_KEY_1 (API Key de backup)
-        # - GOOGLE_API_KEY_2 (API Key de backup adicional)
+        # - GOOGLE_API_KEY_1 (API Key principal)
+        # - GOOGLE_API_KEY_2 (API Key de backup)
         api_keys = [
-            ("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY")),
             ("GOOGLE_API_KEY_1", os.environ.get("GOOGLE_API_KEY_1")),
             ("GOOGLE_API_KEY_2", os.environ.get("GOOGLE_API_KEY_2"))
         ]
@@ -237,10 +238,14 @@ class BaseGenerativeService:
                     {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
                     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
                 ]
+                client_options = ClientOptions(
+                    api_endpoint="generativelanguage.googleapis.com"
+                )
                 model = genai.GenerativeModel(
                     model_name=getattr(self, 'model', None).model_name if getattr(self, 'model', None) else "gemini-pro",
                     safety_settings=safety_settings,
                     generation_config=generation_config,
+                    client_options=client_options,
                 )
                 self.logger.info(f"🤖 Enviando prompt para o modelo Gemini ({api_key_name})")
                 response = model.generate_content(prompt_final)
