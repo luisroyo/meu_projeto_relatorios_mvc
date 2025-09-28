@@ -75,10 +75,10 @@ class EmailFormatService(BaseGenerativeService):
             f"Iniciando formatação para email do texto (primeiros 70 chars): '{texto_original_relatorio[:70]}...'"
         )
 
-        if self.model is None:
-            self.logger.error("Modelo de IA não inicializado no EmailFormatService.")
+        if self.client is None:
+            self.logger.error("Cliente de IA não inicializado no EmailFormatService.")
             raise RuntimeError(
-                "Serviço de IA não configurado corretamente (modelo não inicializado)."
+                "Serviço de IA não configurado corretamente (cliente não inicializado)."
             )
 
         try:

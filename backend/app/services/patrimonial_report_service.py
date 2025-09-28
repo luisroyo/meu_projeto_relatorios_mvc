@@ -81,12 +81,12 @@ class PatrimonialReportService(BaseGenerativeService):
             f"Iniciando geração de relatório de segurança para dados brutos (primeiros 70 chars): '{dados_brutos_relatorio[:70]}...'"
         )
 
-        if self.model is None:  # Verificação herdada da BaseGenerativeService
+        if self.client is None:  # Verificação herdada da BaseGenerativeService
             self.logger.error(
-                "Modelo de IA não inicializado no PatrimonialReportService."
+                "Cliente de IA não inicializado no PatrimonialReportService."
             )
             raise RuntimeError(
-                "Serviço de IA não configurado corretamente (modelo não inicializado)."
+                "Serviço de IA não configurado corretamente (cliente não inicializado)."
             )
 
         try:

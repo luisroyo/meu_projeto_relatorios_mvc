@@ -14,9 +14,10 @@ from app.models.gemini_usage import GeminiUsageLog  # <-- NOVA IMPORTAÇÃO
 
 
 class BaseGenerativeService:
-    def __init__(self, model_name="gemini-pro"):
+    def __init__(self, model_name="gemini-2.0-flash"):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.model = None
+        self.client = None
+        self.model_name = model_name
         self._google_api_key = None
         
         # Rate limiting para APIs Gemini
@@ -47,7 +48,6 @@ class BaseGenerativeService:
 
             # Nova API oficial do Google
             self.client = genai.Client(api_key=self._google_api_key)
-            self.model_name = model_name
             self.logger.info(
                 "Configuração da API Key do Google bem-sucedida para o serviço."
             )
@@ -65,7 +65,7 @@ class BaseGenerativeService:
                 f"Falha catastrófica na inicialização do serviço ({self.__class__.__name__}): {e}",
                 exc_info=True,
             )
-            self.model = None
+            self.client = None
             raise RuntimeError(
                 f"Falha catastrófica na inicialização do serviço de IA: {e}"
             ) from e
