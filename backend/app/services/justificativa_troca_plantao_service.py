@@ -64,9 +64,9 @@ class JustificativaTrocaPlantaoService(BaseGenerativeService):
         self.logger.info(
             f"Gerando justificativa de troca de plantão com dados: {dados_justificativa}"
         )
-        if self.model is None:
+        if self.client is None:
             raise RuntimeError(
-                "Serviço de IA não configurado corretamente (modelo não inicializado)."
+                "Serviço de IA não configurado corretamente (cliente não inicializado)."
             )
         try:
             prompt = self._construir_prompt(dados_justificativa)
