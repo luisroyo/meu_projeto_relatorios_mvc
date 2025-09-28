@@ -137,7 +137,7 @@ def ai_transform(text: str, mode: str = "formal", tone: Optional[str] = None, ma
     # Nova API oficial
     full_prompt = f"{sys_prompt}\n\n{user_prompt}"
     resp = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-1.5-pro",
         contents=full_prompt
     )
     output = resp.text or ""
