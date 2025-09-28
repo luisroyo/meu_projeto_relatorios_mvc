@@ -21,6 +21,7 @@ class BaseGenerativeService:
         
         # Rate limiting para APIs Gemini
         self._api_usage = {
+            "GEMINI_API_KEY": {"last_used": None, "daily_count": 0, "last_reset": None},
             "GOOGLE_API_KEY_1": {"last_used": None, "daily_count": 0, "last_reset": None},
             "GOOGLE_API_KEY_2": {"last_used": None, "daily_count": 0, "last_reset": None}
         }
