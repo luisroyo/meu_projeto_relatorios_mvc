@@ -174,10 +174,10 @@ def test_gemini_route():
     logger = logging.getLogger('gemini_test')
     logger.setLevel(logging.INFO)
     
-    test_api_key = os.getenv("GOOGLE_API_KEY_1")
+    test_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY_1")
     
     if not test_api_key:
-        return "ERRO: GOOGLE_API_KEY_1 não está configurada no ambiente.", 500
+        return "ERRO: GEMINI_API_KEY ou GOOGLE_API_KEY_1 não está configurada no ambiente.", 500
 
     try:
         logger.info("--- INICIANDO TESTE GEMINI ISOLADO ---")
