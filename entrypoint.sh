@@ -27,10 +27,4 @@ echo "Iniciando Gunicorn..."
 # Garante que backend/ está no PYTHONPATH
 export PYTHONPATH="backend:${PYTHONPATH}"
 exec gunicorn "app:create_app()" \
-    --bind 0.0.0.0:$PORT \
-    --timeout 120 \
-    --workers 2 \
-    --worker-class sync \
-    --max-requests 1000 \
-    --max-requests-jitter 100 \
-    --preload
+    --config backend/gunicorn.conf.py

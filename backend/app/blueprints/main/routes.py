@@ -2,7 +2,7 @@
 import logging
 import os
 
-from flask import Blueprint, flash, g, render_template, jsonify, request, redirect, url_for
+from flask import Blueprint, flash, g, render_template, jsonify, request, redirect, url_for, send_from_directory
 from flask_login import current_user, login_required
 
 from app import db, limiter
@@ -159,6 +159,20 @@ def processar_relatorio_redirect():
         logger.error(f"Erro ao processar relatório: {e}")
         return jsonify({'error': 'Erro ao processar relatório'}), 500
 
+
+# ======================================================================
+# ROTA PARA FAVICON
+# ======================================================================
+@main_bp.route('/favicon.ico')
+def favicon():
+    """Serve o favicon para evitar erros 404."""
+    import os
+    from flask import current_app
+    return send_from_directory(
+        os.path.join(current_app.root_path, '..', 'frontend', 'static', 'images'),
+        'favicon.ico',
+        mimetype='image/vnd.microsoft.icon'
+    )
 
 # ======================================================================
 # ROTA DE TESTE ISOLADO PARA A API DO GEMINI - ADICIONAR NO FINAL DO ARQUIVO DE ROTAS
