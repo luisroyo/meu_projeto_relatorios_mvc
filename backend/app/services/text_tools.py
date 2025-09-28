@@ -114,7 +114,7 @@ def ai_transform(text: str, mode: str = "formal", tone: Optional[str] = None, ma
     # Import lazy para evitar overhead se não utilizado
     import google.generativeai as genai
 
-    api_key = os.environ.get("GOOGLE_API_KEY_1") or os.environ.get("GOOGLE_API_KEY_2")
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY_1") or os.environ.get("GOOGLE_API_KEY_2")
     if not api_key:
         return cleaned
     genai.configure(api_key=api_key)

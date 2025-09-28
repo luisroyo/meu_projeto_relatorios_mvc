@@ -32,17 +32,18 @@ class BaseGenerativeService:
         }
 
         try:
-            # Tenta usar GOOGLE_API_KEY_1 primeiro, depois GOOGLE_API_KEY como fallback
+            # Tenta usar GEMINI_API_KEY primeiro (padrão oficial), depois fallbacks
             # IMPORTANTE: Configure no .env ou variáveis de ambiente:
-            # - GOOGLE_API_KEY_1 (API Key principal para inicialização)
-            # - GOOGLE_API_KEY_2 (API Key de backup para fallback)
-            self._google_api_key = os.getenv("GOOGLE_API_KEY_1") or os.getenv("GOOGLE_API_KEY")
+            # - GEMINI_API_KEY (API Key oficial conforme documentação Google AI Studio)
+            # - GOOGLE_API_KEY_1 (API Key de backup)
+            # - GOOGLE_API_KEY_2 (API Key de backup adicional)
+            self._google_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY_1") or os.getenv("GOOGLE_API_KEY")
             if not self._google_api_key:
                 self.logger.error(
-                    "API Key do Google (GOOGLE_API_KEY_1 ou GOOGLE_API_KEY) não encontrada nas variáveis de ambiente."
+                    "API Key do Google (GEMINI_API_KEY, GOOGLE_API_KEY_1 ou GOOGLE_API_KEY) não encontrada nas variáveis de ambiente."
                 )
                 raise RuntimeError(
-                    "API Key do Google (GOOGLE_API_KEY_1 ou GOOGLE_API_KEY) não configurada nas variáveis de ambiente."
+                    "API Key do Google (GEMINI_API_KEY, GOOGLE_API_KEY_1 ou GOOGLE_API_KEY) não configurada nas variáveis de ambiente."
                 )
 
             genai.configure(api_key=self._google_api_key)
@@ -197,9 +198,11 @@ class BaseGenerativeService:
 
         # Configuração das API Keys para fallback automático
         # IMPORTANTE: Configure no .env ou variáveis de ambiente:
-        # - GOOGLE_API_KEY_1 (API Key principal)
-        # - GOOGLE_API_KEY_2 (API Key de backup/fallback)
+        # - GEMINI_API_KEY (API Key oficial conforme documentação Google AI Studio)
+        # - GOOGLE_API_KEY_1 (API Key de backup)
+        # - GOOGLE_API_KEY_2 (API Key de backup adicional)
         api_keys = [
+            ("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY")),
             ("GOOGLE_API_KEY_1", os.environ.get("GOOGLE_API_KEY_1")),
             ("GOOGLE_API_KEY_2", os.environ.get("GOOGLE_API_KEY_2"))
         ]
