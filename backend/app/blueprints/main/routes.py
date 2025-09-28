@@ -189,7 +189,7 @@ def test_gemini_route():
         # Passo 2: Gerar conteúdo com nova API
         logger.info("Enviando prompt 'Qual a capital do Brasil?' para o modelo...")
         response = client.models.generate_content(
-            model="gemini-1.5-pro",
+            model="gemini-2.5-flash",
             contents="Qual a capital do Brasil?"
         )
         logger.info("Chamada para generate_content() retornou sem erro.")
@@ -203,4 +203,61 @@ def test_gemini_route():
         # Retornamos o traceback completo na resposta para facilitar o debug
         import traceback
         return f"FALHA NO TESTE: {e}\n\nTraceback:\n{traceback.format_exc()}", 500
+
+@main_bp.route('/list-models')
+def list_gemini_models():
+    """
+    Lista todos os modelos Gemini disponíveis na conta.
+    Útil para descobrir quais modelos estão realmente acessíveis.
+    """
+    logger = logging.getLogger('gemini_models_list')
+    logger.setLevel(logging.INFO)
+    
+    test_api_key = os.getenv("GOOGLE_API_KEY_1") or os.getenv("GOOGLE_API_KEY_2")
+    
+    if not test_api_key:
+        return "ERRO: GOOGLE_API_KEY_1 ou GOOGLE_API_KEY_2 não está configurada no ambiente.", 500
+
+    try:
+        logger.info("--- LISTANDO MODELOS GEMINI DISPONÍVEIS ---")
+        
+        # Cria cliente com nova API
+        client = genai.Client(api_key=test_api_key)
+        logger.info("Cliente genai.Client() criado com sucesso.")
+        
+        # Lista todos os modelos disponíveis
+        logger.info("Buscando lista de modelos disponíveis...")
+        models = client.models.list()
+        
+        available_models = []
+        for model in models:
+            model_name = model.name
+            available_models.append(model_name)
+            logger.info(f"Modelo encontrado: {model_name}")
+        
+        logger.info(f"--- TOTAL: {len(available_models)} modelos encontrados ---")
+        
+        # Formata resposta para exibição
+        response_html = f"""
+        <h2>🤖 Modelos Gemini Disponíveis ({len(available_models)})</h2>
+        <ul>
+        """
+        
+        for model in available_models:
+            response_html += f"<li><strong>{model}</strong></li>\n"
+        
+        response_html += """
+        </ul>
+        <hr>
+        <p><em>Esta lista mostra todos os modelos que sua conta tem acesso.</em></p>
+        """
+        
+        return response_html, 200
+
+    except Exception as e:
+        logger.error(f"--- ERRO AO LISTAR MODELOS GEMINI ---")
+        logger.error(f"Erro: {e}", exc_info=True)
+        import traceback
+        return f"ERRO AO LISTAR MODELOS: {e}\n\nTraceback:\n{traceback.format_exc()}", 500
+
 # ======================================================================

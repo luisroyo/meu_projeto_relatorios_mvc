@@ -14,7 +14,7 @@ from app.models.gemini_usage import GeminiUsageLog  # <-- NOVA IMPORTAÇÃO
 
 
 class BaseGenerativeService:
-    def __init__(self, model_name="gemini-1.5-pro"):
+    def __init__(self, model_name="gemini-2.5-flash"):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.client = None
         self.model_name = model_name
@@ -191,8 +191,8 @@ class BaseGenerativeService:
                 self.logger.info(f"🔑 Usando {api_key_name} para chamada Gemini.")
                 
                 # Sistema de fallback inteligente para modelos
-                primary_model = getattr(self, 'model_name', None) or "gemini-1.5-pro"
-                fallback_models = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"]
+                primary_model = getattr(self, 'model_name', None) or "gemini-2.5-flash"
+                fallback_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"]
                 
                 # Remove o modelo principal da lista de fallback se já estiver lá
                 if primary_model in fallback_models:
