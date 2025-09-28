@@ -8,7 +8,6 @@ from flask import request, current_app
 from flask_login import current_user
 
 import google.generativeai as genai
-from google.api_core.client_options import ClientOptions
 
 from app import cache, db  # <-- NOVA IMPORTAÇÃO
 from app.models.gemini_usage import GeminiUsageLog  # <-- NOVA IMPORTAÇÃO
@@ -77,14 +76,10 @@ class BaseGenerativeService:
                 },
             ]
 
-            client_options = ClientOptions(
-                api_endpoint="generativelanguage.googleapis.com"
-            )
             self.model = genai.GenerativeModel(
                 model_name=model_name,
                 safety_settings=safety_settings,
                 generation_config=generation_config,
-                client_options=client_options,
             )
             self.logger.info(
                 f"Modelo Gemini '{self.model.model_name}' inicializado com sucesso para {self.__class__.__name__}."
@@ -238,14 +233,10 @@ class BaseGenerativeService:
                     {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
                     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
                 ]
-                client_options = ClientOptions(
-                    api_endpoint="generativelanguage.googleapis.com"
-                )
                 model = genai.GenerativeModel(
                     model_name=getattr(self, 'model', None).model_name if getattr(self, 'model', None) else "gemini-pro",
                     safety_settings=safety_settings,
                     generation_config=generation_config,
-                    client_options=client_options,
                 )
                 self.logger.info(f"🤖 Enviando prompt para o modelo Gemini ({api_key_name})")
                 response = model.generate_content(prompt_final)
