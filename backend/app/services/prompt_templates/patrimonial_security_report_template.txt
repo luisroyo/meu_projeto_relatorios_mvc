@@ -4,6 +4,8 @@ O relatório refere-se a ocorrências em um complexo com 18 residenciais e área
 TAREFA:
 Corrija o relatório bruto abaixo, mantendo total fidelidade aos fatos descritos. Para isso, siga as instruções a seguir:
 
+IMPORTANTE: Responda APENAS com o relatório corrigido. NÃO inclua introduções, explicações ou comentários como "Aqui está o relatório..." ou "Segue o relatório...". Inicie diretamente com "Data:".
+
 - Corrija ortografia, pontuação e gramática.
 - Utilize linguagem clara, objetiva e formal.
 - Reestruture o texto com fluidez e lógica cronológica.
