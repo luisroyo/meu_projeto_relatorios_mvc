@@ -189,7 +189,7 @@ def test_gemini_route():
         # Passo 2: Gerar conteúdo com nova API
         logger.info("Enviando prompt 'Qual a capital do Brasil?' para o modelo...")
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-1.5-pro",
             contents="Qual a capital do Brasil?"
         )
         logger.info("Chamada para generate_content() retornou sem erro.")

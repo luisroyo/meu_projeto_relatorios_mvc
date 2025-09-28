@@ -14,7 +14,7 @@ from app.models.gemini_usage import GeminiUsageLog  # <-- NOVA IMPORTAÇÃO
 
 
 class BaseGenerativeService:
-    def __init__(self, model_name="gemini-2.0-flash"):
+    def __init__(self, model_name="gemini-1.5-pro"):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.client = None
         self.model_name = model_name
@@ -190,14 +190,34 @@ class BaseGenerativeService:
                 client = genai.Client(api_key=api_key)
                 self.logger.info(f"🔑 Usando {api_key_name} para chamada Gemini.")
                 
-                # Recria o modelo para garantir que está usando a API Key correta
-                # Nova API oficial do Google
-                model_name = getattr(self, 'model_name', None) or "gemini-2.0-flash"
-                self.logger.info(f"🤖 Enviando prompt para o modelo Gemini ({api_key_name})")
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt_final
-                )
+                # Sistema de fallback inteligente para modelos
+                primary_model = getattr(self, 'model_name', None) or "gemini-1.5-pro"
+                fallback_models = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"]
+                
+                # Remove o modelo principal da lista de fallback se já estiver lá
+                if primary_model in fallback_models:
+                    fallback_models.remove(primary_model)
+                
+                # Tenta primeiro o modelo principal
+                models_to_try = [primary_model] + fallback_models
+                response = None
+                used_model = None
+                
+                for model_name in models_to_try:
+                    try:
+                        self.logger.info(f"🤖 Tentando modelo {model_name} com {api_key_name}")
+                        response = client.models.generate_content(
+                            model=model_name,
+                            contents=prompt_final
+                        )
+                        used_model = model_name
+                        self.logger.info(f"✅ Sucesso com modelo {model_name}")
+                        break
+                    except Exception as model_error:
+                        self.logger.warning(f"⚠️ Modelo {model_name} falhou: {model_error}")
+                        if model_name == models_to_try[-1]:  # Último modelo
+                            raise model_error
+                        continue
                 self.logger.debug(f"Resposta bruta da API Gemini: {response}")
 
                 # Atualiza contador de uso
@@ -205,7 +225,7 @@ class BaseGenerativeService:
 
                 # Nova API: resposta tem estrutura diferente
                 if hasattr(response, "text") and response.text:
-                    self.logger.info(f"✅ Resposta da IA processada com sucesso (via response.text) - {len(response.text)} chars")
+                    self.logger.info(f"✅ Resposta da IA processada com sucesso usando {used_model} (via response.text) - {len(response.text)} chars")
                     self.logger.info(f"💾 Salvando no cache com chave: {cache_key[:16]}...")
                     
                     # Registra log de sucesso
