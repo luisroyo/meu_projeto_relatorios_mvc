@@ -177,7 +177,7 @@ def favicon():
 # ======================================================================
 # ROTA DE TESTE ISOLADO PARA A API DO GEMINI - ADICIONAR NO FINAL DO ARQUIVO DE ROTAS
 # ======================================================================
-from google import genai
+import google.generativeai as genai
 
 @main_bp.route('/test-gemini')
 def test_gemini_route():

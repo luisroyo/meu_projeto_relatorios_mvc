@@ -20,6 +20,10 @@ def salvar_escala_mensal(ano, mes, dados_formulario):
     turnos_definidos = ["Diurno Par", "Diurno Impar", "Noturno Par", "Noturno Impar"]
 
     try:
+        # Primeiro, remove todas as escalas existentes para o ano/mês
+        EscalaMensal.query.filter_by(ano=ano, mes=mes).delete()
+        
+        # Agora adiciona as novas escalas
         for turno in turnos_definidos:
             form_field_name = f"supervisor_{turno.lower().replace(' ', '_')}"
             # Pega o ID do supervisor do formulário, default para None se não vier
@@ -28,25 +32,14 @@ def salvar_escala_mensal(ano, mes, dados_formulario):
             # Só processa se um supervisor foi selecionado
             if supervisor_id and supervisor_id != "0":
                 supervisor_id = int(supervisor_id)
-                # Procura por uma escala existente
-                escala = EscalaMensal.query.filter_by(
-                    ano=ano, mes=mes, nome_turno=turno
-                ).first()
-
-                # Se não existir, cria uma nova
-                if not escala:
-                    escala = EscalaMensal(ano=ano, mes=mes, nome_turno=turno)
-                    db.session.add(escala)
-
-                # Atribui o supervisor
-                escala.supervisor_id = supervisor_id
-            else:
-                # Se 'Nenhum Supervisor' foi escolhido, remove a escala existente
-                escala_existente = EscalaMensal.query.filter_by(
-                    ano=ano, mes=mes, nome_turno=turno
-                ).first()
-                if escala_existente:
-                    db.session.delete(escala_existente)
+                # Cria uma nova escala
+                escala = EscalaMensal(
+                    ano=ano, 
+                    mes=mes, 
+                    nome_turno=turno, 
+                    supervisor_id=supervisor_id
+                )
+                db.session.add(escala)
 
         db.session.commit()
         return True, f"Escala de supervisores para {mes}/{ano} atualizada com sucesso!"
