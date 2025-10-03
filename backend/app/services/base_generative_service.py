@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from flask import request, current_app
 from flask_login import current_user
 
-from google import genai
+import google.generativeai as genai
 
 from app import cache, db  # <-- NOVA IMPORTAÇÃO
 from app.models.gemini_usage import GeminiUsageLog  # <-- NOVA IMPORTAÇÃO
@@ -46,8 +46,9 @@ class BaseGenerativeService:
                     "API Key do Google (GOOGLE_API_KEY_1 ou GOOGLE_API_KEY_2) não configurada nas variáveis de ambiente."
                 )
 
-            # Nova API oficial do Google
-            self.client = genai.Client(api_key=self._google_api_key)
+            # Configura a API key
+            genai.configure(api_key=self._google_api_key)
+            self.client = genai
             self.logger.info(
                 "Configuração da API Key do Google bem-sucedida para o serviço."
             )
@@ -153,7 +154,7 @@ class BaseGenerativeService:
     # APLICAÇÃO DO CACHE COM O DECORATOR @cache.memoize
     @cache.memoize(timeout=3600)  # Cache por 1 hora
     def _call_generative_model(self, prompt_final: str) -> str:
-        from google import genai
+        import google.generativeai as genai
         import os
         
         # Log detalhado do cache
@@ -186,8 +187,8 @@ class BaseGenerativeService:
                 continue
                 
             try:
-                # Nova API: cria cliente com API key específica
-                client = genai.Client(api_key=api_key)
+                # Configura a API key específica
+                genai.configure(api_key=api_key)
                 self.logger.info(f"🔑 Usando {api_key_name} para chamada Gemini.")
                 
                 # Sistema de fallback inteligente para modelos
@@ -206,10 +207,8 @@ class BaseGenerativeService:
                 for model_name in models_to_try:
                     try:
                         self.logger.info(f"🤖 Tentando modelo {model_name} com {api_key_name}")
-                        response = client.models.generate_content(
-                            model=model_name,
-                            contents=prompt_final
-                        )
+                        model = genai.GenerativeModel(model_name)
+                        response = model.generate_content(prompt_final)
                         used_model = model_name
                         self.logger.info(f"✅ Sucesso com modelo {model_name}")
                         break

@@ -28,7 +28,7 @@
                 <div class="row g-3 align-items-end">
                     <!-- Seletores de Filtro -->
                     <div class="col-md-6 col-lg-3">
-                        <label for="condominio_id" class="form-label">Condomínio</label>
+                        <label for="condominio_id" class="form-label" style="display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; margin-bottom: 0.5rem !important; font-weight: bold !important; color: #000 !important;">CONDOMÍNIO</label>
                         <select name="condominio_id" id="condominio_id" class="form-select">
                             <option value="">Todos</option>
                             {% for c in condominios %}
@@ -37,7 +37,7 @@
                         </select>
                     </div>
                     <div class="col-md-6 col-lg-3">
-                        <label for="tipo_id" class="form-label">Tipo de Ocorrência</label>
+                        <label for="tipo_id" class="form-label" style="display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; margin-bottom: 0.5rem !important; font-weight: bold !important; color: #000 !important;">TIPO DE OCORRÊNCIA</label>
                         <select name="tipo_id" id="tipo_id" class="form-select">
                             <option value="">Todos</option>
                             {% for t in tipos_ocorrencia %}
@@ -46,7 +46,7 @@
                         </select>
                     </div>
                     <div class="col-md-6 col-lg-3">
-                        <label for="supervisor_id" class="form-label">Supervisor</label>
+                        <label for="supervisor_id" class="form-label" style="display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; margin-bottom: 0.5rem !important; font-weight: bold !important; color: #000 !important;">SUPERVISOR</label>
                         <select name="supervisor_id" id="supervisor_id" class="form-select">
                             <option value="">Todos</option>
                             {% for s in supervisors %}
@@ -55,7 +55,7 @@
                         </select>
                     </div>
                     <div class="col-md-6 col-lg-3">
-                        <label for="status" class="form-label">Status</label>
+                        <label for="status" class="form-label" style="display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; margin-bottom: 0.5rem !important; font-weight: bold !important; color: #000 !important;">STATUS</label>
                         <select name="status" id="status" class="form-select">
                             <option value="">Todos</option>
                             {% for s in status_list %}
@@ -64,7 +64,7 @@
                         </select>
                     </div>
                     <div class="col-md-6 col-lg-3">
-                        <label for="mes" class="form-label">Mês</label>
+                        <label for="mes" class="form-label" style="display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; margin-bottom: 0.5rem !important; font-weight: bold !important; color: #000 !important;">MÊS</label>
                         <select name="mes" id="mes" class="form-select">
                             <option value="">Personalizado</option>
                             {% for m in meses_do_ano %}
@@ -73,11 +73,11 @@
                         </select>
                     </div>
                     <div class="col-md-6 col-lg-3">
-                        <label for="data_inicio" class="form-label">Data de Início</label>
+                        <label for="data_inicio" class="form-label" style="display: block !important; visibility: visible !important;">DATA DE INÍCIO</label>
                         <input type="date" name="data_inicio" id="data_inicio" value="{{ selected_data_inicio_str or '' }}" class="form-control">
                     </div>
                     <div class="col-md-6 col-lg-3">
-                        <label for="data_fim" class="form-label">Data de Fim</label>
+                        <label for="data_fim" class="form-label" style="display: block !important; visibility: visible !important;">DATA DE FIM</label>
                         <input type="date" name="data_fim" id="data_fim" value="{{ selected_data_fim_str or '' }}" class="form-control">
                     </div>
                     <!-- Botões -->
