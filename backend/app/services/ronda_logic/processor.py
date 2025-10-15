@@ -98,7 +98,6 @@ def processar_log_de_rondas(
     )
     if not log_bruto_rondas_str or not log_bruto_rondas_str.strip():
         logger.warning("Log de ronda bruto está vazio.")
-        # Retorna 5 valores, com 0 para os numéricos
         return "Nenhum log de ronda fornecido ou log vazio.", 0, None, None, 0
 
     inicio_intervalo_plantao, fim_intervalo_plantao, data_formatada_cabecalho = (
@@ -188,7 +187,9 @@ def processar_log_de_rondas(
         else:
             current_log_entry_datetime = ultimo_datetime_log_global
 
-        if data_prefixo:
+        if data_prefixo: # Se a linha tem um prefixo [data, hora], ela inicia um novo bloco
+            # --- CORREÇÃO APLICADA AQUI: PASSO 1 ---
+            # Primeiro, processa o bloco anterior que acabou de terminar
             processar_buffer_bloco_se_existente(
                 buffer_bloco_atual,
                 vtr_para_contexto_bloco_atual,
@@ -200,6 +201,7 @@ def processar_log_de_rondas(
                 fim_intervalo_plantao,
             )
 
+            # Atualiza os contextos para o NOVO bloco que esta linha está iniciando
             ultima_vtr_identificada_global = vtr_global
             if data_prefixo and data_prefixo != config.FALLBACK_DATA_INDEFINIDA:
                 ultima_data_valida_global = data_prefixo
@@ -209,21 +211,15 @@ def processar_log_de_rondas(
             linha_referencia_para_bloco_atual = linha_original
             datetime_log_referencia_para_bloco_atual = current_log_entry_datetime
 
+            # --- CORREÇÃO APLICADA AQUI: PASSO 2 ---
+            # A mensagem da linha com prefixo é a PRIMEIRA linha do novo bloco
             if msg_linha:
-                eventos_msg_simples = extrair_eventos_de_mensagem_simples(
-                    msg_linha,
-                    ultima_data_valida_global,
-                    vtr_linha,
-                    linha_original,
-                    current_log_entry_datetime,
-                    inicio_intervalo_plantao,
-                    fim_intervalo_plantao,
-                )
-                if eventos_msg_simples:
-                    eventos_encontrados_todos.extend(eventos_msg_simples)
+                buffer_bloco_atual.append(msg_linha)
         else:
+            # Se a linha não tem prefixo, ela pertence ao bloco atual
             buffer_bloco_atual.append(msg_linha)
 
+    # Processa o último bloco de mensagens que sobrou no buffer ao final do arquivo
     processar_buffer_bloco_se_existente(
         buffer_bloco_atual,
         vtr_para_contexto_bloco_atual,
@@ -246,9 +242,15 @@ def processar_log_de_rondas(
         ]
 
     if not eventos_do_plantao:
-        # ... (lógica de mensagem de retorno) ...
-        # Retorna 5 valores
-        return "Nenhum evento de ronda ...", 0, None, None, 0
+        # Lógica de mensagem de retorno...
+        relatorio_provisorio = formatar_relatorio_rondas(
+            nome_condominio_str,
+            data_formatada_cabecalho,
+            escala_plantao_str,
+            eventos_encontrados_todos,
+            [], []
+        )
+        return relatorio_provisorio, 0, None, None, 0
 
     eventos_do_plantao.sort(key=lambda x: x["datetime_obj"])
     primeiro_evento_dt = eventos_do_plantao[0]["datetime_obj"]
@@ -258,13 +260,11 @@ def processar_log_de_rondas(
         f"Total de {len(eventos_do_plantao)} eventos encontrados DENTRO do intervalo do plantão."
     )
 
-    # --- ALTERADO: Recebe 3 valores da função de pareamento ---
     rondas_pareadas, alertas_pareamento, soma_minutos = parear_eventos_ronda(
         eventos_do_plantao
     )
 
     if not rondas_pareadas and not alertas_pareamento:
-        # Retorna 5 valores
         return (
             "Eventos de ronda identificados, mas insuficientes para formar pares ou gerar alertas.",
             0,
@@ -288,7 +288,6 @@ def processar_log_de_rondas(
         f"Relatório para {nome_condominio_str} formatado. {len(eventos_do_plantao)} eventos, {rondas_completas_count} rondas completas."
     )
 
-    # --- ALTERADO: Retorna 5 valores, incluindo a soma dos minutos ---
     return (
         relatorio_final,
         rondas_completas_count,

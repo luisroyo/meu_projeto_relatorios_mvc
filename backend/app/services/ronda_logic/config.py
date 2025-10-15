@@ -17,14 +17,13 @@ REGEX_VTR_MENSAGEM_ALTERNATIVA = re.compile(
     r"^(VTR\s*\d+|Águia\s*\d+):\s*(.*)$", re.IGNORECASE
 )
 
-# --- NOVO: Expressão para detectar VTR em linhas simples ---
 REGEX_VTR_LINHA_SIMPLES = re.compile(
     r"^(VTR\s*\d+|Águia\s*\d+)$", re.IGNORECASE
 )
 
 REGEX_BLOCO_DATA = re.compile(
     r"Data:\s*(\d{1,2}/\d{1,2}/\d{2,4})", re.IGNORECASE
-)  # Aceita ano com 2 ou 4 digitos
+)
 REGEX_BLOCO_INICIO = re.compile(
     r"In[ií]cio:\s*(\d{1,2}\s*[:;hH]\s*\d{1,2})", re.IGNORECASE
 )
@@ -36,109 +35,65 @@ REGEX_BLOCO_QRA = re.compile(r"QRA\s+.*", re.IGNORECASE)
 INICIO_KEYWORDS_REGEX_PART = (
     r"(?:[ií]n[ií]cio|in[ií]cio|inicio|iniciou|come[cç]o|come[cç]ou|inicial)"
 )
-TERMINO_KEYWORDS_REGEX_PART = r"(?:t[eé]rmino|termino|t[eé]rminou|terminou|fim|final|encerrou)"  # "Final de final" é coberto por "final"
+TERMINO_KEYWORDS_REGEX_PART = r"(?:t[eé]rmino|termino|t[eé]rminou|terminou|fim|final|encerrou)"
 TIPO_RONDA_REGEX_PART = r"(?:ronda|vigil[âa]ncia|patrulha)"
 PREPOSICOES_ARTIGOS_REGEX_PART = r"(?:s\sde\s|\sde\s|\sda\s|\s)"
 
-TIME_CAPTURE_REGEX_PART = r"(\d{1,2}\s*[:;hH]\s*\d{1,2})"  # Ex: 19:20, 03;19, 8h30
+TIME_CAPTURE_REGEX_PART = r"(\d{1,2}\s*[:;hH]\s*\d{1,2})"
 SIMPLE_HOUR_CAPTURE_REGEX_PART = r"(\d{1,2}\s*h(?!\d))"
 
+LONE_TIME_CAPTURE_REGEX = re.compile(rf"^\s*{TIME_CAPTURE_REGEX_PART}\s*$", re.IGNORECASE)
+
+# --- ALTERAÇÃO APLICADA AQUI ---
+# Regex para capturar uma hora no início de uma linha para ser usada como contexto
+CONTEXT_TIME_CAPTURE_REGEX = re.compile(rf"^\s*{TIME_CAPTURE_REGEX_PART}", re.IGNORECASE)
+
+
 RONDA_EVENT_REGEX_PATTERNS = [
-    # --- NOVO: Padrões específicos para formatos como "Termino: 6:31", "Ínicio 06:11" e "Inicial 06:11" ---
-    {
-        "tipo": "inicio",
-        "regex_str": rf"^{INICIO_KEYWORDS_REGEX_PART}\s+{TIME_CAPTURE_REGEX_PART}$",
-    },
-    # --- NOVO: Padrões específicos para "Inicial" ---
-    {
-        "tipo": "inicio",
-        "regex_str": rf"^inicial\s+{TIME_CAPTURE_REGEX_PART}$",
-    },
-    {
-        "tipo": "inicio",
-        "regex_str": rf"^{TIME_CAPTURE_REGEX_PART}\s+inicial$",
-    },
-    {
-        "tipo": "termino",
-        "regex_str": rf"^{TERMINO_KEYWORDS_REGEX_PART}:\s*{TIME_CAPTURE_REGEX_PART}$",
-    },
-    {
-        "tipo": "termino",
-        "regex_str": rf"^{TERMINO_KEYWORDS_REGEX_PART}\s+{TIME_CAPTURE_REGEX_PART}$",
-    },
+    # --- Padrões específicos para formatos como "Termino: 6:31", "Ínicio 06:11" e "Inicial 06:11" ---
+    {"tipo": "inicio", "regex_str": rf"^{INICIO_KEYWORDS_REGEX_PART}\s+{TIME_CAPTURE_REGEX_PART}$"},
+    {"tipo": "inicio", "regex_str": rf"^inicial\s+{TIME_CAPTURE_REGEX_PART}$"},
+    {"tipo": "inicio", "regex_str": rf"^{TIME_CAPTURE_REGEX_PART}\s+inicial$"},
+    {"tipo": "termino", "regex_str": rf"^{TERMINO_KEYWORDS_REGEX_PART}:\s*{TIME_CAPTURE_REGEX_PART}$"},
+    {"tipo": "termino", "regex_str": rf"^{TERMINO_KEYWORDS_REGEX_PART}\s+{TIME_CAPTURE_REGEX_PART}$"},
     
     # Padrões com hora e minuto explícitos (hora primeiro)
-    {
-        "tipo": "inicio",
-        "regex_str": rf"{TIME_CAPTURE_REGEX_PART}.*?{INICIO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}",
-    },
-    {
-        "tipo": "termino",
-        "regex_str": rf"{TIME_CAPTURE_REGEX_PART}.*?{TERMINO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}",
-    },
-    {
-        "tipo": "inicio",
-        "regex_str": rf"{TIME_CAPTURE_REGEX_PART}.*?{INICIO_KEYWORDS_REGEX_PART}",
-    },
-    {
-        "tipo": "termino",
-        "regex_str": rf"{TIME_CAPTURE_REGEX_PART}.*?{TERMINO_KEYWORDS_REGEX_PART}",
-    },
+    {"tipo": "inicio", "regex_str": rf"{TIME_CAPTURE_REGEX_PART}.*?{INICIO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}"},
+    {"tipo": "termino", "regex_str": rf"{TIME_CAPTURE_REGEX_PART}.*?{TERMINO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}"},
+    {"tipo": "inicio", "regex_str": rf"{TIME_CAPTURE_REGEX_PART}.*?{INICIO_KEYWORDS_REGEX_PART}"},
+    {"tipo": "termino", "regex_str": rf"{TIME_CAPTURE_REGEX_PART}.*?{TERMINO_KEYWORDS_REGEX_PART}"},
+    
     # Padrões com hora e minuto explícitos (palavra-chave primeiro)
-    {
-        "tipo": "inicio",
-        "regex_str": rf"{INICIO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}.*?\s+{TIME_CAPTURE_REGEX_PART}",
-    },
-    {
-        "tipo": "termino",
-        "regex_str": rf"{TERMINO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}.*?\s+{TIME_CAPTURE_REGEX_PART}",
-    },
-    {
-        "tipo": "inicio",
-        "regex_str": rf"{INICIO_KEYWORDS_REGEX_PART}.*?\s+{TIME_CAPTURE_REGEX_PART}",
-    },
-    {
-        "tipo": "termino",
-        "regex_str": rf"{TERMINO_KEYWORDS_REGEX_PART}.*?\s+{TIME_CAPTURE_REGEX_PART}",
-    },
+    {"tipo": "inicio", "regex_str": rf"{INICIO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}.*?\s+{TIME_CAPTURE_REGEX_PART}"},
+    {"tipo": "termino", "regex_str": rf"{TERMINO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}.*?\s+{TIME_CAPTURE_REGEX_PART}"},
+    {"tipo": "inicio", "regex_str": rf"{INICIO_KEYWORDS_REGEX_PART}.*?\s+{TIME_CAPTURE_REGEX_PART}"},
+    {"tipo": "termino", "regex_str": rf"{TERMINO_KEYWORDS_REGEX_PART}.*?\s+{TIME_CAPTURE_REGEX_PART}"},
+    
     # Padrões curtos com hora e minuto explícitos
-    {
-        "tipo": "inicio",
-        "regex_str": rf"{TIME_CAPTURE_REGEX_PART}\s*{INICIO_KEYWORDS_REGEX_PART}",
-    },
-    {
-        "tipo": "termino",
-        "regex_str": rf"{TIME_CAPTURE_REGEX_PART}\s*{TERMINO_KEYWORDS_REGEX_PART}",
-    },
-    {
-        "tipo": "inicio",
-        "regex_str": rf"{INICIO_KEYWORDS_REGEX_PART}\s*{TIME_CAPTURE_REGEX_PART}",
-    },
-    {
-        "tipo": "termino",
-        "regex_str": rf"{TERMINO_KEYWORDS_REGEX_PART}\s*{TIME_CAPTURE_REGEX_PART}",
-    },
+    {"tipo": "inicio", "regex_str": rf"{TIME_CAPTURE_REGEX_PART}\s*{INICIO_KEYWORDS_REGEX_PART}"},
+    {"tipo": "termino", "regex_str": rf"{TIME_CAPTURE_REGEX_PART}\s*{TERMINO_KEYWORDS_REGEX_PART}"},
+    {"tipo": "inicio", "regex_str": rf"{INICIO_KEYWORDS_REGEX_PART}\s*{TIME_CAPTURE_REGEX_PART}"},
+    {"tipo": "termino", "regex_str": rf"{TERMINO_KEYWORDS_REGEX_PART}\s*{TIME_CAPTURE_REGEX_PART}"},
+
     # Padrões com horas simples "HHh" (sem minutos explícitos)
-    {
-        "tipo": "inicio",
-        "regex_str": rf"{SIMPLE_HOUR_CAPTURE_REGEX_PART}.*?{INICIO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}",
-    },
-    {
-        "tipo": "termino",
-        "regex_str": rf"{SIMPLE_HOUR_CAPTURE_REGEX_PART}.*?{TERMINO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}",
-    },
-    {
-        "tipo": "inicio",
-        "regex_str": rf"{INICIO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}.*?\s+{SIMPLE_HOUR_CAPTURE_REGEX_PART}",
-    },
-    {
-        "tipo": "termino",
-        "regex_str": rf"{TERMINO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}.*?\s+{SIMPLE_HOUR_CAPTURE_REGEX_PART}",
-    },
+    {"tipo": "inicio", "regex_str": rf"{SIMPLE_HOUR_CAPTURE_REGEX_PART}.*?{INICIO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}"},
+    {"tipo": "termino", "regex_str": rf"{SIMPLE_HOUR_CAPTURE_REGEX_PART}.*?{TERMINO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}"},
+    {"tipo": "inicio", "regex_str": rf"{INICIO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}.*?\s+{SIMPLE_HOUR_CAPTURE_REGEX_PART}"},
+    {"tipo": "termino", "regex_str": rf"{TERMINO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}.*?\s+{SIMPLE_HOUR_CAPTURE_REGEX_PART}"},
+    
+    # Padrões que detectam apenas a palavra-chave (sem hora) para a lógica de bloco
+    {"tipo": "inicio", "regex_str": rf"^\s*{INICIO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}\s*$", "keyword_only": True},
+    {"tipo": "termino", "regex_str": rf"^\s*{TERMINO_KEYWORDS_REGEX_PART}{PREPOSICOES_ARTIGOS_REGEX_PART}{TIPO_RONDA_REGEX_PART}\s*$", "keyword_only": True},
+    {"tipo": "inicio", "regex_str": rf"^\s*{INICIO_KEYWORDS_REGEX_PART}\s*$", "keyword_only": True},
+    {"tipo": "termino", "regex_str": rf"^\s*{TERMINO_KEYWORDS_REGEX_PART}\s*$", "keyword_only": True},
 ]
 
 COMPILED_RONDA_EVENT_REGEXES = [
-    {"tipo": p["tipo"], "regex": re.compile(p["regex_str"], re.IGNORECASE)}
+    {
+        "tipo": p["tipo"],
+        "regex": re.compile(p["regex_str"], re.IGNORECASE),
+        "keyword_only": p.get("keyword_only", False),
+    }
     for p in RONDA_EVENT_REGEX_PATTERNS
 ]
 
