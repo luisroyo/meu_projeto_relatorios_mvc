@@ -479,7 +479,7 @@ Este projeto está licenciado sob a [MIT License](LICENSE).
 
 **🛡️ Sistema de Gestão de Segurança Inteligente**
 
-*Desenvolvido com ❤️ para segurança e eficiência operacional*
+*Desenvolvido com dedicação para segurança e eficiência operacional*
 
 [![GitHub stars](https://img.shields.io/github/stars/luisroyo/meu_projeto_relatorios_mvc?style=social)](https://github.com/luisroyo/meu_projeto_relatorios_mvc/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/luisroyo/meu_projeto_relatorios_mvc?style=social)](https://github.com/luisroyo/meu_projeto_relatorios_mvc/network)
