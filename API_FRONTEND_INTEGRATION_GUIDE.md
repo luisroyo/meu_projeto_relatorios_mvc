@@ -9,18 +9,20 @@ Este documento descreve como configurar e integrar a API REST do sistema de gest
 ### **Blueprint Principal**
 - **URL Base**: `/api`
 - **Blueprint**: `api_bp` em `backend/app/blueprints/api/__init__.py`
-- **Módulos**: 9 módulos especializados
+- **Módulos**: 7 módulos especializados
 
-### **Módulos Disponíveis**
+### **Módulos Disponíveis (7 módulos ativos)**
 1. **`auth_routes.py`** - Autenticação JWT
 2. **`ocorrencia_routes.py`** - Gestão de ocorrências
 3. **`ronda_routes.py`** - Gestão de rondas
 4. **`admin_routes.py`** - Administração do sistema
 5. **`dashboard_routes.py`** - Dashboards e relatórios
-6. **`ronda_tempo_real_routes.py`** - Rondas em tempo real
-7. **`ronda_esporadica_routes.py`** - Rondas esporádicas
-8. **`analisador_routes.py`** - Análise com IA
-9. **`config_routes.py`** - Configurações do sistema
+6. **`analisador_routes.py`** - Análise com IA
+7. **`config_routes.py`** - Configurações do sistema
+
+### **Módulos Removidos (não implementados)**
+- ❌ **`ronda_tempo_real_routes.py`** - Sistema de rondas em tempo real não implementado
+- ❌ **`ronda_esporadica_routes.py`** - Módulo deprecated
 
 ## 🔐 Configuração de Autenticação
 
@@ -555,6 +557,20 @@ Para dúvidas ou problemas:
 
 ---
 
-**Versão**: 1.0.0  
-**Última atualização**: Agosto 2025  
+## ⚠️ Endpoints Não Implementados
+
+### **Rondas em Tempo Real**
+Os seguintes endpoints **NÃO estão implementados** e devem ser evitados:
+- ❌ `/api/ronda-tempo-real/*` - Sistema completo não implementado
+- ❌ `/api/ronda-esporadica/*` - Módulo deprecated
+
+### **Endpoints Disponíveis para Rondas**
+- ✅ `/api/rondas/*` - Gestão completa de rondas
+- ✅ `/api/rondas/tempo-real/hora-atual` - Utilitário de tempo
+
+---
+
+**Versão**: 1.1.0  
+**Última atualização**: 02/08/2025  
+**Status**: ✅ Sincronizado com implementação real  
 **Autor**: Sistema de Gestão de Segurança
