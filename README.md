@@ -1,177 +1,298 @@
-# Meu Projeto Relatórios MVC
+# 🛡️ Sistema de Gestão de Segurança Inteligente
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/luisroyo/meu_projeto_relatorios_mvc/actions)
 [![Coverage Status](https://img.shields.io/badge/coverage-xx%25-blue)](https://github.com/luisroyo/meu_projeto_relatorios_mvc/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-3.x-green.svg)](https://flask.palletsprojects.com)
+[![AI Powered](https://img.shields.io/badge/AI-Gemini-orange.svg)](https://ai.google.dev)
 
-## Descrição do Projeto
+## 📋 Descrição do Projeto
 
-**Meu Projeto Relatórios MVC** é uma aplicação web robusta e modular para gerenciar, analisar e relatar eventos de segurança e operacionais (rondas, ocorrências, colaboradores, etc.) em ambientes residenciais ou corporativos. O sistema utiliza tecnologias web Python modernas e integra-se com IA generativa para auxiliar na análise e formatação de relatórios, fornecendo uma plataforma segura, escalável e amigável para administradores, supervisores e funcionários.
+**Sistema de Gestão de Segurança Inteligente** é uma plataforma web completa e moderna para gerenciamento de operações de segurança em condomínios e ambientes corporativos. O sistema oferece controle total sobre rondas de patrulha, registro de ocorrências, gestão de colaboradores e análise inteligente de dados através de IA generativa.
 
-## Screenshots
+### 🎯 Principais Benefícios
+
+- **🤖 Análise Inteligente**: IA integrada para processamento automático de relatórios
+- **📊 Dashboards Avançados**: Métricas em tempo real com KPIs personalizados
+- **🔄 Sistema de Turnos**: Lógica inteligente para jornada 12x36
+- **📱 Interface Responsiva**: Acesso completo via desktop e mobile
+- **🔒 Segurança Robusta**: Autenticação multi-nível e proteção contra ataques
+- **📈 Relatórios PDF**: Exportação profissional de dados e métricas
+
+## 🖼️ Screenshots
 
 <!-- Adicione aqui imagens/gifs do sistema rodando -->
 <!-- Exemplo: -->
 <!-- ![Dashboard](docs/screenshot_dashboard.png) -->
 
-## Pilha de Tecnologia
+## 🛠️ Stack Tecnológica
 
-- Backend: Python 3, Flask 3.x (com Blueprints, Padrão de Fábrica)
-- Banco de Dados: SQLAlchemy ORM, Flask-Migrate (suporta SQLite, PostgreSQL, etc.)
-- Autenticação: Flask-Login, decoradores de administrador personalizados
-- Formulários e Validação: Flask-WTF, WTForms
-- Limitação de Taxa e Segurança: Flask-Limiter, Flask-WTF CSRF, hashing de senha (Werkzeug)
-- Cache: Flask-Caching (com suporte para Redis, SimpleCache, etc.)
-- Integração com IA: Google Generative AI (API Gemini)
-- Relatórios PDF: ReportLab para geração de relatórios em PDF
-- Processamento de Datas: pytz para manipulação de timezones e turnos
-- Arquivos Estáticos: WhiteNoise
-- Testes: Pytest
-- Ferramentas CLI: Flask CLI, Click
-- Outros: Logging, dotenv, validação de e-mail
+### Backend
+- **🐍 Python 3.8+** - Linguagem principal
+- **🌶️ Flask 3.x** - Framework web com Blueprints e Padrão de Fábrica
+- **🗄️ SQLAlchemy ORM** - Mapeamento objeto-relacional
+- **🔄 Flask-Migrate** - Controle de versão do banco de dados
+- **🔐 Flask-Login** - Sistema de autenticação
+- **📝 Flask-WTF** - Formulários e validação
+- **⚡ Flask-Limiter** - Rate limiting e segurança
+- **💾 Flask-Caching** - Cache com suporte Redis/SimpleCache
 
-## Configuração e Instalação
+### Banco de Dados
+- **SQLite** (desenvolvimento) / **PostgreSQL** (produção)
+- **Migrations** automáticas com Alembic
 
-### Pré-requisitos
+### IA e Processamento
+- **🤖 Google Generative AI (Gemini)** - Análise inteligente de relatórios
+- **📊 ReportLab** - Geração de relatórios PDF
+- **⏰ pytz** - Manipulação de timezones e turnos
 
-- Python 3.8+
-- (Recomendado) Poetry ou pipenv para ambientes virtuais, ou use venv
-- (Opcional) PostgreSQL ou outro banco de dados pronto para produção
+### Frontend
+- **🎨 Bootstrap 5** - Framework CSS responsivo
+- **📱 Design Mobile-First** - Interface otimizada para dispositivos móveis
+- **⚡ JavaScript Vanilla** - Interatividade sem dependências externas
 
-### 1. Clonar o Repositório
+### DevOps e Qualidade
+- **🧪 Pytest** - Framework de testes
+- **📊 Coverage** - Análise de cobertura de código
+- **🔧 Flask CLI** - Comandos personalizados
+- **📝 Logging** - Sistema de logs estruturado
 
+## 🚀 Instalação e Configuração
+
+### 📋 Pré-requisitos
+
+- **Python 3.8+** instalado
+- **Git** para clonagem do repositório
+- **PostgreSQL** (opcional, para produção)
+
+### ⚡ Instalação Rápida
+
+```bash
+# 1. Clonar o repositório
 git clone https://github.com/luisroyo/meu_projeto_relatorios_mvc.git
 cd meu_projeto_relatorios_mvc
 
-### 2. Criar e Ativar um Ambiente Virtual
-
+# 2. Criar ambiente virtual
 python -m venv venv
-source venv/bin/activate    # No Windows: venv\Scripts\activate
 
-### 3. Instalar Dependências
+# 3. Ativar ambiente virtual
+# Windows:
+venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
 
+# 4. Instalar dependências
 pip install -r requirements.txt
 
-Observação: o `requirements.txt` da raiz inclui `backend/requirements.txt`. Em plataformas como Render, mantenha o comando de build como `pip install -r requirements.txt`.
+# 5. Configurar variáveis de ambiente
+cp .env.example .env
+# Edite o arquivo .env com suas configurações
 
-### 4. Definir Variáveis de Ambiente
+# 6. Inicializar banco de dados
+flask db upgrade
+flask seed-db
 
-Crie um arquivo .env na raiz do projeto (nunca comite este arquivo):
+# 7. Executar aplicação
+flask run
+```
+
+### 🔧 Configuração Detalhada
+
+#### Variáveis de Ambiente (.env)
 
 ```env
-SECRET_KEY=sua-chave-muito-secreta
-DATABASE_URL=sqlite:///dev.db    # Ou sua URI PostgreSQL
+# Configurações básicas
+SECRET_KEY=sua-chave-muito-secreta-aqui
+DATABASE_URL=sqlite:///dev.db
 FLASK_DEBUG=True
+FLASK_ENV=development
 
-# API Keys para fallback automático (veja API_KEYS_SETUP.md para detalhes)
+# API Keys do Google Gemini (obrigatório)
 GOOGLE_API_KEY_1=sua-chave-google-generative-ai-principal
 GOOGLE_API_KEY_2=sua-chave-google-generative-ai-backup
 
 # Redis (opcional - para cache em produção)
 REDIS_URL=redis://usuario:senha@host:porta/0
+
+# Configurações de produção
+SESSION_COOKIE_SECURE=True
+SESSION_COOKIE_HTTPONLY=True
 ```
 
-**📋 Para configuração detalhada das API Keys, consulte [API_KEYS_SETUP.md](API_KEYS_SETUP.md)**
+#### 🗄️ Configuração do Banco de Dados
 
-### 5. Configurar Redis (Opcional)
+**Desenvolvimento (SQLite):**
+```env
+DATABASE_URL=sqlite:///dev.db
+```
 
-O sistema usa cache para otimizar as respostas da API Gemini. Por padrão, usa cache em memória (SimpleCache).
+**Produção (PostgreSQL):**
+```env
+DATABASE_URL=postgresql://usuario:senha@localhost:5432/nome_do_banco
+```
 
-**Para usar Redis em produção:**
-1. Configure `REDIS_URL` nas variáveis de ambiente
-2. Execute o teste: `python test_redis.py`
-3. O sistema automaticamente detecta e usa Redis se disponível
+#### 🤖 Configuração da IA
 
-**Para desenvolvimento local:** SimpleCache é suficiente e não requer configuração adicional.
+1. Obtenha uma API Key do [Google AI Studio](https://aistudio.google.com/)
+2. Configure as chaves no arquivo `.env`
+3. O sistema usa fallback automático entre múltiplas chaves
 
-### 6. Inicializar o Banco de Dados
+#### 💾 Cache (Opcional)
 
-flask db upgrade
-flask seed-db    # Cria usuários admin/supervisor iniciais (apenas para desenvolvimento)
+**Desenvolvimento:** SimpleCache (automático)
+**Produção:** Redis (configure `REDIS_URL`)
 
-### 7. Executar a Aplicação
+### 🎯 Primeiro Acesso
 
-flask run
+Após executar `flask seed-db`, você terá:
+- **Admin:** `admin@exemplo.com` / `admin123`
+- **Supervisor:** `supervisor@exemplo.com` / `supervisor123`
 
-O aplicativo estará disponível em http://localhost:5000.
+**⚠️ Importante:** Altere essas credenciais em produção!
 
-## Visão Geral de Uso e Recursos
+## 🎯 Funcionalidades Principais
 
-### Papéis de Usuário
+### 👥 Sistema de Usuários e Permissões
 
-- Admin: Acesso total ao gerenciamento de usuários, dashboards e ferramentas do sistema.
-- Supervisor: Pode gerenciar e supervisionar relatórios e eventos.
-- Usuário Regular: Pode enviar e analisar relatórios, visualizar seu próprio histórico.
+| Papel | Permissões |
+|-------|------------|
+| **🔑 Administrador** | Acesso total ao sistema, gestão de usuários, configurações |
+| **👨‍💼 Supervisor** | Gestão de rondas e ocorrências, relatórios, aprovação de eventos |
+| **👤 Usuário Regular** | Registro de ocorrências, visualização de histórico pessoal |
 
-### Principais Recursos
+### 🛡️ Módulos Principais
 
-- **Autenticação e Autorização**: Login seguro, registro (com aprovação do administrador) e acesso baseado em funções.
-- **Dashboard Inteligente**: Métricas visuais para usuários, logins, relatórios e KPIs operacionais com cálculo preciso por dias trabalhados.
-- **Rondas**: Registrar, listar e analisar registros de patrulha com métricas por supervisor e jornada 12x36.
-- **Ocorrências**: Registrar, classificar e gerenciar incidentes com análise assistida por IA e classificação por turno.
-- **Colaboradores**: Gerenciar registros e atribuições de pessoal.
-- **Analisador de Relatórios AI**: Cole relatórios brutos e receba versões formatadas e corrigidas geradas por IA.
-- **Ferramentas de Administração**: Aprovar usuários, gerenciar funções, excluir usuários e muito mais.
-- **Relatórios PDF**: Exportação de dashboards e relatórios em PDF com métricas precisas.
-- **Sistema de Turnos**: Lógica inteligente para classificação de ocorrências considerando jornada 12x36 dos supervisores.
-- **Métricas por Supervisor**: Cálculo de médias e comparações baseadas apenas nos dias trabalhados pelo supervisor.
-- **Limitação de Taxa (Rate Limiting)**: Previne ataques de força bruta e abuso em logins e endpoints sensíveis.
-- **Log (Registro)**: Logs detalhados para auditoria e depuração.
-- **UI Responsiva**: Interface moderna e amigável para dispositivos móveis (baseada em Bootstrap).
+#### 🔍 **Gestão de Rondas**
+- ✅ Registro de patrulhas com logs detalhados
+- 📊 Análise de frequência e cobertura
+- ⏰ Sistema inteligente de turnos (12x36)
+- 📈 Métricas por supervisor e período
+- 📄 Relatórios PDF automatizados
 
-## Documentação da API
+#### 🚨 **Gestão de Ocorrências**
+- 📝 Registro detalhado de incidentes
+- 🤖 Análise automática por IA (Gemini)
+- 🏷️ Classificação inteligente por tipo e turno
+- 🔗 Vinculação com órgãos públicos e colaboradores
+- 📊 Dashboard de estatísticas em tempo real
 
-<!-- Se você expõe endpoints de API, documente-os aqui ou adicione um link para Swagger/Postman/etc. -->
-<!-- Exemplo: -->
-<!-- Veja a documentação completa da API em [docs/api.md](docs/api.md) -->
+#### 👥 **Gestão de Colaboradores**
+- 📋 Cadastro completo de funcionários
+- 🏢 Vinculação com condomínios
+- 📊 Histórico de participação em eventos
+- 🔄 Controle de escalas e plantões
 
-## API RESTful
+#### 📊 **Dashboards Inteligentes**
+- 📈 KPIs personalizados por supervisor
+- 📅 Análise temporal com comparações
+- 🎯 Métricas de eficiência operacional
+- 📱 Interface responsiva para mobile
 
-Agora o projeto segue o padrão RESTful para integração com front-end web/mobile:
+#### 🤖 **IA Generativa Integrada**
+- ✍️ Processamento automático de relatórios
+- 🔍 Extração inteligente de dados
+- 📝 Formatação e correção de textos
+- ⚡ Cache inteligente para otimização
 
-- Todas as rotas de API usam o prefixo `/api/`.
-- Exemplo de endpoint:
-  - `POST /api/ocorrencias/analisar-relatorio` — para análise automática de relatórios de ocorrência.
-- As rotas de API têm CORS habilitado e CSRF desabilitado.
-- As rotas antigas continuam funcionando temporariamente para compatibilidade.
+### 🔒 Recursos de Segurança
 
-Para consumir a API, envie requisições para `/api/ocorrencias/analisar-relatorio` com o corpo JSON:
-```json
+- **🔐 Autenticação Multi-nível** com Flask-Login
+- **🛡️ Proteção CSRF** em todos os formulários
+- **⚡ Rate Limiting** contra ataques de força bruta
+- **🔑 Hash Seguro** de senhas com Werkzeug
+- **👤 Aprovação Manual** de novos usuários
+- **📝 Logs de Auditoria** detalhados
+
+## 🔌 API RESTful
+
+O sistema oferece uma API RESTful completa para integração com aplicações web e mobile.
+
+### 📡 Endpoints Principais
+
+#### 🤖 Análise de Relatórios
+```http
+POST /api/ocorrencias/analisar-relatorio
+Content-Type: application/json
+
 {
-  "texto_relatorio": "...texto do relatório..."
+  "texto_relatorio": "Relatório de ocorrência em texto livre..."
 }
 ```
-A resposta será:
+
+**Resposta:**
 ```json
 {
   "sucesso": true,
-  "dados": { ...campos extraídos... }
+  "dados": {
+    "tipo_ocorrencia": "Furto",
+    "endereco": "Rua das Flores, 123",
+    "data_hora": "2024-01-15 14:30:00",
+    "descricao_processada": "Relatório formatado..."
+  }
 }
 ```
 
-## Funcionalidades Avançadas
+#### 📊 Dashboards e KPIs
+```http
+GET /api/dashboard/metricas?supervisor_id=1&periodo=30
+GET /api/dashboard/kpis?condominio_id=1&data_inicio=2024-01-01
+```
 
-### Sistema de Turnos e Jornada 12x36
+#### 🔍 Consultas de Dados
+```http
+GET /api/ocorrencias?page=1&per_page=20&status=Registrada
+GET /api/rondas?supervisor_id=1&data_inicio=2024-01-01
+GET /api/colaboradores?condominio_id=1
+```
 
-O sistema implementa uma lógica inteligente para classificação de ocorrências baseada na jornada de trabalho dos supervisores:
+### 🔧 Configuração da API
 
-- **Turnos Diurnos (6h-18h)**: Ocorrências pertencem ao mesmo dia
-- **Turnos Noturnos (18h-6h)**: 
-  - Ocorrências entre 18h-23h59: pertencem ao mesmo dia
-  - Ocorrências entre 0h-5h59: pertencem ao dia anterior (plantão começou no dia anterior)
+- **CORS:** Habilitado para integração frontend
+- **CSRF:** Desabilitado para APIs (usar tokens JWT)
+- **Rate Limiting:** Configurado por endpoint
+- **Autenticação:** JWT ou sessão Flask-Login
 
-**Exemplo**: Supervisor entra às 18h do dia 31/08 e atende ocorrência às 3h da madrugada do dia 01/09. A ocorrência é corretamente atribuída ao plantão do dia 31/08.
+### 📚 Documentação Completa
 
-### Métricas por Supervisor
+Consulte a documentação detalhada da API:
+- [API_DOCUMENTATION.md](API_DOCUMENTATION.md)
+- [API_FRONTEND_INTEGRATION_GUIDE.md](API_FRONTEND_INTEGRATION_GUIDE.md)
 
-- **Cálculo de Média**: Baseado apenas nos dias trabalhados pelo supervisor (jornada 12x36)
-- **Comparação de Períodos**: Compara dados do supervisor específico com períodos anteriores
-- **Relatórios PDF**: Exportação com métricas precisas considerando dias trabalhados
-- **Dashboard Inteligente**: Exibe "Dias Trabalhados" e "Cobertura Trabalhada" quando supervisor é selecionado
+## ⚙️ Funcionalidades Avançadas
 
-### Comandos CLI para Debug
+### 🔄 Sistema de Turnos Inteligente (12x36)
 
-O sistema inclui comandos CLI especializados para testes e debug:
+O sistema implementa lógica avançada para classificação automática de ocorrências baseada na jornada de trabalho:
+
+#### 📅 Lógica de Classificação
+- **🌅 Turnos Diurnos (6h-18h)**: Ocorrências atribuídas ao mesmo dia
+- **🌙 Turnos Noturnos (18h-6h)**: 
+  - **18h-23h59**: Ocorrências do mesmo dia
+  - **00h-05h59**: Ocorrências do dia anterior (plantão iniciado no dia anterior)
+
+#### 💡 Exemplo Prático
+```
+Supervisor inicia plantão: 31/08 às 18h
+Ocorrência atendida: 01/09 às 03h
+✅ Sistema atribui ao plantão de 31/08
+```
+
+### 📊 Métricas Inteligentes por Supervisor
+
+#### 🎯 Cálculos Precisos
+- **📈 Médias**: Baseadas apenas nos dias trabalhados (jornada 12x36)
+- **📅 Comparações**: Períodos anteriores do mesmo supervisor
+- **📄 Relatórios PDF**: Métricas precisas considerando dias trabalhados
+- **📱 Dashboard**: Exibe "Dias Trabalhados" e "Cobertura Trabalhada"
+
+#### 🔍 KPIs Disponíveis
+- Taxa de ocorrências por dia trabalhado
+- Eficiência de rondas por período
+- Tempo médio de resposta
+- Cobertura de área por supervisor
+
+### 🛠️ Comandos CLI Avançados
 
 ```bash
 # Testar lógica de turnos
@@ -188,19 +309,52 @@ flask test-period-comparison
 
 # Testar exportação PDF
 flask test-ronda-pdf-export
+
+# Debug de cache Redis
+python scripts/monitoring/test_redis.py
+
+# Gerar dados de teste
+flask seed-db --sample-data
 ```
 
-## Instruções de Teste
+## 🧪 Testes e Qualidade
 
-### Testes Unitários
+### 🚀 Execução de Testes
 
-1. Executar Todos os Testes:
-
+```bash
+# Executar todos os testes
 pytest
 
-### Scripts de Monitoramento
+# Testes com cobertura
+pytest --cov=app --cov-report=html
 
-Para testar e monitorar o Redis e cache:
+# Testes específicos
+pytest tests/test_auth.py
+pytest tests/services/
+```
+
+### 📊 Estrutura de Testes
+
+```
+tests/
+├── conftest.py              # Configuração global
+├── test_auth.py             # Testes de autenticação
+├── test_forms.py            # Testes de formulários
+├── test_main_routes.py      # Testes de rotas principais
+├── test_ocorrencia_routes.py # Testes de ocorrências
+├── test_ronda_routes.py     # Testes de rondas
+└── services/                # Testes de serviços
+    └── test_base_generative_service.py
+```
+
+### 🔧 Configuração de Testes
+
+- **Banco de Dados**: SQLite em memória para isolamento
+- **Cache**: SimpleCache para testes rápidos
+- **CSRF**: Desabilitado em ambiente de teste
+- **Configuração**: `pytest.ini` com caminhos Python corretos
+
+### 📈 Monitoramento e Debug
 
 ```bash
 # Testar conexão Redis
@@ -216,57 +370,118 @@ python scripts/test_cache.py
 python scripts/monitoring/generate_redis_traffic.py
 ```
 
-**📋 Para mais detalhes sobre os scripts, consulte [scripts/README.md](scripts/README.md)**
+### 📋 Cobertura de Código
 
-2. Estrutura de Teste:
-- Os testes estão localizados no diretório tests/, organizados por recurso e serviço.
-- Utiliza um banco de dados SQLite em memória para isolamento.
-- Adicione novos testes no módulo ou subpasta de serviço apropriado.
-
-3. Configuração:
-- pytest.ini garante o caminho Python correto.
-- A configuração de teste desabilita o CSRF e usa SimpleCache.
-
-4. Cobertura de Testes:
-- Para gerar um relatório de cobertura, instale o pytest-cov (se ainda não tiver):
-
+```bash
+# Instalar dependência de cobertura
 pip install pytest-cov
 
-- Execute:
+# Executar com relatório HTML
+pytest --cov=app --cov-report=html
 
-pytest --cov=app
+# Visualizar relatório
+open htmlcov/index.html
+```
 
-- O badge de coverage é atualizado manualmente. Use o valor do relatório para atualizar o badge no topo deste README.
+**📚 Para mais detalhes:** [scripts/README.md](scripts/README.md)
 
-## Considerações de Segurança
+## 🔒 Segurança e Boas Práticas
 
-- Segredos: Nunca comite .env ou chaves sensíveis. Sempre defina SECRET_KEY e GOOGLE_API_KEY via variáveis de ambiente.
-- Armazenamento de Senhas: Senhas são armazenadas com hash de forma segura usando Werkzeug.
-- Proteção CSRF: Habilitada em todos os formulários.
-- Limitação de Taxa: Login e outros endpoints sensíveis são limitados por taxa.
-- Segurança de Sessão: Para produção, defina SESSION_COOKIE_SECURE=True e SESSION_COOKIE_HTTPONLY=True.
-- Aprovação de Usuário: Novos usuários exigem aprovação do administrador antes de acessar o sistema.
-- Acesso de Administrador: Todas as rotas de administração são protegidas por um decorador admin_required personalizado.
-- Log (Registro): Evite registrar dados sensíveis (por exemplo, senhas, e-mails completos) em logs de produção.
+### 🛡️ Medidas de Segurança Implementadas
 
-## Boas Práticas e Recomendações
+#### 🔐 Autenticação e Autorização
+- **🔑 Hash Seguro**: Senhas protegidas com Werkzeug
+- **👤 Aprovação Manual**: Novos usuários requerem aprovação do admin
+- **🔒 Decoradores Personalizados**: Proteção de rotas administrativas
+- **⏰ Rate Limiting**: Proteção contra ataques de força bruta
 
-- Separação de Ambiente: Use diferentes classes de configuração para desenvolvimento, teste e produção.
-- Backups de Banco de Dados: Faça backup regularmente do seu banco de dados de produção.
-- Atualizações de Dependências: Mantenha as dependências atualizadas e monitore avisos de segurança.
-- Documentação: Documente quaisquer comandos CLI personalizados e fluxos de trabalho de administração.
-- Testes: Busque alta cobertura de testes, especialmente para lógica de negócios e recursos de segurança.
-- Arquivos Estáticos e de Mídia: Use um CDN ou armazenamento de objetos para arquivos enviados por usuários em produção.
-- Monitoramento: Configure monitoramento de erros e alertas para implantações em produção.
-- Acessibilidade: Garanta que os componentes da UI sejam acessíveis (rótulos ARIA, navegação por teclado, etc.).
+#### 🛡️ Proteção de Dados
+- **🔒 CSRF Protection**: Habilitada em todos os formulários
+- **🍪 Cookies Seguros**: Configuração para produção
+- **📝 Logs Seguros**: Evita exposição de dados sensíveis
+- **🔐 Variáveis de Ambiente**: Segredos nunca commitados
 
-## Contribuição
+#### 🌐 Segurança Web
+- **🔒 HTTPS**: Configuração para produção
+- **🛡️ Headers de Segurança**: Proteção contra ataques comuns
+- **📊 Monitoramento**: Logs de auditoria detalhados
 
-Pull requests e issues são bem-vindos! Por favor, abra uma issue para discutir grandes mudanças antes de enviar um PR.
-Consulte o guia de contribuição em [CONTRIBUTING.md](CONTRIBUTING.md) para mais detalhes sobre o processo.
+### 📋 Checklist de Produção
 
-## Licença
+#### ⚙️ Configurações Obrigatórias
+```env
+# Produção
+FLASK_ENV=production
+SECRET_KEY=chave-super-secreta-256-bits
+DATABASE_URL=postgresql://user:pass@host:port/db
+SESSION_COOKIE_SECURE=True
+SESSION_COOKIE_HTTPONLY=True
+```
 
-[MIT License](LICENSE) (ou sua licença escolhida)
+#### 🔧 Configurações Recomendadas
+- **🗄️ PostgreSQL** para banco de dados
+- **💾 Redis** para cache e sessões
+- **🌐 HTTPS** com certificado SSL válido
+- **📊 Monitoramento** de erros e performance
+- **🔄 Backups** automáticos do banco de dados
 
-Para dúvidas ou suporte, entre em contato com [luisroyo25@gmail.com].
+### 🚀 Deploy e Manutenção
+
+#### 📦 Deploy
+- **☁️ Plataformas**: Render, Heroku, AWS, DigitalOcean
+- **🐳 Docker**: Containerização disponível
+- **🔄 CI/CD**: GitHub Actions configurado
+
+#### 🔄 Manutenção
+- **📊 Monitoramento**: Logs estruturados
+- **🔄 Atualizações**: Dependências mantidas atualizadas
+- **📈 Performance**: Cache Redis para otimização
+- **🧪 Testes**: Cobertura de código alta
+
+## 🤝 Contribuição
+
+### 📝 Como Contribuir
+
+1. **🍴 Fork** o repositório
+2. **🌿 Crie** uma branch para sua feature (`git checkout -b feature/nova-feature`)
+3. **💾 Commit** suas mudanças (`git commit -am 'Adiciona nova feature'`)
+4. **📤 Push** para a branch (`git push origin feature/nova-feature`)
+5. **🔄 Abra** um Pull Request
+
+### 📋 Padrões de Código
+
+- **🐍 PEP 8**: Padrão Python
+- **🧪 Testes**: Cobertura mínima de 80%
+- **📝 Documentação**: Docstrings em português
+- **🔍 Linting**: Black, Flake8 configurados
+
+### 🐛 Reportar Bugs
+
+Use o sistema de [Issues](https://github.com/luisroyo/meu_projeto_relatorios_mvc/issues) do GitHub com:
+- Descrição detalhada do problema
+- Passos para reproduzir
+- Screenshots (se aplicável)
+- Informações do ambiente
+
+## 📄 Licença
+
+Este projeto está licenciado sob a [MIT License](LICENSE).
+
+## 📞 Suporte e Contato
+
+- **📧 Email**: [luisroyo25@gmail.com](mailto:luisroyo25@gmail.com)
+- **🐛 Issues**: [GitHub Issues](https://github.com/luisroyo/meu_projeto_relatorios_mvc/issues)
+- **📚 Documentação**: Consulte os arquivos `.md` na raiz do projeto
+
+---
+
+<div align="center">
+
+**🛡️ Sistema de Gestão de Segurança Inteligente**
+
+*Desenvolvido com ❤️ para segurança e eficiência operacional*
+
+[![GitHub stars](https://img.shields.io/github/stars/luisroyo/meu_projeto_relatorios_mvc?style=social)](https://github.com/luisroyo/meu_projeto_relatorios_mvc/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/luisroyo/meu_projeto_relatorios_mvc?style=social)](https://github.com/luisroyo/meu_projeto_relatorios_mvc/network)
+
+</div>
