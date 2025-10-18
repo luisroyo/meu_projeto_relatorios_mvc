@@ -180,131 +180,9 @@
 }
 ```
 
-## 🔄 Rondas em Tempo Real
+## ⏰ Utilitários de Tempo
 
-### GET `/api/ronda-tempo-real/condominios`
-**Obter condomínios disponíveis para rondas**
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Response (200):**
-```json
-{
-  "condominios": [
-    {
-      "id": 1,
-      "nome": "ZERMATT"
-    },
-    {
-      "id": 2,
-      "nome": "RESIDENCIAL VILLA VERDE"
-    }
-  ]
-}
-```
-
-### GET `/api/ronda-tempo-real/em-andamento`
-**Obter rondas em andamento**
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Response (200):**
-```json
-{
-  "rondas": [
-    {
-      "id": 1,
-      "condominio": "ZERMATT",
-      "hora_entrada": "18:30:00",
-      "data_inicio": "2025-08-02T18:30:00",
-      "observacoes": "Ronda iniciada",
-      "status": "em_andamento"
-    }
-  ]
-}
-```
-
-### POST `/api/ronda-tempo-real/iniciar`
-**Iniciar nova ronda**
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Request Body:**
-```json
-{
-  "condominio_id": 1,
-  "hora_entrada": "18:30:00",
-  "observacoes": "Iniciando ronda"
-}
-```
-
-**Response (201):**
-```json
-{
-  "success": true,
-  "message": "Ronda iniciada com sucesso",
-  "ronda": {
-    "id": 1,
-    "condominio": "ZERMATT",
-    "hora_entrada": "18:30:00",
-    "status": "em_andamento"
-  }
-}
-```
-
-### POST `/api/ronda-tempo-real/finalizar/<ronda_id>`
-**Finalizar ronda**
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Request Body:**
-```json
-{
-  "hora_saida": "19:15:00",
-  "observacoes": "Ronda finalizada"
-}
-```
-
-**Response (200):**
-```json
-{
-  "message": "Ronda finalizada com sucesso",
-  "ronda": {
-    "id": 1,
-    "status": "finalizada",
-    "hora_saida": "19:15:00"
-  }
-}
-```
-
-### POST `/api/ronda-tempo-real/cancelar/<ronda_id>`
-**Cancelar ronda em andamento**
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Response (200):**
-```json
-{
-  "message": "Ronda cancelada com sucesso"
-}
-```
-
-### GET `/api/ronda-tempo-real/estatisticas`
-**Obter estatísticas das rondas em tempo real**
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Response (200):**
-```json
-{
-  "total_rondas": 89,
-  "rondas_em_andamento": 3,
-  "rondas_concluidas": 86,
-  "tempo_medio": 45
-}
-```
-
-### GET `/api/ronda-tempo-real/hora-atual`
+### GET `/api/rondas/tempo-real/hora-atual`
 **Obter hora atual do servidor**
 
 **Headers:** `Authorization: Bearer <token>`
@@ -312,64 +190,14 @@
 **Response (200):**
 ```json
 {
-  "hora_atual": "18:30:00"
-}
-```
-
-### GET `/api/ronda-tempo-real/condominios-com-ronda-em-andamento`
-**Obter condomínios com ronda em andamento**
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Response (200):**
-```json
-{
-  "condominios": [
-    {
-      "id": 1,
-      "nome": "ZERMATT",
-      "ronda_id": 1,
-      "hora_entrada": "18:30:00"
-    }
-  ]
-}
-```
-
-### GET `/api/ronda-tempo-real/condominios-com-ronda-realizada`
-**Obter condomínios com ronda realizada**
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Response (200):**
-```json
-{
-  "condominios": [
-    {
-      "id": 2,
-      "nome": "RESIDENCIAL VILLA VERDE",
-      "ultima_ronda": "2025-08-02T17:00:00",
-      "total_rondas": 5
-    }
-  ]
-}
-```
-
-### GET `/api/ronda-tempo-real/rondas-condominio/<condominio_id>`
-**Obter rondas de um condomínio específico**
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Response (200):**
-```json
-{
-  "rondas": [
-    {
-      "id": 1,
-      "data_inicio": "2025-08-02T18:30:00",
-      "hora_entrada": "18:30:00",
-      "status": "finalizada"
-    }
-  ]
+  "success": true,
+  "message": "Hora atual obtida com sucesso",
+  "data": {
+    "hora_atual": "18:30:00",
+    "data_atual": "2025-08-02",
+    "timestamp": "2025-08-02T18:30:00-03:00",
+    "timezone": "America/Sao_Paulo"
+  }
 }
 ```
 
@@ -731,13 +559,18 @@
 **Headers:** `Authorization: Bearer <token>`
 
 **Form Data:**
-- `file`: Arquivo WhatsApp
+- `file`: Arquivo WhatsApp (.txt, .csv)
 
 **Response (200):**
 ```json
 {
+  "success": true,
   "message": "Arquivo processado com sucesso",
-  "ronda_id": 1
+  "data": {
+    "ronda_id": 1,
+    "total_rondas": 8,
+    "duracao_total": 240
+  }
 }
 ```
 
@@ -747,13 +580,18 @@
 **Headers:** `Authorization: Bearer <token>`
 
 **Form Data:**
-- `file`: Arquivo de ronda
+- `file`: Arquivo de ronda (.txt, .csv, .xlsx, .pdf)
 
 **Response (200):**
 ```json
 {
+  "success": true,
   "message": "Arquivo processado com sucesso",
-  "ronda_id": 1
+  "data": {
+    "ronda_id": 1,
+    "total_rondas": 8,
+    "duracao_total": 240
+  }
 }
 ```
 
@@ -765,12 +603,66 @@
 **Response (200):**
 ```json
 {
-  "condominios": [
-    {
-      "id": 1,
-      "nome": "ZERMATT"
-    }
-  ]
+  "success": true,
+  "data": {
+    "condominios": [
+      {
+        "id": 1,
+        "nome": "ZERMATT"
+      }
+    ]
+  }
+}
+```
+
+### GET `/api/rondas/supervisores`
+**Listar supervisores para rondas**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "supervisores": [
+      {
+        "id": 1,
+        "username": "Luis Royo",
+        "is_supervisor": true
+      }
+    ]
+  }
+}
+```
+
+### GET `/api/rondas/status`
+**Listar status disponíveis para rondas**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "status": ["Agendada", "Em Andamento", "Concluída", "Cancelada", "Pausada"]
+  }
+}
+```
+
+### GET `/api/rondas/tipos`
+**Listar tipos disponíveis para rondas**
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "tipos": ["Regular", "Esporádica", "Emergencial", "Noturna", "Diurna"]
+  }
 }
 ```
 
@@ -1455,7 +1347,30 @@ curl -X POST http://localhost:5000/api/ronda-tempo-real/iniciar \
 
 ---
 
-**Documento atualizado em:** {{ new Date().toLocaleDateString('pt-BR') }}  
-**Versão:** 2.0.0  
-**Status:** 100% Sincronizado com a API Flask  
+## 📋 Informações do Sistema
+
+### **Módulos da API (7 módulos ativos)**
+1. **`auth_routes.py`** - Autenticação JWT
+2. **`ocorrencia_routes.py`** - Gestão de ocorrências  
+3. **`ronda_routes.py`** - Gestão de rondas
+4. **`admin_routes.py`** - Administração do sistema
+5. **`dashboard_routes.py`** - Dashboards e relatórios
+6. **`analisador_routes.py`** - Análise com IA
+7. **`config_routes.py`** - Configurações do sistema
+
+### **Endpoints Removidos (não implementados)**
+- ❌ `/api/ronda-tempo-real/*` - Sistema de rondas em tempo real não implementado
+- ❌ `/api/ronda-esporadica/*` - Módulo deprecated
+
+### **Endpoints Adicionados**
+- ✅ `/api/rondas/tempo-real/hora-atual` - Utilitário de tempo
+- ✅ `/api/rondas/supervisores` - Lista de supervisores
+- ✅ `/api/rondas/status` - Status disponíveis
+- ✅ `/api/rondas/tipos` - Tipos de ronda
+
+---
+
+**Documento atualizado em:** 02/08/2025  
+**Versão:** 2.1.0  
+**Status:** ✅ 100% Sincronizado com a implementação real  
 **Próxima atualização:** Após mudanças na API 
