@@ -1,7 +1,14 @@
 import logging
 import os
+import sys
 import time
 from logging.handlers import RotatingFileHandler
+
+# Garante que o diretório backend está no PYTHONPATH ANTES de qualquer outro import
+# Isso é necessário para que o módulo config seja encontrado
+_backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
 
 import pytz
 from flask import Flask, request, jsonify, session, redirect, url_for, flash
@@ -18,13 +25,6 @@ from sqlalchemy import event, text
 from sqlalchemy.exc import OperationalError, DisconnectionError
 
 from app.auth.jwt_auth import init_jwt
-# Importa config - precisa estar no mesmo diretório que app (backend/)
-import sys
-import os
-# Garante que o diretório backend está no PYTHONPATH
-backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if backend_dir not in sys.path:
-    sys.path.insert(0, backend_dir)
 from config import DevelopmentConfig, ProductionConfig
 
 # Carrega .env se disponível
