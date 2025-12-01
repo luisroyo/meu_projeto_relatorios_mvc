@@ -92,5 +92,29 @@ venv/
 *.bak
 *.tmp
 
-render.yaml
-Dockerfile
+# Arquivos grandes que não devem ser versionados
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Arquivos de imagem grandes (se houver)
+# *.jpg
+# *.jpeg
+# *.png
+# *.gif
+
+# Arquivos de documentação grandes
+*.docx
+*.xlsx
+*.pptx
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Render e Docker (se não quiser versionar)
+# render.yaml
+# Dockerfile
