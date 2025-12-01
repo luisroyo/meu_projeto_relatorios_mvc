@@ -18,16 +18,14 @@ from sqlalchemy import event, text
 from sqlalchemy.exc import OperationalError, DisconnectionError
 
 from app.auth.jwt_auth import init_jwt
-try:
-    from config import DevelopmentConfig, ProductionConfig
-except ImportError:
-    # Fallback caso o import direto não funcione
-    import sys
-    import os
-    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if backend_dir not in sys.path:
-        sys.path.insert(0, backend_dir)
-    from config import DevelopmentConfig, ProductionConfig
+# Importa config - precisa estar no mesmo diretório que app (backend/)
+import sys
+import os
+# Garante que o diretório backend está no PYTHONPATH
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+from config import DevelopmentConfig, ProductionConfig
 
 # Carrega .env se disponível
 try:
