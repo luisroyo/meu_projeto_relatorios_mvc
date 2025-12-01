@@ -18,7 +18,16 @@ from sqlalchemy import event, text
 from sqlalchemy.exc import OperationalError, DisconnectionError
 
 from app.auth.jwt_auth import init_jwt
-from config import DevelopmentConfig
+try:
+    from config import DevelopmentConfig, ProductionConfig
+except ImportError:
+    # Fallback caso o import direto não funcione
+    import sys
+    import os
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if backend_dir not in sys.path:
+        sys.path.insert(0, backend_dir)
+    from config import DevelopmentConfig, ProductionConfig
 
 # Carrega .env se disponível
 try:
@@ -81,7 +90,13 @@ else:
         module_logger.warning(f"Não foi possível criar arquivo de log: {e}. Usando apenas logging básico.")
 
 # --- Fábrica da aplicação ---
-def create_app(config_class=DevelopmentConfig):
+def create_app(config_class=None):
+    # Seleciona a configuração baseada no ambiente se não for especificada
+    if config_class is None:
+        if os.getenv("FLASK_ENV") == "production" or os.getenv("RENDER"):
+            config_class = ProductionConfig
+        else:
+            config_class = DevelopmentConfig
     # Diretórios de templates e estáticos ficam fora do pacote backend/app
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     templates_dir = os.path.join(project_root, 'frontend', 'templates')
