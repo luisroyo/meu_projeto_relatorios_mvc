@@ -88,6 +88,8 @@
                   href="{{ url_for('admin.dashboard_metrics') }}">Métricas Gerais</a></li>
                               <li><a class="dropdown-item {% if request.endpoint == 'admin.ronda_dashboard' %}active{% endif %}"
                     href="{{ url_for('admin.ronda_dashboard') }}">Métricas de Rondas</a></li>
+              <li><a class="dropdown-item {% if request.endpoint == 'admin.verificar_alertas_rondas' %}active{% endif %}"
+                    href="{{ url_for('admin.verificar_alertas_rondas') }}"><i class="bi bi-exclamation-triangle me-2"></i>Alertas de Rondas</a></li>
               <li><a class="dropdown-item {% if request.endpoint == 'admin.ocorrencia_dashboard' %}active{% endif %}"
                   href="{{ url_for('admin.ocorrencia_dashboard') }}">Métricas de Ocorrências</a></li>
               <li><a class="dropdown-item {% if request.endpoint == 'admin.dashboard_comparativo' %}active{% endif %}"

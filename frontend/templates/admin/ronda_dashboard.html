@@ -11,6 +11,9 @@
             {% if period_description %}
                 <span class="badge bg-primary fs-6">{{ period_description }}</span>
             {% endif %}
+            <a href="{{ url_for('admin.verificar_alertas_rondas') }}" class="btn btn-warning btn-sm">
+                <i class="bi bi-exclamation-triangle me-1"></i>Verificar Alertas
+            </a>
             <a href="{{ url_for('admin.preview_ronda_dashboard_report', **request.args) }}" class="btn btn-info btn-sm">
                 <i class="bi bi-eye me-1"></i>Pré-visualizar Relatório
             </a>

@@ -14,6 +14,7 @@ from .debug import (
     logins_hoje_command,
     testar_fuso_horario_ocorrencia_command,
 )
+from .rondas import verificar_alertas_rondas_command
 from .relatorios import (
     test_media_dia_trabalhado_command,
     test_media_dias_reais_command,
@@ -61,3 +62,4 @@ def register_commands(app):
     app.cli.add_command(testar_dashboard_comparativo_command)
     app.cli.add_command(logins_hoje_command)
     app.cli.add_command(testar_fuso_horario_ocorrencia_command)
+    app.cli.add_command(verificar_alertas_rondas_command)

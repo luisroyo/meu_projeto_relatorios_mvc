@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>{{ title }}</h2>
+            <p class="lead text-muted mb-0">Verifique rondas com alertas de erro ou inconsistências.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('admin.ronda_dashboard') }}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left me-1"></i>Voltar ao Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Aviso quando não há filtros -->
+    {% if not selected_condominio_id and not selected_supervisor_id and not selected_turno and not selected_mes and not selected_data_inicio and not selected_data_fim %}
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <h5 class="alert-heading"><i class="bi bi-info-circle-fill me-2"></i>Atenção!</h5>
+        <p class="mb-0">
+            <strong>Nenhum filtro aplicado.</strong> Para melhor performance, recomendamos aplicar pelo menos um filtro 
+            (mês, supervisor, condomínio, turno ou período de datas) antes de verificar os alertas.
+        </p>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom">
+            <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.verificar_alertas_rondas') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6 col-lg-3">
+                        <label for="condominio_id" class="form-label" style="display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; margin-bottom: 0.5rem !important; font-weight: bold !important; color: #000 !important;">CONDOMÍNIO</label>
+                        <select name="condominio_id" id="condominio_id" class="form-select">
+                            <option value="">Todos</option>
+                            {% for c in condominios %}
+                                <option value="{{ c.id }}" {% if selected_condominio_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <label for="supervisor_id" class="form-label" style="display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; margin-bottom: 0.5rem !important; font-weight: bold !important; color: #000 !important;">SUPERVISOR</label>
+                        <select name="supervisor_id" id="supervisor_id" class="form-select">
+                            <option value="">Todos</option>
+                            {% for s in supervisors %}
+                                <option value="{{ s.id }}" {% if selected_supervisor_id == s.id %}selected{% endif %}>{{ s.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <label for="turno" class="form-label" style="display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; margin-bottom: 0.5rem !important; font-weight: bold !important; color: #000 !important;">TURNO</label>
+                        <select name="turno" id="turno" class="form-select">
+                            <option value="">Todos</option>
+                            {% for t in turnos %}
+                                <option value="{{ t }}" {% if selected_turno == t %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <label for="mes" class="form-label" style="display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; margin-bottom: 0.5rem !important; font-weight: bold !important; color: #000 !important;">MÊS</label>
+                        <select name="mes" id="mes" class="form-select">
+                            <option value="">Personalizado</option>
+                            {% for m in meses_do_ano %}
+                                <option value="{{ m.id }}" {% if selected_mes == m.id %}selected{% endif %}>{{ m.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <label for="data_inicio" class="form-label" style="display: block !important; visibility: visible !important;">DATA DE INÍCIO</label>
+                        <input type="date" name="data_inicio" id="data_inicio" class="form-control" value="{{ selected_data_inicio }}">
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <label for="data_fim" class="form-label" style="display: block !important; visibility: visible !important;">DATA DE FIM</label>
+                        <input type="date" name="data_fim" id="data_fim" class="form-control" value="{{ selected_data_fim }}">
+                    </div>
+                    <div class="col-md-12 col-lg-6 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100 me-2">
+                            <i class="bi bi-search me-1"></i>Filtrar
+                        </button>
+                        <a href="{{ url_for('admin.verificar_alertas_rondas') }}" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-x-circle me-1"></i>Limpar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h5 class="card-title text-primary"><i class="bi bi-list-check"></i></h5>
+                    <h3 class="mb-0">{{ stats.total_rondas }}</h3>
+                    <small class="text-muted">Total de Rondas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <h5 class="card-title text-warning"><i class="bi bi-exclamation-triangle"></i></h5>
+                    <h3 class="mb-0">{{ stats.rondas_com_alertas }}</h3>
+                    <small class="text-muted">Rondas com Alertas</small>
+                    <div class="mt-2">
+                        <span class="badge bg-warning">{{ stats.porcentagem_com_alertas }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-danger">
+                <div class="card-body">
+                    <h5 class="card-title text-danger"><i class="bi bi-bug"></i></h5>
+                    <h3 class="mb-0">{{ stats.total_alertas }}</h3>
+                    <small class="text-muted">Total de Alertas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h5 class="card-title text-info"><i class="bi bi-check-circle"></i></h5>
+                    <h3 class="mb-0">{{ stats.total_rondas - stats.rondas_com_alertas }}</h3>
+                    <small class="text-muted">Rondas sem Alertas</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo por Tipo de Alerta -->
+    {% if stats.total_alertas > 0 %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom">
+            <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-pie-chart me-2 text-primary"></i>Resumo por Tipo de Alerta</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ stats.alertas_horario }}</h5>
+                            <small class="text-muted">Alertas de Horário</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-play-circle"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ stats.alertas_sem_inicio }}</h5>
+                            <small class="text-muted">Rondas sem Início</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-stop-circle"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ stats.alertas_sem_termino }}</h5>
+                            <small class="text-muted">Rondas sem Término</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-question-circle"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ stats.alertas_outros }}</h5>
+                            <small class="text-muted">Outros Alertas</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Lista de Rondas com Alertas -->
+    {% if rondas_com_alertas %}
+    <div class="card shadow-sm">
+        <div class="card-header bg-light border-bottom">
+            <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-list-ul me-2 text-primary"></i>Rondas com Alertas ({{ rondas_com_alertas|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% for item in rondas_com_alertas %}
+            <div class="card mb-3 border-warning">
+                <div class="card-header bg-warning bg-opacity-10 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">
+                            <i class="bi bi-shield-exclamation me-2"></i>
+                            Ronda ID #{{ item.ronda.id }}
+                            <span class="badge bg-warning ms-2">{{ item.total_alertas }} alerta(s)</span>
+                        </h6>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('ronda.detalhes_ronda', ronda_id=item.ronda.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye me-1"></i>Ver Detalhes
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <strong><i class="bi bi-calendar me-1"></i>Data do Plantão:</strong><br>
+                            <span>{{ item.ronda.data_plantao_ronda.strftime('%d/%m/%Y') if item.ronda.data_plantao_ronda else 'N/A' }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong><i class="bi bi-building me-1"></i>Condomínio:</strong><br>
+                            <span>{{ item.ronda.condominio.nome if item.ronda.condominio else 'N/A' }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong><i class="bi bi-person-badge me-1"></i>Supervisor:</strong><br>
+                            <span>{{ item.ronda.supervisor.username if item.ronda.supervisor else 'N/A' }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong><i class="bi bi-clock me-1"></i>Turno:</strong><br>
+                            <span>{{ item.ronda.turno_ronda or 'N/A' }}</span>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6 class="mb-3"><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>Alertas Encontrados:</h6>
+                    
+                    {% if item.alertas_categorizados.horario %}
+                    <div class="alert alert-danger mb-2">
+                        <strong><i class="bi bi-clock-history me-1"></i>Alertas de Horário ({{ item.alertas_categorizados.horario|length }}):</strong>
+                        <ul class="mb-0 mt-2">
+                            {% for alerta in item.alertas_categorizados.horario %}
+                            <li>{{ alerta[:200] }}{% if alerta|length > 200 %}...{% endif %}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    {% if item.alertas_categorizados.sem_inicio %}
+                    <div class="alert alert-warning mb-2">
+                        <strong><i class="bi bi-play-circle me-1"></i>Rondas sem Início ({{ item.alertas_categorizados.sem_inicio|length }}):</strong>
+                        <ul class="mb-0 mt-2">
+                            {% for alerta in item.alertas_categorizados.sem_inicio %}
+                            <li>{{ alerta[:200] }}{% if alerta|length > 200 %}...{% endif %}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    {% if item.alertas_categorizados.sem_termino %}
+                    <div class="alert alert-info mb-2">
+                        <strong><i class="bi bi-stop-circle me-1"></i>Rondas sem Término ({{ item.alertas_categorizados.sem_termino|length }}):</strong>
+                        <ul class="mb-0 mt-2">
+                            {% for alerta in item.alertas_categorizados.sem_termino %}
+                            <li>{{ alerta[:200] }}{% if alerta|length > 200 %}...{% endif %}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    {% if item.alertas_categorizados.outros %}
+                    <div class="alert alert-secondary mb-2">
+                        <strong><i class="bi bi-question-circle me-1"></i>Outros Alertas ({{ item.alertas_categorizados.outros|length }}):</strong>
+                        <ul class="mb-0 mt-2">
+                            {% for alerta in item.alertas_categorizados.outros %}
+                            <li>{{ alerta[:200] }}{% if alerta|length > 200 %}...{% endif %}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-success">
+        <h5 class="alert-heading"><i class="bi bi-check-circle-fill me-2"></i>Nenhum Alerta Encontrado!</h5>
+        <p class="mb-0">Todas as rondas verificadas estão sem alertas de erro ou inconsistências.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

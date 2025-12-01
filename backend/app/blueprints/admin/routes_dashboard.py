@@ -1,6 +1,7 @@
 # app/blueprints/admin/routes_dashboard.py
 import locale
 import logging
+import re
 from datetime import datetime, timedelta
 
 from flask import flash, redirect, render_template, request, url_for, send_file, make_response
@@ -727,3 +728,167 @@ def export_ocorrencia_dashboard_pdf_compact():
         logger.error(f"Erro ao gerar relatório PDF compacto de ocorrências: {e}", exc_info=True)
         flash("Erro ao gerar relatório PDF compacto. Tente novamente.", "danger")
         return redirect(url_for("admin.ocorrencia_dashboard"))
+
+
+@admin_bp.route("/rondas/alertas")
+@login_required
+@admin_required
+def verificar_alertas_rondas():
+    """Exibe página para verificar alertas em rondas salvas."""
+    logger.info(f"Usuário '{current_user.username}' acessou a página de alertas de rondas.")
+    
+    current_year = datetime.now().year
+    
+    # Filtros da query string
+    condominio_id = request.args.get("condominio_id", type=int)
+    supervisor_id = request.args.get("supervisor_id", type=int)
+    turno = request.args.get("turno", "")
+    mes = request.args.get("mes", type=int)
+    data_inicio = request.args.get("data_inicio", "")
+    data_fim = request.args.get("data_fim", "")
+    
+    # Constrói a query base
+    query = Ronda.query.order_by(Ronda.data_plantao_ronda.desc(), Ronda.id.desc())
+    
+    # Aplica filtros
+    if condominio_id:
+        query = query.filter(Ronda.condominio_id == condominio_id)
+    
+    if supervisor_id:
+        query = query.filter(Ronda.supervisor_id == supervisor_id)
+    
+    if turno:
+        query = query.filter(Ronda.turno_ronda == turno)
+    
+    # Se mês foi selecionado e não há datas específicas, calcula o range do mês
+    if mes and not (data_inicio or data_fim):
+        start_date, end_date = _get_date_range_from_month(current_year, mes)
+        if start_date and end_date:
+            data_inicio = start_date
+            data_fim = end_date
+        else:
+            flash("Mês inválido selecionado.", "danger")
+            mes = None
+    
+    if data_inicio:
+        try:
+            data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d").date()
+            query = query.filter(Ronda.data_plantao_ronda >= data_inicio_dt)
+        except ValueError:
+            flash("Data de início inválida. Use o formato YYYY-MM-DD", "danger")
+            data_inicio = ""
+    
+    if data_fim:
+        try:
+            data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d").date()
+            query = query.filter(Ronda.data_plantao_ronda <= data_fim_dt)
+        except ValueError:
+            flash("Data de fim inválida. Use o formato YYYY-MM-DD", "danger")
+            data_fim = ""
+    
+    # Busca todas as rondas
+    rondas = query.all()
+    
+    # Padrões para identificar alertas
+    padrao_secao_alertas = re.compile(
+        r'Observações/Alertas de Pareamento:',
+        re.IGNORECASE
+    )
+    
+    rondas_com_alertas = []
+    total_alertas = 0
+    
+    # Processa cada ronda
+    for ronda in rondas:
+        if not ronda.relatorio_processado:
+            continue
+        
+        relatorio = ronda.relatorio_processado
+        
+        # Verifica se há seção de alertas
+        if padrao_secao_alertas.search(relatorio):
+            # Extrai os alertas
+            alertas_encontrados = []
+            
+            # Encontra a posição da seção de alertas
+            match_secao = padrao_secao_alertas.search(relatorio)
+            if match_secao:
+                # Pega o texto a partir da seção de alertas
+                texto_alertas = relatorio[match_secao.end():]
+                
+                # Extrai cada alerta (linhas que começam com "- ⚠️")
+                linhas = texto_alertas.split('\n')
+                for linha in linhas:
+                    linha = linha.strip()
+                    if linha.startswith('- ⚠️') or linha.startswith('⚠️'):
+                        # Remove o prefixo "- ⚠️" ou "⚠️"
+                        alerta_limpo = re.sub(r'^-\s*⚠️\s*', '', linha)
+                        alerta_limpo = re.sub(r'^⚠️\s*', '', alerta_limpo)
+                        if alerta_limpo:
+                            alertas_encontrados.append(alerta_limpo)
+            
+            if alertas_encontrados:
+                # Categoriza os alertas
+                alertas_categorizados = {
+                    'horario': [],
+                    'sem_inicio': [],
+                    'sem_termino': [],
+                    'outros': []
+                }
+                
+                for alerta in alertas_encontrados:
+                    if 'ALERTA DE HORÁRIO' in alerta.upper() or 'ocorreu ANTES' in alerta:
+                        alertas_categorizados['horario'].append(alerta)
+                    elif 'sem início' in alerta.lower() or 'sem inicio' in alerta.lower():
+                        alertas_categorizados['sem_inicio'].append(alerta)
+                    elif 'sem término' in alerta.lower() or 'sem termino' in alerta.lower():
+                        alertas_categorizados['sem_termino'].append(alerta)
+                    else:
+                        alertas_categorizados['outros'].append(alerta)
+                
+                rondas_com_alertas.append({
+                    'ronda': ronda,
+                    'alertas': alertas_encontrados,
+                    'alertas_categorizados': alertas_categorizados,
+                    'total_alertas': len(alertas_encontrados)
+                })
+                total_alertas += len(alertas_encontrados)
+    
+    # Estatísticas
+    stats = {
+        'total_rondas': len(rondas),
+        'rondas_com_alertas': len(rondas_com_alertas),
+        'total_alertas': total_alertas,
+        'alertas_horario': sum(len(item['alertas_categorizados']['horario']) for item in rondas_com_alertas),
+        'alertas_sem_inicio': sum(len(item['alertas_categorizados']['sem_inicio']) for item in rondas_com_alertas),
+        'alertas_sem_termino': sum(len(item['alertas_categorizados']['sem_termino']) for item in rondas_com_alertas),
+        'alertas_outros': sum(len(item['alertas_categorizados']['outros']) for item in rondas_com_alertas),
+    }
+    
+    if len(rondas) > 0:
+        stats['porcentagem_com_alertas'] = round((len(rondas_com_alertas) / len(rondas)) * 100, 1)
+    else:
+        stats['porcentagem_com_alertas'] = 0
+    
+    # Dados para os filtros
+    condominios = Condominio.query.join(Ronda).distinct().order_by(Condominio.nome).all()
+    supervisors = User.query.filter_by(is_supervisor=True, is_approved=True).order_by(User.username).all()
+    turnos = ["Noturno Par", "Noturno Impar", "Diurno Par", "Diurno Impar"]
+    meses_do_ano = _get_months_of_year(current_year)
+    
+    return render_template(
+        "admin/rondas_alertas.html",
+        title="Verificação de Alertas em Rondas",
+        rondas_com_alertas=rondas_com_alertas,
+        stats=stats,
+        condominios=condominios,
+        supervisors=supervisors,
+        turnos=turnos,
+        meses_do_ano=meses_do_ano,
+        selected_condominio_id=condominio_id,
+        selected_supervisor_id=supervisor_id,
+        selected_turno=turno,
+        selected_mes=mes,
+        selected_data_inicio=data_inicio,
+        selected_data_fim=data_fim,
+    )
