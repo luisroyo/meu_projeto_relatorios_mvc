@@ -12,7 +12,7 @@ sleep 5
 # Aplica migrations com timeout
 echo "Aplicando migrations..."
 # Ajusta PYTHONPATH e FLASK_APP para novo layout em backend/
-export PYTHONPATH=$PYTHONPATH:$(pwd)/backend
+export PYTHONPATH=$PYTHONPATH:$(pwd)/backend:$(pwd)/backend/backend
 export FLASK_APP="backend.app:create_app()"
 
 # Aplica migrations
