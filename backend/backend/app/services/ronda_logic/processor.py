@@ -3,7 +3,7 @@ import logging
 import re
 from datetime import datetime, timedelta
 
-from . import config
+from .config import FALLBACK_DATA_INDEFINIDA, DEFAULT_VTR_ID
 from .parser import (extrair_eventos_de_bloco,
                      extrair_eventos_de_mensagem_simples,
                      parse_linha_log_prefixo)
@@ -21,10 +21,10 @@ def calcular_intervalo_plantao(data_plantao_str: str, escala_plantao_str: str):
     Retorna (datetime_inicio, datetime_fim, data_para_cabecalho_valida).
     """
     if not data_plantao_str or not escala_plantao_str:
-        return None, None, config.FALLBACK_DATA_INDEFINIDA
+        return None, None, FALLBACK_DATA_INDEFINIDA
 
     data_base_dt = None
-    data_cabecalho = config.FALLBACK_DATA_INDEFINIDA
+    data_cabecalho = FALLBACK_DATA_INDEFINIDA
     try:
         data_norm = normalizar_data_capturada(data_plantao_str)
         if not data_norm or len(data_norm.split("/")[2]) != 4:
@@ -123,9 +123,9 @@ def processar_log_de_rondas(
     if data_manual_normalizada:
         ultima_data_valida_global = data_manual_normalizada
     else:
-        ultima_data_valida_global = config.FALLBACK_DATA_INDEFINIDA
+        ultima_data_valida_global = FALLBACK_DATA_INDEFINIDA
 
-    ultima_vtr_identificada_global = config.DEFAULT_VTR_ID
+    ultima_vtr_identificada_global = DEFAULT_VTR_ID
     ultimo_datetime_log_global = None
     buffer_bloco_atual = []
     vtr_para_contexto_bloco_atual = ultima_vtr_identificada_global
@@ -173,7 +173,7 @@ def processar_log_de_rondas(
 
         if (
             data_log_ctx
-            and data_log_ctx != config.FALLBACK_DATA_INDEFINIDA
+            and data_log_ctx != FALLBACK_DATA_INDEFINIDA
             and hora_log_raw
         ):
             try:
@@ -201,7 +201,7 @@ def processar_log_de_rondas(
             )
 
             ultima_vtr_identificada_global = vtr_global
-            if data_prefixo and data_prefixo != config.FALLBACK_DATA_INDEFINIDA:
+            if data_prefixo and data_prefixo != FALLBACK_DATA_INDEFINIDA:
                 ultima_data_valida_global = data_prefixo
 
             vtr_para_contexto_bloco_atual = vtr_linha
