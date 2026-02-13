@@ -18,7 +18,19 @@ from sqlalchemy import event, text
 from sqlalchemy.exc import OperationalError, DisconnectionError
 
 from app.auth.jwt_auth import init_jwt
-from config import DevelopmentConfig
+
+# Tenta importar config normalmente ou adiciona o diretório pai ao path
+try:
+    from config import DevelopmentConfig
+except ImportError:
+    import sys
+    import os
+    # Adiciona o diretório pai (backend/backend) ao sys.path
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+    from config import DevelopmentConfig
 
 # Carrega .env se disponível
 try:
