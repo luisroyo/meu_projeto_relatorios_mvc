@@ -1,0 +1,670 @@
+[1mdiff --git a/backend/app/blueprints/api/README_rondas_esporadicas.md b/backend/app/blueprints/api/README_rondas_esporadicas.md[m
+[1mdeleted file mode 100644[m
+[1mindex 3c1d345..0000000[m
+[1m--- a/backend/app/blueprints/api/README_rondas_esporadicas.md[m
+[1m+++ /dev/null[m
+[36m@@ -1,692 +0,0 @@[m
+[31m-# APIs de Rondas Esporádicas - PWA[m
+[31m-[m
+[31m-Este documento descreve as APIs para gerenciar rondas esporádicas via PWA (Progressive Web App).[m
+[31m-[m
+[31m-## 📋 **Visão Geral**[m
+[31m-[m
+[31m-As rondas esporádicas são registros de entrada e saída em condomínios específicos, permitindo:[m
+[31m-- Iniciar e finalizar rondas individualmente[m
+[31m-- Validar horários de entrada/saída[m
+[31m-- Consolidar relatórios por turno[m
+[31m-- Integração com sistema existente[m
+[31m-[m
+[31m-## 🔗 **Endpoints Disponíveis**[m
+[31m-[m
+[31m-### **0. Listar Condomínios**[m
+[31m-```http[m
+[31m-GET /api/condominios[m
+[31m-```[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "condominios": [[m
+[31m-    {[m
+[31m-      "id": 1,[m
+[31m-      "nome": "Residencial A"[m
+[31m-    },[m
+[31m-    {[m
+[31m-      "id": 2,[m
+[31m-      "nome": "Condomínio B"[m
+[31m-    }[m
+[31m-  ],[m
+[31m-  "total": 2[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **1. Validar Horário de Entrada**[m
+[31m-```http[m
+[31m-POST /api/rondas-esporadicas/validar-horario[m
+[31m-```[m
+[31m-[m
+[31m-**Payload:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "hora_entrada": "14:30"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "horario_valido": true,[m
+[31m-  "mensagem": "Horário válido",[m
+[31m-  "hora_atual": "14:25",[m
+[31m-  "hora_informada": "14:30"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **2. Verificar Ronda em Andamento**[m
+[31m-```http[m
+[31m-GET /api/rondas-esporadicas/em-andamento/{condominio_id}?data_plantao=2025-01-30[m
+[31m-```[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "em_andamento": true,[m
+[31m-  "ronda": {[m
+[31m-    "id": 1,[m
+[31m-    "hora_entrada": "14:30",[m
+[31m-    "data_plantao": "2025-01-30",[m
+[31m-    "escala_plantao": "06h às 18h",[m
+[31m-    "turno": "Diurno",[m
+[31m-    "observacoes": "Início da ronda",[m
+[31m-    "user_id": 1,[m
+[31m-    "supervisor_id": 2[m
+[31m-  }[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **3. Iniciar Ronda**[m
+[31m-```http[m
+[31m-POST /api/rondas-esporadicas/iniciar[m
+[31m-```[m
+[31m-[m
+[31m-**Payload:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "condominio_id": 1,[m
+[31m-  "user_id": 1,[m
+[31m-  "data_plantao": "2025-01-30",[m
+[31m-  "hora_entrada": "14:30",[m
+[31m-  "escala_plantao": "06h às 18h",[m
+[31m-  "supervisor_id": 2,[m
+[31m-  "observacoes": "Início da ronda"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "message": "Ronda iniciada com sucesso!",[m
+[31m-  "ronda_id": 1[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **4. Finalizar Ronda**[m
+[31m-```http[m
+[31m-PUT /api/rondas-esporadicas/finalizar/{ronda_id}[m
+[31m-```[m
+[31m-[m
+[31m-**Payload:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "hora_saida": "18:00",[m
+[31m-  "observacoes": "Finalização da ronda"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "message": "Ronda finalizada com sucesso!"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **5. Atualizar Ronda**[m
+[31m-```http[m
+[31m-PUT /api/rondas-esporadicas/atualizar/{ronda_id}[m
+[31m-```[m
+[31m-[m
+[31m-**Payload:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "observacoes": "Nova observação durante a ronda"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "message": "Ronda atualizada com sucesso!"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **6. Listar Rondas do Dia**[m
+[31m-```http[m
+[31m-GET /api/rondas-esporadicas/do-dia/{condominio_id}/{data}[m
+[31m-```[m
+[31m-[m
+[31m-**Exemplo:** `GET /api/rondas-esporadicas/do-dia/1/2025-01-30`[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "rondas": [[m
+[31m-    {[m
+[31m-      "id": 1,[m
+[31m-      "condominio_id": 1,[m
+[31m-      "condominio_nome": "Residencial A",[m
+[31m-      "user_id": 1,[m
+[31m-      "user_nome": "João Silva",[m
+[31m-      "supervisor_id": 2,[m
+[31m-      "supervisor_nome": "Maria Santos",[m
+[31m-      "data_plantao": "2025-01-30",[m
+[31m-      "escala_plantao": "06h às 18h",[m
+[31m-      "turno": "Diurno",[m
+[31m-      "hora_entrada": "14:30",[m
+[31m-      "hora_saida": "18:00",[m
+[31m-      "duracao_formatada": "3h 30min",[m
+[31m-      "duracao_minutos": 210,[m
+[31m-      "status": "finalizada",[m
+[31m-      "observacoes": "Ronda completa",[m
+[31m-      "data_criacao": "2025-01-30T14:30:00Z",[m
+[31m-      "data_modificacao": "2025-01-30T18:00:00Z"[m
+[31m-    }[m
+[31m-  ][m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **7. Consolidar Turno**[m
+[31m-```http[m
+[31m-POST /api/rondas-esporadicas/consolidar-turno/{condominio_id}/{data}[m
+[31m-```[m
+[31m-[m
+[31m-**Exemplo:** `POST /api/rondas-esporadicas/consolidar-turno/1/2025-01-30`[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "total_rondas": 3,[m
+[31m-  "rondas_finalizadas": 3,[m
+[31m-  "duracao_total_minutos": 630,[m
+[31m-  "relatorio": "RELATÓRIO DE RONDAS ESPORÁDICAS - Residencial A\nData: 30/01/2025\nTotal de Rondas: 3\nRondas Finalizadas: 3\nDuração Total: 630 minutos\n\nRonda 1:\n  Entrada: 14:30\n  Saída: 18:00\n  Duração: 3h 30min\n  Status: finalizada\n  Observações: Ronda completa\n\n..."[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **8. Detalhes da Ronda**[m
+[31m-```http[m
+[31m-GET /api/rondas-esporadicas/{ronda_id}[m
+[31m-```[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "id": 1,[m
+[31m-  "condominio_id": 1,[m
+[31m-  "condominio_nome": "Residencial A",[m
+[31m-  "user_id": 1,[m
+[31m-  "user_nome": "João Silva",[m
+[31m-  "supervisor_id": 2,[m
+[31m-  "supervisor_nome": "Maria Santos",[m
+[31m-  "data_plantao": "2025-01-30",[m
+[31m-  "escala_plantao": "06h às 18h",[m
+[31m-  "turno": "Diurno",[m
+[31m-  "hora_entrada": "14:30",[m
+[31m-  "hora_saida": "18:00",[m
+[31m-  "duracao_formatada": "3h 30min",[m
+[31m-  "duracao_minutos": 210,[m
+[31m-  "status": "finalizada",[m
+[31m-  "observacoes": "Ronda completa",[m
+[31m-  "log_bruto": null,[m
+[31m-  "relatorio_processado": null,[m
+[31m-  "data_criacao": "2025-01-30T14:30:00Z",[m
+[31m-  "data_modificacao": "2025-01-30T18:00:00Z"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-## 🔧 **Validações**[m
+[31m-[m
+[31m-### **Horário de Entrada**[m
+[31m-- Tolerância padrão: 30 minutos[m
+[31m-- Compara com horário atual do sistema[m
+[31m-- Retorna aviso se diferença for muito grande[m
+[31m-[m
+[31m-### **Ronda em Andamento**[m
+[31m-- Apenas uma ronda por condomínio por data[m
+[31m-- Status: "em_andamento", "finalizada", "cancelada"[m
+[31m-[m
+[31m-### **Formato de Dados**[m
+[31m-- **Data**: `YYYY-MM-DD` (ex: "2025-01-30")[m
+[31m-- **Hora**: `HH:MM` (ex: "14:30")[m
+[31m-- **Escala**: "06h às 18h" ou "18h às 06h"[m
+[31m-[m
+[31m-## 📱 **Uso no PWA**[m
+[31m-[m
+[31m-### **Fluxo Típico:**[m
+[31m-[m
+[31m-1. **Selecionar Condomínio**[m
+[31m-2. **Validar Horário de Entrada**[m
+[31m-3. **Iniciar Ronda** (se não houver em andamento)[m
+[31m-4. **Atualizar Observações** (durante a ronda)[m
+[31m-5. **Finalizar Ronda** (com hora de saída)[m
+[31m-6. **Consolidar Turno** (ao final do período)[m
+[31m-[m
+[31m-### **Exemplo de Integração:**[m
+[31m-[m
+[31m-```javascript[m
+[31m-// Validar horário antes de iniciar[m
+[31m-const validarHorario = async (hora) => {[m
+[31m-  const response = await fetch('/api/rondas-esporadicas/validar-horario', {[m
+[31m-    method: 'POST',[m
+[31m-    headers: { 'Content-Type': 'application/json' },[m
+[31m-    body: JSON.stringify({ hora_entrada: hora })[m
+[31m-  });[m
+[31m-  return response.json();[m
+[31m-};[m
+[31m-[m
+[31m-// Iniciar ronda[m
+[31m-const iniciarRonda = async (dados) => {[m
+[31m-  const response = await fetch('/api/rondas-esporadicas/iniciar', {[m
+[31m-    method: 'POST',[m
+[31m-    headers: { 'Content-Type': 'application/json' },[m
+[31m-    body: JSON.stringify(dados)[m
+[31m-  });[m
+[31m-  return response.json();[m
+[31m-};[m
+[31m-```[m
+[31m-[m
+[31m-## 🚀 **APIs de Consolidação**[m
+[31m-[m
+[31m-### **9. Consolidar e Enviar WhatsApp**[m
+[31m-```http[m
+[31m-POST /api/rondas-esporadicas/consolidar-e-enviar/{condominio_id}/{data}[m
+[31m-```[m
+[31m-[m
+[31m-**Exemplo:** `POST /api/rondas-esporadicas/consolidar-e-enviar/1/2025-01-30`[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "message": "Consolidação realizada com sucesso",[m
+[31m-  "whatsapp_enviado": true,[m
+[31m-  "ronda_principal_id": 123,[m
+[31m-  "total_rondas": 3,[m
+[31m-  "duracao_total_minutos": 630,[m
+[31m-  "relatorio": "🔄 RELATÓRIO DE RONDAS ESPORÁDICAS..."[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **10. Marcar Rondas como Processadas**[m
+[31m-```http[m
+[31m-PUT /api/rondas-esporadicas/marcar-processadas/{condominio_id}/{data}[m
+[31m-```[m
+[31m-[m
+[31m-**Exemplo:** `PUT /api/rondas-esporadicas/marcar-processadas/1/2025-01-30`[m
+[31m-[m
+[31m-### **11. Processo Completo**[m
+[31m-```http[m
+[31m-POST /api/rondas-esporadicas/processo-completo/{condominio_id}/{data}[m
+[31m-```[m
+[31m-[m
+[31m-**Executa:** Consolidar → Enviar WhatsApp → Marcar como Processadas[m
+[31m-[m
+[31m-### **12. Status de Consolidação**[m
+[31m-```http[m
+[31m-GET /api/rondas-esporadicas/status-consolidacao/{condominio_id}/{data}[m
+[31m-```[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "data": "2025-01-30",[m
+[31m-  "condominio_id": 1,[m
+[31m-  "status": {[m
+[31m-    "total_rondas_esporadicas": 3,[m
+[31m-    "rondas_finalizadas": 3,[m
+[31m-    "rondas_processadas": 0,[m
+[31m-    "duracao_total_minutos": 630,[m
+[31m-    "ronda_principal_criada": false,[m
+[31m-    "ronda_principal_id": null,[m
+[31m-    "pode_consolidar": true,[m
+[31m-    "ja_consolidado": false[m
+[31m-  },[m
+[31m-  "rondas": [...][m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **13. Estatísticas de Consolidação**[m
+[31m-```http[m
+[31m-GET /api/rondas-esporadicas/estatisticas/{condominio_id}?data_inicio=2025-01-01&data_fim=2025-01-31[m
+[31m-```[m
+[31m-[m
+[31m-**Exemplo:** `GET /api/rondas-esporadicas/estatisticas/1?data_inicio=2025-01-01&data_fim=2025-01-31`[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "message": "Estatísticas obtidas com sucesso!",[m
+[31m-  "estatisticas": {[m
+[31m-    "periodo": {[m
+[31m-      "data_inicio": "2025-01-01",[m
+[31m-      "data_fim": "2025-01-31",[m
+[31m-      "dias": 31[m
+[31m-    },[m
+[31m-    "resumo": {[m
+[31m-      "total_rondas": 45,[m
+[31m-      "rondas_finalizadas": 42,[m
+[31m-      "rondas_em_andamento": 3,[m
+[31m-      "duracao_total_minutos": 2700,[m
+[31m-      "duracao_media_minutos": 60.0,[m
+[31m-      "duracao_total_formatada": "45h 0min",[m
+[31m-      "duracao_media_formatada": "1h 0min"[m
+[31m-    },[m
+[31m-    "por_turno": {[m
+[31m-      "Diurno": {[m
+[31m-        "total": 25,[m
+[31m-        "duracao": 1500[m
+[31m-      },[m
+[31m-      "Noturno": {[m
+[31m-        "total": 20,[m
+[31m-        "duracao": 1200[m
+[31m-      }[m
+[31m-    },[m
+[31m-    "por_data": {[m
+[31m-      "2025-01-15": {[m
+[31m-        "total": 3,[m
+[31m-        "duracao": 180[m
+[31m-      }[m
+[31m-    }[m
+[31m-  }[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **14. Listar Rondas Executadas**[m
+[31m-```http[m
+[31m-GET /api/rondas-esporadicas/executadas?condominio_id=1&data_inicio=2025-01-01&data_fim=2025-01-31[m
+[31m-```[m
+[31m-[m
+[31m-**Parâmetros:**[m
+[31m-- `condominio_id` (obrigatório): ID do condomínio[m
+[31m-- `data_inicio` (opcional): Data inicial no formato YYYY-MM-DD[m
+[31m-- `data_fim` (opcional): Data final no formato YYYY-MM-DD[m
+[31m-[m
+[31m-**Exemplo:** `GET /api/rondas-esporadicas/executadas?condominio_id=1&data_inicio=2025-01-01&data_fim=2025-01-31`[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "message": "Rondas executadas obtidas com sucesso!",[m
+[31m-  "rondas": [[m
+[31m-    {[m
+[31m-      "id": 1,[m
+[31m-      "condominio_id": 1,[m
+[31m-      "condominio_nome": "Residencial A",[m
+[31m-      "data_plantao": "2025-01-15",[m
+[31m-      "escala_plantao": "06h às 18h",[m
+[31m-      "turno": "Diurno",[m
+[31m-      "hora_entrada": "08:30:00",[m
+[31m-      "hora_saida": "09:15:00",[m
+[31m-      "duracao_minutos": 45,[m
+[31m-      "duracao_formatada": "45 min",[m
+[31m-      "observacoes": "Ronda realizada sem incidentes",[m
+[31m-      "status": "finalizada",[m
+[31m-      "user_id": 1,[m
+[31m-      "supervisor_id": 2,[m
+[31m-      "data_criacao": "2025-01-15T08:30:00Z",[m
+[31m-      "data_modificacao": "2025-01-15T09:15:00Z"[m
+[31m-    }[m
+[31m-  ],[m
+[31m-  "total": 1,[m
+[31m-  "filtros": {[m
+[31m-    "condominio_id": 1,[m
+[31m-    "data_inicio": "2025-01-01",[m
+[31m-    "data_fim": "2025-01-31"[m
+[31m-  }[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **15. Estatísticas de Consolidação**[m
+[31m-```http[m
+[31m-GET /api/rondas-esporadicas/estatisticas/{condominio_id}?data_inicio=2025-01-01&data_fim=2025-01-31[m
+[31m-```[m
+[31m-[m
+[31m-**Exemplo:** `GET /api/rondas-esporadicas/estatisticas/1?data_inicio=2025-01-01&data_fim=2025-01-31`[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "message": "Estatísticas obtidas com sucesso!",[m
+[31m-  "estatisticas": {[m
+[31m-    "periodo": {[m
+[31m-      "data_inicio": "2025-01-01",[m
+[31m-      "data_fim": "2025-01-31",[m
+[31m-      "dias": 31[m
+[31m-    },[m
+[31m-    "resumo": {[m
+[31m-      "total_rondas": 45,[m
+[31m-      "rondas_finalizadas": 42,[m
+[31m-      "rondas_em_andamento": 3,[m
+[31m-      "duracao_total_minutos": 2700,[m
+[31m-      "duracao_media_minutos": 60.0,[m
+[31m-      "duracao_total_formatada": "45h 0min",[m
+[31m-      "duracao_media_formatada": "1h 0min"[m
+[31m-    },[m
+[31m-    "por_turno": {[m
+[31m-      "Diurno": {[m
+[31m-        "total": 25,[m
+[31m-        "duracao": 1500[m
+[31m-      },[m
+[31m-      "Noturno": {[m
+[31m-        "total": 20,[m
+[31m-        "duracao": 1200[m
+[31m-      }[m
+[31m-    },[m
+[31m-    "por_data": {[m
+[31m-      "2025-01-15": {[m
+[31m-        "total": 3,[m
+[31m-        "duracao": 180[m
+[31m-      }[m
+[31m-    }[m
+[31m-  }[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-## 🚀 **APIs de Rondas Regulares (Tradicionais)**[m
+[31m-[m
+[31m-### **1. Listar Rondas do Dia**[m
+[31m-```http[m
+[31m-GET /api/rondas/do-dia/{condominio_id}/{data}[m
+[31m-```[m
+[31m-[m
+[31m-**Exemplo:** `GET /api/rondas/do-dia/1/2025-01-30`[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "rondas": [[m
+[31m-    {[m
+[31m-      "id": 1,[m
+[31m-      "condominio_id": 1,[m
+[31m-      "condominio_nome": "Residencial A",[m
+[31m-      "data_plantao": "2025-01-30",[m
+[31m-      "escala_plantao": "06h às 18h",[m
+[31m-      "log_bruto": "Log da ronda...",[m
+[31m-      "total_rondas": 5,[m
+[31m-      "duracao_total_minutos": 300,[m
+[31m-      "primeiro_evento_utc": "2025-01-30T06:00:00Z",[m
+[31m-      "ultimo_evento_utc": "2025-01-30T18:00:00Z",[m
+[31m-      "supervisor_id": 2,[m
+[31m-      "supervisor_nome": "João Silva",[m
+[31m-      "status": "finalizada",[m
+[31m-      "data_criacao": "2025-01-30T06:00:00Z",[m
+[31m-      "data_modificacao": "2025-01-30T18:00:00Z"[m
+[31m-    }[m
+[31m-  ],[m
+[31m-  "total": 1[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **2. Verificar Ronda em Andamento**[m
+[31m-```http[m
+[31m-GET /api/rondas/em-andamento/{condominio_id}?data_plantao=2025-01-30[m
+[31m-```[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "em_andamento": true,[m
+[31m-  "ronda": {[m
+[31m-    "id": 1,[m
+[31m-    "inicio": "2025-01-30T06:00:00Z",[m
+[31m-    "data_plantao": "2025-01-30",[m
+[31m-    "escala_plantao": "06h às 18h",[m
+[31m-    "turno": "Diurno",[m
+[31m-    "observacoes": "Ronda em andamento",[m
+[31m-    "user_id": 1,[m
+[31m-    "supervisor_id": 2[m
+[31m-  }[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **3. Iniciar Ronda**[m
+[31m-```http[m
+[31m-POST /api/rondas/iniciar[m
+[31m-```[m
+[31m-[m
+[31m-**Payload:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "condominio_id": 1,[m
+[31m-  "data_plantao": "2025-01-30",[m
+[31m-  "escala_plantao": "06h às 18h",[m
+[31m-  "supervisor_id": 2,[m
+[31m-  "user_id": 1[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "message": "Ronda iniciada com sucesso!",[m
+[31m-  "ronda_id": 1[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **4. Finalizar Ronda**[m
+[31m-```http[m
+[31m-PUT /api/rondas/finalizar/{ronda_id}[m
+[31m-```[m
+[31m-[m
+[31m-**Payload:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "log_bruto": "Log final da ronda",[m
+[31m-  "observacoes": "Observações finais"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "message": "Ronda finalizada com sucesso!"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **5. Atualizar Ronda**[m
+[31m-```http[m
+[31m-PUT /api/rondas/atualizar/{ronda_id}[m
+[31m-```[m
+[31m-[m
+[31m-**Payload:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "log_bruto": "Log atualizado",[m
+[31m-  "observacoes": "Nova observação"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "message": "Ronda atualizada com sucesso!"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **6. Gerar Relatório**[m
+[31m-```http[m
+[31m-POST /api/rondas/gerar-relatorio/{condominio_id}/{data}[m
+[31m-```[m
+[31m-[m
+[31m-**Exemplo:** `POST /api/rondas/gerar-relatorio/1/2025-01-30`[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "message": "Relatório gerado com sucesso!",[m
+[31m-  "relatorio": "RELATÓRIO DE RONDA - Residencial A\nData: 30/01/2025\nEscala: 06h às 18h\nStatus: finalizada\n\nLog Bruto:\nLog da ronda...\n\nObservações:\nObservações da ronda"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **7. Enviar WhatsApp**[m
+[31m-```http[m
+[31m-POST /api/rondas/enviar-whatsapp/{condominio_id}/{data}[m
+[31m-```[m
+[31m-[m
+[31m-**Exemplo:** `POST /api/rondas/enviar-whatsapp/1/2025-01-30`[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "message": "Relatório preparado para envio via WhatsApp!",[m
+[31m-  "relatorio": "🔄 RELATÓRIO DE RONDA - Residencial A\n📅 Data: 30/01/2025\n⏰ Escala: 06h às 18h\n📊 Status: finalizada\n\n📝 Log:\nLog da ronda...\n\n💬 Observações:\nObservações da ronda"[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **8. Detalhes da Ronda**[m
+[31m-```http[m
+[31m-GET /api/rondas/{ronda_id}[m
+[31m-```[m
+[31m-[m
+[31m-**Resposta:**[m
+[31m-```json[m
+[31m-{[m
+[31m-  "sucesso": true,[m
+[31m-  "ronda": {[m
+[31m-    "id": 1,[m
+[31m-    "condominio_id": 1,[m
+[31m-    "condominio_nome": "Residencial A",[m
+[31m-    "data_plantao": "2025-01-30",[m
+[31m-    "escala_plantao": "06h às 18h",[m
+[31m-    "log_bruto": "Log da ronda...",[m
+[31m-    "total_rondas": 5,[m
+[31m-    "duracao_total_minutos": 300,[m
+[31m-    "primeiro_evento_utc": "2025-01-30T06:00:00Z",[m
+[31m-    "ultimo_evento_utc": "2025-01-30T18:00:00Z",[m
+[31m-    "supervisor_id": 2,[m
+[31m-    "supervisor_nome": 
