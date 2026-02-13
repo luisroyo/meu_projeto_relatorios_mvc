@@ -1,0 +1,689 @@
+/* mobile-responsive.css - Melhorias de responsividade móvel */
+
+/* === BREAKPOINTS PERSONALIZADOS === */
+/* 
+   xs: < 576px (smartphones)
+   sm: 576px - 767px (smartphones landscape)
+   md: 768px - 991px (tablets)
+   lg: 992px - 1199px (desktops)
+   xl: 1200px+ (desktops grandes)
+*/
+
+/* === OTIMIZAÇÕES GERAIS PARA MOBILE === */
+@media (max-width: 767.98px) {
+
+    /* Remove margens excessivas em mobile */
+    .container,
+    .container-fluid {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    /* Reduz espaçamento vertical */
+    .mt-4,
+    .my-4 {
+        margin-top: 1.5rem !important;
+    }
+
+    .mb-4,
+    .my-4 {
+        margin-bottom: 1.5rem !important;
+    }
+
+    .mt-5,
+    .my-5 {
+        margin-top: 2rem !important;
+    }
+
+    .mb-5,
+    .my-5 {
+        margin-bottom: 2rem !important;
+    }
+
+    /* Ajusta tamanho de fonte */
+    h1 {
+        font-size: 1.75rem;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    h3 {
+        font-size: 1.25rem;
+    }
+
+    .lead {
+        font-size: 1rem;
+    }
+
+    /* Ajusta cards */
+    .card {
+        margin-bottom: 1rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .card-header {
+        padding: 0.75rem 1rem;
+    }
+}
+
+/* === NAVEGAÇÃO MÓVEL === */
+@media (max-width: 991.98px) {
+    .navbar-brand {
+        font-size: 1rem;
+    }
+
+    .navbar-nav .nav-link {
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .navbar-nav .nav-link:last-child {
+        border-bottom: none;
+    }
+
+    .dropdown-menu {
+        border: none;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+}
+
+/* === TABELAS RESPONSIVAS === */
+@media (max-width: 767.98px) {
+
+    /* Força scroll horizontal em tabelas */
+    .table-responsive {
+        border: none;
+    }
+
+    .table {
+        font-size: 0.875rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.5rem 0.25rem;
+        white-space: nowrap;
+    }
+
+    /* Oculta colunas menos importantes em mobile */
+    .table .d-none-mobile {
+        display: none !important;
+    }
+
+    /* Ajusta grupo de botões em tabelas */
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .btn-group .btn i {
+        font-size: 0.875rem;
+    }
+}
+
+/* === FORMULÁRIOS MÓVEIS === */
+@media (max-width: 767.98px) {
+
+    /* Ajusta inputs para evitar zoom no iOS */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="search"],
+    input[type="number"],
+    textarea,
+    select {
+        font-size: 16px;
+        /* Evita zoom automático no iOS */
+    }
+
+    /* Ajusta campos de formulário */
+    .form-control,
+    .form-select {
+        padding: 0.75rem;
+    }
+
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+
+    /* Ajusta botões */
+    .btn {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .btn-lg {
+        padding: 0.875rem 1.25rem;
+        font-size: 1rem;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    /* Botões full-width em mobile */
+    .btn-mobile-full {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Grupo de botões em coluna */
+    .btn-group-mobile-stack {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-group-mobile-stack .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+        border-radius: 0.375rem !important;
+    }
+
+    .btn-group-mobile-stack .btn:last-child {
+        margin-bottom: 0;
+    }
+}
+
+/* === CARDS E LAYOUT MÓVEL === */
+@media (max-width: 767.98px) {
+
+    /* Cards ocupam largura total */
+    .card {
+        border-radius: 0.5rem;
+    }
+
+    /* Ajusta grid em mobile */
+    .row.g-4 {
+        gap: 1rem !important;
+    }
+
+    /* Layout de duas colunas vira uma coluna */
+    .col-lg-6,
+    .col-md-6 {
+        margin-bottom: 1rem;
+    }
+
+    /* Sidebar em mobile */
+    .sidebar-mobile {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 80%;
+        height: 100%;
+        background: white;
+        z-index: 1050;
+        transition: left 0.3s ease;
+        box-shadow: 0 0 1rem rgba(0, 0, 0, 0.15);
+    }
+
+    .sidebar-mobile.show {
+        left: 0;
+    }
+
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1049;
+        display: none;
+    }
+
+    .sidebar-overlay.show {
+        display: block;
+    }
+}
+
+/* === DASHBOARD MÓVEL === */
+@media (max-width: 767.98px) {
+
+    /* Métricas do dashboard */
+    .metric-card {
+        margin-bottom: 1rem;
+    }
+
+    .metric-value {
+        font-size: 1.5rem;
+    }
+
+    /* Gráficos responsivos */
+    .chart-container {
+        position: relative;
+        height: 250px;
+        margin: 1rem 0;
+    }
+
+    /* Filtros em mobile */
+    .filters-mobile {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 1rem;
+        border-top: 1px solid #dee2e6;
+        z-index: 1040;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+    }
+
+    .filters-mobile.show {
+        transform: translateY(0);
+    }
+
+    .filter-toggle-btn {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        z-index: 1041;
+        border-radius: 50%;
+        width: 3rem;
+        height: 3rem;
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15);
+    }
+}
+
+/* === MODAIS MÓVEIS === */
+@media (max-width: 767.98px) {
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: none;
+        width: calc(100% - 1rem);
+    }
+
+    .modal-body {
+        padding: 1rem;
+    }
+
+    .modal-footer {
+        padding: 0.75rem 1rem;
+        gap: 0.5rem;
+    }
+
+    .modal-footer .btn {
+        flex: 1;
+    }
+}
+
+/* === TOOLTIPS E POPOVERS MÓVEIS === */
+@media (max-width: 767.98px) {
+
+    /* Desabilita tooltips em mobile por padrão */
+    .tooltip {
+        display: none !important;
+    }
+
+    /* Mas permite tooltips importantes */
+    .tooltip-mobile-show .tooltip {
+        display: block !important;
+    }
+
+    /* Ajusta popovers */
+    .popover {
+        max-width: 90vw;
+        font-size: 0.875rem;
+    }
+}
+
+/* === ALERTAS E MENSAGENS MÓVEIS === */
+@media (max-width: 767.98px) {
+    .alert {
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+        padding: 0.75rem;
+    }
+
+    .alert-dismissible .btn-close {
+        padding: 0.75rem;
+    }
+
+    /* Toasts em mobile */
+    .feedback-toast {
+        left: 0.5rem !important;
+        right: 0.5rem !important;
+        max-width: none !important;
+        width: calc(100% - 1rem) !important;
+    }
+}
+
+/* === LISTA E GRID MÓVEL === */
+@media (max-width: 767.98px) {
+
+    /* Lista como cards em mobile */
+    .list-group-item {
+        border-radius: 0.5rem !important;
+        margin-bottom: 0.5rem;
+        border: 1px solid #dee2e6 !important;
+    }
+
+    /* Grid de itens */
+    .grid-mobile {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .grid-mobile-2 {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    /* Avatar e perfil */
+    .avatar-mobile {
+        width: 3rem;
+        height: 3rem;
+    }
+
+    .profile-info {
+        margin-left: 0.75rem;
+    }
+}
+
+/* === BREADCRUMBS MÓVEL === */
+@media (max-width: 767.98px) {
+    .breadcrumb {
+        font-size: 0.875rem;
+        padding: 0.5rem 0;
+        margin-bottom: 1rem;
+    }
+
+    .breadcrumb-item+.breadcrumb-item::before {
+        content: "›";
+        font-size: 1.2em;
+    }
+
+    /* Esconde itens intermediários em mobile */
+    .breadcrumb-item:not(:first-child):not(:last-child) {
+        display: none;
+    }
+
+    .breadcrumb-item:nth-last-child(2)::after {
+        content: " ... ";
+        color: #6c757d;
+    }
+}
+
+/* === PAGINAÇÃO MÓVEL === */
+@media (max-width: 767.98px) {
+    .pagination {
+        justify-content: center;
+        margin: 1rem 0;
+    }
+
+    .pagination .page-item:not(.active):not(.disabled) {
+        display: none;
+    }
+
+    .pagination .page-item.active,
+    .pagination .page-item.disabled,
+    .pagination .page-item:first-child,
+    .pagination .page-item:last-child {
+        display: block;
+    }
+
+    .page-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* === BUSCA E FILTROS MÓVEIS === */
+@media (max-width: 767.98px) {
+    .search-input-mobile {
+        border-radius: 2rem;
+        padding-left: 2.5rem;
+    }
+
+    .search-icon-mobile {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+
+    .search-container-mobile {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    /* Filtros colapsáveis */
+    .filters-collapse {
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+}
+
+/* === UTILITÁRIOS MÓVEIS === */
+@media (max-width: 767.98px) {
+
+    /* Espaçamentos móveis */
+    .m-mobile-0 {
+        margin: 0 !important;
+    }
+
+    .mt-mobile-0 {
+        margin-top: 0 !important;
+    }
+
+    .mb-mobile-0 {
+        margin-bottom: 0 !important;
+    }
+
+    .ml-mobile-0 {
+        margin-left: 0 !important;
+    }
+
+    .mr-mobile-0 {
+        margin-right: 0 !important;
+    }
+
+    .p-mobile-2 {
+        padding: 0.5rem !important;
+    }
+
+    .pt-mobile-2 {
+        padding-top: 0.5rem !important;
+    }
+
+    .pb-mobile-2 {
+        padding-bottom: 0.5rem !important;
+    }
+
+    .pl-mobile-2 {
+        padding-left: 0.5rem !important;
+    }
+
+    .pr-mobile-2 {
+        padding-right: 0.5rem !important;
+    }
+
+    /* Texto móvel */
+    .text-mobile-center {
+        text-align: center !important;
+    }
+
+    .text-mobile-left {
+        text-align: left !important;
+    }
+
+    /* Display móvel */
+    .d-mobile-none {
+        display: none !important;
+    }
+
+    .d-mobile-block {
+        display: block !important;
+    }
+
+    .d-mobile-flex {
+        display: flex !important;
+    }
+
+    /* Flex móvel */
+    .flex-mobile-column {
+        flex-direction: column !important;
+    }
+
+    .flex-mobile-wrap {
+        flex-wrap: wrap !important;
+    }
+
+    .justify-content-mobile-center {
+        justify-content: center !important;
+    }
+}
+
+/* === LANDSCAPE MODE === */
+@media (max-width: 767.98px) and (orientation: landscape) {
+
+    /* Ajustes específicos para modo paisagem */
+    .modal-dialog {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .card-body {
+        padding: 0.75rem;
+    }
+
+    .navbar {
+        min-height: 3rem;
+    }
+
+    .navbar-brand {
+        padding: 0.25rem 0;
+    }
+}
+
+/* === TOUCH TARGETS === */
+@media (pointer: coarse) {
+
+    /* Aumenta área de toque em dispositivos touch */
+    .btn,
+    .form-check-input,
+    .form-switch .form-check-input,
+    a:not(.btn) {
+        min-height: 44px;
+        /* Recomendação do iOS */
+        min-width: 44px;
+    }
+
+    /* Botões pequenos em touch */
+    .btn-sm {
+        min-height: 36px;
+        min-width: 36px;
+    }
+
+    /* Links em listas */
+    .list-group-item a,
+    .dropdown-item {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+}
+
+/* === DARK MODE MOBILE === */
+@media (max-width: 767.98px) and (prefers-color-scheme: dark) {
+    .sidebar-mobile {
+        background: #212529;
+        color: #fff;
+    }
+
+    .filters-mobile {
+        background: #212529;
+        border-top-color: #495057;
+    }
+
+    .search-container-mobile .form-control {
+        background: #343a40;
+        border-color: #495057;
+        color: #fff;
+    }
+}
+
+/* === ANIMAÇÕES MÓVEIS === */
+@media (max-width: 767.98px) {
+    /* Reduz animações em mobile para performance */
+    @media (prefers-reduced-motion: no-preference) {
+        .fade-in-mobile {
+            animation: fadeInMobile 0.3s ease-out;
+        }
+
+        .slide-up-mobile {
+            animation: slideUpMobile 0.3s ease-out;
+        }
+    }
+
+    @keyframes fadeInMobile {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideUpMobile {
+        from {
+            opacity: 0;
+            transform: translateY(1rem);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
+
+/* === PRINT STYLES === */
+@media print {
+
+    /* Oculta elementos desnecessários na impressão */
+    .btn,
+    .navbar,
+    .sidebar,
+    .filter-toggle-btn,
+    .pagination,
+    .tooltip,
+    .modal,
+    .feedback-toast {
+        display: none !important;
+    }
+
+    /* Força cores para impressão */
+    * {
+        color: #000 !important;
+        background: #fff !important;
+    }
+
+    .card {
+        border: 1px solid #000 !important;
+        page-break-inside: avoid;
+    }
+
+    .table {
+        border-collapse: collapse;
+    }
+
+    .table th,
+    .table td {
+        border: 1px solid #000 !important;
+        padding: 0.25rem !important;
+    }
+}

@@ -1,0 +1,173 @@
+/* date-inputs.css - Estilos para inputs de data no formato brasileiro */
+
+/* Estilos para inputs de data */
+.date-input-br,
+.datetime-input-br {
+    position: relative;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Estilização do input de data */
+input[type="date"].date-input-br {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+/* Estilização do input de datetime-local */
+input[type="datetime-local"].datetime-input-br {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M10 6V4a1 1 0 011-1h2a1 1 0 011 1v2h2a1 1 0 011 1v2a1 1 0 01-1 1h-2v2a1 1 0 01-1 1h-2a1 1 0 01-1-1v-2H8a1 1 0 01-1-1V7a1 1 0 011-1h2z'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+/* Tooltip personalizado para inputs de data */
+.date-input-br::before,
+.datetime-input-br::before {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.date-input-br:hover::before,
+.datetime-input-br:hover::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Estilo para datas formatadas em tabelas */
+.date-formatted {
+    font-weight: 500;
+    color: #2563eb;
+}
+
+/* Estilo para datas em listas */
+.date-formatted::before {
+    content: "📅 ";
+    margin-right: 0.25rem;
+}
+
+/* Responsividade para dispositivos móveis */
+@media (max-width: 768px) {
+
+    .date-input-br,
+    .datetime-input-br {
+        font-size: 16px;
+        /* Evita zoom em iOS */
+    }
+
+    .date-input-br::before,
+    .datetime-input-br::before {
+        display: none;
+        /* Remove tooltips em mobile */
+    }
+}
+
+/* Estilo para campos de data obrigatórios */
+.date-input-br:required,
+.datetime-input-br:required {
+    border-left: 3px solid #dc2626;
+}
+
+/* Estilo para campos de data válidos */
+.date-input-br:valid,
+.datetime-input-br:valid {
+    border-left: 3px solid #16a34a;
+}
+
+/* Estilo para campos de data inválidos */
+.date-input-br:invalid,
+.datetime-input-br:invalid {
+    border-left: 3px solid #dc2626;
+    box-shadow: 0 0 0 1px #dc2626;
+}
+
+/* Animação de foco */
+.date-input-br:focus,
+.datetime-input-br:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    transition: all 0.2s ease-in-out;
+}
+
+/* Estilo para placeholders personalizados */
+.date-input-br::placeholder,
+.datetime-input-br::placeholder {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* Estilo para labels de data */
+label[for*="data"],
+label[for*="date"] {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+/* Estilo para grupos de campos de data */
+.date-field-group {
+    margin-bottom: 1rem;
+}
+
+.date-field-group label {
+    margin-bottom: 0.25rem;
+}
+
+/* Estilo para campos de data em formulários */
+.form-group .date-input-br,
+.form-group .datetime-input-br {
+    margin-bottom: 0.5rem;
+}
+
+/* Estilo para campos de data em cards */
+.card .date-input-br,
+.card .datetime-input-br {
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+}
+
+/* Estilo para campos de data em modo escuro */
+.dark-theme .date-input-br,
+.dark-theme .datetime-input-br {
+    background-color: #1f2937;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+.dark-theme .date-input-br:focus,
+.dark-theme .datetime-input-br:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+}
+
+/* Estilo para campos de data em modo escuro - labels */
+.dark-theme label[for*="data"],
+.dark-theme label[for*="date"] {
+    color: #e5e7eb;
+}
+
+/* Estilo para campos de data em modo escuro - placeholders */
+.dark-theme .date-input-br::placeholder,
+.dark-theme .datetime-input-br::placeholder {
+    color: #6b7280;
+}

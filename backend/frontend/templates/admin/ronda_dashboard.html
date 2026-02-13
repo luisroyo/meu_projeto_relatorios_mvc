@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+        <h2 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>{{ title }}</h2>
+        <div class="d-flex align-items-center gap-2">
+            {% if period_description %}
+                <span class="badge bg-primary fs-6">{{ period_description }}</span>
+            {% endif %}
+            <a href="{{ url_for('admin.preview_ronda_dashboard_report', **request.args) }}" class="btn btn-info btn-sm">
+                <i class="bi bi-eye me-1"></i>Pré-visualizar Relatório
+            </a>
+            <a href="{{ url_for('admin.export_ronda_dashboard_pdf', **request.args) }}" class="btn btn-success btn-sm">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom">
+            <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filtros do Dashboard</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.ronda_dashboard') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6 col-lg-3">
+                        <label for="condominio_id" class="form-label" style="display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; margin-bottom: 0.5rem !important; font-weight: bold !important; color: #000 !important;">CONDOMÍNIO</label>
+                        <select name="condominio_id" id="condominio_id" class="form-select">
+                            <option value="">Todos</option>
+                            {% for c in condominios %}
+                            <option value="{{ c.id }}" {% if selected_filters and selected_filters.condominio_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <label for="supervisor_id" class="form-label" style="display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; margin-bottom: 0.5rem !important; font-weight: bold !important; color: #000 !important;">SUPERVISOR</label>
+                        <select name="supervisor_id" id="supervisor_id" class="form-select">
+                            <option value="">Todos</option>
+                            {% for s in supervisors %}
+                            <option value="{{ s.id }}" {% if selected_filters and selected_filters.supervisor_id == s.id %}selected{% endif %}>{{ s.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <label for="turno" class="form-label" style="display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; margin-bottom: 0.5rem !important; font-weight: bold !important; color: #000 !important;">TURNO</label>
+                        <select name="turno" id="turno" class="form-select">
+                            <option value="">Todos</option>
+                            {% for t in turnos %}
+                            <option value="{{ t }}" {% if selected_filters and selected_filters.turno == t %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <label for="mes" class="form-label" style="display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; margin-bottom: 0.5rem !important; font-weight: bold !important; color: #000 !important;">MÊS</label>
+                        <select name="mes" id="mes" class="form-select">
+                            <option value="">Personalizado</option>
+                            {% for m in meses_do_ano %}
+                            <option value="{{ m.id }}" {% if selected_filters and selected_filters.mes == m.id %}selected{% endif %}>{{ m.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <label for="data_inicio" class="form-label" style="display: block !important; visibility: visible !important;">DATA DE INÍCIO</label>
+                        <input type="date" name="data_inicio" id="data_inicio" value="{{ selected_filters.data_inicio_str if selected_filters else '' }}" class="form-control">
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <label for="data_fim" class="form-label" style="display: block !important; visibility: visible !important;">DATA DE FIM</label>
+                        <input type="date" name="data_fim" id="data_fim" value="{{ selected_filters.data_fim_str if selected_filters else '' }}" class="form-control">
+                    </div>
+                    <div class="col-md-12 col-lg-6 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100 me-2"><i class="bi bi-search me-1"></i>Filtrar</button>
+                        <a href="{{ url_for('admin.ronda_dashboard') }}" class="btn btn-outline-secondary w-100">Limpar</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cards de Métricas Modernizados -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <span class="kpi-icon kpi-primary"><i class="bi bi-clipboard-data"></i></span>
+                    <div class="d-flex align-items-center justify-content-between w-100 mb-2">
+                        <div class="d-flex align-items-center">
+                            <h6 class="card-subtitle mb-0 text-muted text-uppercase">Total de Rondas</h6>
+                            <i class="bi bi-question-circle ms-2 text-muted" 
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="top" 
+                               title="Soma total de todas as rondas registradas no período selecionado, considerando o campo 'total_rondas_no_log' de cada registro."></i>
+                        </div>
+                    </div>
+                    <p class="card-text fs-1 fw-bold text-primary mb-0">{{ total_rondas }}</p>
+                    {% if comparacao_periodo and comparacao_periodo.variacao_percentual != 0 %}
+                    <small class="text-muted">
+                        {% if comparacao_periodo.variacao_percentual > 0 %}
+                        <i class="bi bi-arrow-up text-success"></i> +{{ comparacao_periodo.variacao_percentual }}% vs período anterior
+                        {% else %}
+                        <i class="bi bi-arrow-down text-danger"></i> {{ comparacao_periodo.variacao_percentual }}% vs período anterior
+                        {% endif %}
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <span class="kpi-icon kpi-warning"><i class="bi bi-bar-chart"></i></span>
+                    <div class="d-flex align-items-center">
+                        <h6 class="card-subtitle mb-2 text-muted text-uppercase">Média de Rondas / Dia</h6>
+                        <i class="bi bi-question-circle ms-2 text-muted" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Média calculada considerando apenas os dias que possuem dados registrados, não o período total. Para supervisores específicos, considera apenas os dias de trabalho na escala 12x36."></i>
+                    </div>
+                    <p class="card-text fs-1 fw-bold text-warning mb-0">{{ media_rondas_dia }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <span class="kpi-icon kpi-success"><i class="bi bi-clock-history"></i></span>
+                    <div class="d-flex align-items-center">
+                        <h6 class="card-subtitle mb-2 text-muted text-uppercase">Duração Média por Ronda</h6>
+                        <i class="bi bi-question-circle ms-2 text-muted" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Tempo médio em minutos de cada ronda, calculado pela soma total de duração dividida pelo número total de rondas no período."></i>
+                    </div>
+                    <p class="card-text fs-1 fw-bold text-success mb-0">{{ duracao_media_geral }} min</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <span class="kpi-icon kpi-info"><i class="bi bi-person-badge"></i></span>
+                    <div class="d-flex align-items-center">
+                        <h6 class="card-subtitle mb-2 text-muted text-uppercase">Supervisor Mais Ativo</h6>
+                        <i class="bi bi-question-circle ms-2 text-muted" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Supervisor que registrou o maior número de rondas no período selecionado, baseado no campo 'total_rondas_no_log'."></i>
+                    </div>
+                    <p class="card-text fs-4 fw-bold text-info mb-0">{{ supervisor_mais_ativo or 'N/A' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- [NOVO] Card Informações do Período -->
+    {% if periodo_info %}
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-info">
+                <div class="card-header bg-info bg-opacity-10 border-info">
+                    <h6 class="mb-0 fw-bold text-info">
+                        <i class="bi bi-info-circle me-2"></i>Informações do Período Analisado
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar-event text-primary me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Primeira Data</small>
+                                    <strong>{% if periodo_info.primeira_data_registrada %}{{ periodo_info.primeira_data_registrada.strftime('%d/%m/%Y') }}{% else %}N/A{% endif %}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar-check text-success me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Última Data</small>
+                                    <strong>{% if periodo_info.ultima_data_registrada %}{{ periodo_info.ultima_data_registrada.strftime('%d/%m/%Y') }}{% else %}N/A{% endif %}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar-day text-warning me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Dias com Dados</small>
+                                    <strong>{{ periodo_info.dias_com_dados }} / {{ periodo_info.periodo_solicitado_dias }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-percent text-info me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Cobertura</small>
+                                    <strong>{{ periodo_info.cobertura_periodo }}%</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if periodo_info.cobertura_periodo < 100 %}
+                    <div class="mt-3 p-2 bg-warning border border-warning rounded">
+                        <small class="text-dark fw-bold">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            <strong>Nota:</strong> A média de rondas por dia foi calculada considerando apenas os dias que possuem dados registrados ({{ periodo_info.dias_com_dados }} dias), não o período total solicitado.
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Gráficos -->
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header fw-bold">Atividade de Rondas ao Longo do Tempo</div>
+                <div class="card-body">
+                    <div id="evolucaoRondasChart" style="height: 400px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Total de Rondas por Supervisor</div>
+                <div class="card-body">
+                    <div id="rondasPorSupervisorChart" style="height: 400px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Total de Rondas por Condomínio</div>
+                <div class="card-body">
+                    <div id="rondasPorCondominioChart" style="height: 400px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Total de Rondas por Turno</div>
+                <div class="card-body">
+                    <div id="rondasPorTurnoChart" style="height: 400px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Duração Média (min) por Condomínio</div>
+                <div class="card-body">
+                    <div id="duracaoMediaPorCondominioChart" style="height: 400px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Inclusão da biblioteca ECharts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const charts = [];
+    const defaultColors = ['#6c63ff', '#00bcd4', '#ffb300', '#43a047', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
+
+    // Função genérica para exibir mensagem de "Sem Dados"
+    const showNoDataMessage = (elementId) => {
+        const el = document.getElementById(elementId);
+        if (el) {
+            el.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100"><p class="text-muted">Sem dados para exibir.</p></div>';
+        }
+    };
+
+    // --- Funções de Renderização de Gráficos ---
+
+    const renderPieChart = (elementId, title, data) => {
+        const chartDom = document.getElementById(elementId);
+        if (!chartDom || !data || data.every(item => item.value === 0)) {
+            showNoDataMessage(elementId);
+            return;
+        }
+        const myChart = echarts.init(chartDom);
+        const option = {
+            tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)', backgroundColor: '#23272b', textStyle: { color: '#fff' } },
+            legend: { orient: 'vertical', left: 'left', top: 'center', type: 'scroll', textStyle: { color: getComputedStyle(document.body).color } },
+            series: [{
+                name: 'Rondas',
+                type: 'pie',
+                radius: ['40%', '70%'],
+                center: ['65%', '50%'],
+                data: data,
+                emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } },
+                itemStyle: {
+                  borderRadius: 8,
+                  borderColor: '#fff',
+                  borderWidth: 2,
+                  shadowColor: 'rgba(0,0,0,0.08)',
+                  shadowBlur: 8
+                }
+            }],
+            color: defaultColors
+        };
+        myChart.setOption(option);
+        charts.push(myChart);
+    };
+
+    const renderBarChart = (elementId, labels, values, seriesName, color, isHorizontal = false) => {
+        const chartDom = document.getElementById(elementId);
+        if (!chartDom || !labels || labels.length === 0) {
+            showNoDataMessage(elementId);
+            return;
+        }
+        const myChart = echarts.init(chartDom);
+        const option = {
+            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#23272b', textStyle: { color: '#fff' } },
+            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+            xAxis: isHorizontal ? { type: 'value', boundaryGap: [0, 0.01], axisLabel: { color: getComputedStyle(document.body).color } } : { type: 'category', data: labels, axisLabel: { interval: 0, rotate: 30, color: getComputedStyle(document.body).color } },
+            yAxis: isHorizontal ? { type: 'category', data: labels, axisLabel: { color: getComputedStyle(document.body).color } } : { type: 'value', axisLabel: { color: getComputedStyle(document.body).color } },
+            series: [{
+                name: seriesName,
+                type: 'bar',
+                data: values,
+                itemStyle: {
+                  borderRadius: isHorizontal ? [8, 8, 8, 8] : [8, 8, 0, 0],
+                  color: color || '#6c63ff'
+                },
+                emphasis: {
+                  itemStyle: {
+                    color: '#ffb300'
+                  }
+                }
+            }],
+            color: [color || '#6c63ff']
+        };
+        myChart.setOption(option);
+        charts.push(myChart);
+    };
+
+    const renderLineChart = (elementId, labels, values) => {
+        const chartDom = document.getElementById(elementId);
+        if (!chartDom || !labels || labels.length === 0) {
+            showNoDataMessage(elementId);
+            return;
+        }
+        const myChart = echarts.init(chartDom);
+        const option = {
+            tooltip: { trigger: 'axis', backgroundColor: '#23272b', textStyle: { color: '#fff' } },
+            grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+            xAxis: { type: 'category', boundaryGap: false, data: labels, axisLabel: { color: getComputedStyle(document.body).color } },
+            yAxis: { type: 'value', axisLabel: { color: getComputedStyle(document.body).color } },
+            series: [{
+                name: 'Rondas Registradas',
+                type: 'line',
+                data: values,
+                areaStyle: {
+                  color: '#6c63ff'
+                },
+                smooth: true,
+                lineStyle: {
+                  width: 4,
+                  color: '#6c63ff'
+                },
+                symbol: 'circle',
+                symbolSize: 10
+            }],
+            dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: '2%' }],
+            color: ['#6c63ff']
+        };
+        myChart.setOption(option);
+        charts.push(myChart);
+    };
+
+    // --- Preparação e Inicialização dos Gráficos ---
+
+    // Gráfico de Linha: Evolução de Rondas
+    renderLineChart('evolucaoRondasChart', {{ ronda_date_labels | tojson | safe }}, {{ ronda_activity_data | tojson | safe }});
+
+    // Gráfico de Barras: Rondas por Supervisor
+    renderBarChart('rondasPorSupervisorChart', {{ supervisor_labels | tojson | safe }}, {{ rondas_por_supervisor_data | tojson | safe }}, 'Nº de Rondas', '#fac858');
+    
+    // Gráfico de Barras: Rondas por Condomínio
+    renderBarChart('rondasPorCondominioChart', {{ condominio_labels | tojson | safe }}, {{ condominio_data | tojson | safe }}, 'Nº de Rondas', '#73c0de');
+
+    // Gráfico de Pizza: Rondas por Turno
+    const turnoLabels = {{ turno_labels | tojson | safe }};
+    const turnoData = {{ rondas_por_turno_data | tojson | safe }};
+    const pieData = turnoLabels.map((label, i) => ({ name: label, value: turnoData[i] || 0 }));
+    renderPieChart('rondasPorTurnoChart', 'Rondas por Turno', pieData);
+
+    // Gráfico de Barras: Duração Média por Condomínio
+    renderBarChart('duracaoMediaPorCondominioChart', {{ duracao_condominio_labels | tojson | safe }}, {{ duracao_media_data | tojson | safe }}, 'Duração Média (min)', '#91cc75');
+
+    // --- Lógica Adicional da Página ---
+
+    // Desabilitar campos de data se um mês for selecionado
+    const mesSelect = document.getElementById('mes');
+    const dataInicioInput = document.getElementById('data_inicio');
+    const dataFimInput = document.getElementById('data_fim');
+
+    const toggleDateInputs = () => {
+        const disabled = mesSelect.value !== "";
+        dataInicioInput.disabled = disabled;
+        dataFimInput.disabled = disabled;
+        if (disabled) {
+            dataInicioInput.value = '';
+            dataFimInput.value = '';
+        }
+    };
+    mesSelect.addEventListener('change', toggleDateInputs);
+    toggleDateInputs(); // Executa ao carregar a página
+
+    // Tornar gráficos responsivos
+    window.addEventListener('resize', () => charts.forEach(chart => chart.resize()));
+    
+    // [NOVO] Inicializar tooltips do Bootstrap
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

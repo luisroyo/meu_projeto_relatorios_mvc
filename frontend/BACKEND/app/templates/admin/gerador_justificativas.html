@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Ferramentas Admin{% endblock %}
+
+{% block head_links %}
+{{ super() }}
+<style>
+    /* Estilos básicos para o container de autocomplete e sugestões */
+    .autocomplete-container {
+        position: relative; /* Necessário para posicionar a lista de sugestões */
+    }
+    .autocomplete-suggestions {
+        position: absolute;
+        border: 1px solid #ddd;
+        border-top: none;
+        z-index: 99;
+        /* Outros estilos para combinar com o seu tema Bootstrap */
+        top: 100%; /* Posiciona abaixo do input */
+        left: 0;
+        right: 0;
+        background-color: white;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .autocomplete-suggestions div {
+        padding: 10px;
+        cursor: pointer;
+        background-color: #fff;
+        border-bottom: 1px solid #ddd;
+    }
+    .autocomplete-suggestions div:hover {
+        background-color: #e9e9e9;
+    }
+    .autocomplete-active {
+        /* Estilo para o item selecionado na lista de sugestões, se usar navegação por teclado */
+        background-color: DodgerBlue !important;
+        color: #ffffff;
+    }
+    /* Estilos do seu arquivo Justificativa Ifractal.html originais */
+    .justificativa-container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .justificativa-container label { display: block; margin-top: 15px; font-weight: bold; }
+    .justificativa-container input[type="text"],
+    .justificativa-container input[type="date"],
+    .justificativa-container input[type="number"],
+    .justificativa-container select, 
+    .justificativa-container textarea { width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+    
+    #btnGerarJustificativa { 
+        margin-top: 20px; 
+        padding: 10px 20px; 
+        background-color: #0d6efd;
+        color: white; 
+        border: none; 
+        border-radius: 4px; 
+        cursor: pointer; 
+        font-size: 1.1rem;
+    }
+    #btnGerarJustificativa:hover { 
+        background-color: #0b5ed7; 
+    }
+    .justificativa-resultado { 
+        margin-top: 20px; 
+        background: #f8f9fa;
+        padding: 15px; 
+        border-left: 5px solid #198754; 
+        white-space: pre-wrap; 
+        font-family: monospace; 
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="page-header mb-4">
+        <h2 class="text-center">{{ title }}</h2>
+        <p class="lead text-center">Selecione o tipo de justificativa e preencha os campos para gerar o texto com IA.</p>
+    </div>
+    <hr>
+
+    <div class="justificativa-container">
+        <div class="mb-3">
+            <label for="tipo_justificativa" class="form-label">Selecione o Tipo de Justificativa:</label>
+            <select id="tipo_justificativa" class="form-select form-select-lg">
+                <option value="">-- Selecione uma opção --</option>
+                <option value="atestado">Atestado Médico</option>
+                <option value="troca_plantao">Troca de Plantão</option>
+                <option value="atraso">Atraso</option>
+                {# Adicione outras opções conforme necessário #}
+            </select>
+        </div>
+
+        {# O JavaScript irá popular esta div com os campos específicos do formulário #}
+        <div id="form-fields-justificativa" class="mt-3">
+            <!-- 
+                Exemplo de estrutura que o JS criará para um campo de colaborador:
+                <div class="mb-3 autocomplete-container" data-field-group="colaborador-atestado">
+                    <label for="just_at_funcionario_nome" class="form-label">Funcionário:</label>
+                    <input type="text" id="just_at_funcionario_nome" name="just_at_funcionario_nome" class="form-control colaborador-autocomplete-nome" autocomplete="off" data-target-id="just_at_funcionario_id" data-target-cargo="just_at_funcionario_cargo">
+                    <input type="hidden" id="just_at_funcionario_id" name="just_at_funcionario_id">
+                    <div class="autocomplete-suggestions" style="display: none;"></div>
+                </div>
+                <div class="mb-3" data-field-group="colaborador-atestado">
+                    <label for="just_at_funcionario_cargo" class="form-label">Cargo:</label>
+                    <input type="text" id="just_at_funcionario_cargo" name="just_at_funcionario_cargo" class="form-control" readonly>
+                </div>
+            -->
+        </div>
+
+        <button type="button" id="btnGerarJustificativa" class="btn btn-primary btn-lg w-100 mt-4">
+            <span id="spinnerGerarJustificativa" class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+            <i class="bi bi-magic me-2"></i>Enviar para IA e Gerar Texto
+        </button>
+        
+        <div id="statusGeracaoJustificativa" class="mt-3"></div>
+        
+        <div id="resultado_justificativa_wrapper" style="display: none;">
+            <h5 class="mt-4">Justificativa Gerada:</h5>
+            <div class="justificativa-resultado" id="resultado_justificativa_texto"></div>
+            <button type="button" class="btn btn-secondary mt-2" id="copiarJustificativa" data-bs-toggle="tooltip" data-bs-placement="top" title="Copiar para a área de transferência">
+                <i class="bi bi-clipboard-check me-1"></i>Copiar Justificativa
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-5 text-center">
+        <a href="{{ url_for('admin.admin_tools') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left-circle me-1"></i>Voltar para Ferramentas Admin
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Passa URLs e tokens do Flask/Jinja2 para o JavaScript externo
+    const apiUrlSearchColaboradores = "{{ url_for('admin.api_search_colaboradores') }}";
+    const apiUrlGetColaboradorDetailsBase = "{{ url_for('admin.api_get_colaborador_details', colaborador_id=0) }}".slice(0, -1); // Remove o '0' para usar como base
+    const justificativaApiUrl = "{{ url_for('admin.api_processar_justificativa') }}";
+    const csrfToken = "{{ csrf_token() if csrf_token else '' }}"; 
+</script>
+<script src="{{ url_for('static', filename='js/admin_justificativas.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3 class="mb-3">{{ title }}</h3>
+
+  <div class="mb-2">
+    <label for="input-text" class="form-label">Texto de entrada</label>
+    <textarea id="input-text" class="form-control" rows="10" placeholder="Cole seu texto aqui..."></textarea>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <button id="btn-clean" class="btn btn-outline-secondary">Limpar formatação</button>
+    <label class="btn btn-outline-secondary mb-0">
+      Importar .eml
+      <input id="eml-file" type="file" accept=".eml" hidden />
+    </label>
+    <button data-mode="formal" class="btn btn-outline-primary btn-transform">Formalizar</button>
+    <button data-mode="simplify" class="btn btn-outline-primary btn-transform">Simplificar</button>
+    <button data-mode="tone" data-tone="amigável" class="btn btn-outline-primary btn-transform">Tom amigável</button>
+    <button data-mode="tone" data-tone="direto" class="btn btn-outline-primary btn-transform">Tom direto</button>
+    <button data-mode="summarize" class="btn btn-outline-primary btn-transform">Resumir</button>
+    <button id="btn-apply" class="btn btn-success ms-auto">Aplicar no texto</button>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <label class="form-label">Antes</label>
+      <pre id="preview-before" class="p-3 border rounded bg-light" style="min-height: 200px; white-space: pre-wrap;"></pre>
+    </div>
+    <div class="col-lg-6">
+      <label class="form-label">Depois</label>
+      <pre id="preview-after" class="p-3 border rounded bg-light" style="min-height: 200px; white-space: pre-wrap;"></pre>
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <label class="form-label">Problemas detectados (LanguageTool)</label>
+    <ul id="issues" class="list-group"></ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+const $ = (sel) => document.querySelector(sel);
+const input = $('#input-text');
+const before = $('#preview-before');
+const after = $('#preview-after');
+const issues = $('#issues');
+
+function setBefore(text){ before.textContent = text || ''; }
+function setAfter(text){ after.textContent = text || ''; }
+function setIssues(matches){
+  issues.innerHTML = '';
+  (matches||[]).forEach(m => {
+    const li = document.createElement('li');
+    li.className = 'list-group-item';
+    const rep = (m.replacements||[]).slice(0,3).join(', ');
+    li.innerHTML = `<strong>${m.shortMessage||m.message||'Sugestão'}</strong><br><small>${m.rule?.description||''}</small>${rep?`<br><em>Sugestões:</em> ${rep}`:''}`;
+    issues.appendChild(li);
+  });
+}
+
+async function postJson(url, body){
+  const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify(body||{}) });
+  if(!r.ok){ throw new Error('Erro na requisição'); }
+  return r.json();
+}
+
+$('#btn-clean').addEventListener('click', async () => {
+  try{
+    const raw = input.value;
+    const res = await postJson('/api/text/clean', { text: raw });
+    setBefore(raw);
+    setAfter(res.cleaned);
+    showToast('Formatação invisível removida.', 'success');
+  }catch(e){ showToast('Erro ao limpar texto.', 'danger'); }
+});
+
+$('#eml-file').addEventListener('change', async (ev) => {
+  const f = ev.target.files?.[0];
+  if(!f) return;
+  const fd = new FormData();
+  fd.append('file', f);
+  try{
+    const r = await fetch('/api/text/clean-eml', { method: 'POST', body: fd, credentials: 'include' });
+    const data = await r.json();
+    input.value = data.cleaned || '';
+    setBefore('');
+    setAfter('');
+    showToast('E-mail importado com sucesso.', 'success');
+  }catch(e){ showToast('Erro ao importar .eml', 'danger'); }
+});
+
+document.querySelectorAll('.btn-transform').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    try{
+      const raw = input.value;
+      const mode = btn.getAttribute('data-mode');
+      const tone = btn.getAttribute('data-tone');
+      const res = await postJson('/api/text/transform', { text: raw, mode, tone, max_chars: 4000 });
+      setBefore(raw);
+      setAfter(res.transformed);
+      showToast('Transformação aplicada.', 'success');
+    }catch(e){ showToast('Erro na transformação.', 'danger'); }
+  });
+});
+
+let debounceTimer;
+input.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(async () => {
+    try{
+      const raw = input.value;
+      if(!raw.trim()){ setIssues([]); return; }
+      const res = await postJson('/api/text/analyze', { text: raw });
+      setIssues(res.matches||[]);
+    }catch(e){ /* silencioso */ }
+  }, 800);
+});
+
+$('#btn-apply').addEventListener('click', () => {
+  input.value = after.textContent || input.value;
+  showToast('Texto atualizado.', 'success');
+});
+</script>
+{% endblock %}
+
+

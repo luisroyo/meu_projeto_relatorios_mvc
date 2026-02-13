@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% set full_page_layout = True %}
+
+{% block title %}Criar Nova Conta - Assistente IA Seg{% endblock %}
+{% block body_class %}register-page-body{% endblock %}
+
+{% block head_extra %}
+    {# Removido register.css, centralizar estilos no style.css #}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center min-vh-100">
+  <div class="card shadow-lg animate__animated animate__fadeIn" style="min-width:340px;max-width:420px;width:100%;">
+    <div class="card-body p-4 p-md-5">
+      <h2 class="card-title text-center fw-bold mb-4">Criar Nova Conta</h2>
+      <form method="POST" action="{{ url_for('auth.register') }}" novalidate autocomplete="off">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+          {{ form.username.label(class="form-label") }}
+          {{ form.username(class="form-control form-control-lg" + (" is-invalid" if form.username.errors else ""), placeholder="Escolha um nome de usuário", autocomplete="username") }}
+          {% if form.username.errors %}
+            <div class="invalid-feedback">
+              {% for error in form.username.errors %}<span>{{ error }}</span><br>{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <div class="mb-3">
+          {{ form.email.label(class="form-label") }}
+          {{ form.email(class="form-control form-control-lg" + (" is-invalid" if form.email.errors else ""), placeholder="Seu melhor e-mail", autocomplete="email") }}
+          {% if form.email.errors %}
+            <div class="invalid-feedback">
+              {% for error in form.email.errors %}<span>{{ error }}</span><br>{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <div class="mb-3 position-relative">
+          {{ form.password.label(class="form-label") }}
+          <div class="input-group">
+            {{ form.password(class="form-control form-control-lg" + (" is-invalid" if form.password.errors else ""), placeholder="Crie uma senha forte", autocomplete="new-password", id="registerPassword") }}
+            <button type="button" class="btn btn-outline-secondary" tabindex="-1" onclick="togglePassword('registerPassword', this)"><i class="bi bi-eye"></i></button>
+          </div>
+          {% if form.password.errors %}
+            <div class="invalid-feedback d-block">
+              {% for error in form.password.errors %}<span>{{ error }}</span><br>{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <div class="mb-3 position-relative">
+          {{ form.confirm_password.label(class="form-label") }}
+          <div class="input-group">
+            {{ form.confirm_password(class="form-control form-control-lg" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Confirme sua senha", autocomplete="new-password", id="registerConfirmPassword") }}
+            <button type="button" class="btn btn-outline-secondary" tabindex="-1" onclick="togglePassword('registerConfirmPassword', this)"><i class="bi bi-eye"></i></button>
+          </div>
+          {% if form.confirm_password.errors %}
+            <div class="invalid-feedback d-block">
+              {% for error in form.confirm_password.errors %}<span>{{ error }}</span><br>{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <div class="d-grid mb-3 mt-4">
+          {{ form.submit(class="btn btn-primary btn-lg w-100") }}
+        </div>
+      </form>
+      <div class="text-center text-muted-custom">
+        Já tem uma conta? <a href="{{ url_for('auth.login') }}" class="fw-bold">Faça login aqui</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+function togglePassword(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+  } else {
+    input.type = 'password';
+    btn.innerHTML = '<i class="bi bi-eye"></i>';
+  }
+}
+</script>
+{% endblock %}

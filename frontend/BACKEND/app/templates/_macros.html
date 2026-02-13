@@ -1,0 +1,14 @@
+{# /app/templates/_macros.html - Novo arquivo para componentes reutilizáveis #}
+{% macro render_status_badge(status) %} {# Define a cor padrão como cinza
+(secondary) #} {% set status_class = 'bg-secondary' %} {% if status ==
+'Registrada' %} {# 'Registrada' é um estado inicial, informativo. Usamos a cor
+primária. #} {% set status_class = 'bg-primary' %} {% elif status == 'Em
+Andamento' %} {# 'Em Andamento' requer atenção, usamos a cor de aviso. #} {% set
+status_class = 'bg-warning text-dark' %} {% elif status == 'Concluída' %} {#
+'Concluída' é um sucesso. Usamos nossa cor de destaque. #} {% set status_class =
+'bg-success' %} {% elif status == 'Cancelada' %} {# 'Cancelada' é um estado
+final negativo. Usamos a cor de perigo. #} {% set status_class = 'bg-danger' %}
+{% endif %}
+
+<span class="badge {{ status_class }}">{{ status or 'Indefinido' }}</span>
+{% endmacro %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_form_helpers.html" import render_field, render_date_field %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg animate__animated animate__fadeIn">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="bi bi-person-plus me-2"></i>{{ title }}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="" novalidate autocomplete="off">
+                        {{ form.hidden_tag() }}
+                        
+                        {{ render_field(form.nome_completo, 
+                                       placeholder="Ex: João da Silva Santos", 
+                                       help_text="Digite o nome completo do colaborador (mínimo 2 nomes)",
+                                       tooltip="Nome deve conter pelo menos nome e sobrenome",
+                                       icon="bi bi-person") }}
+                        
+                        {{ render_field(form.cargo, 
+                                       placeholder="Ex: Vigilante, Porteiro, Supervisor", 
+                                       help_text="Cargo ou função exercida pelo colaborador",
+                                       tooltip="Selecione o cargo apropriado para as funções exercidas",
+                                       icon="bi bi-briefcase") }}
+                        
+                        {{ render_field(form.matricula, 
+                                       placeholder="Ex: 12345 (Opcional)", 
+                                       help_text="Número de matrícula do colaborador (campo opcional)",
+                                       tooltip="Se não tiver matrícula específica, pode deixar em branco",
+                                       icon="bi bi-hash",
+                                       required_indicator=false) }}
+                        
+                        {{ render_date_field(form.data_admissao,
+                                           help_text="Data de admissão do colaborador na empresa",
+                                           tooltip="Data em que o colaborador iniciou as atividades") }}
+                        
+                        {{ render_field(form.status, 
+                                       help_text="Status atual do colaborador no sistema",
+                                       tooltip="Ativo: colaborador em exercício / Inativo: afastado ou desligado",
+                                       icon="bi bi-toggle-on") }}
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            {{ form.submit(class="btn btn-primary btn-block btn-lg") }}
+                        </div>
+                    </form>
+                    {% if colaborador %}
+                    <div class="mt-3 text-center">
+                        <a href="{{ url_for('admin.listar_colaboradores') }}" class="btn btn-outline-secondary btn-sm">Cancelar e Voltar para Lista</a>
+                    </div>
+                    {% elif request.endpoint == 'admin.adicionar_colaborador' %}
+                     <div class="mt-3 text-center">
+                        <a href="{{ url_for('admin.listar_colaboradores') }}" class="btn btn-outline-secondary btn-sm">Voltar para Lista de Colaboradores</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,168 @@
+{# app/templates/_form_helpers.html #}
+{% macro render_field(field, label_visible=true, help_text="", placeholder="", tooltip="", icon="", required_indicator=true) %}
+    {# 
+        Esta macro desenha um campo de formulário completo (label, input e erros)
+        usando as classes do Bootstrap com sistema de ajuda integrado.
+        
+        Parâmetros:
+        - field: Campo do formulário
+        - label_visible: Se o label deve ser visível
+        - help_text: Texto de ajuda que aparece abaixo do campo
+        - placeholder: Texto de placeholder com exemplo
+        - tooltip: Texto do tooltip que aparece ao passar o mouse
+        - icon: Classe do ícone a ser exibido
+        - required_indicator: Se deve mostrar asterisco para campos obrigatórios
+    #}
+    
+    <div class="form-field-wrapper mb-3">
+        {% if label_visible and field.label %}
+            <label class="form-label d-flex align-items-center gap-2" for="{{ field.id }}">
+                {% if icon %}
+                    <i class="{{ icon }} text-primary"></i>
+                {% endif %}
+                <span>{{ field.label.text }}</span>
+                {% if field.flags.required and required_indicator %}
+                    <span class="text-danger" title="Campo obrigatório">*</span>
+                {% endif %}
+                {% if tooltip %}
+                    <i class="bi bi-question-circle text-muted" 
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="top" 
+                       title="{{ tooltip }}"
+                       style="cursor: help;"></i>
+                {% endif %}
+            </label>
+        {% endif %}
+
+        {# Adiciona a classe 'is-invalid' se houver erros de validação #}
+        {% set field_class = "form-control" %}
+        {% if field.errors %}
+            {% set field_class = field_class + " is-invalid" %}
+        {% endif %}
+
+        {# Se é um campo select, usa form-select #}
+        {% if field.type == 'SelectField' %}
+            {% set field_class = field_class.replace('form-control', 'form-select') %}
+        {% endif %}
+
+        {# Container para campo com ícone opcional #}
+        {% if icon and field.type not in ['SelectField', 'BooleanField'] %}
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="{{ icon }}"></i>
+                </span>
+                {{ field(class=field_class, placeholder=placeholder, **kwargs)|safe }}
+            </div>
+        {% else %}
+            {{ field(class=field_class, placeholder=placeholder, **kwargs)|safe }}
+        {% endif %}
+
+        {# Texto de ajuda #}
+        {% if help_text %}
+            <div class="form-text text-muted">
+                <i class="bi bi-info-circle me-1"></i>{{ help_text }}
+            </div>
+        {% endif %}
+
+        {# Erros de validação #}
+        {% if field.errors %}
+            <div class="invalid-feedback d-block">
+                {% for error in field.errors %}
+                    <i class="bi bi-exclamation-triangle me-1"></i><span>{{ error }}</span><br>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{# Macro especializada para campos de data #}
+{% macro render_date_field(field, label_visible=true, help_text="", tooltip="") %}
+    {{ render_field(field, 
+                   label_visible=label_visible, 
+                   help_text=help_text or "Use o formato dd/mm/aaaa ou clique no calendário", 
+                   placeholder="dd/mm/aaaa", 
+                   tooltip=tooltip or "Selecione uma data usando o calendário ou digite no formato brasileiro", 
+                   icon="bi bi-calendar3") }}
+{% endmacro %}
+
+{# Macro especializada para campos de texto com contador de caracteres #}
+{% macro render_textarea_field(field, label_visible=true, help_text="", tooltip="", max_chars=null) %}
+    {% set field_id = field.id or (field.name + '_field') %}
+    {% set counter_id = field_id + '_counter' %}
+    
+    <div class="form-field-wrapper mb-3">
+        {% if label_visible and field.label %}
+            <label class="form-label d-flex align-items-center gap-2" for="{{ field_id }}">
+                <i class="bi bi-textarea-t text-primary"></i>
+                <span>{{ field.label.text }}</span>
+                {% if field.flags.required %}
+                    <span class="text-danger" title="Campo obrigatório">*</span>
+                {% endif %}
+                {% if tooltip %}
+                    <i class="bi bi-question-circle text-muted" 
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="top" 
+                       title="{{ tooltip }}"
+                       style="cursor: help;"></i>
+                {% endif %}
+            </label>
+        {% endif %}
+
+        {% set field_class = "form-control" %}
+        {% if field.errors %}
+            {% set field_class = field_class + " is-invalid" %}
+        {% endif %}
+
+        {{ field(class=field_class, id=field_id, **kwargs)|safe }}
+
+        <div class="d-flex justify-content-between align-items-center mt-1">
+            {% if help_text %}
+                <small class="form-text text-muted">
+                    <i class="bi bi-info-circle me-1"></i>{{ help_text }}
+                </small>
+            {% else %}
+                <span></span>
+            {% endif %}
+            
+            {% if max_chars %}
+                <small id="{{ counter_id }}" class="form-text text-muted">
+                    Caracteres: <span class="char-count">0</span> / {{ max_chars }}
+                </small>
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const field = document.getElementById('{{ field_id }}');
+                    const counter = document.getElementById('{{ counter_id }}');
+                    const charCountSpan = counter.querySelector('.char-count');
+                    
+                    function updateCounter() {
+                        const count = field.value.length;
+                        charCountSpan.textContent = count;
+                        
+                        if (count > {{ max_chars }}) {
+                            counter.classList.add('text-danger');
+                            counter.classList.remove('text-muted');
+                        } else if (count > {{ max_chars * 0.8 }}) {
+                            counter.classList.add('text-warning');
+                            counter.classList.remove('text-muted', 'text-danger');
+                        } else {
+                            counter.classList.add('text-muted');
+                            counter.classList.remove('text-warning', 'text-danger');
+                        }
+                    }
+                    
+                    field.addEventListener('input', updateCounter);
+                    updateCounter(); // Inicializa o contador
+                });
+                </script>
+            {% endif %}
+        </div>
+
+        {% if field.errors %}
+            <div class="invalid-feedback d-block">
+                {% for error in field.errors %}
+                    <i class="bi bi-exclamation-triangle me-1"></i><span>{{ error }}</span><br>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endmacro %}

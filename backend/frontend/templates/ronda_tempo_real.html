@@ -1,0 +1,864 @@
+{% extends "base.html" %}
+
+{% block title %}Rondas em Tempo Real{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-clock"></i> 
+                Sistema de Rondas em Tempo Real
+            </h2>
+        </div>
+    </div>
+
+    <!-- Status do Plantão -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle"></i> 
+                        Status do Plantão
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Hora Atual</h6>
+                                <h4 id="hora-atual" class="text-primary">--:--</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Rondas em Andamento</h6>
+                                <h4 id="rondas-andamento" class="text-warning">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Total de Rondas Hoje</h6>
+                                <h4 id="total-rondas" class="text-success">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Tempo Total</h6>
+                                <h4 id="tempo-total" class="text-info">0h 0min</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Painel de feedback dos condomínios com ronda -->
+    <div id="painel-condominios-ronda" class="mb-4">
+      <h5>Condomínios com ronda no plantão atual:</h5>
+      <div id="condominios-em-andamento" class="mb-2"></div>
+      <div id="condominios-realizadas"></div>
+    </div>
+
+    <!-- Modal de pendência de exportação do plantão anterior -->
+    <div class="modal fade" id="modal-pendencia-exportacao-plantao" tabindex="-1" aria-labelledby="modalPendenciaExportacaoLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-warning-subtle">
+            <h5 class="modal-title" id="modalPendenciaExportacaoLabel">
+              <i class="fas fa-exclamation-triangle text-warning"></i> Atenção: Plantão anterior pendente de exportação
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <div id="pendencia-exportacao-conteudo">
+              <div class="text-center text-muted">Carregando...</div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-copiar-pendencia-exportacao">
+              <i class="fas fa-copy"></i> Copiar relatório do plantão anterior
+            </button>
+            <span id="copiado-pendencia-feedback" class="ms-2 text-success" style="display:none;">Copiado!</span>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para exibir rondas do condomínio -->
+    <div class="modal fade" id="modal-rondas-condominio" tabindex="-1" aria-labelledby="modalRondasCondominioLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalRondasCondominioLabel">Rondas do Condomínio</h5>
+            <button type="button" class="btn btn-outline-secondary btn-sm ms-2" id="btn-copiar-rondas-condominio">
+              <i class="fas fa-copy"></i> Copiar
+            </button>
+            <span id="copiado-feedback" class="ms-2 text-success" style="display:none;">Copiado!</span>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <div id="rondas-condominio-lista">
+              <div class="text-center text-muted">Carregando...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Iniciar Nova Ronda -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-play-circle"></i> 
+                        Iniciar Nova Ronda
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="form-iniciar-ronda">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="condominio-select" class="form-label">Condomínio</label>
+                                <select class="form-select" id="condominio-select" required>
+                                    <option value="">Selecione um condomínio</option>
+                                    {% if condominios %}
+                                        <!-- Debug: {{ condominios|length }} condomínios encontrados -->
+                                        {% for condominio in condominios %}
+                                        <option value="{{ condominio.id }}">{{ condominio.nome }}</option>
+                                        {% endfor %}
+                                    {% else %}
+                                        <!-- Debug: Nenhum condomínio encontrado -->
+                                        <option value="" disabled>Nenhum condomínio disponível</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="hora-entrada" class="form-label">Hora de Entrada</label>
+                                <input type="time" class="form-control" id="hora-entrada" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="observacoes-entrada" class="form-label">Observações</label>
+                                <input type="text" class="form-control" id="observacoes-entrada" placeholder="Opcional">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-play"></i> Iniciar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rondas em Andamento -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock"></i> 
+                        Rondas em Andamento
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="rondas-andamento-lista">
+                        <p class="text-muted text-center">Nenhuma ronda em andamento</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Relatório -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt"></i> 
+                        Relatório do Plantão
+                    </h5>
+                    <button class="btn btn-success" id="btn-gerar-relatorio">
+                        <i class="fas fa-download"></i> Gerar Relatório
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="relatorio-conteudo">
+                        <p class="text-muted text-center">Clique em "Gerar Relatório" para ver as rondas do plantão</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Finalizar Ronda -->
+<div class="modal fade" id="modal-finalizar-ronda" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Finalizar Ronda</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-finalizar-ronda">
+                    <input type="hidden" id="ronda-id-finalizar">
+                    <div class="mb-3">
+                        <label for="hora-saida" class="form-label">Hora de Saída</label>
+                        <input type="time" class="form-control" id="hora-saida" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="observacoes-saida" class="form-label">Observações</label>
+                        <textarea class="form-control" id="observacoes-saida" rows="3" placeholder="Opcional"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-confirmar-finalizar">Finalizar Ronda</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Relatório -->
+<div class="modal fade" id="modal-relatorio" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Relatório do Plantão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="relatorio-modal-conteudo"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-success" id="btn-copiar-relatorio">
+                    <i class="fas fa-copy"></i> Copiar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de seleção de relatório por condomínio -->
+<div class="modal fade" id="modal-selecao-relatorio-condominio" tabindex="-1" aria-labelledby="modalSelecaoRelatorioLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalSelecaoRelatorioLabel">Gerar Relatório</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" id="selecao-relatorio-condominio-lista">
+        <div class="text-center text-muted">Carregando...</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Configurações da API
+const API_BASE = '/api/ronda-tempo-real';
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+// Elementos do DOM
+const horaAtualEl = document.getElementById('hora-atual');
+const rondasAndamentoEl = document.getElementById('rondas-andamento');
+const totalRondasEl = document.getElementById('total-rondas');
+const tempoTotalEl = document.getElementById('tempo-total');
+const condominioSelect = document.getElementById('condominio-select');
+const horaEntradaInput = document.getElementById('hora-entrada');
+const formIniciarRonda = document.getElementById('form-iniciar-ronda');
+const rondasAndamentoLista = document.getElementById('rondas-andamento-lista');
+const btnGerarRelatorio = document.getElementById('btn-gerar-relatorio');
+const relatorioConteudo = document.getElementById('relatorio-conteudo');
+
+// Atualizar hora atual
+function atualizarHoraAtual() {
+    fetch(`${API_BASE}/hora-atual`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                horaAtualEl.textContent = data.data.hora_atual;
+            }
+        })
+        .catch(error => console.error('Erro ao obter hora atual:', error));
+}
+
+
+
+// Atualizar estatísticas
+function atualizarEstatisticas() {
+    fetch(`${API_BASE}/estatisticas`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                totalRondasEl.textContent = data.data.total_rondas;
+                tempoTotalEl.textContent = data.data.tempo_total_formatado;
+            }
+        })
+        .catch(error => console.error('Erro ao obter estatísticas:', error));
+}
+
+// Carregar rondas em andamento
+function carregarRondasAndamento() {
+    fetch(`${API_BASE}/em-andamento`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                rondasAndamentoEl.textContent = data.data.length;
+                
+                if (data.data.length === 0) {
+                    rondasAndamentoLista.innerHTML = '<p class="text-muted text-center">Nenhuma ronda em andamento</p>';
+                } else {
+                    let html = '<div class="table-responsive"><table class="table table-hover">';
+                    html += '<thead><tr><th>Condomínio</th><th>Entrada</th><th>Tempo Corrente</th><th>Plantão</th><th>Ações</th></tr></thead><tbody>';
+                    
+                    data.data.forEach(ronda => {
+                        html += `
+                            <tr id="ronda-${ronda.id}">
+                                <td>${ronda.condominio_nome}</td>
+                                <td>${ronda.hora_entrada}</td>
+                                <td><span id="tempo-corrente-ronda-${ronda.id}">--:--</span></td>
+                                <td><span class="badge bg-info">${ronda.plantao}</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-success" onclick="abrirModalFinalizar(${ronda.id})">
+                                        <i class="fas fa-stop"></i> Finalizar
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="cancelarRonda(${ronda.id})">
+                                        <i class="fas fa-times"></i> Cancelar
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += '</tbody></table></div>';
+                    rondasAndamentoLista.innerHTML = html;
+                    // Iniciar/atualizar cronômetros
+                    iniciarCronometrosRondasEmAndamento(data.data);
+                }
+            }
+        })
+        .catch(error => console.error('Erro ao carregar rondas em andamento:', error));
+}
+
+// Adicionar nova ronda dinamicamente à tabela
+function adicionarRondaNaTabela(ronda) {
+    // Remove a mensagem "Nenhuma ronda em andamento" se for a primeira
+    const pMensagem = rondasAndamentoLista.querySelector('p');
+    if (pMensagem) {
+        pMensagem.remove();
+        // Cria a tabela se ela não existir
+        rondasAndamentoLista.innerHTML = '<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Condomínio</th><th>Entrada</th><th>Tempo Corrente</th><th>Plantão</th><th>Ações</th></tr></thead><tbody></tbody></table></div>';
+    }
+    
+    const tabelaBody = rondasAndamentoLista.querySelector('tbody');
+    
+    // Cria a nova linha da tabela
+    const novaLinha = document.createElement('tr');
+    novaLinha.setAttribute('id', `ronda-${ronda.id}`);
+    novaLinha.innerHTML = `
+        <td>${ronda.condominio_nome}</td>
+        <td>${ronda.hora_entrada}</td>
+        <td><span id="tempo-corrente-ronda-${ronda.id}">--:--</span></td>
+        <td><span class="badge bg-info">${ronda.plantao}</span></td>
+        <td>
+            <button class="btn btn-sm btn-success" onclick="abrirModalFinalizar(${ronda.id})">
+                <i class="fas fa-stop"></i> Finalizar
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="cancelarRonda(${ronda.id})">
+                <i class="fas fa-times"></i> Cancelar
+            </button>
+        </td>
+    `;
+    
+    // Adiciona a nova linha no início da tabela
+    tabelaBody.prepend(novaLinha);
+    // Iniciar cronômetro para a nova ronda
+    iniciarCronometroUnicoRonda(ronda);
+}
+
+// Iniciar ronda
+formIniciarRonda.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const condominioId = condominioSelect.value;
+    const horaEntrada = horaEntradaInput.value;
+    const observacoes = document.getElementById('observacoes-entrada').value;
+    
+    if (!condominioId || !horaEntrada) {
+        alert('Por favor, preencha todos os campos obrigatórios');
+        return;
+    }
+    
+    fetch(`${API_BASE}/iniciar`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN,
+        },
+        body: JSON.stringify({
+            condominio_id: parseInt(condominioId),
+            hora_entrada: horaEntrada,
+            observacoes: observacoes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Não precisa mais de alert
+            // alert('Ronda iniciada com sucesso!'); 
+            formIniciarRonda.reset();
+            
+            // Adiciona a nova ronda dinamicamente à tabela
+            adicionarRondaNaTabela(data.data);
+
+            // Atualiza os contadores
+            atualizarEstatisticas();
+            rondasAndamentoEl.textContent = parseInt(rondasAndamentoEl.textContent) + 1;
+            atualizarPainelCondominiosRonda(); // Atualiza o painel após iniciar
+        } else {
+            alert('Erro ao iniciar ronda: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao iniciar ronda:', error);
+        alert('Erro ao iniciar ronda');
+    });
+});
+
+// Abrir modal para finalizar ronda
+function abrirModalFinalizar(rondaId) {
+    document.getElementById('ronda-id-finalizar').value = rondaId;
+    document.getElementById('hora-saida').value = new Date().toTimeString().slice(0, 5);
+    new bootstrap.Modal(document.getElementById('modal-finalizar-ronda')).show();
+}
+
+// Finalizar ronda
+document.getElementById('btn-confirmar-finalizar').addEventListener('click', function() {
+    const rondaId = document.getElementById('ronda-id-finalizar').value;
+    const horaSaida = document.getElementById('hora-saida').value;
+    const observacoes = document.getElementById('observacoes-saida').value;
+    
+    if (!horaSaida) {
+        alert('Por favor, informe a hora de saída');
+        return;
+    }
+    
+    fetch(`${API_BASE}/finalizar/${rondaId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN,
+        },
+        body: JSON.stringify({
+            hora_saida: horaSaida,
+            observacoes: observacoes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Não precisa mais de alert
+            // alert('Ronda finalizada com sucesso!');
+            bootstrap.Modal.getInstance(document.getElementById('modal-finalizar-ronda')).hide();
+            
+            // Remove a linha da tabela dinamicamente
+            const linha = document.getElementById(`ronda-${rondaId}`);
+            if (linha) linha.remove();
+
+            // Atualiza os contadores
+            atualizarEstatisticas();
+            rondasAndamentoEl.textContent = parseInt(rondasAndamentoEl.textContent) - 1;
+            atualizarPainelCondominiosRonda(); // Atualiza o painel após finalizar
+        } else {
+            alert('Erro ao finalizar ronda: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao finalizar ronda:', error);
+        alert('Erro ao finalizar ronda');
+    });
+});
+
+// Cancelar ronda
+function cancelarRonda(rondaId) {
+    if (!confirm('Tem certeza que deseja cancelar esta ronda?')) {
+        return;
+    }
+    
+    fetch(`${API_BASE}/cancelar/${rondaId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': CSRF_TOKEN,
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Não precisa mais de alert
+            // alert('Ronda cancelada com sucesso!');
+            
+            // Remove a linha da tabela dinamicamente
+            const linha = document.getElementById(`ronda-${rondaId}`);
+            if (linha) linha.remove();
+
+            // Atualiza os contadores
+            atualizarEstatisticas();
+            rondasAndamentoEl.textContent = parseInt(rondasAndamentoEl.textContent) - 1;
+            atualizarPainelCondominiosRonda(); // Atualiza o painel após cancelar
+        } else {
+            alert('Erro ao cancelar ronda: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao cancelar ronda:', error);
+        alert('Erro ao cancelar ronda');
+    });
+}
+
+// Gerar relatório
+btnGerarRelatorio.addEventListener('click', function() {
+    fetch(`${API_BASE}/relatorio`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.data.relatorios.length === 0) {
+                    relatorioConteudo.innerHTML = '<p class="text-muted text-center">Nenhuma ronda finalizada encontrada</p>';
+                } else {
+                    let html = '<div class="mb-3">';
+                    html += `<h6>Estatísticas do Plantão (${data.data.data_plantao})</h6>`;
+                    html += `<p>Total de condomínios: ${data.data.estatisticas.total_condominios}</p>`;
+                    html += `<p>Total de rondas: ${data.data.estatisticas.total_rondas}</p>`;
+                    html += `<p>Tempo total: ${data.data.estatisticas.tempo_total_formatado}</p>`;
+                    html += '</div>';
+                    
+                    html += '<div class="relatorios">';
+                    data.data.relatorios.forEach(relatorio => {
+                        html += `<pre class="bg-light p-3 rounded">${relatorio}</pre>`;
+                    });
+                    html += '</div>';
+                    
+                    relatorioConteudo.innerHTML = html;
+                    
+                    // Mostrar no modal também
+                    document.getElementById('relatorio-modal-conteudo').innerHTML = html;
+                    new bootstrap.Modal(document.getElementById('modal-relatorio')).show();
+                }
+            } else {
+                alert('Erro ao gerar relatório: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao gerar relatório:', error);
+            alert('Erro ao gerar relatório');
+        });
+});
+
+// Copiar relatório
+document.getElementById('btn-copiar-relatorio').addEventListener('click', function() {
+    const conteudo = document.getElementById('relatorio-modal-conteudo').textContent;
+    navigator.clipboard.writeText(conteudo).then(() => {
+        alert('Relatório copiado para a área de transferência!');
+    }).catch(() => {
+        alert('Erro ao copiar relatório');
+    });
+});
+
+// Variável global para guardar os dados do relatório do modal
+let dadosUltimoRelatorioCondominio = null;
+
+// Função para abrir o modal e buscar as rondas do condomínio
+function abrirModalRondasCondominio(condominioId, condominioNome) {
+    const modal = new bootstrap.Modal(document.getElementById('modal-rondas-condominio'));
+    document.getElementById('modalRondasCondominioLabel').textContent = `Rondas do Condomínio: ${condominioNome}`;
+    const listaDiv = document.getElementById('rondas-condominio-lista');
+    listaDiv.innerHTML = '<div class="text-center text-muted">Carregando...</div>';
+    fetch(`/api/ronda-tempo-real/rondas-condominio/${condominioId}`)
+        .then(res => res.json())
+        .then(data => {
+            dadosUltimoRelatorioCondominio = data; // Salva para o botão copiar
+            if (data.success && data.rondas.length > 0) {
+                let html = `<div class='table-responsive'><table class='table table-bordered table-sm'><thead><tr><th>Entrada</th><th>Saída</th><th>Status</th><th>Duração</th><th>Observações</th></tr></thead><tbody>`;
+                data.rondas.forEach(r => {
+                    html += `<tr><td>${r.hora_entrada||'-'}</td><td>${r.hora_saida||'-'}</td><td>${r.status}</td><td>${r.duracao||'-'}</td><td>${r.observacoes||''}</td></tr>`;
+                });
+                html += '</tbody></table></div>';
+                listaDiv.innerHTML = html;
+            } else {
+                listaDiv.innerHTML = '<div class="text-center text-muted">Nenhuma ronda registrada neste plantão.</div>';
+            }
+        });
+    modal.show();
+}
+
+// Função para copiar as rondas do modal no formato de relatório
+function copiarRondasCondominioParaClipboard() {
+    const data = dadosUltimoRelatorioCondominio;
+    if (!data || !data.success) return;
+    let texto = '';
+    if (data.data_plantao && data.escala_plantao) {
+        texto += `Plantão ${data.data_plantao} (${data.escala_plantao})\n`;
+    }
+    if (data.condominio_nome) {
+        texto += `Residencial: ${data.condominio_nome}\n\n`;
+    }
+    if (data.rondas && data.rondas.length > 0) {
+        data.rondas.forEach(r => {
+            texto += `Início: ${r.hora_entrada || '-'} – Término: ${r.hora_saida || '-'}${r.duracao ? ` (${r.duracao})` : ''}`;
+            if (r.observacoes) texto += ` | ${r.observacoes}`;
+            texto += '\n';
+        });
+        texto += `\n✅ Total: ${data.total_completas} rondas completas no plantão`;
+    } else {
+        texto += 'Nenhuma ronda registrada neste plantão.';
+    }
+    navigator.clipboard.writeText(texto).then(() => {
+        const feedback = document.getElementById('copiado-feedback');
+        feedback.style.display = 'inline';
+        setTimeout(() => { feedback.style.display = 'none'; }, 1500);
+    });
+}
+// Evento do botão copiar
+setTimeout(() => {
+  const btn = document.getElementById('btn-copiar-rondas-condominio');
+  if (btn) {
+    btn.onclick = copiarRondasCondominioParaClipboard;
+  }
+}, 500);
+
+// Painel de feedback dos condomínios com ronda
+function renderizarPainelCondominiosRonda(data) {
+    const andamentoDiv = document.getElementById('condominios-em-andamento');
+    const realizadasDiv = document.getElementById('condominios-realizadas');
+    andamentoDiv.innerHTML = '';
+    realizadasDiv.innerHTML = '';
+    if (data.em_andamento && data.em_andamento.length > 0) {
+        andamentoDiv.innerHTML = '<b>Em andamento:</b> ' + data.em_andamento.map(c =>
+            `<button class='btn btn-sm btn-primary me-2 mb-1' onclick='abrirModalRondasCondominio(${c.id}, \"${c.nome.replace(/"/g, '\\"')}\")'>${c.nome}</button>`
+        ).join('');
+    }
+    if (data.realizadas && data.realizadas.length > 0) {
+        const idsAndamento = new Set((data.em_andamento||[]).map(c=>c.id));
+        const apenasRealizadas = data.realizadas.filter(c => !idsAndamento.has(c.id));
+        if (apenasRealizadas.length > 0) {
+            realizadasDiv.innerHTML = '<b>Já realizadas:</b> ' + apenasRealizadas.map(c =>
+                `<button class='btn btn-sm btn-secondary me-2 mb-1' onclick='abrirModalRondasCondominio(${c.id}, \"${c.nome.replace(/"/g, '\\"')}\")'>${c.nome}</button>`
+            ).join('');
+        }
+    }
+    if ((!data.em_andamento || data.em_andamento.length === 0) && (!data.realizadas || data.realizadas.length === 0)) {
+        andamentoDiv.innerHTML = '<span class="text-muted">Nenhuma ronda realizada neste plantão ainda.</span>';
+    }
+}
+
+function atualizarPainelCondominiosRonda() {
+    fetch('/api/ronda-tempo-real/condominios-com-ronda')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                renderizarPainelCondominiosRonda(data);
+            }
+        });
+}
+
+// Função para rolar até a tabela de rondas em andamento
+function rolarParaTabelaRondas(condominioId) {
+    const tabela = document.getElementById('rondas-andamento-lista');
+    if (tabela) {
+        tabela.scrollIntoView({behavior: 'smooth'});
+    }
+}
+
+// Pendência de exportação do plantão anterior
+let dadosPendenciaExportacao = null;
+function verificarPendenciaExportacaoPlantonAnterior() {
+    fetch('/api/ronda-tempo-real/pendente-exportacao-anterior')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                dadosPendenciaExportacao = data;
+                renderizarPendenciaExportacaoModal(data);
+                const modal = new bootstrap.Modal(document.getElementById('modal-pendencia-exportacao-plantao'));
+                modal.show();
+            }
+        });
+}
+function renderizarPendenciaExportacaoModal(data) {
+    const conteudo = document.getElementById('pendencia-exportacao-conteudo');
+    let html = `<div><b>Plantão ${data.data_plantao} (${data.escala_plantao})</b></div>`;
+    data.condominios.forEach(cond => {
+        html += `<div class='mt-3'><b>Residencial: ${cond.nome}</b><ul>`;
+        cond.rondas.forEach(r => {
+            html += `<li>Início: ${r.hora_entrada || '-'} – Término: ${r.hora_saida || '-'}${r.duracao ? ` (${r.duracao})` : ''}${r.observacoes ? ` | ${r.observacoes}` : ''}</li>`;
+        });
+        html += '</ul></div>';
+    });
+    conteudo.innerHTML = html;
+}
+function copiarPendenciaExportacaoParaClipboard() {
+    const data = dadosPendenciaExportacao;
+    if (!data) return;
+    let texto = `Plantão ${data.data_plantao} (${data.escala_plantao})\n`;
+    data.condominios.forEach(cond => {
+        texto += `Residencial: ${cond.nome}\n`;
+        cond.rondas.forEach(r => {
+            texto += `Início: ${r.hora_entrada || '-'} – Término: ${r.hora_saida || '-'}${r.duracao ? ` (${r.duracao})` : ''}`;
+            if (r.observacoes) texto += ` | ${r.observacoes}`;
+            texto += '\n';
+        });
+        texto += '\n';
+    });
+    navigator.clipboard.writeText(texto).then(() => {
+        const feedback = document.getElementById('copiado-pendencia-feedback');
+        feedback.style.display = 'inline';
+        setTimeout(() => { feedback.style.display = 'none'; }, 1500);
+    });
+}
+document.getElementById('btn-copiar-pendencia-exportacao').onclick = copiarPendenciaExportacaoParaClipboard;
+
+// Função para iniciar/atualizar cronômetros das rondas em andamento
+let intervalCronometros = null;
+function iniciarCronometrosRondasEmAndamento(rondas) {
+    if (intervalCronometros) clearInterval(intervalCronometros);
+    function atualizarTodosCronometros() {
+        const agora = new Date();
+        rondas.forEach(ronda => {
+            // hora_entrada no formato HH:mm
+            if (!ronda.hora_entrada) return;
+            const [h, m] = ronda.hora_entrada.split(':');
+            const entrada = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), parseInt(h), parseInt(m), 0);
+            let diffMs = agora - entrada;
+            if (diffMs < 0) diffMs = 0;
+            const minutos = Math.floor(diffMs / 60000);
+            const horas = Math.floor(minutos / 60);
+            const min = minutos % 60;
+            const texto = `${horas > 0 ? horas + 'h ' : ''}${min}min`;
+            const el = document.getElementById(`tempo-corrente-ronda-${ronda.id}`);
+            if (el) el.textContent = texto;
+        });
+    }
+    atualizarTodosCronometros();
+    intervalCronometros = setInterval(atualizarTodosCronometros, 1000);
+}
+
+// Função para iniciar/atualizar cronômetro de uma única ronda
+function iniciarCronometroUnicoRonda(ronda) {
+    function atualizar() {
+        const agora = new Date();
+        if (!ronda.hora_entrada) return;
+        const [h, m] = ronda.hora_entrada.split(':');
+        const entrada = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), parseInt(h), parseInt(m), 0);
+        let diffMs = agora - entrada;
+        if (diffMs < 0) diffMs = 0;
+        const minutos = Math.floor(diffMs / 60000);
+        const horas = Math.floor(minutos / 60);
+        const min = minutos % 60;
+        const texto = `${horas > 0 ? horas + 'h ' : ''}${min}min`;
+        const el = document.getElementById(`tempo-corrente-ronda-${ronda.id}`);
+        if (el) el.textContent = texto;
+    }
+    atualizar();
+    setInterval(atualizar, 1000);
+}
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    atualizarHoraAtual();
+    carregarRondasAndamento();
+    atualizarEstatisticas();
+    atualizarPainelCondominiosRonda(); // Chama ao carregar a página
+    
+    // Atualizar a cada 30 segundos
+    setInterval(() => {
+        atualizarHoraAtual();
+        carregarRondasAndamento();
+        atualizarEstatisticas();
+        atualizarPainelCondominiosRonda(); // Atualiza o painel a cada 30 segundos
+    }, 30000);
+
+    // Chama ao carregar a página
+    verificarPendenciaExportacaoPlantonAnterior();
+});
+
+// Relatório por condomínio
+let dadosUltimoRelatorioPlanton = null;
+btnGerarRelatorio.onclick = function() {
+    fetch('/api/ronda-tempo-real/relatorio')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                dadosUltimoRelatorioPlanton = data;
+                abrirModalSelecaoRelatorioCondominio(data);
+            } else {
+                alert('Nenhum dado de relatório disponível.');
+            }
+        });
+};
+function abrirModalSelecaoRelatorioCondominio(data) {
+    const modal = new bootstrap.Modal(document.getElementById('modal-selecao-relatorio-condominio'));
+    const listaDiv = document.getElementById('selecao-relatorio-condominio-lista');
+    let html = '<button class="btn btn-success w-100 mb-2" onclick="gerarRelatorioTodosCondominios()"><i class="fas fa-file-alt"></i> Gerar relatório de todos</button>';
+    if (data.condominios && data.condominios.length > 0) {
+        data.condominios.forEach(cond => {
+            html += `<button class='btn btn-outline-primary w-100 mb-2' onclick='gerarRelatorioCondominio(${cond.id})'><i class='fas fa-building'></i> ${cond.nome}</button>`;
+        });
+    }
+    listaDiv.innerHTML = html;
+    modal.show();
+}
+function gerarRelatorioTodosCondominios() {
+    const data = dadosUltimoRelatorioPlanton;
+    if (!data) return;
+    let texto = '';
+    if (data.data_plantao && data.escala_plantao) {
+        texto += `Plantão ${data.data_plantao} (${data.escala_plantao})\n`;
+    }
+    data.condominios.forEach(cond => {
+        texto += `\nResidencial: ${cond.nome}\n`;
+        cond.rondas.forEach(r => {
+            texto += `Início: ${r.hora_entrada || '-'} – Término: ${r.hora_saida || '-'}${r.duracao ? ` (${r.duracao})` : ''}`;
+            if (r.observacoes) texto += ` | ${r.observacoes}`;
+            texto += '\n';
+        });
+        texto += `\n✅ Total: ${cond.total_completas || 0} rondas completas no plantão\n`;
+    });
+    copiarTextoRelatorio(texto);
+}
+function gerarRelatorioCondominio(condominioId) {
+    const data = dadosUltimoRelatorioPlanton;
+    if (!data) return;
+    const cond = data.condominios.find(c => c.id === condominioId);
+    if (!cond) return;
+    let texto = '';
+    if (data.data_plantao && data.escala_plantao) {
+        texto += `Plantão ${data.data_plantao} (${data.escala_plantao})\n`;
+    }
+    texto += `Residencial: ${cond.nome}\n\n`;
+    cond.rondas.forEach(r => {
+        texto += `Início: ${r.hora_entrada || '-'} – Término: ${r.hora_saida || '-'}${r.duracao ? ` (${r.duracao})` : ''}`;
+        if (r.observacoes) texto += ` | ${r.observacoes}`;
+        texto += '\n';
+    });
+    texto += `\n✅ Total: ${cond.total_completas || 0} rondas completas no plantão`;
+    copiarTextoRelatorio(texto);
+}
+function copiarTextoRelatorio(texto) {
+    navigator.clipboard.writeText(texto).then(() => {
+        alert('Relatório copiado para a área de transferência!');
+    });
+}
+</script>
+{% endblock %} 

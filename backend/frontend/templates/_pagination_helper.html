@@ -1,0 +1,29 @@
+{# app/templates/_pagination_helper.html #}
+
+{# <<< ALTERAÇÃO: A macro agora espera um argumento nomeado 'query_params' >>> #}
+{% macro render_pagination(pagination_obj, endpoint, query_params={}) %}
+<nav aria-label="Navegação das páginas">
+    <ul class="pagination justify-content-center">
+        {# Botão 'Anterior' #}
+        <li class="page-item {% if not pagination_obj.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for(endpoint, page=pagination_obj.prev_num, **query_params) if pagination_obj.has_prev else '#' }}">Anterior</a>
+        </li>
+
+        {# Links das Páginas #}
+        {% for page_num in pagination_obj.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+            {% if page_num %}
+                <li class="page-item {% if page_num == pagination_obj.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for(endpoint, page=page_num, **query_params) }}">{{ page_num }}</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+
+        {# Botão 'Próxima' #}
+        <li class="page-item {% if not pagination_obj.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for(endpoint, page=pagination_obj.next_num, **query_params) if pagination_obj.has_next else '#' }}">Próxima</a>
+        </li>
+    </ul>
+</nav>
+{% endmacro %}

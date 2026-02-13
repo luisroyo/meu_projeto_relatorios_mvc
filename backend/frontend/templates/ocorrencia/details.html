@@ -1,0 +1,202 @@
+{% extends "base.html" %} {% from "_macros.html" import render_status_badge %}
+{# MUDANÇA: Importando o macro de status #} {% block title %}{{ title }}{%
+endblock %} {% block content %}
+<div class="container mt-4">
+  <h2 class="mb-3"><i class="bi bi-file-earmark-text-fill me-2"></i>{{ title }}</h2>
+  <p class="lead">Detalhes completos da ocorrência oficial registrada.</p>
+  <div class="card shadow-lg animate__animated animate__fadeIn mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <h5 class="mb-0 fs-6 fw-bold">Resumo da Ocorrência</h5>
+      {{ render_status_badge(ocorrencia.status) }}
+    </div>
+    <div class="card-body">
+      <div class="row g-4">
+        <div class="col-md-6">
+          <ul class="list-group list-group-flush mb-3">
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>ID da Ocorrência:</strong> {{ ocorrencia.id }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Tipo:</strong> {{ ocorrencia.tipo.nome if ocorrencia.tipo else 'N/A' }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Data e Hora:</strong> {{ ocorrencia.data_hora_ocorrencia | localtime }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Registrada por:</strong> {{ ocorrencia.registrado_por.username if ocorrencia.registrado_por else 'N/A' }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Supervisor:</strong> {{ ocorrencia.supervisor.username if ocorrencia.supervisor else 'N/A' }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Condomínio:</strong> {{ ocorrencia.condominio.nome if ocorrencia.condominio else 'N/A' }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Turno:</strong> {{ ocorrencia.turno or 'N/A' }}</li>
+          </ul>
+        </div>
+        <div class="col-md-6">
+          <ul class="list-group list-group-flush mb-3">
+            <li class="list-group-item bg-transparent border-0 px-0 py-1"><strong>Endereço Específico:</strong> {{ ocorrencia.endereco_especifico or 'Não informado' }}</li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1">
+              <strong>Órgãos Acionados:</strong>
+              <span>
+                {% if ocorrencia.orgaos_acionados %}
+                  {% for orgao in ocorrencia.orgaos_acionados %}
+                    <span class="badge bg-info text-dark me-1">{{ orgao.nome }}</span>
+                  {% endfor %}
+                {% else %}
+                  <span class="text-muted">Nenhum</span>
+                {% endif %}
+              </span>
+            </li>
+            <li class="list-group-item bg-transparent border-0 px-0 py-1">
+              <strong>Colaboradores Envolvidos:</strong>
+              {% if ocorrencia.colaboradores_envolvidos %}
+                <ul class="list-inline mb-0">
+                  {% for colaborador in ocorrencia.colaboradores_envolvidos %}
+                    <li class="list-inline-item bg-light rounded px-2 py-1 mb-1">{{ colaborador.nome_completo }}</li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <span class="text-muted">Nenhum</span>
+              {% endif %}
+            </li>
+          </ul>
+        </div>
+      </div>
+      <hr />
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="fw-bold mb-0">Relatório Final Oficial</h6>
+        <button class="btn btn-outline-primary btn-sm" onclick="copyRelatorio()" id="copyBtn">
+          <i class="bi bi-clipboard me-1"></i>Copiar Relatório
+        </button>
+      </div>
+      <pre class="themed-pre" id="relatorioText">{{ ocorrencia.relatorio_final }}</pre>
+    </div>
+  </div>
+  <div class="d-flex justify-content-between flex-wrap gap-2">
+    <a href="{{ url_for('ocorrencia.listar_ocorrencias') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar ao Histórico</a>
+    <div>
+      {% if ocorrencia.status == "Pendente" %}
+        <button type="button" 
+                class="btn btn-success" 
+                onclick="window.helpSystem?.showConfirmationModal(
+                    'Deseja aprovar esta ocorrência?<br><small class=\'text-muted\'>A ocorrência será marcada como aprovada e será incluída nos relatórios oficiais.</small>',
+                    () => {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '{{ url_for('ocorrencia.aprovar_ocorrencia', ocorrencia_id=ocorrencia.id) }}';
+                        form.innerHTML = '<input type=\'hidden\' name=\'csrf_token\' value=\'{{ csrf_token() }}\'/>';
+                        document.body.appendChild(form);
+                        form.submit();
+                    },
+                    {
+                        title: 'Aprovar Ocorrência',
+                        confirmText: 'Sim, Aprovar',
+                        cancelText: 'Cancelar',
+                        type: 'success'
+                    }
+                )">
+          <i class="bi bi-check-circle me-1"></i>Aprovar Ocorrência
+        </button>
+        <button type="button" 
+                class="btn btn-danger ms-2" 
+                onclick="window.helpSystem?.showConfirmationModal(
+                    'Deseja rejeitar esta ocorrência?<br><small class=\'text-muted\'>A ocorrência será marcada como rejeitada e não será incluída nos relatórios oficiais.</small>',
+                    () => {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '{{ url_for('ocorrencia.rejeitar_ocorrencia', ocorrencia_id=ocorrencia.id) }}';
+                        form.innerHTML = '<input type=\'hidden\' name=\'csrf_token\' value=\'{{ csrf_token() }}\'/>';
+                        document.body.appendChild(form);
+                        form.submit();
+                    },
+                    {
+                        title: 'Rejeitar Ocorrência',
+                        confirmText: 'Sim, Rejeitar',
+                        cancelText: 'Cancelar',
+                        type: 'danger'
+                    }
+                )">
+          <i class="bi bi-x-circle me-1"></i>Rejeitar Ocorrência
+        </button>
+      {% else %}
+        <a href="{{ url_for('ocorrencia.editar_ocorrencia', ocorrencia_id=ocorrencia.id) }}" class="btn btn-warning"><i class="bi bi-pencil me-1"></i>Editar Ocorrência</a>
+        {% if current_user.is_admin %}
+        <button type="button" 
+                class="btn btn-danger ms-2" 
+                onclick="window.helpSystem?.showConfirmationModal(
+                    'Tem certeza que deseja excluir esta ocorrência?<br><small class=\'text-muted\'>Esta ação não pode ser desfeita e todos os dados serão permanentemente removidos.</small>',
+                    () => {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '{{ url_for('ocorrencia.deletar_ocorrencia', ocorrencia_id=ocorrencia.id) }}';
+                        form.innerHTML = '<input type=\'hidden\' name=\'csrf_token\' value=\'{{ csrf_token() }}\'/>';
+                        document.body.appendChild(form);
+                        form.submit();
+                    },
+                    {
+                        title: 'Excluir Ocorrência',
+                        confirmText: 'Sim, Excluir',
+                        cancelText: 'Cancelar',
+                        type: 'danger'
+                    }
+                )">
+          <i class="bi bi-trash me-1"></i>Excluir Ocorrência
+        </button>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+function copyRelatorio() {
+  const relatorioText = document.getElementById('relatorioText').textContent;
+  const copyBtn = document.getElementById('copyBtn');
+  const originalText = copyBtn.innerHTML;
+  
+  // Tenta copiar para a área de transferência
+  if (navigator.clipboard && window.isSecureContext) {
+    // Método moderno (HTTPS)
+    navigator.clipboard.writeText(relatorioText).then(() => {
+      showCopySuccess();
+    }).catch(() => {
+      fallbackCopyTextToClipboard(relatorioText);
+    });
+  } else {
+    // Método fallback para HTTP
+    fallbackCopyTextToClipboard(relatorioText);
+  }
+  
+  function showCopySuccess() {
+    copyBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Copiado!';
+    copyBtn.classList.remove('btn-outline-primary');
+    copyBtn.classList.add('btn-success');
+    
+    setTimeout(() => {
+      copyBtn.innerHTML = originalText;
+      copyBtn.classList.remove('btn-success');
+      copyBtn.classList.add('btn-outline-primary');
+    }, 2000);
+  }
+  
+  function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      showCopySuccess();
+    } catch (err) {
+      console.error('Erro ao copiar: ', err);
+      copyBtn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Erro ao copiar';
+      copyBtn.classList.remove('btn-outline-primary');
+      copyBtn.classList.add('btn-danger');
+      
+      setTimeout(() => {
+        copyBtn.innerHTML = originalText;
+        copyBtn.classList.remove('btn-danger');
+        copyBtn.classList.add('btn-outline-primary');
+      }, 2000);
+    }
+    
+    document.body.removeChild(textArea);
+  }
+}
+</script>
+{% endblock %}

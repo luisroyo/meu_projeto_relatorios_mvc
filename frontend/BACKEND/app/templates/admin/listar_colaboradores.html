@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+        <h2 class="mb-0">{{ title }}</h2>
+        <a href="{{ url_for('admin.adicionar_colaborador') }}" class="btn btn-success d-flex align-items-center gap-2">
+            <i class="bi bi-plus-circle-fill"></i> <span>Adicionar Novo Colaborador</span>
+        </a>
+    </div>
+
+    {# REMOVA ESTA LINHA, POIS base.html JÁ TRATA AS MENSAGENS FLASH #}
+    {# {% include '_flash_messages.html' %} #}
+
+    {% if colaboradores_pagination.items %}
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover table-striped align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nome Completo</th>
+                    <th>Cargo</th>
+                    <th>Matrícula</th>
+                    <th>Status</th>
+                    <th>Data Admissão</th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for colaborador in colaboradores_pagination.items %}
+                <tr>
+                    <td>{{ colaborador.nome_completo }}</td>
+                    <td>{{ colaborador.cargo }}</td>
+                    <td>{{ colaborador.matricula or '--' }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if colaborador.status == 'Ativo' %}bg-success
+                            {% elif colaborador.status == 'Inativo' %}bg-danger
+                            {% elif colaborador.status == 'Férias' %}bg-info
+                            {% elif colaborador.status == 'Licença' %}bg-warning
+                            {% else %}bg-secondary
+                            {% endif %}">
+                            {{ colaborador.status }}
+                        </span>
+                    </td>
+                    <td>{{ colaborador.data_admissao.strftime('%d/%m/%Y') if colaborador.data_admissao else '--' }}</td>
+                    <td class="text-center">
+                        <a href="{{ url_for('admin.editar_colaborador', colaborador_id=colaborador.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                            <i class="bi bi-pencil-fill"></i>
+                        </a>
+                        <form method="POST" action="{{ url_for('admin.deletar_colaborador', colaborador_id=colaborador.id) }}" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este colaborador? Esta ação não pode ser desfeita.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Deletar">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if colaboradores_pagination.pages > 1 %}
+    <nav aria-label="Paginação de colaboradores" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not colaboradores_pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('admin.listar_colaboradores', page=colaboradores_pagination.prev_num) if colaboradores_pagination.has_prev else '#' }}" tabindex="-1" aria-disabled="true">Anterior</a>
+            </li>
+            {% for page_num in colaboradores_pagination.iter_pages() %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == colaboradores_pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('admin.listar_colaboradores', page=page_num) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not colaboradores_pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('admin.listar_colaboradores', page=colaboradores_pagination.next_num) if colaboradores_pagination.has_next else '#' }}">Próxima</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        Nenhum colaborador cadastrado ainda. <a href="{{ url_for('admin.adicionar_colaborador') }}" class="alert-link">Adicionar novo colaborador</a>.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

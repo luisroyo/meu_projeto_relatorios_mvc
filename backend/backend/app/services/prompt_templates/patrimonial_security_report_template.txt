@@ -1,0 +1,73 @@
+CONTEXTO:
+O relatório refere-se a ocorrências em um complexo com 18 residenciais e áreas comuns monitoradas por câmeras. A Central de Monitoramento aciona viaturas identificadas como Águia-XX para averiguação. Em casos de risco elevado, a equipe armada interna (Apoio 90) pode ser envolvida. Os registros são feitos por agentes das viaturas, operadores da Central ou integrantes do Apoio 90.
+
+TAREFA:
+Corrija o relatório bruto abaixo, mantendo fidelidade aos fatos, mas adaptando a linguagem para um padrão estritamente técnico e operacional.
+
+IMPORTANTE: Responda APENAS com o relatório corrigido. NÃO inclua introduções. Inicie diretamente com "Data:".
+
+REGRAS DE PADRONIZAÇÃO (Siga rigorosamente):
+
+1. Uso da terceira pessoa:
+   Reescreva sempre em terceira pessoa. Substitua "eu falei" ou "abordamos" por "foi feito contato", "a equipe orientou", etc.
+
+2. Datas e horários:
+   Formato: DD/MM/AAAA e HH:MM (24h). Se o ano for "25", converta para 2025.
+
+3. Padronização de viaturas:
+   Padronize qualquer menção a veículo/VTR como "Águia-XX" (dois dígitos).
+   Exemplo: "VTR 3" vira "Águia-03".
+
+4. Uso do termo “pernoite”:
+   Refere-se sempre ao veículo, salvo se especificado o contrário.
+
+5. Siglas de postos (PA, PC, PL, PG):
+   Mantenha as siglas inalteradas.
+
+6. Não invente dados:
+   Melhore a clareza, mas não adicione informações que não existam no original.
+
+7. Endereço/local:
+   Mantenha exatamente como descrito no original (mesmo que seja apenas o nome do local).
+
+8. **VOCABULÁRIO OBRIGATÓRIO (Substituição de Termos Rígidos):**
+   É ESTRITAMENTE PROIBIDO usar as palavras: "Regimento", "Regimento Interno", "Normas", "Regras", "Lei", "Estatuto" ou "Proibição".
+   Ao encontrar esses conceitos, você DEVE traduzir para uma linguagem técnica de funcionamento, usando APENAS:
+   - "Protocolos de segurança"
+   - "Diretrizes operacionais"
+   - "Procedimentos padrão"
+   - "Orientações vigentes"
+   - "Rotinas estabelecidas"
+   
+   *Exemplo:* Em vez de "Isso é contra as normas", escreva "O procedimento está em desacordo com as diretrizes operacionais".
+
+IMPORTANTE:
+Caso alguma informação do modelo abaixo não conste no texto original, simplesmente apague a linha correspondente. Não deixe campos em branco.
+
+MODELO DE SAÍDA:
+
+Data: [DD/MM/AAAA]
+Hora: [HH:MM]
+Local: [Local descrito no relatório]
+
+Ocorrência: [Resumo/Título da ocorrência]
+
+Relato:
+[Descrição cronológica e técnica dos fatos, aplicando a Regra 8 para suavizar termos burocráticos.]
+
+Ações Realizadas:
+- [Lista de ações concretas em tópicos]
+
+Acionamentos:
+( ) Central   ( ) Apoio 90   ( ) Supervisor   ( ) Coordenador
+
+Envolvidos/Testemunhas:
+[Lista de nomes/funções, se houver]
+
+Veículo (envolvido na ocorrência):
+[Modelo, cor, placa, se houver]
+
+Responsável pelo registro: [Nome/Viatura]
+
+RELATÓRIO BRUTO PARA CORRIGIR:
+{{ dados_brutos }}

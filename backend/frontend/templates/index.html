@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Analisador de Relatórios IA{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-lg-3">
+    <div class="page-header text-center">
+        <h1>
+            <i class="bi bi-shield-lock-fill me-2"></i>Analisador de Relatórios com IA
+            <i class="bi bi-question-circle text-muted ms-2" 
+               data-bs-toggle="tooltip" 
+               data-bs-placement="bottom" 
+               title="Sistema inteligente que corrige automaticamente relatórios de segurança, melhorando gramática, pontuação e formatação usando IA."
+               style="cursor: help; font-size: 0.7em;"></i>
+        </h1>
+        <p class="lead text-muted">Cole o relatório bruto abaixo para processamento e correção automática.</p>
+    </div>
+
+    {% if ocorrencias_pendentes_count and ocorrencias_pendentes_count > 0 %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+            <div>
+                <strong>Atenção!</strong> Existem {{ ocorrencias_pendentes_count }} ocorrência(s) aguardando revisão.
+                <a href="{{ url_for('ocorrencia.listar_ocorrencias', status='Pendente') }}" class="alert-link ms-2">
+                    <i class="bi bi-arrow-right me-1"></i>Ver ocorrências pendentes
+                </a>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    {% if current_user.is_authenticated %}
+    <form method="POST" action="{{ url_for('main.index') }}" id="analisador-form" novalidate>
+        
+        {{ form.hidden_tag() }}
+
+        <div class="row g-4 justify-content-center">
+
+            <div class="col-12 col-lg-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header d-flex align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-keyboard me-2"></i>1. Relatório Bruto</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column p-lg-4">
+                        <div class="form-group mb-3 flex-grow-1">
+                            <label class="form-label d-flex align-items-center gap-2" for="relatorio_bruto">
+                                <i class="bi bi-textarea-t text-primary"></i>
+                                <span>{{ form.relatorio_bruto.label.text }}</span>
+                                <span class="text-danger" title="Campo obrigatório">*</span>
+                                <i class="bi bi-question-circle text-muted" 
+                                   data-bs-toggle="tooltip" 
+                                   data-bs-placement="top" 
+                                   title="Cole aqui o texto do relatório que precisa ser corrigido. O sistema aceita textos com erros de digitação, pontuação incorreta, palavras coladas e outros problemas comuns."
+                                   style="cursor: help;"></i>
+                            </label>
+                            
+                            {% if form.relatorio_bruto.errors %}
+                                {{ form.relatorio_bruto(class="form-control is-invalid", id="relatorio_bruto", placeholder="Cole aqui o texto do relatório bruto que precisa ser corrigido...", rows="15", style="min-height: 300px;") }}
+                                <div class="invalid-feedback">
+                                    {% for error in form.relatorio_bruto.errors %}
+                                        <i class="bi bi-exclamation-triangle me-1"></i><span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.relatorio_bruto(class="form-control", id="relatorio_bruto", placeholder="Cole aqui o texto do relatório bruto que precisa ser corrigido...", rows="15", style="min-height: 300px;") }}
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>Aceita texto copiado do WhatsApp, Word ou qualquer fonte. A IA corrigirá automaticamente.
+                                </small>
+                                <small id="charCount" class="form-text text-muted">Caracteres: 0 / 12000</small>
+                            </div>
+                        </div>
+                        <div class="mt-auto d-grid gap-2">
+                            {{ form.submit(class="btn btn-primary btn-lg", id="submit") }}
+                            <button type="button" class="btn btn-outline-secondary" id="limpar-campos">
+                                <i class="bi bi-eraser me-2"></i>Limpar Campos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header d-flex align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-robot me-2"></i>2. Relatório Corrigido</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column p-lg-4">
+                        <div class="form-group mb-3 flex-grow-1">
+                            <label for="resultadoProcessamento" class="form-label">Resultado da Análise:</label>
+                            <textarea class="form-control" id="resultadoProcessamento" rows="18" readonly
+                                placeholder="O resultado da análise aparecerá aqui...">{{ relatorio_corrigido or '' }}</textarea>
+                        </div>
+                        
+                        <!-- Container para botões de ação (será preenchido dinamicamente pelo JavaScript) -->
+                        <div id="container-botoes-acoes" class="mt-auto d-flex flex-column flex-md-row gap-2" style="display: none;">
+                            <!-- Botões serão inseridos aqui dinamicamente -->
+                        </div>
+                        
+                        {% if relatorio_corrigido %}
+                        <div class="mt-auto d-flex flex-column flex-md-row gap-2">
+                            <button type="button" class="btn btn-info w-100" id="copiarResultado" data-bs-toggle="tooltip" title="Copiar o texto corrigido">
+                                <i class="bi bi-clipboard-check me-2"></i>Copiar
+                            </button>
+                            <a href="{{ url_for('ocorrencia.registrar_ocorrencia', relatorio_final=relatorio_corrigido) }}" class="btn btn-success w-100">
+                                <i class="bi bi-box-arrow-up-right me-2"></i>Exportar para Ocorrência
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+    {% else %}
+        <div class="alert alert-warning text-center" role="alert">
+            Você precisa estar logado para usar esta funcionalidade.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+
+<script type="module" src="{{ url_for('static', filename='js/index_page/main.js') }}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // --- 1. DECLARAÇÃO ÚNICA DOS ELEMENTOS ---
+    // Declare todas as variáveis de elementos aqui em cima, uma única vez.
+    const form = document.getElementById('analisador-form');
+    const submitButton = document.getElementById('submit');
+    const btnLimpar = document.getElementById('limpar-campos');
+    const btnCopiar = document.getElementById('copiarResultado');
+    const relatorioBrutoEl = document.getElementById('relatorio_bruto');
+    const resultadoEl = document.getElementById('resultadoProcessamento'); // Declarado APENAS AQUI
+    const charCountEl = document.getElementById('charCount');
+
+    // --- 2. INICIALIZAÇÃO DE PLUGINS ---
+    // Inicializa tooltips
+    if (btnCopiar) { // Só inicializa o tooltip se o botão existir
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
+
+    // --- 3. LÓGICA DOS EVENTOS ---
+
+    // Lógica para o feedback "Processando..." no botão de submit
+    if (form && submitButton) {
+        form.addEventListener('submit', function() {
+            if (form.checkValidity()) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...`;
+            }
+        });
+    }
+
+    // Lógica para o botão "Limpar Campos"
+    if (btnLimpar) {
+        btnLimpar.addEventListener('click', function() {
+            // Apenas usamos as variáveis, não as declaramos de novo
+            if (relatorioBrutoEl) relatorioBrutoEl.value = '';
+            if (resultadoEl) resultadoEl.value = '';
+            if (charCountEl) {
+                charCountEl.textContent = 'Caracteres: 0 / 12000';
+            }
+        });
+    }
+    
+    // Lógica para o contador de caracteres
+    if (relatorioBrutoEl && charCountEl) {
+        const updateCharCount = () => {
+            charCountEl.textContent = `Caracteres: ${relatorioBrutoEl.value.length} / 12000`;
+        };
+        updateCharCount();
+        relatorioBrutoEl.addEventListener('input', updateCharCount);
+    }
+
+    // Lógica para o botão "Copiar"
+    if (btnCopiar && resultadoEl) {
+        const tooltip = bootstrap.Tooltip.getInstance(btnCopiar);
+        btnCopiar.addEventListener('click', function() {
+            navigator.clipboard.writeText(resultadoEl.value).then(() => {
+                const originalText = btnCopiar.innerHTML;
+                btnCopiar.innerHTML = '<i class="bi bi-check-lg me-2"></i>Copiado!';
+                
+                if (tooltip) {
+                    tooltip.setContent({ '.tooltip-inner': 'Copiado com sucesso!' });
+                    tooltip.show();
+                }
+
+                setTimeout(() => {
+                    btnCopiar.innerHTML = originalText;
+                    if (tooltip) {
+                        tooltip.setContent({ '.tooltip-inner': 'Copiar o texto corrigido' });
+                        tooltip.hide();
+                    }
+                }, 2000);
+
+            }).catch(err => {
+                console.error('Erro ao copiar texto: ', err);
+                if (tooltip) {
+                    tooltip.setContent({ '.tooltip-inner': 'Erro ao copiar!' });
+                    tooltip.show();
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

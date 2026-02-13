@@ -1,0 +1,71 @@
+{# app/templates/admin_ferramentas.html #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Painel Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="page-header mb-4">
+        <h2 class="text-center">{{ title }}</h2>
+        <p class="lead text-center">Selecione uma ferramenta ou funcionalidade abaixo.</p>
+    </div>
+    <hr>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {# Cartão para Gerenciar Usuários #}
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title"><i class="bi bi-people-fill me-2"></i>Gerenciar Usuários</h5>
+                    <p class="card-text flex-grow-1">Aprove, revogue, promova ou delete contas de usuários.</p>
+                    <a href="{{ url_for('admin.manage_users') }}" class="btn btn-primary mt-auto"><i class="bi bi-arrow-right-circle me-1"></i>Acessar Gerenciador</a>
+                </div>
+            </div>
+        </div>
+
+        {# NOVO CARTÃO PARA GERENCIAR COLABORADORES #}
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title"><i class="bi bi-person-lines-fill me-2"></i>Gerenciar Colaboradores</h5>
+                    <p class="card-text flex-grow-1">Adicione, edite ou remova colaboradores do sistema.</p>
+                    <a href="{{ url_for('admin.listar_colaboradores') }}" class="btn btn-primary mt-auto"><i class="bi bi-arrow-right-circle me-1"></i>Acessar Gerenciador</a>
+                </div>
+            </div>
+        </div>
+
+        {# Cartão para a Ferramenta de Formatar E-mail #}
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title"><i class="bi bi-envelope-check-fill me-2"></i>Formatar Relatório para E-mail</h5>
+                    <p class="card-text flex-grow-1">Ajuste e formate relatórios gerados pela IA para um envio profissional por e-mail.</p>
+                    <a href="{{ url_for('admin.admin_tools') }}#formatar-email-content" class="btn btn-primary mt-auto"><i class="bi bi-arrow-right-circle me-1"></i>Acessar Ferramenta</a>
+                </div>
+            </div>
+        </div>
+
+        {# Cartão para a Ferramenta de Gerador de Justificativas #}
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title"><i class="bi bi-file-earmark-text-fill me-2"></i>Gerador de Justificativas (iFractal)</h5>
+                    <p class="card-text flex-grow-1">Crie justificativas formais para faltas, trabalho em folga, trocas de plantão, etc., para o sistema iFractal.</p>
+                    <a href="{{ url_for('admin.gerador_justificativas_tool') }}" class="btn btn-primary mt-auto"><i class="bi bi-arrow-right-circle me-1"></i>Acessar Ferramenta</a>
+                </div>
+            </div>
+        </div>
+        
+        {# Outros cartões... #}
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title"><i class="bi bi-pencil-square me-2"></i>Corrigir Relatórios (Geral)</h5>
+                    <p class="card-text flex-grow-1">Ferramenta para revisão e correção de relatórios diversos.</p>
+                    <a href="#" class="btn btn-secondary mt-auto disabled" aria-disabled="true"><i class="bi bi-gear-wide-connected me-1"></i>Em Breve</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
