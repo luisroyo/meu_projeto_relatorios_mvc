@@ -17,7 +17,7 @@ services:
       cd backend
       pip install -r requirements.txt
       cd ..
-    startCommand: chmod +x backend/entrypoint.sh && ./backend/entrypoint.sh
+    startCommand: chmod +x entrypoint.sh && ./entrypoint.sh
     envVars:
       - key: FLASK_ENV
         value: production

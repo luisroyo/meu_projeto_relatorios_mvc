@@ -12,9 +12,10 @@ sleep 5
 # Aplica migrations com timeout
 echo "Aplicando migrations..."
 # Ajusta PYTHONPATH e FLASK_APP para novo layout em backend/
-export PYTHONPATH="backend:${PYTHONPATH}"
-export FLASK_APP="app:create_app()"
+export PYTHONPATH=$PYTHONPATH:$(pwd)/backend
+export FLASK_APP="backend.app:create_app()"
 
+# Aplica migrations
 timeout 300 flask db upgrade -d backend/migrations || {
     echo "ERRO: Timeout ao aplicar migrations"
     exit 1
@@ -24,8 +25,6 @@ echo "Migrations aplicadas com sucesso!"
 
 # Inicia o Gunicorn com configurações otimizadas
 echo "Iniciando Gunicorn..."
-# Garante que backend/ está no PYTHONPATH
-export PYTHONPATH="backend:${PYTHONPATH}"
-exec gunicorn "app:create_app()" \
+exec gunicorn "backend.app:create_app()" \
     --config backend/gunicorn.conf.py
 
