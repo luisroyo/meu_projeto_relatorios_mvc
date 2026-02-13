@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: sistema-gestao-seguranca
+    env: python
+    plan: free
+    buildCommand: |
+      # Ensure Node.js is available (if not, install it)
+      # apt-get update && apt-get install -y nodejs npm
+
+      # Build Frontend
+      echo "Building Frontend..."
+      cd frontend && npm install && npm run build
+      cd ..
+
+      # Install Backend Dependencies
+      echo "Installing Backend..."
+      cd backend
+      pip install -r requirements.txt
+      cd ..
+    startCommand: chmod +x backend/entrypoint.sh && ./backend/entrypoint.sh
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.11.0
