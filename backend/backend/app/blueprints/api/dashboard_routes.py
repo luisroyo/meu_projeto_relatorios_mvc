@@ -77,22 +77,31 @@ def get_dashboard_stats():
         # Estatísticas de condomínios
         total_condominios = Condominio.query.count()
         
+        # Get current user for the response
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        # Calculate stats for the last month
+        last_month = datetime.now() - timedelta(days=30)
+        ocorrencias_ultimo_mes = Ocorrencia.query.filter(Ocorrencia.data_hora_ocorrencia >= last_month).count()
+        rondas_ultimo_mes = Ronda.query.filter(Ronda.data_plantao_ronda >= last_month).count()
+        rondas_em_andamento = Ronda.query.filter(Ronda.status == 'Em Andamento').count()
+
         stats = {
-            'ocorrencias': {
-                'total': total_ocorrencias,
-                'hoje': ocorrencias_hoje
+            'stats': {
+                'total_ocorrencias': total_ocorrencias,
+                'total_rondas': total_rondas,
+                'total_condominios': total_condominios,
+                'rondas_em_andamento': rondas_em_andamento,
+                'ocorrencias_ultimo_mes': ocorrencias_ultimo_mes,
+                'rondas_ultimo_mes': rondas_ultimo_mes
             },
-            'rondas': {
-                'total': total_rondas,
-                'hoje': rondas_hoje
-            },
-            'usuarios': {
-                'total': total_usuarios,
-                'online': usuarios_online
-            },
-            'condominios': {
-                'total': total_condominios
-            }
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'is_admin': user.is_admin,
+                'is_supervisor': user.is_supervisor
+            } if user else None
         }
         
         return success_response(
@@ -123,7 +132,8 @@ def get_recent_ocorrencias():
                 'id': o.id,
                 'tipo': o.tipo.nome if o.tipo else 'N/A',
                 'condominio': o.condominio.nome if o.condominio else 'N/A',
-                'data_hora': o.data_hora_ocorrencia.isoformat() if o.data_hora_ocorrencia else None,
+                'data': o.data_hora_ocorrencia.isoformat() if o.data_hora_ocorrencia else None,
+                'descricao': o.relatorio_final or 'Sem descrição',
                 'status': o.status,
                 'turno': o.turno,
                 'supervisor': o.supervisor.username if o.supervisor else 'N/A'
@@ -156,8 +166,9 @@ def get_recent_rondas():
                 'id': r.id,
                 'condominio': r.condominio.nome if r.condominio else 'N/A',
                 'data_plantao': r.data_plantao_ronda.isoformat() if r.data_plantao_ronda else None,
-                'escala': r.escala_plantao,
+                'escala_plantao': r.escala_plantao,
                 'status': r.status,
+                'total_rondas': r.total_rondas_no_log or 0,
                 'supervisor': r.supervisor.username if r.supervisor else 'N/A'
             })
         

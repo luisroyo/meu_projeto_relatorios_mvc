@@ -122,7 +122,8 @@ export interface OcorrenciaFilters {
 // Tipos de ronda
 export interface Ronda {
   id: number;
-  data_hora_inicio: string;
+  data_hora_inicio?: string; // Mantido para compatibilidade, mas backend envia data_criacao
+  data_criacao?: string; // Campo enviado pelo backend
   data_hora_fim?: string;
   log_ronda_bruto: string;
   relatorio_processado?: string;
@@ -136,12 +137,16 @@ export interface Ronda {
   primeiro_evento_log_dt?: string;
   ultimo_evento_log_dt?: string;
   duracao_total_rondas_minutos?: number;
+  status?: string;
   tipo?: string;
 
+  // Campo 'user' enviado pelo backend contendo o username
+  user?: string;
+
   // Relacionamentos
-  condominio?: Condominio;
-  criador?: User;
-  supervisor?: User;
+  condominio?: Condominio; // Backend envia {id, nome}
+  criador?: User; // Backend NÃO envia objeto user completo no campo criador, envia 'user' string
+  supervisor?: User | { id: number; username: string }; // Backend envia {id, username}
 }
 
 export interface RondaForm {

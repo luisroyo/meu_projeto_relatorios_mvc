@@ -242,18 +242,10 @@ class WhatsAppProcessor:
         # Ordena plantões por data
         return sorted(plantoes.values(), key=lambda p: p.data)
     
-    def process_file(self, filepath: str, data_inicio: Optional[datetime] = None, 
+    def process_text(self, content: str, data_inicio: Optional[datetime] = None, 
                     data_fim: Optional[datetime] = None, autor_filtro: Optional[str] = None) -> List[Plantao]:
-        """Processa um arquivo .txt do WhatsApp - OTIMIZADO."""
+        """Processa texto bruto do WhatsApp - OTIMIZADO."""
         try:
-            # Tenta UTF-8 primeiro, depois latin-1
-            try:
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    content = f.read()
-            except UnicodeDecodeError:
-                with open(filepath, 'r', encoding='latin-1') as f:
-                    content = f.read()
-        
             # Processa mensagens com filtros
             mensagens = self.parse_messages(content, data_inicio, data_fim, autor_filtro)
             plantoes = self.group_by_plantao(mensagens)
@@ -266,6 +258,24 @@ class WhatsAppProcessor:
                     print(f"📊 Total de mensagens: {len(plantao_atual.mensagens)}")
             
             return plantoes
+            
+        except Exception as e:
+            print(f"❌ Erro ao processar texto bruto: {e}")
+            return []
+
+    def process_file(self, filepath: str, data_inicio: Optional[datetime] = None, 
+                    data_fim: Optional[datetime] = None, autor_filtro: Optional[str] = None) -> List[Plantao]:
+        """Processa um arquivo .txt do WhatsApp - OTIMIZADO."""
+        try:
+            # Tenta UTF-8 primeiro, depois latin-1
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except UnicodeDecodeError:
+                with open(filepath, 'r', encoding='latin-1') as f:
+                    content = f.read()
+        
+            return self.process_text(content, data_inicio, data_fim, autor_filtro)
             
         except Exception as e:
             print(f"❌ Erro ao processar arquivo {filepath}: {e}")

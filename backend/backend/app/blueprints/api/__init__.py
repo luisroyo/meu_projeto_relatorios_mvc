@@ -10,7 +10,8 @@ from . import (
     ronda_routes,
     admin_routes,
     analisador_routes,
-    config_routes
+    config_routes,
+    colaborador_routes
 )
 from . import text_routes
 
@@ -59,33 +60,9 @@ def list_condominios_simple():
     except Exception as e:
         return jsonify({'error': 'Erro ao listar condomínios'}), 500
 
-# Adicionar rotas de colaboradores e logradouros para compatibilidade com frontend
-from app.models.colaborador import Colaborador
+# Adicionar rotas de logradouros para compatibilidade com frontend
 from app.models.vw_logradouros import VWLogradouros
 
-@api_bp.route('/colaboradores', methods=['GET'])
-@jwt_required()
-def list_colaboradores_simple():
-    """Listar colaboradores para filtros do frontend."""
-    try:
-        nome = request.args.get('nome', '')
-        query = Colaborador.query.filter_by(status='Ativo')
-        
-        if nome:
-            query = query.filter(Colaborador.nome_completo.ilike(f'%{nome}%'))
-        
-        colaboradores = query.order_by(Colaborador.nome_completo).limit(10).all()
-        
-        return jsonify({
-            'colaboradores': [{
-                'id': col.id,
-                'nome_completo': col.nome_completo,
-                'cargo': col.cargo,
-                'matricula': col.matricula
-            } for col in colaboradores]
-        }), 200
-    except Exception as e:
-        return jsonify({'error': 'Erro ao listar colaboradores'}), 500
 
 @api_bp.route('/logradouros_view', methods=['GET'])
 @jwt_required()

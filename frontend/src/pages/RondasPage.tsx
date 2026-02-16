@@ -26,7 +26,12 @@ import {
   Pagination,
   Stack,
   useTheme,
-  alpha
+  alpha,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -35,7 +40,8 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
-  FilterList as FilterIcon
+  FilterList as FilterIcon,
+  CloudUpload as CloudUploadIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -43,18 +49,6 @@ import { ptBR } from 'date-fns/locale';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { rondaService, condominioService, userService } from '../services/api';
 import type { Ronda } from '../types';
-
-interface RondaListResponse {
-  rondas: Ronda[];
-  pagination: {
-    page: number;
-    pages: number;
-    total: number;
-    per_page: number;
-    has_next: boolean;
-    has_prev: boolean;
-  };
-}
 
 const RondasPage: React.FC = () => {
   const theme = useTheme();
@@ -82,7 +76,7 @@ const RondasPage: React.FC = () => {
     per_page: 10
   });
 
-  // Dados para os filtros (seriam carregados do backend)
+  // Dados para os filtros
   const [condominios, setCondominios] = useState<Array<{ id: number; nome: string }>>([]);
   const [supervisors, setSupervisors] = useState<Array<{ id: number; username: string }>>([]);
   const [turnos] = useState([
@@ -92,28 +86,35 @@ const RondasPage: React.FC = () => {
     'Diurno Impar'
   ]);
 
+  // Estados para Upload
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadMonth, setUploadMonth] = useState<string>('');
+  const [uploadYear, setUploadYear] = useState<string>('');
+  const [uploadLoading, setUploadLoading] = useState(false);
+
   useEffect(() => {
     loadRondas();
-    loadFilterData();
-  }, [filters]);
+  }, [filters, pagination.page, pagination.per_page]);
+
+  useEffect(() => {
+    if (rondas.length > 0) {
+      // Data loaded
+    }
+  }, [rondas]);
 
   const loadFilterData = async () => {
     try {
-      // Carregar dados dos filtros do backend
       const [condominiosData, usersData] = await Promise.all([
         condominioService.list(),
         userService.list()
       ]);
 
-      // Ajustar para a estrutura correta retornada pelas APIs
       const condominios = Array.isArray(condominiosData) ? condominiosData : ((condominiosData as any)?.condominios || []);
       const users = Array.isArray(usersData) ? usersData : ((usersData as any)?.users || []);
 
       setCondominios(condominios);
-      // Filtro apenas por supervisores reais
-      const supervisores = users.filter((user: any) => user.is_supervisor === true);
-
-      setSupervisors(supervisores);
+      setSupervisors(users.filter((user: any) => user.is_supervisor === true));
     } catch (error) {
       console.error('Erro ao carregar dados dos filtros:', error);
     }
@@ -124,7 +125,18 @@ const RondasPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await rondaService.list(filters);
+      // Mapear filtros para o formato esperado pelo serviço
+      const serviceFilters = {
+        page: filters.page,
+        per_page: filters.per_page,
+        condominio_id: filters.condominio ? Number(filters.condominio) : undefined,
+        supervisor_id: filters.supervisor ? Number(filters.supervisor) : undefined,
+        status: filters.turno ? filters.turno : undefined, // Usando status para passar turno provisoriamente ou ajustar backend
+        data_inicio: filters.data_inicio || undefined,
+        data_fim: filters.data_fim || undefined
+      };
+
+      const response = await rondaService.list(serviceFilters);
       setRondas(response.rondas || []);
       setPagination(response.pagination || {
         page: 1,
@@ -146,7 +158,7 @@ const RondasPage: React.FC = () => {
     setFilters(prev => ({
       ...prev,
       [field]: value,
-      page: 1 // Reset para primeira página ao filtrar
+      page: 1
     }));
   };
 
@@ -174,6 +186,33 @@ const RondasPage: React.FC = () => {
     }
   };
 
+  // Upload Handlers
+  const handleUploadSubmit = async () => {
+    if (!uploadFile) return;
+
+    setUploadLoading(true);
+    try {
+      const month = uploadMonth ? parseInt(uploadMonth) : undefined;
+      const year = uploadYear ? parseInt(uploadYear) : undefined;
+
+      const result = await rondaService.uploadRondaLog(uploadFile, month, year);
+
+      if (result.success) {
+        setUploadOpen(false);
+        setUploadFile(null);
+        setUploadMonth('');
+        setUploadYear('');
+        loadRondas(); // Refresh list
+        alert(result.message);
+      }
+    } catch (error: any) {
+      console.error('Erro no upload:', error);
+      alert('Erro ao processar arquivo: ' + (error.message || 'Erro desconhecido'));
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner message="Carregando rondas..." size="large" />;
   }
@@ -196,22 +235,33 @@ const RondasPage: React.FC = () => {
             Visualize todas as rondas registradas no sistema
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/rondas/nova')}
-          sx={{
-            borderRadius: 2,
-            px: 3,
-            py: 1.5,
-            background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-            '&:hover': {
-              background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`
-            }
-          }}
-        >
-          Registrar Nova Ronda
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="contained"
+            startIcon={<CloudUploadIcon />}
+            onClick={() => setUploadOpen(true)}
+            color="secondary"
+            sx={{ borderRadius: 2 }}
+          >
+            Upload Log (WhatsApp)
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/rondas/nova')}
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              py: 1.5,
+              background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+              '&:hover': {
+                background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`
+              }
+            }}
+          >
+            Registrar Nova Ronda
+          </Button>
+        </Stack>
       </Box>
 
       {/* Filtros */}
@@ -242,7 +292,7 @@ const RondasPage: React.FC = () => {
                 >
                   <MenuItem value="">Todos</MenuItem>
                   {condominios.map((condominio) => (
-                    <MenuItem key={condominio.id} value={condominio.nome}>
+                    <MenuItem key={condominio.id} value={condominio.id}>
                       {condominio.nome}
                     </MenuItem>
                   ))}
@@ -343,8 +393,8 @@ const RondasPage: React.FC = () => {
                 <TableRow sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.05) }}>
                   <TableCell sx={{ fontWeight: 600 }}>#ID</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Condomínio</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Data Plantão</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Turno</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Data Início</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Turno/Status</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Supervisor</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 600 }}>Rondas no Log</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 600 }}>Ações</TableCell>
@@ -354,17 +404,17 @@ const RondasPage: React.FC = () => {
                 {rondas.map((ronda) => (
                   <TableRow key={ronda.id} hover>
                     <TableCell>{ronda.id}</TableCell>
-                    <TableCell>{ronda.condominio?.nome || 'N/A'}</TableCell>
-                    <TableCell>{formatDate(ronda.data_plantao || '')}</TableCell>
+                    <TableCell>{(ronda.condominio as any)?.nome || ronda.condominio || 'N/A'}</TableCell>
+                    <TableCell>{formatDate(ronda.data_plantao_ronda || '')}</TableCell>
                     <TableCell>
                       <Chip
-                        label={ronda.turno || 'N/A'}
+                        label={ronda.turno_ronda || 'N/A'}
                         size="small"
-                        color="secondary"
+                        color={ronda.status === 'Realizada' ? 'success' : 'default'}
                         sx={{ borderRadius: 2 }}
                       />
                     </TableCell>
-                    <TableCell>{ronda.supervisor?.username || 'Automático'}</TableCell>
+                    <TableCell>{(ronda.supervisor as any)?.username || ronda.supervisor || 'Automático'}</TableCell>
                     <TableCell align="center">{ronda.total_rondas_no_log || 0}</TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
@@ -390,22 +440,6 @@ const RondasPage: React.FC = () => {
                             }}
                           >
                             <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Excluir Ronda">
-                          <IconButton
-                            color="error"
-                            onClick={() => {
-                              if (window.confirm('Tem certeza que deseja excluir esta ronda?')) {
-                                // Implementar exclusão
-                              }
-                            }}
-                            sx={{
-                              backgroundColor: alpha(theme.palette.error.main, 0.1),
-                              '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.2) }
-                            }}
-                          >
-                            <DeleteIcon />
                           </IconButton>
                         </Tooltip>
                       </Stack>
@@ -444,8 +478,65 @@ const RondasPage: React.FC = () => {
           </Button>
         </Card>
       )}
+
+      {/* Upload Dialog */}
+      <Dialog open={uploadOpen} onClose={() => setUploadOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Upload de Log de Rondas (WhatsApp)</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Selecione o arquivo .txt exportado do WhatsApp para processar as rondas automaticamente.
+            </Typography>
+
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<CloudUploadIcon />}
+              fullWidth
+              sx={{ py: 2, borderStyle: 'dashed' }}
+            >
+              {uploadFile ? uploadFile.name : 'Selecionar Arquivo .txt'}
+              <input
+                type="file"
+                hidden
+                accept=".txt"
+                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+              />
+            </Button>
+
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                label="Mês (Opcional)"
+                type="number"
+                value={uploadMonth}
+                onChange={(e) => setUploadMonth(e.target.value)}
+                InputProps={{ inputProps: { min: 1, max: 12 } }}
+                fullWidth
+              />
+              <TextField
+                label="Ano (Opcional)"
+                type="number"
+                value={uploadYear}
+                onChange={(e) => setUploadYear(e.target.value)}
+                fullWidth
+              />
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUploadOpen(false)}>Cancelar</Button>
+          <Button
+            onClick={handleUploadSubmit}
+            variant="contained"
+            disabled={!uploadFile || uploadLoading}
+            startIcon={uploadLoading && <CircularProgress size={20} color="inherit" />}
+          >
+            {uploadLoading ? 'Processando...' : 'Enviar e Processar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
 
-export default RondasPage; 
+export default RondasPage;

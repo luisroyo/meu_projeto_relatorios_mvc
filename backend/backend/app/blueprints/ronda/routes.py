@@ -413,120 +413,147 @@ def upload_process_ronda():
     """
     Rota para upload e processamento manual de arquivos de ronda do WhatsApp.
     Permite selecionar mês e ano para filtragem.
+    Suporta arquivo .txt ou texto bruto colado.
     """
     if request.method == "GET":
-        return render_template("ronda/upload_process_ronda.html", title="Upload e Processamento de Rondas")
+        condominios = Condominio.query.order_by(Condominio.nome).all()
+        return render_template(
+            "ronda/upload_process_ronda.html", 
+            title="Upload e Processamento de Rondas",
+            condominios=condominios
+        )
     
     elif request.method == "POST":
-        if 'whatsapp_file' not in request.files:
-            return jsonify({"success": False, "message": "Nenhum arquivo enviado."}), 400
-        
-        whatsapp_file = request.files['whatsapp_file']
-        if whatsapp_file.filename == '':
-            return jsonify({"success": False, "message": "Nenhum arquivo selecionado."}), 400
-        
-        if not whatsapp_file.filename.lower().endswith('.txt'):
-            return jsonify({"success": False, "message": "Apenas arquivos .txt são permitidos."}), 400
-
         month = request.form.get('month', type=int)
         year = request.form.get('year', type=int)
+        
+        # Variáveis para processamento
+        condominio = None
+        temp_filepath = None
+        input_type = "unknown"
+        log_content_completo = ""
 
         try:
-            # Salvar o arquivo temporariamente para processamento
-            temp_dir = tempfile.gettempdir()
-            temp_filepath = os.path.join(temp_dir, whatsapp_file.filename)
-            whatsapp_file.save(temp_filepath)
-            logger.info(f"Arquivo temporário salvo em: {temp_filepath}")
-
-            # Identifica condomínio pelo nome do arquivo
-            condominio = infer_condominio_from_filename(whatsapp_file.filename)
-            if not condominio:
-                os.remove(temp_filepath)
-                return jsonify({"success": False, "message": f"Não foi possível identificar o condomínio pelo nome do arquivo '{whatsapp_file.filename}'."}), 400
-
-            # Processa o arquivo diretamente
-            processor = WhatsAppProcessor()
-            plantoes_encontrados = processor.process_file(temp_filepath)
-            
-            if not plantoes_encontrados:
-                os.remove(temp_filepath)
-                return jsonify({"success": False, "message": "Nenhuma mensagem de plantão válida encontrada no arquivo."}), 404
-
-            # Filtra plantões por mês/ano se especificado
-            filtered_plantoes = []
-            for plantao in plantoes_encontrados:
-                process_this_plantao = True
-                if month and plantao.data.month != month:
-                    process_this_plantao = False
-                if year and plantao.data.year != year:
-                    process_this_plantao = False
+            # 1. Verificar se é upload de Arquivo
+            if 'whatsapp_file' in request.files and request.files['whatsapp_file'].filename != '':
+                input_type = "file"
+                whatsapp_file = request.files['whatsapp_file']
                 
-                if process_this_plantao:
-                    filtered_plantoes.append(plantao)
-                else:
-                    logger.info(f"Pulando plantão em {plantao.data.strftime('%d/%m/%Y')} ({plantao.tipo}) do arquivo {whatsapp_file.filename} devido a filtros de mês/ano.")
+                if not whatsapp_file.filename.lower().endswith('.txt'):
+                    return jsonify({"success": False, "message": "Apenas arquivos .txt são permitidos."}), 400
 
-            if not filtered_plantoes:
-                os.remove(temp_filepath)
-                return jsonify({"success": False, "message": "Nenhum plantão no arquivo corresponde aos filtros de mês/ano selecionados."}), 404
+                # Salvar arquivo temporariamente
+                temp_dir = tempfile.gettempdir()
+                temp_filepath = os.path.join(temp_dir, whatsapp_file.filename)
+                whatsapp_file.save(temp_filepath)
+                
+                # Identifica condomínio
+                condominio = infer_condominio_from_filename(whatsapp_file.filename)
+                if not condominio:
+                    if os.path.exists(temp_filepath): os.remove(temp_filepath)
+                    return jsonify({"success": False, "message": f"Não foi possível identificar o condomínio pelo nome do arquivo '{whatsapp_file.filename}'."}), 400
+                
+                # Ler conteúdo do arquivo
+                try:
+                    with open(temp_filepath, 'r', encoding='utf-8') as f:
+                        log_content_completo = f.read()
+                except UnicodeDecodeError:
+                    with open(temp_filepath, 'r', encoding='latin-1') as f:
+                        log_content_completo = f.read()
+                
+                # Limpeza do arquivo será feita no finally ou após processamento
 
-            # Obtém usuário do sistema uma única vez
+            # 2. Verificar se é Texto Bruto
+            elif 'raw_text' in request.form and request.form['raw_text'].strip():
+                input_type = "text"
+                log_content_completo = request.form['raw_text']
+                condominio_id = request.form.get('condominio_id')
+                
+                if not condominio_id:
+                    return jsonify({"success": False, "message": "Condomínio é obrigatório para entrada de texto."}), 400
+                
+                condominio = Condominio.query.get(condominio_id)
+                if not condominio:
+                    return jsonify({"success": False, "message": "Condomínio selecionado não encontrado."}), 404
+
+            else:
+                return jsonify({"success": False, "message": "Nenhum arquivo ou texto enviado."}), 400
+
+            # 3. Processamento usando ronda_logic
+            from app.services.ronda_logic.processor import extrair_plantoes_do_log
+            
+            plantoes_encontrados = extrair_plantoes_do_log(log_content_completo)
+
+            if not plantoes_encontrados:
+                if temp_filepath and os.path.exists(temp_filepath): os.remove(temp_filepath)
+                return jsonify({"success": False, "message": "Nenhuma mensagem de plantão válida encontrada."}), 404
+
+            # 4. Filtros de Mês/Ano e Salvamento
             system_user = get_system_user()
-
             total_rondas_salvas = 0
             messages = []
-
-            # Processa todos os plantões de uma vez
-            for plantao in filtered_plantoes:
+            
+            for plantao_dict in plantoes_encontrados:
+                data_plantao_str = plantao_dict['data_plantao']
+                escala = plantao_dict['escala']
+                log_bruto = plantao_dict['log_bruto']
+                
+                # Parse da data para filtros
                 try:
-                    # Formata o log diretamente do plantão
-                    log_bruto = processor.format_for_ronda_log(plantao)
-                    escala_plantao = "06h às 18h" if plantao.tipo == "diurno" else "18h às 06h"
+                    dt_plantao = datetime.strptime(data_plantao_str, "%d/%m/%Y")
+                except ValueError:
+                    continue # Pula se data inválida (improvável dado o parser)
 
-                    # Prepara dados da ronda
+                # Filtros
+                if month and dt_plantao.month != month:
+                    continue
+                if year and dt_plantao.year != year:
+                    continue
+                
+                try:
                     ronda_data = {
                         "condominio_id": str(condominio.id),
-                        "data_plantao": plantao.data.strftime("%Y-%m-%d"),
-                        "escala_plantao": escala_plantao,
+                        "data_plantao": dt_plantao.strftime("%Y-%m-%d"),
+                        "escala_plantao": escala,
                         "log_bruto": log_bruto,
                         "ronda_id": None,
                         "supervisor_id": None,
                     }
                     
-                    # Salva a ronda
                     success, message, status_code, ronda_id = RondaRoutesService.salvar_ronda(ronda_data, system_user)
                     
                     if success:
                         total_rondas_salvas += 1
-                        messages.append(f"✅ Ronda para {condominio.nome} em {plantao.data.strftime('%d/%m/%Y')} ({plantao.tipo}) registrada! ID: {ronda_id}")
+                        messages.append(f"✅ Ronda para {condominio.nome} em {data_plantao_str} ({escala}) registrada! ID: {ronda_id}")
                     else:
-                        messages.append(f"❌ Falha ao registrar ronda para {condominio.nome} em {plantao.data.strftime('%d/%m/%Y')} ({plantao.tipo}): {message}")
-                        logger.error(f"Erro ao salvar ronda via upload manual: {message}")
+                        messages.append(f"❌ Falha ao registrar ronda para {condominio.nome} em {data_plantao_str} ({escala}): {message}")
                 
                 except Exception as e:
-                    error_msg = f"Erro ao processar plantão {plantao.data.strftime('%d/%m/%Y')} ({plantao.tipo}): {str(e)}"
+                    error_msg = f"Erro ao processar plantão {data_plantao_str}: {str(e)}"
                     messages.append(f"❌ {error_msg}")
                     logger.error(error_msg, exc_info=True)
 
-            # Limpa arquivo temporário
-            os.remove(temp_filepath)
+            # Limpeza
+            if temp_filepath and os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
             
-            # Retorna resultado
+            # Retorno
             if total_rondas_salvas > 0:
                 return jsonify({
                     "success": True,
                     "message": f"🎉 Processamento concluído! {total_rondas_salvas} ronda(s) salva(s).<br><br><strong>Detalhes:</strong><br>" + "<br>".join(messages)
                 }), 200
+            elif not messages:
+                 return jsonify({"success": False, "message": "Nenhum plantão corresponde aos filtros de mês/ano selecionados."}), 404
             else:
                 return jsonify({
                     "success": False,
-                    "message": "⚠️ Nenhuma ronda foi salva. Verifique os logs para mais detalhes.<br><br><strong>Detalhes:</strong><br>" + "<br>".join(messages)
+                    "message": "⚠️ Nenhuma ronda foi salva.<br><br><strong>Detalhes:</strong><br>" + "<br>".join(messages)
                 }), 500
 
         except Exception as e:
             logger.error(f"Erro geral no upload e processamento de ronda: {e}", exc_info=True)
-            # Tenta remover o arquivo temporário mesmo em caso de erro
-            if 'temp_filepath' in locals() and os.path.exists(temp_filepath):
+            if 'temp_filepath' in locals() and temp_filepath and os.path.exists(temp_filepath):
                 os.remove(temp_filepath)
             return jsonify({"success": False, "message": f"❌ Erro interno do servidor: {str(e)}"}), 500
 

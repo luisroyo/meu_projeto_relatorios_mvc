@@ -64,7 +64,12 @@ api.interceptors.response.use(
 
 // Funções auxiliares
 const handleApiResponse = (response: AxiosResponse) => {
-  return response.data;
+  const body = response.data;
+  // Se a resposta seguir o padrão { success: true, data: ... }, retorna data
+  if (body && body.success === true && body.data !== undefined) {
+    return body.data;
+  }
+  return body;
 };
 
 const handleApiError = (error: AxiosError) => {
@@ -770,6 +775,98 @@ export const dashboardService = {
   },
 };
 
+// Serviço de colaboradores
+export const colaboradorService = {
+  list: async (filters: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    status?: string;
+  } = {}): Promise<{
+    colaboradores: Array<{
+      id: number;
+      nome_completo: string;
+      cargo: string;
+      matricula: string;
+      data_admissao?: string;
+      status: string;
+    }>;
+    pagination: {
+      page: number;
+      pages: number;
+      total: number;
+      per_page: number;
+    };
+  }> => {
+    try {
+      const response = await api.get('/api/colaboradores', { params: filters });
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
+
+  getById: async (id: number): Promise<{
+    id: number;
+    nome_completo: string;
+    cargo: string;
+    matricula: string;
+    data_admissao?: string;
+    status: string;
+  }> => {
+    try {
+      const response = await api.get(`/api/colaboradores/${id}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
+
+  create: async (data: {
+    nome_completo: string;
+    cargo: string;
+    matricula?: string;
+    data_admissao?: string;
+    status?: string;
+  }): Promise<{
+    message: string;
+    id: number;
+  }> => {
+    try {
+      const response = await api.post('/api/colaboradores', data);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
+
+  update: async (id: number, data: {
+    nome_completo?: string;
+    cargo?: string;
+    matricula?: string;
+    data_admissao?: string;
+    status?: string;
+  }): Promise<{
+    message: string;
+  }> => {
+    try {
+      const response = await api.put(`/api/colaboradores/${id}`, data);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
+
+  delete: async (id: number): Promise<{ message: string }> => {
+    try {
+      const response = await api.delete(`/api/colaboradores/${id}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
+};
+
 // Serviço de rondas
 export const rondaService = {
   list: async (filters: {
@@ -926,74 +1023,31 @@ export const rondaService = {
       throw handleApiError(error as AxiosError);
     }
   },
-};
 
-// Serviço de colaboradores
-export const colaboradorService = {
-  list: async (filters?: any): Promise<{
-    colaboradores: Array<{
-      id: number;
-      nome_completo: string;
-      cargo: string;
-      matricula: string | null;
-      data_admissao: string;
-      status: string;
-    }>;
-    pagination: {
-      total: number;
-      page: number;
-      per_page: number;
-      pages: number;
-    };
+  uploadRondaLog: async (file: File, month?: number, year?: number): Promise<{
+    success: boolean;
+    message: string;
+    rondas_criadas?: number;
+    erros?: string[];
   }> => {
     try {
-      const params = new URLSearchParams();
-      if (filters) {
-        Object.entries(filters).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
-            params.append(key, String(value));
-          }
-        });
-      }
-      const response = await api.get(`/api/admin/colaboradores?${params.toString()}`);
-      return handleApiResponse(response);
-    } catch (error) {
-      throw handleApiError(error as AxiosError);
-    }
-  },
+      const formData = new FormData();
+      formData.append('whatsapp_file', file);
+      if (month) formData.append('month', month.toString());
+      if (year) formData.append('year', year.toString());
 
-  create: async (data: any): Promise<{
-    id: number;
-    nome_completo: string;
-    cargo: string;
-    matricula: string | null;
-    data_admissao: string;
-    status: string;
-  }> => {
-    try {
-      const response = await api.post('/api/admin/colaboradores', data);
-      return handleApiResponse(response);
-    } catch (error) {
-      throw handleApiError(error as AxiosError);
-    }
-  },
-
-  update: async (id: number, data: any): Promise<{
-    id: number;
-    nome_completo: string;
-    cargo: string;
-    matricula: string | null;
-    data_admissao: string;
-    status: string;
-  }> => {
-    try {
-      const response = await api.put(`/api/admin/colaboradores/${id}`, data);
+      const response = await api.post('/rondas/upload-process-ronda', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as AxiosError);
     }
   },
 };
+
 
 // Serviço de escalas
 export const escalaService = {

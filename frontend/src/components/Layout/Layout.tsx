@@ -13,6 +13,7 @@ import {
     Assessment,
     Timeline,
     Report as ReportIcon,
+    Badge,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../hooks';
@@ -49,6 +50,7 @@ const Layout: React.FC = () => {
         { text: 'Dashboard Rondas', icon: <Timeline />, path: '/admin/rondas-dashboard' },
         { text: 'Dashboard Ocorrências', icon: <ReportIcon />, path: '/admin/ocorrencias-dashboard' },
         { text: 'Gerenciar Usuários', icon: <People />, path: '/admin/users' },
+        { text: 'Gerenciar Colaboradores', icon: <Badge />, path: '/admin/colaboradores' },
     ];
 
     const drawer = (

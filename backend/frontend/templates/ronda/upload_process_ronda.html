@@ -17,52 +17,93 @@
                 O nome do condomínio será inferido do nome do arquivo.
             </p>
 
+            <ul class="nav nav-tabs mb-4" id="inputModeTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="file-tab" data-bs-toggle="tab" data-bs-target="#file-input"
+                        type="button" role="tab" aria-controls="file-input" aria-selected="true">
+                        <i class="bi bi-file-earmark-text me-2"></i>Arquivo (.txt)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="text-tab" data-bs-toggle="tab" data-bs-target="#text-input"
+                        type="button" role="tab" aria-controls="text-input" aria-selected="false">
+                        <i class="bi bi-fonts me-2"></i>Texto Bruto (Copiar/Colar)
+                    </button>
+                </li>
+            </ul>
+
             <form id="uploadForm" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="mb-3">
-                    <label for="whatsapp_file" class="form-label fw-bold">
-                        Arquivo de Log do WhatsApp (.txt)
-                    </label>
-                    <input type="file" id="whatsapp_file" name="whatsapp_file" accept=".txt" required
-                           class="form-control">
-                    <div class="form-text">Apenas arquivos .txt são permitidos.</div>
+                <input type="hidden" id="activeInputMode" name="active_input_mode" value="file-input">
+
+                <div class="tab-content mb-4" id="inputModeTabsContent">
+                    <!-- FILE INPUT TAB -->
+                    <div class="tab-pane fade show active" id="file-input" role="tabpanel" aria-labelledby="file-tab">
+                        <div class="mb-3">
+                            <label for="whatsapp_file" class="form-label fw-bold">
+                                Arquivo de Log do WhatsApp (.txt)
+                            </label>
+                            <input type="file" id="whatsapp_file" name="whatsapp_file" accept=".txt"
+                                class="form-control">
+                            <div class="form-text">O nome do condomínio será identificado automaticamente pelo nome do
+                                arquivo.</div>
+                        </div>
+                    </div>
+
+                    <!-- TEXT INPUT TAB -->
+                    <div class="tab-pane fade" id="text-input" role="tabpanel" aria-labelledby="text-tab">
+                        <div class="mb-3">
+                            <label for="condominio_id" class="form-label fw-bold">Condomínio</label>
+                            <select class="form-select" id="condominio_id" name="condominio_id">
+                                <option value="" selected disabled>-- Selecione o Condomínio --</option>
+                                {% for condominio in condominios %}
+                                <option value="{{ condominio.id }}">{{ condominio.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="raw_text" class="form-label fw-bold">Cole o texto do Relatório</label>
+                            <textarea class="form-control" id="raw_text" name="raw_text" rows="10"
+                                placeholder="Cole aqui as mensagens enviadas no WhatsApp..."></textarea>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <label for="month" class="form-label fw-bold">
-                            Mês (Opcional)
-                        </label>
-                        <select id="month" name="month"
-                                class="form-select">
-                            <option value="">Todos os Meses</option>
-                            <option value="1">Janeiro</option>
-                            <option value="2">Fevereiro</option>
-                            <option value="3">Março</option>
-                            <option value="4">Abril</option>
-                            <option value="5">Maio</option>
-                            <option value="6">Junho</option>
-                            <option value="7">Julho</option>
-                            <option value="8">Agosto</option>
-                            <option value="9">Setembro</option>
-                            <option value="10">Outubro</option>
-                            <option value="11">Novembro</option>
-                            <option value="12">Dezembro</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="year" class="form-label fw-bold">
-                            Ano (Opcional)
-                        </label>
-                        <input type="number" id="year" name="year" placeholder="Ex: 2024"
-                               class="form-control">
+                <div class="card bg-light border-0 mb-4">
+                    <div class="card-body">
+                        <h6 class="card-title fw-bold mb-3"><i class="bi bi-funnel me-2"></i>Filtros Opcionais</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="month" class="form-label small text-muted">Mês</label>
+                                <select id="month" name="month" class="form-select">
+                                    <option value="">Todos os Meses</option>
+                                    <option value="1">Janeiro</option>
+                                    <option value="2">Fevereiro</option>
+                                    <option value="3">Março</option>
+                                    <option value="4">Abril</option>
+                                    <option value="5">Maio</option>
+                                    <option value="6">Junho</option>
+                                    <option value="7">Julho</option>
+                                    <option value="8">Agosto</option>
+                                    <option value="9">Setembro</option>
+                                    <option value="10">Outubro</option>
+                                    <option value="11">Novembro</option>
+                                    <option value="12">Dezembro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="year" class="form-label small text-muted">Ano</label>
+                                <input type="number" id="year" name="year" placeholder="Ex: 2024" class="form-control">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <button type="submit" id="processButton"
-                        class="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center">
-                    <span id="buttonText"><i class="bi bi-gear-fill me-2"></i> Processar Arquivo</span>
-                    <span id="loadingSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                    class="btn btn-primary w-100 py-3 d-flex align-items-center justify-content-center fw-bold shadow-sm">
+                    <span id="buttonText"><i class="bi bi-gear-fill me-2"></i> Processar e Registrar Rondas</span>
+                    <span id="loadingSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status"
+                        aria-hidden="true"></span>
                 </button>
             </form>
 
@@ -76,26 +117,63 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const uploadForm = document.getElementById('uploadForm');
+
+        // Inputs
         const whatsappFile = document.getElementById('whatsapp_file');
+        const rawText = document.getElementById('raw_text');
+        const condominioSelect = document.getElementById('condominio_id');
+
+        // Month/Year
         const monthSelect = document.getElementById('month');
         const yearInput = document.getElementById('year');
+
+        // UI Elements
         const processButton = document.getElementById('processButton');
         const buttonText = document.getElementById('buttonText');
         const loadingSpinner = document.getElementById('loadingSpinner');
         const responseMessage = document.getElementById('responseMessage');
 
-        uploadForm.addEventListener('submit', async function(event) {
-            event.preventDefault(); // Previne o envio padrão do formulário
+        // Tabs
+        const triggerTabList = [].slice.call(document.querySelectorAll('#inputModeTabs button'))
+        triggerTabList.forEach(function (triggerEl) {
+            triggerEl.addEventListener('click', function (event) {
+                event.preventDefault()
+                const tab = new bootstrap.Tab(triggerEl)
+                tab.show()
+                // Update active input mode
+                document.getElementById('activeInputMode').value = triggerEl.getAttribute('data-bs-target').replace('#', '');
+            })
+        });
 
-            responseMessage.classList.add('d-none'); // Esconde mensagens anteriores
+        uploadForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            // Clear previous messages
+            responseMessage.classList.add('d-none');
             responseMessage.classList.remove('alert-success', 'alert-danger', 'alert-warning');
             responseMessage.innerHTML = '';
 
-            if (!whatsappFile.files.length) {
-                displayMessage('Por favor, selecione um arquivo para upload.', 'warning');
-                return;
+            // Get active tab
+            const activeTabPane = document.querySelector('.tab-pane.active');
+            const isFileMode = activeTabPane.id === 'file-input';
+
+            // Validation
+            if (isFileMode) {
+                if (!whatsappFile.files.length) {
+                    displayMessage('Por favor, selecione um arquivo para upload.', 'warning');
+                    return;
+                }
+            } else {
+                if (!rawText.value.trim()) {
+                    displayMessage('Por favor, cole o conteúdo do log.', 'warning');
+                    return;
+                }
+                if (!condominioSelect.value) {
+                    displayMessage('Por favor, selecione um condomínio.', 'warning');
+                    return;
+                }
             }
 
             processButton.disabled = true;
@@ -103,26 +181,33 @@
             loadingSpinner.classList.remove('d-none');
 
             const formData = new FormData();
-            formData.append('whatsapp_file', whatsappFile.files[0]);
             formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
-            if (monthSelect.value) {
-                formData.append('month', monthSelect.value);
-            }
-            if (yearInput.value) {
-                formData.append('year', yearInput.value);
+
+            // Add common fields
+            if (monthSelect.value) formData.append('month', monthSelect.value);
+            if (yearInput.value) formData.append('year', yearInput.value);
+
+            // Add specific fields
+            if (isFileMode) {
+                formData.append('whatsapp_file', whatsappFile.files[0]);
+            } else {
+                formData.append('raw_text', rawText.value);
+                formData.append('condominio_id', condominioSelect.value);
             }
 
             try {
                 const response = await fetch("{{ url_for('ronda.upload_process_ronda') }}", {
                     method: 'POST',
                     body: formData,
-                    // Não defina Content-Type; o navegador fará isso automaticamente para FormData
                 });
 
                 const result = await response.json();
 
                 if (response.ok && result.success) {
                     displayMessage(result.message, 'success');
+                    // Optional: Clear form on success
+                    if (isFileMode) whatsappFile.value = '';
+                    else rawText.value = '';
                 } else {
                     displayMessage(result.message || 'Ocorreu um erro desconhecido.', 'error');
                 }

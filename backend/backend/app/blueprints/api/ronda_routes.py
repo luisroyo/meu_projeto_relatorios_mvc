@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from flask import request, jsonify, Blueprint
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 from app import db
 from app.models import Ronda, Condominio, User
@@ -38,7 +38,7 @@ def listar_rondas():
         query = Ronda.query.options(
             db.joinedload(Ronda.condominio),
             db.joinedload(Ronda.supervisor),
-            db.joinedload(Ronda.user)
+            db.joinedload(Ronda.criador)
         )
         
         # Aplicar filtros
@@ -59,23 +59,70 @@ def listar_rondas():
         # Paginação
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         
+        # Calcular estatísticas do filtro atual (Paridade com legado)
+        try:
+            # 1. Total de rondas (soma das rondas no log)
+            total_rondas_stats = query.with_entities(func.sum(Ronda.total_rondas_no_log)).scalar() or 0
+            
+            # 2. Duração total (minutos)
+            duracao_total_stats = query.with_entities(func.sum(Ronda.duracao_total_rondas_minutos)).scalar() or 0
+            
+            # 3. Média de duração
+            count_rondas = query.count()
+            duracao_media_stats = round(duracao_total_stats / count_rondas, 2) if count_rondas > 0 else 0
+            
+            # 4. Supervisor mais ativo
+            supervisor_mais_ativo_stats = "N/A"
+            if count_rondas > 0:
+                # Agrupa por ID para evitar conflitos de join com query principal
+                top_sup_data = query.with_entities(
+                    Ronda.supervisor_id, 
+                    func.sum(Ronda.total_rondas_no_log).label('total')
+                ).group_by(Ronda.supervisor_id).order_by(desc('total')).first()
+                
+                if top_sup_data and top_sup_data.supervisor_id:
+                    supervisor_obj = User.query.get(top_sup_data.supervisor_id)
+                    if supervisor_obj:
+                        supervisor_mais_ativo_stats = supervisor_obj.username
+
+            # 5. Média de rondas por dia
+            media_rondas_dia_stats = "N/A"
+            if data_inicio and data_fim:
+                dt_inicio = datetime.fromisoformat(str(data_inicio))
+                dt_fim = datetime.fromisoformat(str(data_fim))
+                delta_days = (dt_fim - dt_inicio).days + 1
+                if delta_days > 0:
+                    media_rondas_dia_stats = round(total_rondas_stats / delta_days, 1)
+        except Exception as e_stats:
+            logger.error(f"Erro ao calcular estatísticas: {e_stats}")
+            # Valores default em caso de erro nos stats
+            total_rondas_stats = 0
+            duracao_total_stats = 0
+            duracao_media_stats = 0
+            supervisor_mais_ativo_stats = "Erro"
+            media_rondas_dia_stats = "N/A"
+
         # Serializar rondas
         rondas = []
         for r in pagination.items:
             try:
                 rondas.append({
                     'id': r.id,
-                    'condominio': r.condominio.nome if r.condominio else 'N/A',
+                    'condominio': {'id': r.condominio.id, 'nome': r.condominio.nome} if r.condominio else None,
                     'condominio_id': r.condominio_id,
                     'data_plantao_ronda': r.data_plantao_ronda.isoformat() if r.data_plantao_ronda else None,
                     'escala_plantao': r.escala_plantao,
-                    'status': r.status,
-                    'tipo': r.tipo,
-                    'supervisor': r.supervisor.username if r.supervisor else 'N/A',
+                    'turno_ronda': r.turno_ronda,
+                    'supervisor': {'id': r.supervisor.id, 'username': r.supervisor.username} if r.supervisor else None,
                     'supervisor_id': r.supervisor_id,
-                    'user': r.user.username if r.user else 'N/A',
+                    'user': r.criador.username if r.criador else 'N/A',
                     'user_id': r.user_id,
-                    'data_criacao': r.data_criacao.isoformat() if r.data_criacao else None
+                    'data_criacao': r.data_hora_inicio.isoformat() if r.data_hora_inicio else None,
+                    'total_rondas_no_log': r.total_rondas_no_log,
+                    'duracao_minutos': r.duracao_total_rondas_minutos,
+                    'log_ronda_bruto': r.log_ronda_bruto,
+                    'status': r.status,
+                    'primeiro_evento_log_dt': r.primeiro_evento_log_dt.isoformat() if r.primeiro_evento_log_dt else None
                 })
             except Exception as e:
                 logger.error(f"Erro ao serializar ronda {r.id}: {e}")
@@ -91,6 +138,13 @@ def listar_rondas():
                     'per_page': per_page,
                     'has_next': pagination.has_next,
                     'has_prev': pagination.has_prev
+                },
+                'stats': {
+                    'total_rondas': total_rondas_stats,
+                    'duracao_total': duracao_total_stats,
+                    'duracao_media': duracao_media_stats,
+                    'supervisor_mais_ativo': supervisor_mais_ativo_stats,
+                    'media_rondas_dia': media_rondas_dia_stats
                 }
             },
             message='Rondas listadas com sucesso'
@@ -109,7 +163,7 @@ def obter_ronda(ronda_id):
         ronda = Ronda.query.options(
             db.joinedload(Ronda.condominio),
             db.joinedload(Ronda.supervisor),
-            db.joinedload(Ronda.user)
+            db.joinedload(Ronda.criador)
         ).get(ronda_id)
         
         if not ronda:
@@ -132,9 +186,9 @@ def obter_ronda(ronda_id):
                 'username': ronda.supervisor.username
             } if ronda.supervisor else None,
             'user': {
-                'id': ronda.user.id,
-                'username': ronda.user.username
-            } if ronda.user else None,
+                'id': ronda.criador.id,
+                'username': ronda.criador.username
+            } if ronda.criador else None,
             'data_criacao': ronda.data_criacao.isoformat() if ronda.data_criacao else None,
             'data_modificacao': ronda.data_modificacao.isoformat() if ronda.data_modificacao else None
         }
@@ -424,6 +478,12 @@ def processar_whatsapp():
 def upload_processar_ronda():
     """Upload e processamento de arquivo de ronda."""
     try:
+        import os
+        import tempfile
+        from app.services.whatsapp_processor import WhatsAppProcessor
+        from app.services.ronda_utils import infer_condominio_from_filename, get_system_user
+        from app.services.ronda_routes_core.routes_service import RondaRoutesService
+
         if 'file' not in request.files:
             return error_response('Nenhum arquivo enviado', status_code=400)
         
@@ -432,31 +492,118 @@ def upload_processar_ronda():
             return error_response('Nenhum arquivo selecionado', status_code=400)
         
         # Validação de arquivo
-        allowed_extensions = {'txt', 'csv', 'xlsx', 'pdf'}
+        # Por enquanto, focamos em .txt que é o padrão do WhatsApp exportado
+        allowed_extensions = {'txt'}
         if not (file.filename and '.' in file.filename and 
                 file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
             return error_response(
-                'Tipo de arquivo não permitido. Use .txt, .csv, .xlsx ou .pdf', 
+                'Tipo de arquivo não permitido. Apenas .txt é suportado no momento.', 
                 status_code=400
             )
         
-        # TODO: Implementar processamento do arquivo
-        # Por enquanto, retornar dados mockados
-        resultado_processado = {
-            'arquivo_processado': file.filename,
-            'tamanho_arquivo': len(file.read()),
-            'status': 'processado',
-            'ronda_criada': False
-        }
+        # Filtros opcionais de Mês/Ano
+        month = request.form.get('month', type=int)
+        year = request.form.get('year', type=int)
+
+        # Salvar arquivo temporariamente
+        temp_dir = tempfile.gettempdir()
+        temp_filepath = os.path.join(temp_dir, file.filename)
+        file.save(temp_filepath)
         
-        return success_response(
-            data={'resultado': resultado_processado},
-            message='Arquivo de ronda processado com sucesso'
-        )
+        try:
+            # 1. Identificar condomínio
+            condominio = infer_condominio_from_filename(file.filename)
+            if not condominio:
+                return error_response(
+                    f"Não foi possível identificar o condomínio pelo nome do arquivo '{file.filename}'.", 
+                    status_code=400
+                )
+            
+            # 2. Processar arquivo
+            processor = WhatsAppProcessor()
+            plantoes_encontrados = processor.process_file(temp_filepath)
+            
+            if not plantoes_encontrados:
+                return error_response(
+                    "Nenhuma mensagem de plantão válida encontrada no arquivo.", 
+                    status_code=404
+                )
+            
+            # 3. Filtrar plantões por mês/ano
+            filtered_plantoes = []
+            for plantao in plantoes_encontrados:
+                process_this = True
+                if month and plantao.data.month != month:
+                    process_this = False
+                if year and plantao.data.year != year:
+                    process_this = False
+                
+                if process_this:
+                    filtered_plantoes.append(plantao)
+            
+            if not filtered_plantoes:
+                return error_response(
+                    "Nenhum plantão no arquivo corresponde aos filtros selecionados.", 
+                    status_code=404
+                )
+            
+            # 4. Salvar rondas
+            # Obtém usuário do sistema para ser o "criador" automático, ou usa o usuário logado
+            current_user_id = get_jwt_identity()
+            current_user = User.query.get(current_user_id)
+            
+            total_rondas_salvas = 0
+            messages = []
+            
+            for plantao in filtered_plantoes:
+                try:
+                    log_bruto = processor.format_for_ronda_log(plantao)
+                    escala_plantao = "06h às 18h" if plantao.tipo == "diurno" else "18h às 06h"
+                    
+                    ronda_data = {
+                        "condominio_id": str(condominio.id),
+                        "data_plantao": plantao.data.strftime("%Y-%m-%d"),
+                        "escala_plantao": escala_plantao,
+                        "log_bruto": log_bruto,
+                        "ronda_id": None,
+                        "supervisor_id": None,
+                    }
+                    
+                    success, message, status_code, ronda_id = RondaRoutesService.salvar_ronda(ronda_data, current_user)
+                    
+                    if success:
+                        total_rondas_salvas += 1
+                        messages.append(f"Ronda para {condominio.nome} em {plantao.data.strftime('%d/%m/%Y')} salva com sucesso (ID: {ronda_id}).")
+                    else:
+                        messages.append(f"Falha ao salvar ronda de {plantao.data.strftime('%d/%m/%Y')}: {message}")
+                        
+                except Exception as e:
+                    logger.error(f"Erro ao processar plantão individual: {e}")
+                    messages.append(f"Erro ao processar plantão de {plantao.data.strftime('%d/%m/%Y')}: {str(e)}")
+
+            if total_rondas_salvas > 0:
+                return success_response(
+                    data={
+                        'total_salvas': total_rondas_salvas,
+                        'detalhes': messages
+                    },
+                    message=f"Processamento concluído. {total_rondas_salvas} ronda(s) salva(s)."
+                )
+            else:
+                return error_response(
+                    "Nenhuma ronda foi salva. Verifique os detalhes.",
+                    status_code=500,
+                    data={'detalhes': messages}
+                )
+                
+        finally:
+            # Limpeza
+            if os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
         
     except Exception as e:
-        logger.error(f"Erro ao processar arquivo de ronda: {e}")
-        return error_response('Erro interno ao processar arquivo', status_code=500)
+        logger.error(f"Erro ao processar arquivo de ronda: {e}", exc_info=True)
+        return error_response(f'Erro interno ao processar arquivo: {str(e)}', status_code=500)
 
 
 @ronda_api_bp.route('/tempo-real/hora-atual', methods=['GET'])

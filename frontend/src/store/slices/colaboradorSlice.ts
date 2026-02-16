@@ -1,43 +1,67 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { Colaborador, ColaboradoresPagination } from '../../types';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { colaboradorService } from '../../services/api';
+
+interface Colaborador {
+    id: number;
+    nome_completo: string;
+    cargo: string;
+    matricula: string;
+    data_admissao?: string;
+    status: string;
+}
 
 interface ColaboradorState {
     colaboradores: Colaborador[];
-    currentColaborador: Colaborador | null;
-    pagination: ColaboradoresPagination | null;
     loading: boolean;
     error: string | null;
+    pagination: {
+        page: number;
+        pages: number;
+        total: number;
+        per_page: number;
+    };
+    filters: {
+        search: string;
+        status: string;
+    };
 }
 
 const initialState: ColaboradorState = {
     colaboradores: [],
-    currentColaborador: null,
-    pagination: null,
     loading: false,
     error: null,
+    pagination: {
+        page: 1,
+        pages: 1,
+        total: 0,
+        per_page: 10,
+    },
+    filters: {
+        search: '',
+        status: 'Ativo',
+    },
 };
 
 export const fetchColaboradores = createAsyncThunk(
     'colaborador/fetchColaboradores',
-    async ({ filters }: { filters?: any }, { rejectWithValue }) => {
+    async (params: { page?: number; per_page?: number; search?: string; status?: string }, { rejectWithValue }) => {
         try {
-            const response = await colaboradorService.list(filters);
+            const response = await colaboradorService.list(params);
             return response;
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : 'Erro ao carregar colaboradores');
+        } catch (error: any) {
+            return rejectWithValue(error.message || 'Erro ao carregar colaboradores');
         }
     }
 );
 
 export const createColaborador = createAsyncThunk(
     'colaborador/createColaborador',
-    async (colaboradorData: any, { rejectWithValue }) => {
+    async (data: any, { rejectWithValue, dispatch }) => {
         try {
-            const response = await colaboradorService.create(colaboradorData);
-            return response;
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : 'Erro ao criar colaborador');
+            await colaboradorService.create(data);
+            return;
+        } catch (error: any) {
+            return rejectWithValue(error.message || 'Erro ao criar colaborador');
         }
     }
 );
@@ -46,10 +70,22 @@ export const updateColaborador = createAsyncThunk(
     'colaborador/updateColaborador',
     async ({ id, data }: { id: number; data: any }, { rejectWithValue }) => {
         try {
-            const response = await colaboradorService.update(id, data);
-            return response;
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : 'Erro ao atualizar colaborador');
+            await colaboradorService.update(id, data);
+            return;
+        } catch (error: any) {
+            return rejectWithValue(error.message || 'Erro ao atualizar colaborador');
+        }
+    }
+);
+
+export const deleteColaborador = createAsyncThunk(
+    'colaborador/deleteColaborador',
+    async (id: number, { rejectWithValue }) => {
+        try {
+            await colaboradorService.delete(id);
+            return id;
+        } catch (error: any) {
+            return rejectWithValue(error.message || 'Erro ao excluir colaborador');
         }
     }
 );
@@ -58,66 +94,45 @@ const colaboradorSlice = createSlice({
     name: 'colaborador',
     initialState,
     reducers: {
-        clearError: (state) => {
-            state.error = null;
+        setFilters: (state, action: PayloadAction<Partial<ColaboradorState['filters']>>) => {
+            state.filters = { ...state.filters, ...action.payload };
+            state.pagination.page = 1; // Reset page on filter change
         },
-        clearCurrentColaborador: (state) => {
-            state.currentColaborador = null;
+        clearFilters: (state) => {
+            state.filters = initialState.filters;
+            state.pagination.page = 1;
         },
     },
     extraReducers: (builder) => {
         builder
+            // Fetch
             .addCase(fetchColaboradores.pending, (state) => {
                 state.loading = true;
                 state.error = null;
             })
             .addCase(fetchColaboradores.fulfilled, (state, action) => {
                 state.loading = false;
-                if (action.payload && action.payload.colaboradores) {
-                    state.colaboradores = action.payload.colaboradores as any;
-                    state.pagination = action.payload as any;
-                }
-                state.error = null;
+                state.colaboradores = action.payload.colaboradores;
+                state.pagination = action.payload.pagination;
             })
             .addCase(fetchColaboradores.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
             })
-            .addCase(createColaborador.pending, (state) => {
-                state.loading = true;
-                state.error = null;
+            // Create
+            .addCase(createColaborador.fulfilled, (state) => {
+                // Nada específico além de parar loading se houvesse
             })
-            .addCase(createColaborador.fulfilled, (state, action) => {
-                state.loading = false;
-                if (action.payload) {
-                    state.colaboradores.unshift(action.payload as any);
-                }
-                state.error = null;
+            // Update
+            .addCase(updateColaborador.fulfilled, (state) => {
+                // Nada específico
             })
-            .addCase(createColaborador.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload as string;
-            })
-            .addCase(updateColaborador.pending, (state) => {
-                state.loading = true;
-                state.error = null;
-            })
-            .addCase(updateColaborador.fulfilled, (state, action) => {
-                state.loading = false;
-                if (action.payload) {
-                    const index = state.colaboradores.findIndex(c => c.id === action.payload.id);
-                    if (index !== -1) {
-                        state.colaboradores[index] = action.payload as any;
-                    }
-                }
-                state.error = null;
-            })
-            .addCase(updateColaborador.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload as string;
+            // Delete
+            .addCase(deleteColaborador.fulfilled, (state, action) => {
+                state.colaboradores = state.colaboradores.filter(c => c.id !== action.payload);
             });
     },
 });
 
-export const { clearError, clearCurrentColaborador } = colaboradorSlice.actions;
-export default colaboradorSlice.reducer; 
+export const { setFilters, clearFilters } = colaboradorSlice.actions;
+export default colaboradorSlice.reducer;

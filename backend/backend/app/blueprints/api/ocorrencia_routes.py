@@ -127,13 +127,16 @@ def obter_ocorrencia(ocorrencia_id):
         # Serializar ocorrência completa
         ocorrencia_data = {
             'id': ocorrencia.id,
-            'tipo': {
-                'id': ocorrencia.tipo.id if ocorrencia.tipo else None,
-                'nome': ocorrencia.tipo.nome if ocorrencia.tipo else 'N/A'
+            'tipo': ocorrencia.tipo.nome if ocorrencia.tipo else 'N/A',
+            'tipo_obj': {
+                'id': ocorrencia.tipo.id,
+                'nome': ocorrencia.tipo.nome
             } if ocorrencia.tipo else None,
-            'condominio': {
-                'id': ocorrencia.condominio.id if ocorrencia.condominio else None,
-                'nome': ocorrencia.condominio.nome if ocorrencia.condominio else 'N/A'
+            'condominio': ocorrencia.condominio.nome if ocorrencia.condominio else 'N/A',
+            'condominio_obj': {
+                'id': ocorrencia.condominio.id,
+                'nome': ocorrencia.condominio.nome,
+                'endereco': None
             } if ocorrencia.condominio else None,
             'data_hora_ocorrencia': ocorrencia.data_hora_ocorrencia.isoformat() if ocorrencia.data_hora_ocorrencia else None,
             'relatorio_final': ocorrencia.relatorio_final,
@@ -142,11 +145,13 @@ def obter_ocorrencia(ocorrencia_id):
             'turno': ocorrencia.turno,
             'data_criacao': ocorrencia.data_criacao.isoformat() if ocorrencia.data_criacao else None,
             'data_modificacao': ocorrencia.data_modificacao.isoformat() if ocorrencia.data_modificacao else None,
-            'registrado_por': {
+            'registrado_por': get_user_name(ocorrencia.registrado_por_user_id),
+            'registrado_por_obj': {
                 'id': ocorrencia.registrado_por_user_id,
                 'username': get_user_name(ocorrencia.registrado_por_user_id)
             },
-            'supervisor': {
+            'supervisor': get_user_name(ocorrencia.supervisor_id),
+            'supervisor_obj': {
                 'id': ocorrencia.supervisor_id,
                 'username': get_user_name(ocorrencia.supervisor_id)
             } if ocorrencia.supervisor_id else None,
@@ -343,8 +348,10 @@ def rejeitar_ocorrencia(ocorrencia_id):
 @ocorrencia_api_bp.route('/analyze-report', methods=['POST'])
 @jwt_required()
 def analisar_relatorio():
-    """Analisar relatório usando IA."""
+    """Analisar relatório usando IA (Extração inteligente)."""
     try:
+        from app.services.ocorrencia_parser import OcorrenciaParser
+
         data = request.get_json()
         
         if not data or not data.get('relatorio_bruto'):
@@ -353,18 +360,22 @@ def analisar_relatorio():
         relatorio_bruto = data['relatorio_bruto']
         formatar_para_email = data.get('formatar_para_email', False)
         
-        # Processamento e correção do texto
-        relatorio_processado = processar_e_corrigir_texto(relatorio_bruto)
+        # 1. Processamento e correção do texto
+        relatorio_processado = OcorrenciaParser.processar_e_corrigir_texto(relatorio_bruto)
+        
+        # 2. Extração de dados estruturados
+        dados_extraidos = OcorrenciaParser.extrair_dados_relatorio(relatorio_processado)
         
         # Preparar resposta
         resposta = {
             'relatorio_processado': relatorio_processado,
+            'dados_extraidos': dados_extraidos,
             'sucesso': True
         }
         
         # Se solicitado, gerar versão para email
         if formatar_para_email:
-            relatorio_email = formatar_para_email_profissional(relatorio_processado)
+            relatorio_email = OcorrenciaParser.formatar_para_email_profissional(relatorio_processado)
             resposta['relatorio_email'] = relatorio_email
         
         return success_response(
@@ -373,62 +384,11 @@ def analisar_relatorio():
         )
         
     except Exception as e:
-        logger.error(f"Erro ao analisar relatório: {e}")
+        logger.error(f"Erro ao analisar relatório na API: {e}")
         return error_response('Erro interno ao analisar relatório', status_code=500)
 
-def processar_e_corrigir_texto(texto):
-    """Processa e corrige o texto do relatório"""
-    
-    # Correções específicas para o exemplo fornecido
-    correcoes = {
-        "hoirario": "horário",
-        "conatto": "contato",
-        "marador": "morador",
-        "fernado": "Fernando",
-        "ocorrencia": "ocorrência",
-        "marad": "morador"
-    }
-    
-    texto_corrigido = texto
-    for erro, correcao in correcoes.items():
-        texto_corrigido = texto_corrigido.replace(erro, correcao)
-    
-    # Melhorias de formatação
-    texto_corrigido = texto_corrigido.strip()
-    texto_corrigido = re.sub(r'\s+', ' ', texto_corrigido)  # Remove espaços extras
-    texto_corrigido = re.sub(r'([.!?])\s*([A-Za-z])', r'\1 \2', texto_corrigido)  # Espaços após pontuação
-    
-    # Capitalização de início de frases
-    linhas = texto_corrigido.split('\n')
-    linhas_corrigidas = []
-    for linha in linhas:
-        if linha.strip():
-            linha = linha.strip()
-            if linha and not linha[0].isupper():
-                linha = linha[0].upper() + linha[1:]
-            linhas_corrigidas.append(linha)
-        else:
-            linhas_corrigidas.append('')
-    
-    return '\n'.join(linhas_corrigidas)
+# Funções auxiliares antigas removidas pois agora usamos o serviço
 
-def formatar_para_email_profissional(texto):
-    """Formata o texto para envio profissional por email"""
-    from datetime import datetime
-    
-    # Adiciona cabeçalho profissional
-    cabecalho = "RELATÓRIO DE OCORRÊNCIA\n"
-    cabecalho += "=" * 30 + "\n\n"
-    
-    # Formata o corpo
-    corpo = texto.replace('\n', '\n    ')
-    
-    # Adiciona rodapé
-    rodape = "\n\n" + "=" * 30 + "\n"
-    rodape += "Este relatório foi gerado automaticamente pelo sistema de gestão de segurança.\n"
-    rodape += "Data de geração: " + datetime.now().strftime("%d/%m/%Y %H:%M")
-    
-    return cabecalho + corpo + rodape
 
 
 @ocorrencia_api_bp.route('/tipos', methods=['GET'])
@@ -464,7 +424,7 @@ def listar_condominios():
         condominios_data = [{
             'id': condominio.id,
             'nome': condominio.nome,
-            'endereco': condominio.endereco
+            'endereco': None
         } for condominio in condominios]
         
         return success_response(
@@ -475,3 +435,49 @@ def listar_condominios():
     except Exception as e:
         logger.error(f"Erro ao listar condomínios: {e}")
         return error_response('Erro interno ao listar condomínios', status_code=500) 
+
+@ocorrencia_api_bp.route('/colaboradores', methods=['GET'])
+@jwt_required()
+def listar_colaboradores():
+    """Listar colaboradores."""
+    try:
+        colaboradores = Colaborador.query.order_by(Colaborador.nome_completo).all()
+        
+        colaboradores_data = [{
+            'id': col.id,
+            'nome': col.nome_completo,
+            'cargo': col.cargo,
+            'matricula': col.matricula
+        } for col in colaboradores]
+        
+        return success_response(
+            data={'colaboradores': colaboradores_data},
+            message='Colaboradores obtidos com sucesso'
+        )
+        
+    except Exception as e:
+        logger.error(f"Erro ao listar colaboradores: {e}")
+        return error_response('Erro interno ao listar colaboradores', status_code=500)
+
+
+@ocorrencia_api_bp.route('/orgaos-publicos', methods=['GET'])
+@jwt_required()
+def listar_orgaos_publicos():
+    """Listar órgãos públicos."""
+    try:
+        orgaos = OrgaoPublico.query.order_by(OrgaoPublico.nome).all()
+        
+        orgaos_data = [{
+            'id': org.id,
+            'nome': org.nome,
+            'contato': org.contato
+        } for org in orgaos]
+        
+        return success_response(
+            data={'orgaos_publicos': orgaos_data},
+            message='Órgãos públicos obtidos com sucesso'
+        )
+        
+    except Exception as e:
+        logger.error(f"Erro ao listar órgãos públicos: {e}")
+        return error_response('Erro interno ao listar órgãos públicos', status_code=500)

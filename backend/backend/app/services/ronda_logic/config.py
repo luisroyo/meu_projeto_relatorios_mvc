@@ -34,11 +34,11 @@ REGEX_BLOCO_TERMINO = re.compile(
 REGEX_BLOCO_QRA = re.compile(r"QRA\s+.*", re.IGNORECASE)
 
 INICIO_KEYWORDS_REGEX_PART = (
-    r"(?:[ií]n[ií]cio|in[ií]cio|inicio|iniciou|come[cç]o|come[cç]ou|inicial)"
+    r"(?:[ií]n[ií]cio|in[ií]cio|inicio|iniciou|iniciada|come[cç]o|come[cç]ou|inicial)"
 )
-TERMINO_KEYWORDS_REGEX_PART = r"(?:t[eé]rmino|termino|t[eé]rminou|terminou|fim|final|encerrou)"  # "Final de final" é coberto por "final"
+TERMINO_KEYWORDS_REGEX_PART = r"(?:t[eé]rmino|termino|t[eé]rminou|terminou|fim|final|finalizada|encerrou)"  # "Final de final" é coberto por "final"
 TIPO_RONDA_REGEX_PART = r"(?:ronda|vigil[âa]ncia|patrulha)"
-PREPOSICOES_ARTIGOS_REGEX_PART = r"(?:s\sde\s|\sde\s|\sda\s|\s)"
+PREPOSICOES_ARTIGOS_REGEX_PART = r"(?:s\sde\s|\sde\s|\sda\s|\s(?:à|a)s\s|\s)"
 
 TIME_CAPTURE_REGEX_PART = r"(\d{1,2}\s*[:;hH]\s*\d{1,2})"  # Ex: 19:20, 03;19, 8h30
 SIMPLE_HOUR_CAPTURE_REGEX_PART = r"(\d{1,2}\s*h(?!\d))"
@@ -56,8 +56,16 @@ RONDA_EVENT_REGEX_PATTERNS = [
     },
     {
         "tipo": "inicio",
+        "regex_str": rf"^inicial\s+{TIME_CAPTURE_REGEX_PART}$",
+    },
+    {
+        "tipo": "inicio",
         "regex_str": rf"^{TIME_CAPTURE_REGEX_PART}\s+inicial$",
     },
+    # --- NOVO: Padrão para "Às HH:MM" isolado (assumindo Início/Fim pelo contexto ou pré-processamento) ---
+    # Mas como o tipo é definido na regex, precisamos que a linha tenha a palavra chave.
+    # Vou adicionar "às" nas preposições.
+
     {
         "tipo": "termino",
         "regex_str": rf"^{TERMINO_KEYWORDS_REGEX_PART}:\s*{TIME_CAPTURE_REGEX_PART}$",

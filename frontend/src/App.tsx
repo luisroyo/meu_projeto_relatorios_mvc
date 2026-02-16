@@ -29,6 +29,7 @@ import MetricsDashboardPage from './pages/admin/MetricsDashboardPage';
 import UserManagementPage from './pages/admin/UserManagementPage';
 import RondaDashboardPage from './pages/admin/RondaDashboardPage';
 import OcorrenciaDashboardPage from './pages/admin/OcorrenciaDashboardPage';
+import ColaboradorManagementPage from './pages/admin/ColaboradorManagementPage';
 
 // Componente principal da aplicação
 const AppContent: React.FC = () => {
@@ -69,6 +70,7 @@ const AppContent: React.FC = () => {
                   <Route path="users" element={<UserManagementPage />} />
                   <Route path="rondas-dashboard" element={<RondaDashboardPage />} />
                   <Route path="ocorrencias-dashboard" element={<OcorrenciaDashboardPage />} />
+                  <Route path="colaboradores" element={<ColaboradorManagementPage />} />
                 </Route>
               </>
             )}

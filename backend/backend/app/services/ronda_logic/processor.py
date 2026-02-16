@@ -296,3 +296,120 @@ def processar_log_de_rondas(
         ultimo_evento_dt,
         soma_minutos,
     )
+
+
+def extrair_plantoes_do_log(log_bruto_completo: str) -> list:
+    """
+    Analisa um log bruto (que pode conter múltiplos dias/plantões) e o divide em 
+    entradas separadas para processamento individual.
+    
+    Usa parse_linha_log_prefixo para identificar datas e horas.
+    Agrupa por Plantão (Diurno/Noturno) e Data.
+    
+    Retorna lista de dicts:
+    [
+        {
+            "data_plantao": "dd/mm/yyyy", 
+            "escala": "06h às 18h" | "18h às 06h",
+            "log_bruto": "..."
+        },
+        ...
+    ]
+    """
+    if not log_bruto_completo:
+        return []
+
+    # Normalização básica
+    linhas_raw = log_bruto_completo.replace("\\[", "[").replace("\\]", "]").split("\n")
+    
+    # --- NOVO: Merge de linhas quebradas (ex: "Ronda iniciada" \n "Às 18:34") ---
+    linhas = []
+    for linha in linhas_raw:
+        linha_strip = linha.strip()
+        # Verifica se começa com "Às", "As", "as" seguido de espaço ou número
+        if re.match(r"^(?:à|a)s[\s\d]", linha_strip, re.IGNORECASE):
+            if linhas:
+                linhas[-1] = f"{linhas[-1]} {linha_strip}"
+            else:
+                linhas.append(linha) # Caso estranho de começar o arquivo com "Às"
+        else:
+            linhas.append(linha)
+    
+    plantoes_identificados = {} # Chave: (data_plantao_str, tipo_turno) -> List[linhas]
+    
+    ultima_data_encontrada = None
+    ultima_vtr_global = DEFAULT_VTR_ID
+    
+    for linha in linhas:
+        linha_strip = linha.strip()
+        if not linha_strip:
+            continue
+            
+        hora_str, data_str, _, _, vtr_global = parse_linha_log_prefixo(linha_strip, ultima_vtr_global)
+        
+        if vtr_global:
+            ultima_vtr_global = vtr_global
+            
+        if data_str:
+            ultima_data_encontrada = data_str
+            
+        # Determina a qual plantão esta linha pertence
+        # Se não tiver hora/data na linha, assume o último contexto
+        data_plantao_atual = ultima_data_encontrada
+        
+        if hora_str and data_str:
+            # Temos hora e data, podemos determinar com precisão o plantão
+            try:
+                dt_linha = datetime.strptime(f"{data_str} {hora_str}", "%d/%m/%Y %H:%M")
+                
+                # Lógica de Turno (Simplificada para separação)
+                # 06:00 a 17:59 -> Diurno (Data = Própria Data)
+                # 18:00 a 23:59 -> Noturno (Data = Própria Data)
+                # 00:00 a 05:59 -> Noturno (Data = Dia Anterior)
+                
+                hora = dt_linha.hour
+                if 6 <= hora < 18:
+                    tipo_turno = "diurno"
+                    data_ref = dt_linha.date()
+                else:
+                    tipo_turno = "noturno"
+                    if hora >= 18:
+                        data_ref = dt_linha.date()
+                    else: # Madrugada
+                        data_ref = dt_linha.date() - timedelta(days=1)
+                
+                chave_plantao = (data_ref.strftime("%d/%m/%Y"), tipo_turno)
+                
+                if chave_plantao not in plantoes_identificados:
+                    plantoes_identificados[chave_plantao] = []
+                
+                plantoes_identificados[chave_plantao].append(linha)
+                
+            except ValueError:
+                # Se der erro no parse, tenta anexar ao último plantão conhecido
+                if plantoes_identificados:
+                    ultima_chave = list(plantoes_identificados.keys())[-1]
+                    plantoes_identificados[ultima_chave].append(linha)
+        else:
+            # Linha de continuação ou sem data/hora
+            if plantoes_identificados:
+                ultima_chave = list(plantoes_identificados.keys())[-1]
+                plantoes_identificados[ultima_chave].append(linha)
+    
+    # Formata o resultado
+    resultado = []
+    
+    # Ordena chaves pela data
+    chaves_ordenadas = sorted(plantoes_identificados.keys(), key=lambda x: datetime.strptime(x[0], "%d/%m/%Y"))
+    
+    for data_str, tipo in chaves_ordenadas:
+        linhas_plantao = plantoes_identificados[(data_str, tipo)]
+        escala = "06h às 18h" if tipo == "diurno" else "18h às 06h"
+        
+        resultado.append({
+            "data_plantao": data_str,
+            "escala": escala,
+            "log_bruto": "\n".join(linhas_plantao)
+        })
+        
+    return resultado
