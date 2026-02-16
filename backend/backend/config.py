@@ -17,7 +17,8 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
     # Expiração de sessão por inatividade (5 minutos para economizar DB)
-    PERMANENT_SESSION_LIFETIME = timedelta(minutes=5)
+    # Expiração de sessão por inatividade (5 minutos para economizar DB)
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=60)
     SESSION_PERMANENT = False  # Desabilita sessões permanentes para economizar DB
 
     # Controle de recursos/DB
@@ -29,7 +30,7 @@ class Config:
     DEFAULT_TIMEZONE = os.environ.get("DEFAULT_TIMEZONE", "America/Sao_Paulo")
 
     # Timeout de inatividade (minutos) para logout forçado - REDUZIDO para economizar DB
-    INACTIVITY_TIMEOUT_MIN = int(os.environ.get("INACTIVITY_TIMEOUT_MIN", "3"))
+    INACTIVITY_TIMEOUT_MIN = int(os.environ.get("INACTIVITY_TIMEOUT_MIN", "60"))
 
     # Configuração do Redis - suporta tanto REDIS_URL quanto CACHE_REDIS_URL
     REDIS_URL = os.environ.get("REDIS_URL") or os.environ.get("CACHE_REDIS_URL")
