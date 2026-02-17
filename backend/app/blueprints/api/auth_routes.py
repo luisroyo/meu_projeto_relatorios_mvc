@@ -20,7 +20,7 @@ def _registrar_login_api(user, sucesso, req, motivo_falha=None):
     try:
         log = LoginHistory(
             user_id=user.id if user else None,
-            attempted_username=req.get_json().get("email") if req.is_json else req.form.get("email"),
+            attempted_username=req.get_json().get("email") or req.get_json().get("username") if req.is_json else req.form.get("email") or req.form.get("username"),
             timestamp=datetime.now(timezone.utc),
             success=sucesso,
             ip_address=req.remote_addr,
@@ -39,10 +39,16 @@ def login():
     """Endpoint de login que retorna JWT token."""
     data = request.get_json()
     
-    if not data or not data.get('email') or not data.get('password'):
-        return error_response('Email e senha são obrigatórios', status_code=400)
+    if not data or not data.get('password'):
+        return error_response('Senha é obrigatória', status_code=400)
     
-    user = User.query.filter_by(email=data['email']).first()
+    login_identifier = data.get('email') or data.get('username')
+    
+    if not login_identifier:
+        return error_response('Email ou Username é obrigatório', status_code=400)
+    
+    # Tenta buscar por email primeiro, depois por username
+    user = User.query.filter((User.email == login_identifier) | (User.username == login_identifier)).first()
     login_success = False
     
     if user and user.check_password(data['password']):

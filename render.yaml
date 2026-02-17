@@ -23,3 +23,12 @@ services:
         value: production
       - key: PYTHON_VERSION
         value: 3.11.0
+
+  - type: web
+    name: mobile-pwa-relatorios
+    env: static
+    buildCommand: cd mobile-pwa && npm install && npm run build
+    staticPublishPath: mobile-pwa/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://processador-relatorios-ia.onrender.com/api

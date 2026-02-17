@@ -19,3 +19,4 @@ if __name__ == "__main__":
             "[AVISO] O modo debug está ativado fora do ambiente de desenvolvimento! Nunca use debug=True em produção."
         )
     app.run(debug=debug_mode, host="0.0.0.0", port=port)
+    # Forced reload for PWA update
