@@ -4,10 +4,10 @@ Write-Host "   INICIANDO BACKEND - GESTAO SEGURANCA" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Verificar se estamos no diretório correto
+# Verificar se estamos no diretório correto (raiz)
 if (-not (Test-Path "backend/run.py")) {
-    Write-Host "ERRO: Arquivo run.py não encontrado!" -ForegroundColor Red
-    Write-Host "Certifique-se de estar no diretório backend" -ForegroundColor Yellow
+    Write-Host "ERRO: Arquivo backend/run.py não encontrado!" -ForegroundColor Red
+    Write-Host "Certifique-se de estar na raiz do projeto" -ForegroundColor Yellow
     Read-Host "Pressione Enter para sair"
     exit 1
 }
@@ -24,5 +24,6 @@ Write-Host ""
 $env:FLASK_APP = "backend/run.py"
 $env:FLASK_ENV = "development"
 $env:FLASK_DEBUG = "1"
+$env:PYTHONPATH = "$PWD/backend"
 
 & ".\backend\venv\Scripts\python.exe" backend\run.py

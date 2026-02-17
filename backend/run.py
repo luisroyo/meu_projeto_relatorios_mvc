@@ -1,16 +1,12 @@
+from app import create_app
 import os
 import sys
-
-# Ajusta o PYTHONPATH para apontar para a pasta backend
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-BACKEND_DIR = os.path.join(CURRENT_DIR, 'backend')
-if BACKEND_DIR not in sys.path:
-    sys.path.insert(0, BACKEND_DIR)
-
-from app import create_app
 from config import DevelopmentConfig, ProductionConfig
 
-# (mantido para compatibilidade) já ajustado acima
+# Garantir que o diretório backend esteja no PYTHONPATH
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if CURRENT_DIR not in sys.path:
+    sys.path.insert(0, CURRENT_DIR)
 
 # Força uso da DevelopmentConfig para teste local
 app = create_app(DevelopmentConfig)

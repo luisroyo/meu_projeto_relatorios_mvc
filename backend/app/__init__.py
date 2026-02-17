@@ -95,9 +95,10 @@ else:
 # --- Fábrica da aplicação ---
 def create_app(config_class=DevelopmentConfig):
     # Diretórios de templates e estáticos ficam fora do pacote backend/app
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    templates_dir = os.path.join(project_root, 'frontend', 'templates')
-    static_dir = os.path.join(project_root, 'frontend', 'static')
+    # Diretórios de templates e estáticos agora estão na raiz do backend
+    backend_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    templates_dir = os.path.join(backend_root, 'templates')
+    static_dir = os.path.join(backend_root, 'static')
 
     app = Flask(__name__, template_folder=templates_dir, static_folder=static_dir)
     app.config.from_object(config_class)
@@ -137,7 +138,7 @@ def create_app(config_class=DevelopmentConfig):
     # Inicialização de extensões
     db.init_app(app)
     # Aponta o Flask-Migrate para o diretório correto após a reorganização
-    migrate.init_app(app, db, directory=os.path.join(project_root, 'backend', 'migrations'))
+    migrate.init_app(app, db, directory=os.path.join(backend_root, 'migrations'))
     login_manager.init_app(app)
     cache.init_app(app)
     limiter.init_app(app)

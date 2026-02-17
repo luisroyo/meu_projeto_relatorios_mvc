@@ -1,12 +1,25 @@
-# Byte-compiled / optimized / DLL files
+# Arquivos de ambiente e segredos
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+
+# Arquivos de configuração sensíveis
+config.py
+secrets.py
+keys.py
+
+# Logs
+*.log
+logs/
+log/
+
+# Cache
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -20,77 +33,39 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/version info into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-site.sqbpro
-site.db
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# IDE / Editor specific files (exemplo, .vscode/ já estava no seu exemplo original, o que é bom)
-.vscode/ 
-
-# Secrets and local configuration - NÃO ENVIAR PARA O GIT
-.env
-
-# Python virtual environment
+# Virtual environments
 venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 
-# VS Code/virtualenv padrão
-.venv/
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Bancos de dados locais
-*.db
+# OS
+.DS_Store
+Thumbs.db
 
-# Logs rotacionados e arquivos temporários
-*.log*
-*.bak
+# Arquivos temporários
 *.tmp
+*.temp
+*.zip
+*.tar.gz
 
-render.yaml
-Dockerfile
+# Banco de dados
+*.db
+*.sqlite
+*.sqlite3
+
+# Arquivos de backup
+*.bak
+*.backup
