@@ -85,7 +85,7 @@ def registrar_ronda():
                 import os
                 
                 if arquivo_whatsapp:
-                    # Novo arquivo enviado - salva na sessão
+                    # Novo arquivo enviado - salva na sessão e processa sempre
                     temp_dir = os.path.join(tempfile.gettempdir(), 'whatsapp_ronda')
                     os.makedirs(temp_dir, exist_ok=True)
                     temp_path = os.path.join(temp_dir, arquivo_whatsapp.filename)
@@ -98,62 +98,73 @@ def registrar_ronda():
                     print(f"[DEBUG] Novo arquivo salvo: {file_path}")
                 else:
                     # Usa arquivo fixo da sessão
-                    file_path = arquivo_fixo_path
-                    print(f"[DEBUG] Usando arquivo fixo: {file_path}")
-                    if not os.path.exists(file_path):
-                        session.pop('whatsapp_file_path', None)
-                        session.pop('whatsapp_file_name', None)
-                        flash("Arquivo fixo não encontrado. Faça upload novamente.", "warning")
-                        return render_template(
-                            "ronda/relatorio.html",
-                            title=title,
-                            form=form,
-                            relatorio_processado=relatorio_processado_final,
-                            ronda_data_to_save=ronda_data_to_save,
-                        )
-                
-                # Processa o arquivo WhatsApp
-                processor = WhatsAppProcessor()
-                data_inicio = form.data_plantao.data
-                data_fim = form.data_plantao.data
-                
-                # Converte date para datetime
-                from datetime import datetime
-                data_inicio = datetime.combine(data_inicio, datetime.min.time())
-                data_fim = datetime.combine(data_fim, datetime.min.time())
-                
-                print(f"[DEBUG] Data início: {data_inicio}")
-                print(f"[DEBUG] Escala: {form.escala_plantao.data}")
-                
-                # Determina horário baseado na escala
-                if form.escala_plantao.data == "06h às 18h":
-                    data_inicio = data_inicio.replace(hour=6, minute=0, second=0)
-                    data_fim = data_inicio.replace(hour=17, minute=59, second=59)
-                else:  # 18h às 06h
-                    data_inicio = data_inicio.replace(hour=18, minute=0, second=0)
-                    data_fim = (data_inicio + timedelta(days=1)).replace(hour=5, minute=59, second=59)
-                
-                print(f"[DEBUG] Processando arquivo: {file_path}")
-                print(f"[DEBUG] Período: {data_inicio} até {data_fim}")
-                
-                # Processa mensagens do período
-                plantoes = processor.process_file(file_path, data_inicio, data_fim)
-                
-                print(f"[DEBUG] Plantões encontrados: {len(plantoes) if plantoes else 0}")
-                
-                if plantoes:
-                    # Formata o log para ronda
-                    log_formatado = processor.format_for_ronda_log(plantoes[0])
-                    form.log_bruto_rondas.data = log_formatado
-                    
-                    print(f"[DEBUG] Log formatado: {len(log_formatado)} caracteres")
-                    
-                    if arquivo_whatsapp:
-                        flash(f"Log carregado automaticamente do WhatsApp! {len(plantoes[0].mensagens)} mensagens encontradas.", "success")
+                    # MODIFICAÇÃO: Só processa o arquivo fixo se NÃO houver texto no log manual
+                    # Isso permite que o usuário edite o texto e re-processe sem perder as alterações
+                    if form.log_bruto_rondas.data and form.log_bruto_rondas.data.strip():
+                        print("[DEBUG] Texto manual detectado. Ignorando re-processamento do arquivo fixo.")
+                        file_path = None # Pula o processamento do arquivo
                     else:
-                        flash(f"Log carregado do arquivo fixo! {len(plantoes[0].mensagens)} mensagens encontradas.", "success")
-                else:
-                    flash("Nenhuma mensagem encontrada no período selecionado.", "warning")
+                        file_path = arquivo_fixo_path
+                        print(f"[DEBUG] Usando arquivo fixo: {file_path}")
+                        if not os.path.exists(file_path):
+                            session.pop('whatsapp_file_path', None)
+                            session.pop('whatsapp_file_name', None)
+                            flash("Arquivo fixo não encontrado. Faça upload novamente.", "warning")
+                            return render_template(
+                                "ronda/relatorio.html",
+                                title=title,
+                                form=form,
+                                relatorio_processado=relatorio_processado_final,
+                                ronda_data_to_save=ronda_data_to_save,
+                            )
+                
+                if file_path:
+                    # Processa o arquivo WhatsApp (apenas se file_path foi definido)
+                    # ... resto do código ...
+                
+                if file_path:
+                    # Processa o arquivo WhatsApp
+                    processor = WhatsAppProcessor()
+                    data_inicio = form.data_plantao.data
+                    data_fim = form.data_plantao.data
+                    
+                    # Converte date para datetime
+                    from datetime import datetime
+                    data_inicio = datetime.combine(data_inicio, datetime.min.time())
+                    data_fim = datetime.combine(data_fim, datetime.min.time())
+                    
+                    print(f"[DEBUG] Data início: {data_inicio}")
+                    print(f"[DEBUG] Escala: {form.escala_plantao.data}")
+                    
+                    # Determina horário baseado na escala
+                    if form.escala_plantao.data == "06h às 18h":
+                        data_inicio = data_inicio.replace(hour=6, minute=0, second=0)
+                        data_fim = data_inicio.replace(hour=17, minute=59, second=59)
+                    else:  # 18h às 06h
+                        data_inicio = data_inicio.replace(hour=18, minute=0, second=0)
+                        data_fim = (data_inicio + timedelta(days=1)).replace(hour=5, minute=59, second=59)
+                    
+                    print(f"[DEBUG] Processando arquivo: {file_path}")
+                    print(f"[DEBUG] Período: {data_inicio} até {data_fim}")
+                    
+                    # Processa mensagens do período
+                    plantoes = processor.process_file(file_path, data_inicio, data_fim)
+                    
+                    print(f"[DEBUG] Plantões encontrados: {len(plantoes) if plantoes else 0}")
+                    
+                    if plantoes:
+                        # Formata o log para ronda
+                        log_formatado = processor.format_for_ronda_log(plantoes[0])
+                        form.log_bruto_rondas.data = log_formatado
+                        
+                        print(f"[DEBUG] Log formatado: {len(log_formatado)} caracteres")
+                        
+                        if arquivo_whatsapp:
+                            flash(f"Log carregado automaticamente do WhatsApp! {len(plantoes[0].mensagens)} mensagens encontradas.", "success")
+                        else:
+                            flash(f"Log carregado do arquivo fixo! {len(plantoes[0].mensagens)} mensagens encontradas.", "success")
+                    else:
+                        flash("Nenhuma mensagem encontrada no período selecionado.", "warning")
                 
             except Exception as e:
                 logger.error(f"Erro ao processar arquivo WhatsApp: {e}", exc_info=True)
