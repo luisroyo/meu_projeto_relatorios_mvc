@@ -174,14 +174,13 @@ class WhatsAppProcessor:
             j = i + 1
             while j < total_linhas:
                 proxima_linha = linhas[j].strip()
-                if not proxima_linha:
+                # Se a próxima linha for um novo cabeçalho, para a captura
+                if self.pattern.match(proxima_linha) or self.pattern_alt.match(proxima_linha):
                     break
-                # Se a próxima linha não é uma nova mensagem, adiciona ao conteúdo
-                if not self.pattern.match(proxima_linha) and not self.pattern_alt.match(proxima_linha):
-                    conteudo_completo.append(proxima_linha)
-                    j += 1
-                else:
-                    break
+                
+                # Adiciona a linha ao conteúdo (mesmo que vazia, para manter formatação)
+                conteudo_completo.append(proxima_linha)
+                j += 1
             
             try:
                 data_hora = self.parse_datetime(data_str, hora_str)
