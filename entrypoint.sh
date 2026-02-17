@@ -16,11 +16,18 @@ cd backend
 
 # Adiciona diretório atual ao PYTHONPATH (caminho absoluto)
 export PYTHONPATH=$PYTHONPATH:$(pwd)
+
+echo "APP DIR: $(pwd)"
+echo "Conteúdo do diretório:"
+ls -la
+
 export FLASK_APP="app:create_app()"
 
 # Aplica migrations (assume que pasta migrations está aqui)
-timeout 300 flask db upgrade -d migrations || {
-    echo "ERRO: Timeout ao aplicar migrations"
+# Tenta rodar o comando flask db upgrade
+echo "Rodando flask db upgrade..."
+flask db upgrade -d migrations || {
+    echo "ERRO: Falha ao aplicar migrations"
     exit 1
 }
 

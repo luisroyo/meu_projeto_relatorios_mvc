@@ -6,7 +6,7 @@
 *.env
 
 # Arquivos de configuração sensíveis
-config.py
+# config.py (Removido para permitir deploy)
 secrets.py
 keys.py
 
