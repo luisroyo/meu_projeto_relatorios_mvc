@@ -4,7 +4,7 @@ export const CONFIG = {
     maxInputLengthServerDisplay: 12000, // Conforme definido em seu app.config em conftest.py
     copySuccessMessageDuration: 2000,
     apiEndpoint: '/api/ocorrencias/analyze-report', // Endpoint da API
-    
+
     // Configurações de data e localização
     dateFormat: 'dd/mm/yyyy',
     locale: 'pt-BR',
@@ -79,13 +79,13 @@ export const DOMElements = {};
 export function initializeDOMElements() {
     for (const key in CONFIG.selectors) {
         DOMElements[key] = document.querySelector(CONFIG.selectors[key]);
-        
+
         // Log detalhado para debug
         if (DOMElements[key]) {
             console.log(`config.js: Elemento encontrado: ${key} = ${CONFIG.selectors[key]}`, DOMElements[key]);
         } else {
             console.warn(`config.js: Elemento NÃO encontrado: ${key} = ${CONFIG.selectors[key]}`);
-            
+
             // Tentar encontrar elementos similares
             const similarElements = document.querySelectorAll(`[id*="${key}"]`);
             if (similarElements.length > 0) {
@@ -93,20 +93,20 @@ export function initializeDOMElements() {
             }
         }
     }
-    
+
     // Log para debug
     console.log('config.js: DOMElements inicializados:', Object.keys(DOMElements));
-    
+
     // Verificar elementos essenciais (apenas os que realmente existem no HTML)
     const essentialElements = ['relatorioBruto', 'btnProcessar', 'resultadoProcessamento'];
     const missingElements = essentialElements.filter(key => !DOMElements[key]);
-    
+
     if (missingElements.length > 0) {
         console.warn('config.js: Elementos não encontrados:', missingElements);
-        console.warn('config.js: Selectors correspondentes:', 
+        console.warn('config.js: Selectors correspondentes:',
             missingElements.map(key => CONFIG.selectors[key]));
     }
-    
+
     // Verificar especificamente o botão de copiar
     if (DOMElements.btnCopiar) {
         console.log('config.js: Botão copiar encontrado:', DOMElements.btnCopiar);
@@ -115,8 +115,8 @@ export function initializeDOMElements() {
     } else {
         console.error('config.js: Botão copiar NÃO encontrado!');
         console.error('config.js: Seletor usado:', CONFIG.selectors.btnCopiar);
-        console.error('config.js: Elementos com ID similar:', document.querySelectorAll('[id*="copiar"]));
+        console.error('config.js: Elementos com ID similar:', document.querySelectorAll('[id*="copiar"]'));
     }
-    
+
     return DOMElements;
 }
