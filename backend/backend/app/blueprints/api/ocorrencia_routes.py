@@ -346,11 +346,16 @@ def rejeitar_ocorrencia(ocorrencia_id):
 
 
 @ocorrencia_api_bp.route('/analyze-report', methods=['POST'])
-@jwt_required()
+@jwt_required(optional=True)
 def analisar_relatorio():
     """Analisar relatório usando IA (Extração inteligente)."""
     try:
-        from app.services.ocorrencia_parser import OcorrenciaParser
+        from flask_login import current_user
+        from flask import current_app
+        
+        # Verificar autenticação (JWT ou Sessão)
+        if not get_jwt_identity() and not current_user.is_authenticated:
+            return error_response('Não autorizado', status_code=401)
 
         data = request.get_json()
         
@@ -360,15 +365,31 @@ def analisar_relatorio():
         relatorio_bruto = data['relatorio_bruto']
         formatar_para_email = data.get('formatar_para_email', False)
         
-        # 1. Processamento e correção do texto
-        relatorio_processado = OcorrenciaParser.processar_e_corrigir_texto(relatorio_bruto)
-        
-        # 2. Extração de dados estruturados
-        dados_extraidos = OcorrenciaParser.extrair_dados_relatorio(relatorio_processado)
+        # Tentar usar a IA para corrigir e formatar o relatório, seguindo o template
+        try:
+            from app.services.patrimonial_report_service import PatrimonialReportService
+            
+            # Instancia o serviço de relatório patrimonial (usa o template padrão)
+            report_service = PatrimonialReportService()
+            
+            # Gera o relatório corrigido usando a IA
+            relatorio_corrigido = report_service.gerar_relatorio_seguranca(relatorio_bruto)
+            
+        except Exception as e:
+            # Fallback seguro para o parser antigo se a IA falhar (ex: sem API Code, erro de rede)
+            current_app.logger.error(f"Falha ao usar PatrimonialReportService: {e}. Usando fallback local.")
+            from app.services.ocorrencia_parser import OcorrenciaParser
+            relatorio_corrigido = OcorrenciaParser.processar_e_corrigir_texto(relatorio_bruto)
+
+        # Extração de dados (mantém a lógica existente ou usa a do novo serviço se implementada)
+        # Por enquanto, mantemos a extração via Regex do OcorrenciaParser para os metadados,
+        # pois o PatrimonialReportService foca na geração do TEXTO do relatório.
+        from app.services.ocorrencia_parser import OcorrenciaParser
+        dados_extraidos = OcorrenciaParser.extrair_dados_relatorio(relatorio_corrigido)
         
         # Preparar resposta
         resposta = {
-            'relatorio_processado': relatorio_processado,
+            'relatorio_processado': relatorio_corrigido, # Use o relatório corrigido, seja pela IA ou fallback
             'dados_extraidos': dados_extraidos,
             'sucesso': True
         }

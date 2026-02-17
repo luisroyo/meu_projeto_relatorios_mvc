@@ -6,7 +6,7 @@ import { displayStatus } from './uiHandlers.js'; // Para erros de CSRF
 function processarRelatorioLocal(relatorioBruto, formatarParaEmail = false) {
     console.log('processarRelatorioLocal: Iniciando processamento local...');
     console.log('processarRelatorioLocal: Texto original:', relatorioBruto.substring(0, 200) + '...');
-    
+
     // Processamento básico de correção de texto
     let relatorioProcessado = relatorioBruto
         .replace(/\xa0/g, ' ') // Remove caracteres especiais
@@ -14,7 +14,7 @@ function processarRelatorioLocal(relatorioBruto, formatarParaEmail = false) {
         .replace(/\s+/g, ' ') // Remove espaços extras
         .replace(/([.!?])\s*([A-Za-z])/g, '$1 $2') // Adiciona espaços após pontuação
         .replace(/^\w/, c => c.toUpperCase()); // Primeira letra maiúscula
-    
+
     // Melhoria básica de pontuação e capitalização
     relatorioProcessado = relatorioProcessado
         .replace(/(\w)\s*:\s*/g, '$1: ') // Normaliza dois pontos
@@ -22,7 +22,7 @@ function processarRelatorioLocal(relatorioBruto, formatarParaEmail = false) {
         .replace(/\b(data|hora|colaborador|endereço|viatura|vtr)\b/gi, (match) => {
             return match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
         });
-    
+
     // Correções específicas para o texto do exemplo
     relatorioProcessado = relatorioProcessado
         .replace(/hoirario/gi, 'horário')
@@ -32,13 +32,13 @@ function processarRelatorioLocal(relatorioBruto, formatarParaEmail = false) {
         .replace(/\b(\w+)\s*,\s*o\s+mesmo\s+relatou/gi, '$1, o mesmo relatou')
         .replace(/\bpor\s+isso\s+o\s+motivo\b/gi, 'esse foi o motivo')
         .replace(/\bmais\s+se\s+comprometeu\b/gi, 'mas se comprometeu');
-    
+
     // Melhoria de estrutura de frases
     relatorioProcessado = relatorioProcessado
         .replace(/^(\w)/g, (match) => match.toUpperCase()) // Primeira letra maiúscula
         .replace(/([.!?])\s*$/g, '$1') // Garante pontuação no final
         .replace(/([^.!?])$/g, '$1.'); // Adiciona ponto no final se não tiver
-    
+
     // Se solicitado formato de email, aplica formatação adicional
     let relatorioEmail = null;
     if (formatarParaEmail) {
@@ -51,10 +51,10 @@ Atenciosamente,
 Equipe de Segurança
         `.trim();
     }
-    
+
     console.log('processarRelatorioLocal: Texto processado:', relatorioProcessado.substring(0, 200) + '...');
     console.log('processarRelatorioLocal: Processamento concluído');
-    
+
     return {
         relatorio_processado: relatorioProcessado,
         relatorio_email: relatorioEmail,
@@ -67,7 +67,7 @@ export async function callProcessReportAPI(relatorioBrutoValue, formatarParaEmai
     console.log('callProcessReportAPI: Iniciando...');
     console.log('callProcessReportAPI: relatorioBrutoValue length:', relatorioBrutoValue ? relatorioBrutoValue.length : 'N/A');
     console.log('callProcessReportAPI: formatarParaEmailChecked:', formatarParaEmailChecked);
-    
+
     try {
         const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
         if (!csrfTokenElement) {
@@ -84,7 +84,7 @@ export async function callProcessReportAPI(relatorioBrutoValue, formatarParaEmai
         console.log('callProcessReportAPI: Payload criado:', payload);
 
         console.log('callProcessReportAPI: Fazendo fetch para:', CONFIG.apiEndpoint);
-        
+
         const response = await fetch(CONFIG.apiEndpoint, {
             method: 'POST',
             headers: {
@@ -110,15 +110,22 @@ export async function callProcessReportAPI(relatorioBrutoValue, formatarParaEmai
         if (contentType && contentType.indexOf("application/json") !== -1) {
             const data = await response.json();
             console.log('callProcessReportAPI: Dados JSON recebidos:', data);
-            
+
             if (!response.ok) {
                 // Se erro da API, usar fallback
                 console.warn('callProcessReportAPI: API retornou erro, usando fallback local');
                 return processarRelatorioLocal(relatorioBrutoValue, formatarParaEmailChecked);
             }
-            
+
             console.log('callProcessReportAPI: Retornando dados da API com sucesso');
-            return data; // Retorna os dados em caso de sucesso
+
+            // Verifica se a resposta está encapsulada em 'data' (padrão success_response)
+            if (data.success && data.data) {
+                console.log('callProcessReportAPI: Desembrulhando dados da resposta padrão');
+                return data.data;
+            }
+
+            return data; // Retorna os dados como estão se não seguir o padrão
         } else {
             console.warn('callProcessReportAPI: Resposta não é JSON, usando fallback local');
             return processarRelatorioLocal(relatorioBrutoValue, formatarParaEmailChecked);
