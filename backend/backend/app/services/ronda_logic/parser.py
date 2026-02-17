@@ -69,6 +69,52 @@ def parse_linha_log_prefixo(linha_strip: str, ultima_vtr_conhecida_global: str):
             _limpar_e_normalizar_mensagem(mensagem_eventos),
             vtr_contexto_geral_para_proximas_linhas,
         )
+
+    
+    # --- NOVO: Tentar Regex sem colchetes ---
+    match_sem_colchetes = config.REGEX_PREFIXO_LINHA_SEM_COLCHETES.match(linha_strip)
+    if match_sem_colchetes:
+        data_str_raw = match_sem_colchetes.group(1)
+        hora_linha_log_raw_temp = match_sem_colchetes.group(2)
+        vtr_do_prefixo_str = match_sem_colchetes.group(3)
+        mensagem_eventos = match_sem_colchetes.group(4).strip()
+
+        hora_linha_log_raw = normalizar_hora_capturada(hora_linha_log_raw_temp)
+        data_linha_original = normalizar_data_capturada(data_str_raw)
+
+        if vtr_do_prefixo_str:
+            # Tenta limpar o sender para ver se é uma VTR ou se é apenas um nome
+            # Se contiver "VTR" ou "Águia", tratamos como VTR.
+            # Caso contrário, mantemos a última VTR conhecida (pois pode ser mensagem de supervisor)
+            if re.search(r"(VTR|Águia)", vtr_do_prefixo_str, re.IGNORECASE):
+                vtr_normalizada = vtr_do_prefixo_str.upper().replace(" ", "")
+                # Extrai apenas a parte da VTR se houver lixo (ex: "Douglas Supervisor Líder: 00:45 VTR 09 Felipe")
+                match_vtr_clean = re.search(r"(VTR\s*\d+|Águia\s*\d+)", vtr_do_prefixo_str, re.IGNORECASE)
+                if match_vtr_clean:
+                    vtr_normalizada = match_vtr_clean.group(1).upper().replace(" ", "")
+                
+                vtr_contexto_geral_para_proximas_linhas = vtr_normalizada
+                id_vtr_para_eventos_desta_linha = vtr_normalizada
+            else:
+                # Se o sender não parece VTR (ex: Supervisor), verificamos se a mensagem começa com VTR
+                pass 
+        
+        # Verifica se há VTR no início da mensagem (comum quando o sender é o supervisor)
+        match_vtr_na_mensagem = config.REGEX_VTR_MENSAGEM_ALTERNATIVA.match(mensagem_eventos)
+        if match_vtr_na_mensagem:
+            vtr_especifica_da_mensagem = match_vtr_na_mensagem.group(1).upper().replace(" ", "")
+            id_vtr_para_eventos_desta_linha = vtr_especifica_da_mensagem
+            mensagem_eventos = match_vtr_na_mensagem.group(2).strip()
+            vtr_contexto_geral_para_proximas_linhas = id_vtr_para_eventos_desta_linha
+
+        return (
+            hora_linha_log_raw,
+            data_linha_original,
+            id_vtr_para_eventos_desta_linha,
+            _limpar_e_normalizar_mensagem(mensagem_eventos),
+            vtr_contexto_geral_para_proximas_linhas,
+        )
+
     else:
         return (
             None,

@@ -13,6 +13,17 @@ REGEX_PREFIXO_LINHA = re.compile(
     re.IGNORECASE,
 )
 
+# --- NOVO: Regex para formato "DD/MM/YYYY HH:MM - Sender: Message" (sem colchetes) ---
+REGEX_PREFIXO_LINHA_SEM_COLCHETES = re.compile(
+    r"^(\d{1,2}/\d{1,2}/\d{2,4})"  # Grupo 1: Data (DD/MM/YYYY)
+    r"\s+"                         # Espaço obrigatório
+    r"(\d{1,2}:\d{1,2})"           # Grupo 2: Hora (HH:MM)
+    r"\s+-\s+"                     # Separador " - " obrigatório
+    r"(?:(.*?):\s*)?"              # Grupo 3 (opcional): Sender/VTR (qualquer coisa até dois pontos)
+    r"(.*)$",                      # Grupo 4: Restante da mensagem
+    re.IGNORECASE,
+)
+
 REGEX_VTR_MENSAGEM_ALTERNATIVA = re.compile(
     r"^(VTR\s*\d+|Águia\s*\d+):\s*(.*)$", re.IGNORECASE
 )
