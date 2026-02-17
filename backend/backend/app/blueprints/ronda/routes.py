@@ -118,9 +118,7 @@ def registrar_ronda():
                                 ronda_data_to_save=ronda_data_to_save,
                             )
                 
-                if file_path:
-                    # Processa o arquivo WhatsApp (apenas se file_path foi definido)
-                    # ... resto do código ...
+
                 
                 if file_path:
                     # Processa o arquivo WhatsApp
