@@ -113,8 +113,17 @@ def create_app(config_class=DevelopmentConfig):
         "http://127.0.0.1:5173", "http://127.0.0.1:5174",
         "http://[::1]:5173", "http://[::1]:5174",
         "https://processador-relatorios-ia.onrender.com",
-        "https://ocorrencias-master-app.onrender.com"
+        "https://ocorrencias-master-app.onrender.com",
+        "https://patrimonial-ia.vercel.app",
+        "https://mobile-pwa-relatorios.onrender.com"
     ]
+    
+    # Adiciona origens dinâmicas da Vercel (preview deploys)
+    if os.environ.get('FLASK_ENV') == 'production':
+        allowed_origins.extend([
+            "https://patrimonial-ia.vercel.app",
+            "https://app-gestao-seguranca.vercel.app"
+        ])
     # CORS básico
     CORS(
         app,
