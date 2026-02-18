@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/Button';
@@ -14,6 +14,14 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  // Load saved username on mount
+  useEffect(() => {
+    const savedUsername = localStorage.getItem('savedUsername');
+    if (savedUsername) {
+      setUsername(savedUsername);
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -22,7 +30,10 @@ export default function Login() {
     try {
       const response = await api.post('/auth/login', { username, password });
       const { access_token, user } = response.data.data;
-      
+
+      // Save username for future logins
+      localStorage.setItem('savedUsername', username);
+
       // Ajuste conforme o retorno real da sua API
       login(access_token, user || { username });
       navigate('/');
@@ -58,7 +69,7 @@ export default function Login() {
             placeholder="Digite seu usuário"
             required
           />
-          
+
           <Input
             label="Senha"
             type="password"
