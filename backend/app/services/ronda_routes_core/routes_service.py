@@ -171,12 +171,70 @@ class RondaRoutesService:
                 mensagem_sucesso = "Ronda atualizada com sucesso!"
             else:
                 from app.models import Ronda # Importa Ronda novamente para garantir que está no escopo
-                if Ronda.query.filter_by(
+
+                # Verifica se já existe uma ronda para este condomínio, data e turno.
+                # Se existir, realizamos um UPSERT (Merge de Logs) ao invés de bloquear.
+                ronda_existente = Ronda.query.filter_by(
                     condominio_id=condominio_obj.id,
                     data_plantao_ronda=data_plantao,
                     turno_ronda=turno_ronda,
-                ).first():
-                    return False, "Já existe uma ronda para este condomínio, data e turno.", 409, None
+                ).first()
+
+                if ronda_existente:
+                    # --- LÓGICA DE UPSERT / MERGE ---
+                    logger.info(f"Ronda já existente encontrada (ID: {ronda_existente.id}). Iniciando Merge de Logs.")
+
+                    log_atual_db = ronda_existente.log_ronda_bruto or ""
+                    novas_linhas_input = log_bruto or ""
+
+                    # Normaliza linhas
+                    linhas_db = [l.strip() for l in log_atual_db.splitlines() if l.strip()]
+                    linhas_input = [l.strip() for l in novas_linhas_input.splitlines() if l.strip()]
+
+                    # Conjunto para detecção e Lista para ordem
+                    linhas_vistas = set(linhas_db)
+                    linhas_finais = list(linhas_db)
+
+                    novas_adicionadas_count = 0
+                    for linha in linhas_input:
+                        if linha not in linhas_vistas:
+                            linhas_finais.append(linha)
+                            linhas_vistas.add(linha)
+                            novas_adicionadas_count += 1
+                    
+                    log_merged = "\n".join(linhas_finais)
+
+                    # Reprocessa com o log MERGEADO
+                    # OBS: Usamos processar_log_de_rondas novamente para garantir estatísticas corretas sobre o TOTAL
+                    relatorio_merge, total_m, p_evento_m, u_evento_m, duracao_m = processar_log_de_rondas(
+                        log_bruto_rondas_str=log_merged,
+                        nome_condominio_str=condominio_obj.nome,
+                        data_plantao_manual_str=data_plantao.strftime("%d/%m/%Y"),
+                        escala_plantao_str=escala_plantao,
+                    )
+
+                    # Ajuste de Fuso
+                    local_tz_merge = pytz.timezone("America/Sao_Paulo")
+                    primeiro_evento_utc_m = local_tz_merge.localize(p_evento_m).astimezone(pytz.utc) if p_evento_m else None
+                    ultimo_evento_utc_m = local_tz_merge.localize(u_evento_m).astimezone(pytz.utc) if u_evento_m else None
+
+                    # Atualiza Objeto
+                    ronda_existente.log_ronda_bruto = log_merged
+                    ronda_existente.relatorio_processado = relatorio_merge
+                    ronda_existente.total_rondas_no_log = total_m
+                    ronda_existente.primeiro_evento_log_dt = primeiro_evento_utc_m
+                    ronda_existente.ultimo_evento_log_dt = ultimo_evento_utc_m
+                    ronda_existente.duracao_total_rondas_minutos = duracao_m
+                    # Nota: Não atualizamos user_id (quem criou), mas podemos atualizar supervisor se mudou
+                    if supervisor_id_para_db and supervisor_id_para_db != ronda_existente.supervisor_id:
+                         ronda_existente.supervisor_id = supervisor_id_para_db
+                    
+                    update_ronda()
+                    
+                    msg_acao = "incrementada" if novas_adicionadas_count > 0 else "atualizada"
+                    return True, f"Ronda existente encontrada e {msg_acao} com sucesso! (+{novas_adicionadas_count} linhas)", 200, ronda_existente.id
+
+                # Se não existe, cria NOVA
                 ronda = Ronda(
                     log_ronda_bruto=log_bruto,
                     relatorio_processado=relatorio,
@@ -194,7 +252,7 @@ class RondaRoutesService:
                 )
                 save_ronda(ronda)
                 mensagem_sucesso = "Ronda registrada com sucesso!"
-            return True, mensagem_sucesso, 200, ronda.id
+                return True, mensagem_sucesso, 200, ronda.id
         except Exception as e:
             db.session.rollback()
             logger.error(f"Erro ao salvar/finalizar ronda: {e}", exc_info=True)
