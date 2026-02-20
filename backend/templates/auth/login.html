@@ -60,10 +60,43 @@ function togglePassword(inputId, btn) {
   if (input.type === 'password') {
     input.type = 'text';
     btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+    const icon = btn.querySelector('i');
+    if(icon) {
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    }
   } else {
     input.type = 'password';
     btn.innerHTML = '<i class="bi bi-eye"></i>';
+    const icon = btn.querySelector('i');
+    if(icon) {
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
   }
 }
+
+// Lógica para lembrar o email
+document.addEventListener('DOMContentLoaded', function() {
+    const emailInput = document.querySelector('input[name="email"]');
+    const form = document.querySelector('form');
+
+    if (emailInput) {
+        // Carregar email salvo
+        const savedEmail = localStorage.getItem('savedEmailWeb');
+        if (savedEmail) {
+            emailInput.value = savedEmail;
+        }
+
+        // Salvar email ao enviar
+        if (form) {
+            form.addEventListener('submit', function() {
+                if (emailInput.value) {
+                    localStorage.setItem('savedEmailWeb', emailInput.value);
+                }
+            });
+        }
+    }
+});
 </script>
 {% endblock %}
