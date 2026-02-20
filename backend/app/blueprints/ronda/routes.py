@@ -13,10 +13,10 @@ from flask_login import current_user, login_required
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
-from app import db
+from app import db, csrf
 from app.decorators.admin_required import admin_required
 from app.forms import TestarRondasForm
-from app.models import Condominio, EscalaMensal, Ronda, User
+from app.models import Condominio, EscalaMensal, Ronda, User, WhatsAppMessage
 from app.services.ronda_routes_core.routes_service import RondaRoutesService
 from app.services.whatsapp_processor import WhatsAppProcessor
 from app.services.ronda_utils import get_system_user, infer_condominio_from_filename # Importa funções específicas
@@ -358,6 +358,115 @@ def processar_whatsapp_ajax():
         logger.error(f"Erro ao processar arquivo WhatsApp via AJAX: {e}", exc_info=True)
         print(f"[DEBUG AJAX] Erro ao processar: {e}")
         return jsonify({'success': False, 'message': f'Erro ao processar arquivo: {str(e)}'}), 500
+
+@ronda_bp.route("/processar-whatsapp-bd-ajax", methods=["POST"])
+@csrf.exempt
+@login_required
+@admin_required
+def processar_whatsapp_bd_ajax():
+    """Busca mensagens do WhatsApp no banco (sem arquivo) e processa via AJAX."""
+    try:
+        condominio_id = request.form.get('condominio_id')
+        data_plantao = request.form.get('data_plantao')
+        escala_plantao = request.form.get('escala_plantao')
+        
+        # O campo nome_condominio do formulário envia o ID do condomínio.
+        if not all([condominio_id, data_plantao, escala_plantao]):
+            return jsonify({'success': False, 'message': 'Condomínio, Data e Escala são obrigatórios'}), 400
+            
+        condominio = Condominio.query.get(condominio_id)
+        if not condominio:
+            return jsonify({'success': False, 'message': 'Condomínio não encontrado'}), 404
+            
+        from datetime import datetime, timedelta
+        data_dt = datetime.strptime(data_plantao, '%Y-%m-%d')
+        
+        # Determina horário baseado na escala
+        if escala_plantao == "06h às 18h":
+            data_inicio = data_dt.replace(hour=6, minute=0, second=0)
+            data_fim = data_dt.replace(hour=17, minute=59, second=59)
+        else:  # 18h às 06h
+            data_inicio = data_dt.replace(hour=18, minute=0, second=0)
+            data_fim = (data_dt + timedelta(days=1)).replace(hour=5, minute=59, second=59)
+            
+        # --- Auto-Sync: tenta puxar mensagens do buffer do Node antes de buscar no BD ---
+        if condominio.whatsapp_group_id:
+            try:
+                import requests as req_lib
+                import os
+                NODE_URL = os.environ.get('WHATSAPP_SERVICE_URL', 'http://localhost:3001') + '/api/whatsapp/messages'
+                sync_resp = req_lib.get(
+                    f"{NODE_URL}/{condominio.whatsapp_group_id}?count=200",
+                    timeout=3
+                )
+                if sync_resp.status_code == 200:
+                    sync_data = sync_resp.json()
+                    msgs_to_save = sync_data.get('messages', [])
+                    for msg_data in msgs_to_save:
+                        ts = msg_data.get('timestamp')
+                        try:
+                            dt = datetime.fromtimestamp(ts) if isinstance(ts, (int, float)) else datetime.now()
+                        except Exception:
+                            dt = datetime.now()
+                        exists = WhatsAppMessage.query.filter_by(message_id=msg_data.get('message_id')).first()
+                        if not exists:
+                            db.session.add(WhatsAppMessage(
+                                message_id=msg_data.get('message_id'),
+                                condominio_id=condominio.id,
+                                remote_jid=msg_data.get('group_id'),
+                                participant_jid=msg_data.get('participant_id', 'unknown'),
+                                push_name=msg_data.get('push_name', ''),
+                                content=msg_data.get('content', ''),
+                                timestamp=dt
+                            ))
+                    db.session.commit()
+            except Exception as sync_err:
+                logger.warning(f"Sync do Node falhou (não fatal): {sync_err}")
+        # --- Fim do Auto-Sync ---
+            
+        # Buscar mensagens na tabela WhatsAppMessage
+        messages = WhatsAppMessage.query.filter(
+            WhatsAppMessage.condominio_id == condominio_id,
+            WhatsAppMessage.timestamp >= data_inicio,
+            WhatsAppMessage.timestamp <= data_fim
+        ).order_by(WhatsAppMessage.timestamp.asc()).all()
+        
+        if not messages:
+            return jsonify({
+                'success': False,
+                'message': f'Nenhuma mensagem encontrada no banco para {condominio.nome} no período selecionado. Verifique se o grupo está mapeado e o robô está conectado.'
+            }), 404
+            
+        # Formatar mensagens como Log de texto
+        log_lines = []
+        for msg in messages:
+            time_str = msg.timestamp.strftime('%H:%M')
+            date_str = msg.timestamp.strftime('%d/%m/%Y')
+            author = msg.push_name or msg.participant_jid
+            content = msg.content.replace('\n', ' ')
+            log_lines.append(f"[{time_str}, {date_str}] {author}: {content}")
+            
+        log_bruto = "\n".join(log_lines)
+        
+        from app.services.ronda_logic.processor import processar_log_de_rondas
+        relatorio_final, rondas_completas_count, primeiro_dt, ultimo_dt, soma_minutos = processar_log_de_rondas(
+            log_bruto_rondas_str=log_bruto,
+            nome_condominio_str=condominio.nome,
+            data_plantao_manual_str="", 
+            escala_plantao_str=""
+        )
+        
+        return jsonify({
+            'success': True,
+            'log_formatado': log_bruto,
+            'relatorio_processado': relatorio_final,
+            'total_mensagens': len(messages),
+            'message': f'Log carregado do Banco! {len(messages)} mensagens encontradas.'
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar do BD via AJAX: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Erro ao processar: {str(e)}'}), 500
 
 
 @ronda_bp.route("/limpar-arquivo-fixo", methods=["POST"])

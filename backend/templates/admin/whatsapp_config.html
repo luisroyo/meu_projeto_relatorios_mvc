@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Conexão WhatsApp - Configuração{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-whatsapp me-2"></i>Conexão WhatsApp (Aparelho de Rondas)</h5>
+                </div>
+                <div class="card-body text-center p-5">
+                    
+                    <p class="text-muted mb-4">
+                        Conecte o número de telefone que participará dos grupos dos residenciais.
+                        Este aparelho será responsável por monitorar as mensagens de rondas enviadas pelos supervisores.
+                    </p>
+
+                    <div id="status-container" class="mb-4">
+                        <div class="spinner-border text-success" role="status" id="loading-spinner">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <h4 id="status-text" class="mt-3">Conectando ao serviço...</h4>
+                    </div>
+
+                    <div id="qr-container" class="d-none bg-light p-3 rounded d-inline-block border mb-4">
+                        <img id="qr-image" src="" alt="QR Code WhatsApp" style="max-width: 250px; height: auto;">
+                    </div>
+
+                    <div id="instructions" class="d-none text-start bg-light p-4 rounded mt-3 mx-auto" style="max-width: 500px;">
+                        <h6 class="fw-bold">Instruções para conectar:</h6>
+                        <ol class="mb-0 ps-3">
+                            <li>Abra o WhatsApp no seu celular</li>
+                            <li>Toque em Mais opções (três pontos) ou Configurações</li>
+                            <li>Toque em <b>Aparelhos conectados</b></li>
+                            <li>Toque em <b>Conectar um aparelho</b></li>
+                            <li>Aponte a câmera para o QR Code acima</li>
+                        </ol>
+                    </div>
+
+                    <div id="connected-info" class="d-none mt-4 alert alert-success">
+                        <i class="bi bi-check-circle-fill fs-1 d-block mb-2"></i>
+                        <strong>Aparelho Conectado com Sucesso!</strong><br>
+                        O sistema já está monitorando ativamente os grupos e salvando as informações no banco de dados.
+                    </div>
+
+                    <div class="mt-4">
+                        <button id="btn-refresh" class="btn btn-outline-secondary me-2">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Atualizar Status
+                        </button>
+                        <button id="btn-logout" class="btn btn-outline-danger d-none">
+                            <i class="bi bi-box-arrow-right me-1"></i>Desconectar Aparelho
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+            
+            <!-- Nova Seção: Mapeamento de Grupos -->
+            <div class="card shadow-sm mt-4 d-none" id="mapping-container">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Mapeamento de Grupos (Residenciais)</h5>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-muted mb-4">
+                        Abaixo estão os condomínios cadastrados no sistema. Selecione qual Grupo do WhatsApp corresponde a cada condomínio.
+                        Apenas as mensagens enviadas nesses grupos serão processadas.
+                    </p>
+                    
+                    <div id="condominios-list">
+                        <!-- Preenchido via JS -->
+                        <div class="text-center text-muted">Carregando grupos e condomínios...</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const NODE_API_URL = 'http://localhost:3001/api/whatsapp';
+
+    function fetchStatus() {
+        $('#loading-spinner').removeClass('d-none');
+        
+        $.ajax({
+            url: NODE_API_URL + '/status',
+            method: 'GET',
+            success: function(response) {
+                $('#loading-spinner').addClass('d-none');
+                
+                const status = response.status;
+                const qrUrl = response.qr;
+
+                if (status === 'connected') {
+                    $('#status-text').text('Serviço WhatsApp ONLINE');
+                    $('#status-text').addClass('text-success').removeClass('text-danger text-warning');
+                    $('#qr-container, #instructions').addClass('d-none');
+                    $('#connected-info').removeClass('d-none');
+                    $('#btn-logout').removeClass('d-none');
+                    
+                    if ($('#mapping-container').hasClass('d-none')) {
+                        $('#mapping-container').removeClass('d-none');
+                        fetchMappingData();
+                    }
+                } 
+                else if (status === 'qr_ready') {
+                    $('#status-text').text('Aguardando escaneamento do QR Code');
+                    $('#status-text').addClass('text-warning').removeClass('text-success text-danger');
+                    $('#connected-info, #btn-logout').addClass('d-none');
+                    
+                    if (qrUrl) {
+                        $('#qr-image').attr('src', qrUrl);
+                        $('#qr-container, #instructions').removeClass('d-none');
+                    }
+                }
+                else {
+                    $('#status-text').text('Serviço Inicializando / Desconectado');
+                    $('#status-text').addClass('text-secondary').removeClass('text-success text-danger text-warning');
+                    $('#qr-container, #instructions, #connected-info, #btn-logout').addClass('d-none');
+                }
+            },
+            error: function() {
+                $('#loading-spinner').addClass('d-none');
+                $('#status-text').text('Não foi possível conectar ao serviço interno Node.js');
+                $('#status-text').addClass('text-danger').removeClass('text-success text-warning text-secondary');
+                $('#qr-container, #instructions, #connected-info, #btn-logout').addClass('d-none');
+            }
+        });
+    }
+
+    // Lógica para Mapeamento de Grupos
+    let availableGroups = [];
+
+    function fetchMappingData() {
+        // Obter grupos disponíveis do Node
+        $.ajax({
+            url: NODE_API_URL + '/groups',
+            method: 'GET',
+            success: function(groups) {
+                availableGroups = groups;
+                
+                // Obter condomínios do Python
+                $.ajax({
+                    url: '/api/whatsapp/condominios-mapping',
+                    method: 'GET',
+                    success: function(condominios) {
+                        renderMappingOptions(condominios, availableGroups);
+                    },
+                    error: function() {
+                        $('#condominios-list').html('<div class="alert alert-danger">Erro ao carregar condomínios da base.</div>');
+                    }
+                });
+            },
+            error: function() {
+                $('#condominios-list').html('<div class="alert alert-warning">Aguardando resincronização de grupos pelo robô... Tente atualizar a página.</div>');
+            }
+        });
+    }
+
+    function renderMappingOptions(condominios, groups) {
+        let html = '';
+        condominios.forEach(c => {
+            let options = '<option value="">-- Não Monitorar este Condomínio --</option>';
+            
+            groups.forEach(g => {
+                const selected = (c.whatsapp_group_id === g.id) ? 'selected' : '';
+                options += `<option value="${g.id}" ${selected}>${g.subject} (${g.participantsCount} membros)</option>`;
+            });
+
+            html += `
+                <div class="row mb-3 align-items-center border-bottom pb-2">
+                    <div class="col-md-4 fw-bold text-end">
+                        ${c.nome}
+                    </div>
+                    <div class="col-md-6">
+                        <select class="form-select group-selector" data-condominio-id="${c.id}">
+                            ${options}
+                        </select>
+                    </div>
+                    <div class="col-md-2 text-center">
+                        <button class="btn btn-sm btn-outline-primary btn-save-mapping" data-condominio-id="${c.id}">
+                            <i class="bi bi-save"></i> Salvar
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        $('#condominios-list').html(html);
+
+        // Bind ao clicar em salvar
+        $('.btn-save-mapping').click(function() {
+            const btn = $(this);
+            const cid = btn.data('condominio-id');
+            const select = $(`select[data-condominio-id="${cid}"]`);
+            const groupId = select.val();
+            
+            btn.html('<span class="spinner-border spinner-border-sm"></span>').prop('disabled', true);
+
+            $.ajax({
+                url: `/api/whatsapp/condominio/${cid}/map-group`,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ whatsapp_group_id: groupId || null }), // Null limpa se vazio
+                success: function(res) {
+                    btn.html('<i class="bi bi-check2"></i> Salvo').removeClass('btn-outline-primary').addClass('btn-success');
+                    setTimeout(() => {
+                        btn.html('<i class="bi bi-save"></i> Salvar').removeClass('btn-success').addClass('btn-outline-primary').prop('disabled', false);
+                    }, 2000);
+                },
+                error: function() {
+                    alert('Erro ao salvar o grupo vinculado.');
+                    btn.html('<i class="bi bi-save"></i> Salvar').prop('disabled', false);
+                }
+            });
+        });
+    }
+
+    $('#btn-refresh').click(function() {
+        fetchStatus();
+        if($('#mapping-container').hasClass('d-none') === false) {
+             fetchMappingData();
+        }
+    });
+
+    $('#btn-logout').click(function() {
+        if(confirm("Tem certeza que deseja desconectar o aparelho do WhatsApp? O monitoramento nas rondas será interrompido.")) {
+            $.ajax({
+                url: NODE_API_URL + '/logout',
+                method: 'POST',
+                success: function() {
+                    alert('Deslogado com sucesso.');
+                    fetchStatus();
+                },
+                error: function() {
+                    alert('Erro ao tentar desconectar.');
+                }
+            });
+        }
+    });
+
+    $(document).ready(function() {
+        // Setup CSRF token para todas requisições AJAX do jQuery
+        var csrf_token = $('meta[name="csrf-token"]').attr('content');
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrf_token);
+                }
+            }
+        });
+
+        fetchStatus();
+        // Atualiza a cada 5 segundos
+        setInterval(fetchStatus, 5000);
+    });
+</script>
+{% endblock %}

@@ -68,6 +68,10 @@
                     class="bi bi-person-lines-fill me-2"></i>Gerenciar Colaboradores</a></li>
               <li><a class="dropdown-item {% if request.endpoint == 'admin.admin_tools' %}active{% endif %}"
                   href="{{ url_for('admin.admin_tools') }}"><i class="bi bi-tools me-2"></i>Ferramentas</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item {% if request.endpoint == 'admin.whatsapp_config_tool' %}active{% endif %}"
+                  href="{{ url_for('admin.whatsapp_config_tool') }}"><i class="bi bi-whatsapp me-2"></i>Conexão WhatsApp</a></li>
+              <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="{{ url_for('admin.gerenciar_escalas') }}"><i
                     class="bi bi-calendar2-week me-2"></i>Gerenciar Escalas</a></li>
               <li><a

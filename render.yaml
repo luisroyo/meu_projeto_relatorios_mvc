@@ -1,18 +1,15 @@
 services:
+  # ============================================================
+  # Serviço 1: Backend Flask (Python) - Sistema Principal
+  # ============================================================
   - type: web
-    name: sistema-gestao-seguranca
+    name: gestao-seguranca-backend
     env: python
     plan: free
     buildCommand: |
-      # Ensure Node.js is available (if not, install it)
-      # apt-get update && apt-get install -y nodejs npm
-
-      # Build Frontend
       echo "Building Frontend..."
       cd frontend && npm install && npm run build
       cd ..
-
-      # Install Backend Dependencies
       echo "Installing Backend..."
       cd backend
       pip install -r requirements.txt
@@ -23,12 +20,34 @@ services:
         value: production
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: DATABASE_URL
+        sync: false # Defina no painel do Render com a URL do Neon
+      - key: SECRET_KEY
+        sync: false # Gere uma chave aleatória no painel do Render
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: WHATSAPP_SERVICE_URL
+        sync: false # URL do serviço Node.js abaixo, ex: https://wpp-gestao.onrender.com
 
+  # ============================================================
+  # Serviço 2: backend Node.js - Robô WhatsApp (Baileys)
+  # IMPORTANTE: Requer um 'Disk' persistente no Render (plano pago)
+  # OU usa sessão em Postgres (configurar DATABASE_URL abaixo)
+  # ============================================================
   - type: web
-    name: mobile-pwa-relatorios
-    env: static
-    buildCommand: cd mobile-pwa && npm install && npm run build
-    staticPublishPath: mobile-pwa/dist
+    name: gestao-seguranca-whatsapp
+    env: node
+    plan: free
+    rootDir: whatsapp-service
+    buildCommand: npm install
+    startCommand: node index.js
     envVars:
-      - key: VITE_API_URL
-        value: https://processador-relatorios-ia.onrender.com/api
+      - key: PYTHON_API_URL
+        sync: false # URL do Flask acima + /api/whatsapp/webhook
+        # Exemplo: https://gestao-seguranca-backend.onrender.com/api/whatsapp/webhook
+      - key: DATABASE_URL
+        sync: false # Mesma URL do Neon - para persistir sessão WhatsApp
+      - key: WHATSAPP_PORT
+        value: "10000" # Render expõe a porta 10000 por padrão para web services
+      - key: NODE_VERSION
+        value: "20"

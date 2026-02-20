@@ -16,3 +16,4 @@ from .vw_ocorrencias_detalhadas import VWOcorrenciasDetalhadas
 from .vw_rondas_detalhadas import VWRondasDetalhadas
 # RondaEsporadica removida - usar apenas modelo Ronda unificado
 from .user_online import UserOnline 
+from .whatsapp_message import WhatsAppMessage

@@ -20,6 +20,7 @@ import OcorrenciasPage from './pages/OcorrenciasPage';
 import OcorrenciaDetailsPage from './pages/OcorrenciaDetailsPage';
 import OcorrenciaEditPage from './pages/OcorrenciaEditPage';
 import RondasPage from './pages/RondasPage';
+import RondaEditPage from './pages/RondaEditPage';
 import TestJwtPage from './pages/TestJwtPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
@@ -30,6 +31,7 @@ import UserManagementPage from './pages/admin/UserManagementPage';
 import RondaDashboardPage from './pages/admin/RondaDashboardPage';
 import OcorrenciaDashboardPage from './pages/admin/OcorrenciaDashboardPage';
 import ColaboradorManagementPage from './pages/admin/ColaboradorManagementPage';
+import WhatsAppConfigPage from './pages/WhatsAppConfigPage';
 
 // Componente principal da aplicação
 const AppContent: React.FC = () => {
@@ -60,6 +62,8 @@ const AppContent: React.FC = () => {
             <Route path="ocorrencias/:id/editar" element={<OcorrenciaEditPage />} />
             <Route path="ocorrencias/:id" element={<OcorrenciaDetailsPage />} />
             <Route path="rondas" element={<RondasPage />} />
+            <Route path="rondas/nova" element={<RondaEditPage />} />
+            <Route path="rondas/:id/editar" element={<RondaEditPage />} />
             <Route path="test-jwt" element={<TestJwtPage />} />
 
             {/* Rotas Administrativas - Apenas para admins */}
@@ -71,6 +75,7 @@ const AppContent: React.FC = () => {
                   <Route path="rondas-dashboard" element={<RondaDashboardPage />} />
                   <Route path="ocorrencias-dashboard" element={<OcorrenciaDashboardPage />} />
                   <Route path="colaboradores" element={<ColaboradorManagementPage />} />
+                  <Route path="whatsapp" element={<WhatsAppConfigPage />} />
                 </Route>
               </>
             )}

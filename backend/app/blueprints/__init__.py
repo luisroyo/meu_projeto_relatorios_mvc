@@ -14,6 +14,7 @@ from .api.ronda_routes import ronda_api_bp
 from .api.admin_routes import admin_api_bp
 from .api.analisador_routes import analisador_api_bp
 from .api.config_routes import config_api_bp
+from .api.whatsapp_routes import whatsapp_bp as whatsapp_api_bp
 # from .admin.routes_online_users import online_users_bp
 from .main.routes import main_bp
 
@@ -32,5 +33,6 @@ def register_blueprints(app):
     app.register_blueprint(admin_api_bp)
     app.register_blueprint(analisador_api_bp)
     app.register_blueprint(config_api_bp)
+    app.register_blueprint(whatsapp_api_bp)
     # app.register_blueprint(online_users_bp)  # desativado para evitar chamadas que acordam o DB
     app.register_blueprint(main_bp)

@@ -245,3 +245,12 @@ def gerador_justificativas_tool():
     return render_template(
         "admin/gerador_justificativas.html", title="Gerador de Justificativas iFractal"
     )
+
+@admin_bp.route("/ferramentas/whatsapp-config", methods=["GET"])
+@login_required
+@admin_required
+def whatsapp_config_tool():
+    logger.info(f"Admin '{current_user.username}' acessou a configuração do WhatsApp.")
+    return render_template(
+        "admin/whatsapp_config.html", title="Conexão WhatsApp (Rondas)"
+    )

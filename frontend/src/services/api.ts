@@ -1046,6 +1046,24 @@ export const rondaService = {
       throw handleApiError(error as AxiosError);
     }
   },
+
+  processarWhatsApp: async (data: {
+    condominio_id: number;
+    data_inicio: string;
+    data_fim: string;
+  }): Promise<{
+    success: boolean;
+    relatorio_processado: string;
+    log_bruto: string;
+    message?: string;
+  }> => {
+    try {
+      const response = await api.post('/api/whatsapp/process', data);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
 };
 
 

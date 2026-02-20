@@ -187,7 +187,7 @@ def create_app(config_class=DevelopmentConfig):
         # CSRF
         api_blueprints = [
             'api', 'auth_api', 'dashboard_api', 'ocorrencia_api',
-            'ronda_api', 'admin_api', 'analisador_api', 'config_api'
+            'ronda_api', 'admin_api', 'analisador_api', 'config_api', 'whatsapp_api'
         ]
         for blueprint_name in api_blueprints:
             bp = app.blueprints.get(blueprint_name)

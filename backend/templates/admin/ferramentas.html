@@ -57,6 +57,17 @@
             </div>
         </div>
 
+        {# NOVO: Cartão para Conexão WhatsApp #}
+        <div class="col">
+            <div class="card h-100 shadow-sm border-success">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-success"><i class="bi bi-whatsapp me-2"></i>Conexão WhatsApp</h5>
+                    <p class="card-text flex-grow-1">Escaneie o QR Code para conectar um celular e monitorar automaticamente as rondas dos grupos.</p>
+                    <a href="{{ url_for('admin.whatsapp_config_tool') }}" class="btn btn-success mt-auto"><i class="bi bi-qr-code-scan me-1"></i>Conectar WhatsApp</a>
+                </div>
+            </div>
+        </div>
+
         {# Cartão para a Ferramenta de Gerador de Justificativas #}
         <div class="col">
             <div class="card h-100 shadow-sm">
