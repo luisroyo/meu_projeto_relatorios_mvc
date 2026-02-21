@@ -60,7 +60,7 @@ async function connectToWhatsApp() {
             }
         };
     }
-    
+
     // Guarda clearSession globalmente para usar no logout
     globalClearSession = clearSession;
     const logger = pino({ level: 'silent' });
@@ -76,7 +76,7 @@ async function connectToWhatsApp() {
 
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
-        
+
         if (qr) {
             console.log('\n[!] Novo QR Code gerado. Escaneie com seu WhatsApp.\n');
             qrcode.toDataURL(qr, (err, url) => {
@@ -90,7 +90,7 @@ async function connectToWhatsApp() {
             connectionStatus = 'disconnected';
             const shouldReconnect = (lastDisconnect?.error instanceof Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log('Conexão fechada devido a ', lastDisconnect?.error, ', reconectando:', shouldReconnect);
-            
+
             if (shouldReconnect) {
                 connectionStatus = 'reconnecting';
                 connectToWhatsApp();
@@ -108,9 +108,9 @@ async function connectToWhatsApp() {
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
         for (const m of messages) {
             if (!m.message) continue;
-            
+
             const remoteJid = m.key.remoteJid;
-            
+
             // Focar só em grupos de residenciais
             if (!remoteJid || !remoteJid.endsWith('@g.us')) continue;
 
@@ -120,7 +120,7 @@ async function connectToWhatsApp() {
 
             const participantJid = m.key.participant || remoteJid;
             const pushName = m.pushName || '';
-            
+
             const payload = {
                 message_id: m.key.id,
                 group_id: remoteJid,
@@ -152,6 +152,63 @@ async function connectToWhatsApp() {
 // ============================================
 // API Endpoints Internos do Serviço Node
 // ============================================
+
+// Página visual para escanear o QR Code
+app.get('/', (req, res) => {
+    res.send(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp - QR Code</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a1628; color: #fff;
+               display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .card { background: #1a2942; border-radius: 16px; padding: 40px; text-align: center;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.4); max-width: 420px; width: 90%; }
+        h1 { font-size: 1.4rem; margin-bottom: 8px; }
+        .status { font-size: 0.9rem; margin-bottom: 20px; padding: 6px 16px; border-radius: 20px;
+                  display: inline-block; }
+        .status.connected { background: #22c55e33; color: #22c55e; }
+        .status.qr_ready { background: #3b82f633; color: #3b82f6; }
+        .status.disconnected { background: #ef444433; color: #ef4444; }
+        .status.initializing, .status.reconnecting { background: #eab30833; color: #eab308; }
+        #qr-img { border-radius: 12px; background: #fff; padding: 12px; max-width: 280px; }
+        .msg { color: #94a3b8; margin-top: 12px; font-size: 0.85rem; }
+        .ok { font-size: 3rem; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>📱 WhatsApp Service</h1>
+        <div id="content">Carregando...</div>
+    </div>
+    <script>
+        async function refresh() {
+            try {
+                const r = await fetch('/api/whatsapp/status');
+                const d = await r.json();
+                const el = document.getElementById('content');
+                if (d.status === 'connected') {
+                    el.innerHTML = '<div class="status connected">✅ Conectado</div>' +
+                        '<div class="ok">🟢</div><p class="msg">WhatsApp conectado e funcionando!</p>';
+                } else if (d.status === 'qr_ready' && d.qr) {
+                    el.innerHTML = '<div class="status qr_ready">📷 Aguardando scan</div>' +
+                        '<br><img id="qr-img" src="' + d.qr + '" alt="QR Code">' +
+                        '<p class="msg">Abra o WhatsApp → Dispositivos Conectados → Escanear</p>';
+                } else {
+                    el.innerHTML = '<div class="status ' + d.status + '">' + d.status + '</div>' +
+                        '<p class="msg">Aguardando conexão...</p>';
+                }
+            } catch(e) { console.error(e); }
+        }
+        refresh();
+        setInterval(refresh, 3000);
+    </script>
+</body>
+</html>`);
+});
 
 app.get('/api/whatsapp/status', (req, res) => {
     res.json({
@@ -194,7 +251,7 @@ app.get('/api/whatsapp/groups', async (req, res) => {
     if (!sock || connectionStatus !== 'connected') {
         return res.status(400).json({ error: 'WhatsApp não está conectado' });
     }
-    
+
     try {
         const groups = await sock.groupFetchAllParticipating();
         const groupList = Object.values(groups).map(g => ({
@@ -202,7 +259,7 @@ app.get('/api/whatsapp/groups', async (req, res) => {
             subject: g.subject,
             participantsCount: g.participants.length
         }));
-        
+
         res.json(groupList);
     } catch (error) {
         console.error('Erro ao buscar grupos:', error);
