@@ -214,6 +214,12 @@ app.get('/', (req, res) => {
         #qr-img { border-radius: 12px; background: #fff; padding: 12px; max-width: 280px; }
         .msg { color: #94a3b8; margin-top: 12px; font-size: 0.85rem; }
         .ok { font-size: 3rem; margin: 20px 0; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;
+               font-size: 0.9rem; margin: 4px; color: #fff; }
+        .btn-resync { background: #f59e0b; }
+        .btn-resync:hover { background: #d97706; }
+        .btn-danger { background: #ef4444; }
+        .btn-danger:hover { background: #dc2626; }
     </style>
 </head>
 <body>
@@ -229,7 +235,8 @@ app.get('/', (req, res) => {
                 const el = document.getElementById('content');
                 if (d.status === 'connected') {
                     el.innerHTML = '<div class="status connected">✅ Conectado</div>' +
-                        '<div class="ok">🟢</div><p class="msg">WhatsApp conectado e funcionando!</p>';
+                        '<div class="ok">🟢</div><p class="msg">WhatsApp conectado e funcionando!</p>' +
+                        '<button class="btn btn-resync" onclick="resync()">🔄 Forçar Re-Sync (puxar histórico)</button>';
                 } else if (d.status === 'qr_ready' && d.qr) {
                     el.innerHTML = '<div class="status qr_ready">📷 Aguardando scan</div>' +
                         '<br><img id="qr-img" src="' + d.qr + '" alt="QR Code">' +
@@ -239,6 +246,15 @@ app.get('/', (req, res) => {
                         '<p class="msg">Aguardando conexão...</p>';
                 }
             } catch(e) { console.error(e); }
+        }
+        async function resync() {
+            if (!confirm('Isso vai desconectar o WhatsApp e gerar um novo QR Code para sincronizar o histórico. Continuar?')) return;
+            try {
+                const r = await fetch('/api/whatsapp/resync', { method: 'POST' });
+                const d = await r.json();
+                alert(d.message);
+                refresh();
+            } catch(e) { alert('Erro: ' + e.message); }
         }
         refresh();
         setInterval(refresh, 3000);
@@ -263,6 +279,32 @@ app.post('/api/whatsapp/logout', async (req, res) => {
             res.json({ success: false, message: 'Não está conectado' });
         }
     } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Endpoint para forçar re-sync: limpa sessão e reconecta para puxar histórico
+app.post('/api/whatsapp/resync', async (req, res) => {
+    try {
+        console.log('[Resync] Iniciando re-sincronização forçada...');
+        // 1. Desconecta o socket atual
+        if (sock) {
+            sock.end(undefined);
+        }
+        // 2. Limpa a sessão no banco
+        if (globalClearSession) {
+            await globalClearSession();
+            console.log('[Resync] Sessão limpa do banco.');
+        }
+        // 3. Limpa buffers
+        messageBuffer.clear();
+        // 4. Reconecta (vai gerar novo QR Code e sincronizar histórico)
+        connectionStatus = 'initializing';
+        currentQR = null;
+        setTimeout(() => connectToWhatsApp(), 1000);
+        res.json({ success: true, message: 'Re-sync iniciado! Escaneie o novo QR Code para sincronizar o histórico.' });
+    } catch (error) {
+        console.error('[Resync] Erro:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
