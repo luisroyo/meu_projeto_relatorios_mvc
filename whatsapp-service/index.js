@@ -24,7 +24,7 @@ let isConnecting = false; // Guard contra reconexões simultâneas
 // Buffer simples de mensagens por grupo (Map: jid -> array de msgs)
 // Guarda as últimas 500 mensagens por grupo em memória
 const messageBuffer = new Map();
-const MAX_BUFFER_PER_GROUP = 500;
+const MAX_BUFFER_PER_GROUP = 5000;
 
 function bufferMessage(jid, msgPayload) {
     if (!messageBuffer.has(jid)) {
@@ -180,38 +180,61 @@ async function connectToWhatsApp() {
 
         // Captura mensagens históricas sincronizadas pelo WhatsApp ao conectar
         sock.ev.on('messaging-history.set', async ({ messages: histMessages }) => {
-            console.log(`[History Sync] Recebidas ${histMessages.length} mensagens históricas`);
-            let saved = 0;
+            const groupMsgs = [];
             for (const m of histMessages) {
                 if (!m.message) continue;
                 const remoteJid = m.key.remoteJid;
                 if (!remoteJid || !remoteJid.endsWith('@g.us')) continue;
-
                 const textMessage = m.message.conversation || m.message.extendedTextMessage?.text;
                 if (!textMessage) continue;
-
                 const participantJid = m.key.participant || remoteJid;
                 const pushName = m.pushName || '';
-
-                const payload = {
+                groupMsgs.push({
                     message_id: m.key.id,
                     group_id: remoteJid,
                     participant_id: participantJid,
                     push_name: pushName,
                     content: textMessage,
                     timestamp: normalizeTimestamp(m.messageTimestamp)
-                };
+                });
+            }
 
-                bufferMessage(remoteJid, payload);
+            console.log(`[History Sync] Recebidas ${histMessages.length} msgs totais, ${groupMsgs.length} de grupo. Enviando com throttle...`);
 
-                try {
-                    await axios.post(API_URL, payload);
-                    saved++;
-                } catch (error) {
-                    // Silencia erros de webhook para histórico
+            let saved = 0, errors = 0;
+            for (let i = 0; i < groupMsgs.length; i++) {
+                const payload = groupMsgs[i];
+                bufferMessage(payload.group_id, payload);
+
+                // Tenta enviar com retry
+                let success = false;
+                for (let attempt = 0; attempt < 3 && !success; attempt++) {
+                    try {
+                        await axios.post(API_URL, payload);
+                        saved++;
+                        success = true;
+                    } catch (error) {
+                        if (error.response?.status === 429 && attempt < 2) {
+                            // Rate limited - espera mais tempo
+                            await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+                        } else {
+                            errors++;
+                            break;
+                        }
+                    }
+                }
+
+                // Delay entre mensagens para não sobrecarregar (50ms)
+                if (i % 5 === 0 && i > 0) {
+                    await new Promise(r => setTimeout(r, 50));
+                }
+
+                // Log de progresso a cada 200 mensagens
+                if ((i + 1) % 200 === 0) {
+                    console.log(`[History Sync] Progresso: ${i + 1}/${groupMsgs.length} (salvas: ${saved}, erros: ${errors})`);
                 }
             }
-            console.log(`[History Sync] ${saved} mensagens de grupo salvas via webhook`);
+            console.log(`[History Sync] Concluído: ${saved} salvas, ${errors} erros de ${groupMsgs.length} msgs de grupo`);
         });
     } catch (err) {
         console.error('[connectToWhatsApp] Erro fatal:', err);
