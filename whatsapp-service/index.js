@@ -69,7 +69,8 @@ async function connectToWhatsApp() {
         auth: authState,
         printQRInTerminal: true,
         logger,
-        browser: ['GestaoSeguranca', 'Chrome', '10.0'],
+        browser: ['GestaoSeguranca', 'Desktop', '10.0'],
+        syncFullHistory: true,
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -146,6 +147,42 @@ async function connectToWhatsApp() {
                 }
             }
         }
+    });
+
+    // Captura mensagens históricas sincronizadas pelo WhatsApp ao conectar
+    sock.ev.on('messaging-history.set', async ({ messages: histMessages }) => {
+        console.log(`[History Sync] Recebidas ${histMessages.length} mensagens históricas`);
+        let saved = 0;
+        for (const m of histMessages) {
+            if (!m.message) continue;
+            const remoteJid = m.key.remoteJid;
+            if (!remoteJid || !remoteJid.endsWith('@g.us')) continue;
+
+            const textMessage = m.message.conversation || m.message.extendedTextMessage?.text;
+            if (!textMessage) continue;
+
+            const participantJid = m.key.participant || remoteJid;
+            const pushName = m.pushName || '';
+
+            const payload = {
+                message_id: m.key.id,
+                group_id: remoteJid,
+                participant_id: participantJid,
+                push_name: pushName,
+                content: textMessage,
+                timestamp: m.messageTimestamp
+            };
+
+            bufferMessage(remoteJid, payload);
+
+            try {
+                await axios.post(API_URL, payload);
+                saved++;
+            } catch (error) {
+                // Silencia erros de webhook para histórico
+            }
+        }
+        console.log(`[History Sync] ${saved} mensagens de grupo salvas via webhook`);
     });
 }
 
