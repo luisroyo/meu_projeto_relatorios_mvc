@@ -18,7 +18,6 @@ depends_on = None
 
 def upgrade():
     op.add_column('user', sa.Column('is_supervisor', sa.Boolean(), server_default='false', nullable=False))
-    op.add_column('user', sa.Column('is_admin', sa.Boolean(), server_default='false', nullable=False))
     op.add_column('user', sa.Column('date_registered', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True))
     op.add_column('user', sa.Column('last_login', sa.DateTime(timezone=True), nullable=True))
 
@@ -64,5 +63,4 @@ def downgrade():
 
     op.drop_column('user', 'last_login')
     op.drop_column('user', 'date_registered')
-    op.drop_column('user', 'is_admin')
     op.drop_column('user', 'is_supervisor')
