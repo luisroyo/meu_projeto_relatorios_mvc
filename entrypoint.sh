@@ -25,8 +25,6 @@ export FLASK_APP="app:create_app()"
 
 # Aplica migrations (assume que pasta migrations está aqui)
 # Tenta rodar o comando flask db upgrade
-echo "Marcando migração atual como head (para pular criação no Supabase já povoado)..."
-flask db stamp head -d migrations
 
 echo "Rodando flask db upgrade..."
 flask db upgrade -d migrations || {
