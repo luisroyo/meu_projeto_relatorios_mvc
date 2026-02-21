@@ -82,7 +82,7 @@
 
 {% block scripts %}
 <script>
-    const NODE_API_URL = 'http://localhost:3001/api/whatsapp';
+    const NODE_API_URL = '{{ whatsapp_service_url }}/api/whatsapp';
 
     function fetchStatus() {
         $('#loading-spinner').removeClass('d-none');

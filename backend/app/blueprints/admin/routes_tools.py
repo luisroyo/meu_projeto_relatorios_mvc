@@ -251,6 +251,9 @@ def gerador_justificativas_tool():
 @admin_required
 def whatsapp_config_tool():
     logger.info(f"Admin '{current_user.username}' acessou a configuração do WhatsApp.")
+    import os
+    whatsapp_url = os.environ.get('WHATSAPP_SERVICE_URL', 'http://localhost:3001')
     return render_template(
-        "admin/whatsapp_config.html", title="Conexão WhatsApp (Rondas)"
+        "admin/whatsapp_config.html", title="Conexão WhatsApp (Rondas)",
+        whatsapp_service_url=whatsapp_url
     )

@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Card, 
-  CardContent, 
-  Typography, 
-  Button, 
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
   CircularProgress,
   Alert,
   Paper
 } from '@mui/material';
-import { 
-  QrCodeScanner as QrCodeIcon, 
+import {
+  QrCodeScanner as QrCodeIcon,
   CheckCircle as CheckCircleIcon,
   Refresh as RefreshIcon,
   PhoneIphone as PhoneIcon,
@@ -20,7 +20,7 @@ import {
 import axios from 'axios';
 
 // Usaremos a URL base do Node.js e da API Python
-const WHATSAPP_API_URL = process.env.REACT_APP_WHATSAPP_API_URL || 'http://localhost:3001/api/whatsapp';
+const WHATSAPP_API_URL = process.env.REACT_APP_WHATSAPP_API_URL || 'https://gestao-seguranca-whatsapp.onrender.com/api/whatsapp';
 const PYTHON_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 interface WhatsAppGroup {
@@ -45,7 +45,7 @@ export const WhatsAppConfigPage: React.FC = () => {
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [condominios, setCondominios] = useState<Condominio[]>([]);
   const [loadingMapping, setLoadingMapping] = useState<boolean>(false);
-  const [mappingMessage, setMappingMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [mappingMessage, setMappingMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   const fetchStatus = async () => {
     setLoading(true);
@@ -110,18 +110,18 @@ export const WhatsAppConfigPage: React.FC = () => {
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
         }
       });
-      
-      setMappingMessage({type: 'success', text: 'Mapeamento salvo com sucesso!'});
+
+      setMappingMessage({ type: 'success', text: 'Mapeamento salvo com sucesso!' });
       setTimeout(() => setMappingMessage(null), 3000);
-      
+
       // Atualiza a UI local
-      setCondominios(prev => prev.map(c => 
+      setCondominios(prev => prev.map(c =>
         c.id === condominioId ? { ...c, whatsapp_group_id: groupId || null } : c
       ));
 
     } catch (err) {
       console.error('Erro ao salvar mapeamento:', err);
-      setMappingMessage({type: 'error', text: 'Erro ao salvar o mapeamento.'});
+      setMappingMessage({ type: 'error', text: 'Erro ao salvar o mapeamento.' });
     }
   };
 
@@ -149,9 +149,9 @@ export const WhatsAppConfigPage: React.FC = () => {
         <PhoneIcon fontSize="large" color="primary" />
         Conexão WhatsApp (Rondas)
       </Typography>
-      
+
       <Typography variant="body1" color="text.secondary" paragraph>
-        Conecte o número de telefone que participará dos grupos dos residenciais. 
+        Conecte o número de telefone que participará dos grupos dos residenciais.
         Este aparelho será responsável por monitorar as mensagens de rondas enviadas pelos supervisores.
       </Typography>
 
@@ -167,7 +167,7 @@ export const WhatsAppConfigPage: React.FC = () => {
 
       <Card elevation={3} sx={{ mt: 2, borderRadius: 2 }}>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 4 }}>
-          
+
           <Box sx={{ mb: 3 }}>
             {renderStatusIcon()}
           </Box>
@@ -182,12 +182,12 @@ export const WhatsAppConfigPage: React.FC = () => {
           {status === 'connected' && (
             <>
               <Typography variant="body2" color="text.secondary" align="center" paragraph>
-                O sistema já está monitorando ativamente os grupos e salvando as informações no banco de dados. 
+                O sistema já está monitorando ativamente os grupos e salvando as informações no banco de dados.
                 Você já pode utilizar a Correção Mágica de Rondas.
               </Typography>
-              <Button 
-                variant="outlined" 
-                color="error" 
+              <Button
+                variant="outlined"
+                color="error"
                 onClick={handleLogout}
                 disabled={loading}
                 sx={{ mt: 2 }}
@@ -204,21 +204,21 @@ export const WhatsAppConfigPage: React.FC = () => {
           )}
 
           {status === 'qr_ready' && (
-             <Box sx={{ textAlign: 'left', bgcolor: '#f5f5f5', p: 3, borderRadius: 2, maxWidth: 500 }}>
-               <Typography variant="subtitle2" fontWeight="bold" gutterBottom>Instruções:</Typography>
-               <ol style={{ paddingLeft: '20px', margin: 0 }}>
-                 <li>Abra o WhatsApp no seu celular</li>
-                 <li>Toque em Mais opções (três pontos) ou Configurações</li>
-                 <li>Toque em <b>Aparelhos conectados</b></li>
-                 <li>Toque em <b>Conectar um aparelho</b></li>
-                 <li>Aponte a tela do seu celular para esta tela para capturar o código</li>
-               </ol>
-             </Box>
+            <Box sx={{ textAlign: 'left', bgcolor: '#f5f5f5', p: 3, borderRadius: 2, maxWidth: 500 }}>
+              <Typography variant="subtitle2" fontWeight="bold" gutterBottom>Instruções:</Typography>
+              <ol style={{ paddingLeft: '20px', margin: 0 }}>
+                <li>Abra o WhatsApp no seu celular</li>
+                <li>Toque em Mais opções (três pontos) ou Configurações</li>
+                <li>Toque em <b>Aparelhos conectados</b></li>
+                <li>Toque em <b>Conectar um aparelho</b></li>
+                <li>Aponte a tela do seu celular para esta tela para capturar o código</li>
+              </ol>
+            </Box>
           )}
 
-          <Button 
-            startIcon={<RefreshIcon />} 
-            onClick={fetchStatus} 
+          <Button
+            startIcon={<RefreshIcon />}
+            onClick={fetchStatus}
             disabled={loading}
             sx={{ mt: 3 }}
           >
@@ -257,11 +257,11 @@ export const WhatsAppConfigPage: React.FC = () => {
             ) : (
               <Box>
                 {condominios.map((condominio) => (
-                  <Box key={condominio.id} sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  <Box key={condominio.id} sx={{
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'space-between',
-                    p: 2, 
+                    p: 2,
                     borderBottom: '1px solid #eee',
                     flexWrap: 'wrap',
                     gap: 2
@@ -269,21 +269,21 @@ export const WhatsAppConfigPage: React.FC = () => {
                     <Typography variant="subtitle1" fontWeight="bold" sx={{ width: { xs: '100%', sm: '30%' } }}>
                       {condominio.nome}
                     </Typography>
-                    
+
                     <Box sx={{ flexGrow: 1, minWidth: 200 }}>
-                      <select 
+                      <select
                         className="form-select"
-                        style={{ 
-                          width: '100%', 
-                          padding: '8px', 
+                        style={{
+                          width: '100%',
+                          padding: '8px',
                           borderRadius: '4px',
                           border: '1px solid #ccc'
                         }}
                         value={condominio.whatsapp_group_id || ''}
                         onChange={(e) => {
                           const val = e.target.value;
-                          setCondominios(prev => prev.map(c => 
-                            c.id === condominio.id ? {...c, whatsapp_group_id: val} : c
+                          setCondominios(prev => prev.map(c =>
+                            c.id === condominio.id ? { ...c, whatsapp_group_id: val } : c
                           ));
                         }}
                       >
@@ -296,8 +296,8 @@ export const WhatsAppConfigPage: React.FC = () => {
                       </select>
                     </Box>
 
-                    <Button 
-                      variant="contained" 
+                    <Button
+                      variant="contained"
                       color="primary"
                       size="small"
                       startIcon={<SaveIcon />}
@@ -310,9 +310,9 @@ export const WhatsAppConfigPage: React.FC = () => {
               </Box>
             )}
 
-            <Button 
-              startIcon={<RefreshIcon />} 
-              onClick={fetchMappingData} 
+            <Button
+              startIcon={<RefreshIcon />}
+              onClick={fetchMappingData}
               disabled={loadingMapping}
               sx={{ mt: 3 }}
             >
