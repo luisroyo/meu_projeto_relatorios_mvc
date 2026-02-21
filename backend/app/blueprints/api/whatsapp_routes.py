@@ -46,6 +46,8 @@ def receive_webhook():
 
     timestamp = data.get('timestamp')
     try:
+        if isinstance(timestamp, dict) and 'low' in timestamp:
+            timestamp = timestamp['low']  # protobuf Long object
         if isinstance(timestamp, (int, float)):
             dt = datetime.fromtimestamp(timestamp)
         else:

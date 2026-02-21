@@ -405,6 +405,8 @@ def processar_whatsapp_bd_ajax():
                     for msg_data in msgs_to_save:
                         ts = msg_data.get('timestamp')
                         try:
+                            if isinstance(ts, dict) and 'low' in ts:
+                                ts = ts['low']
                             dt = datetime.fromtimestamp(ts) if isinstance(ts, (int, float)) else datetime.now()
                         except Exception:
                             dt = datetime.now()

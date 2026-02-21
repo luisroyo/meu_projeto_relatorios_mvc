@@ -38,6 +38,15 @@ function bufferMessage(jid, msgPayload) {
     }
 }
 
+// Converte timestamp do Baileys (pode ser protobuf Long {low,high,unsigned} ou número) para Unix timestamp
+function normalizeTimestamp(ts) {
+    if (ts === null || ts === undefined) return Math.floor(Date.now() / 1000);
+    if (typeof ts === 'number') return ts;
+    if (typeof ts === 'object' && ts.low !== undefined) return ts.low;
+    if (typeof ts === 'string') return parseInt(ts, 10) || Math.floor(Date.now() / 1000);
+    return Math.floor(Date.now() / 1000);
+}
+
 async function connectToWhatsApp() {
     // Guard: evita múltiplas conexões simultâneas
     if (isConnecting) {
@@ -148,7 +157,7 @@ async function connectToWhatsApp() {
                     participant_id: participantJid,
                     push_name: pushName,
                     content: textMessage,
-                    timestamp: m.messageTimestamp
+                    timestamp: normalizeTimestamp(m.messageTimestamp)
                 };
 
                 // Sempre adicionar ao buffer local (funciona para histórico e tempo real)
@@ -190,7 +199,7 @@ async function connectToWhatsApp() {
                     participant_id: participantJid,
                     push_name: pushName,
                     content: textMessage,
-                    timestamp: m.messageTimestamp
+                    timestamp: normalizeTimestamp(m.messageTimestamp)
                 };
 
                 bufferMessage(remoteJid, payload);
