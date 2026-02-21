@@ -35,6 +35,8 @@ def upgrade():
     sa.PrimaryKeyConstraint('id')
     )
     op.add_column('user', sa.Column('is_approved', sa.Boolean(), server_default='false', nullable=False))
+    op.add_column('user', sa.Column('is_supervisor', sa.Boolean(), server_default='false', nullable=False))
+    op.add_column('user', sa.Column('is_admin', sa.Boolean(), server_default='false', nullable=False))
     op.add_column('whatsapp_message', sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True))
     op.create_table('vw_ocorrencias_detalhadas',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -89,4 +91,6 @@ def downgrade():
     op.drop_table('vw_colaboradores')
     op.drop_column('whatsapp_message', 'created_at')
     op.drop_column('user', 'is_approved')
+    op.drop_column('user', 'is_supervisor')
+    op.drop_column('user', 'is_admin')
     # ### end Alembic commands ###
