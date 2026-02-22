@@ -142,11 +142,19 @@ def registrar_ronda():
                         data_inicio = data_inicio.replace(hour=18, minute=0, second=0)
                         data_fim = (data_inicio + timedelta(days=1)).replace(hour=5, minute=59, second=59)
                     
-                    print(f"[DEBUG] Processando arquivo: {file_path}")
-                    print(f"[DEBUG] Período: {data_inicio} até {data_fim}")
+                    # Converter as datas de filtro (que representam horário de Brasília) para UTC para buscar no arquivo e banco de modo igual se o parse for UTC
+                    from app.utils.date_utils import get_local_tz
+                    import pytz
+                    local_tz = get_local_tz()
                     
-                    # Processa mensagens do período
-                    plantoes = processor.process_file(file_path, data_inicio, data_fim)
+                    data_inicio_utc = local_tz.localize(data_inicio).astimezone(pytz.utc)
+                    data_fim_utc = local_tz.localize(data_fim).astimezone(pytz.utc)
+                    
+                    print(f"[DEBUG] Processando arquivo: {file_path}")
+                    print(f"[DEBUG] Período: {data_inicio_utc} até {data_fim_utc}")
+                    
+                    # Processa mensagens do período usando as datas em UTC para serem justas com o format do BD
+                    plantoes = processor.process_file(file_path, data_inicio_utc, data_fim_utc)
                     
                     print(f"[DEBUG] Plantões encontrados: {len(plantoes) if plantoes else 0}")
                     
@@ -327,6 +335,15 @@ def processar_whatsapp_ajax():
         else:  # 18h às 06h
             data_inicio = data_dt.replace(hour=18, minute=0, second=0)
             data_fim = (data_dt + timedelta(days=1)).replace(hour=5, minute=59, second=59)
+            
+        # Converter as datas de filtro (que representam horário de Brasília) para UTC para buscar no banco
+        from app.utils.date_utils import get_local_tz
+        import pytz
+        local_tz = get_local_tz()
+        
+        # Localiza o datetime ingênuo e depois converte a mesma representação de tempo para a escala UTC
+        data_inicio_utc = local_tz.localize(data_inicio).astimezone(pytz.utc)
+        data_fim_utc = local_tz.localize(data_fim).astimezone(pytz.utc)
         
         print(f"[DEBUG AJAX] Processando arquivo: {file_path}")
         print(f"[DEBUG AJAX] Período: {data_inicio} até {data_fim}")
@@ -389,7 +406,16 @@ def processar_whatsapp_bd_ajax():
             data_inicio = data_dt.replace(hour=18, minute=0, second=0)
             data_fim = (data_dt + timedelta(days=1)).replace(hour=5, minute=59, second=59)
             
-        # --- Auto-Sync: tenta puxar mensagens do buffer do Node antes de buscar no BD ---
+        # Converter as datas de filtro (que representam horário de Brasília) para UTC para buscar no banco
+        from app.utils.date_utils import get_local_tz
+        import pytz
+        local_tz = get_local_tz()
+        
+        # Localiza o datetime ingênuo e depois converte a mesma representação de tempo para a escala UTC
+        data_inicio_utc = local_tz.localize(data_inicio).astimezone(pytz.utc)
+        data_fim_utc = local_tz.localize(data_fim).astimezone(pytz.utc)
+        
+        # Opcional (se tiver auto-sync ativado)...
         if condominio.whatsapp_group_id:
             try:
                 import requests as req_lib
@@ -404,12 +430,13 @@ def processar_whatsapp_bd_ajax():
                     msgs_to_save = sync_data.get('messages', [])
                     for msg_data in msgs_to_save:
                         ts = msg_data.get('timestamp')
+                        from datetime import timezone
                         try:
                             if isinstance(ts, dict) and 'low' in ts:
                                 ts = ts['low']
-                            dt = datetime.fromtimestamp(ts) if isinstance(ts, (int, float)) else datetime.now()
+                            dt = datetime.fromtimestamp(ts, tz=timezone.utc) if isinstance(ts, (int, float)) else datetime.now(timezone.utc)
                         except Exception:
-                            dt = datetime.now()
+                            dt = datetime.now(timezone.utc)
                         exists = WhatsAppMessage.query.filter_by(message_id=msg_data.get('message_id')).first()
                         if not exists:
                             db.session.add(WhatsAppMessage(
@@ -426,11 +453,11 @@ def processar_whatsapp_bd_ajax():
                 logger.warning(f"Sync do Node falhou (não fatal): {sync_err}")
         # --- Fim do Auto-Sync ---
             
-        # Buscar mensagens na tabela WhatsAppMessage
+        # Buscar mensagens na tabela WhatsAppMessage usando UTC
         messages = WhatsAppMessage.query.filter(
             WhatsAppMessage.condominio_id == condominio_id,
-            WhatsAppMessage.timestamp >= data_inicio,
-            WhatsAppMessage.timestamp <= data_fim
+            WhatsAppMessage.timestamp >= data_inicio_utc,
+            WhatsAppMessage.timestamp <= data_fim_utc
         ).order_by(WhatsAppMessage.timestamp.asc()).all()
         
         if not messages:
