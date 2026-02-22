@@ -44,16 +44,18 @@ def receive_webhook():
         # Por segurança, retornamos 200 pra ele não ficar tentando reenviar.
         return jsonify({"status": "ignored", "reason": "unlinked_group"}), 200
 
+    from datetime import timezone
     timestamp = data.get('timestamp')
     try:
         if isinstance(timestamp, dict) and 'low' in timestamp:
             timestamp = timestamp['low']  # protobuf Long object
         if isinstance(timestamp, (int, float)):
-            dt = datetime.fromtimestamp(timestamp)
+            # Create a UTC tz-aware datetime from the Unix epoch
+            dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
         else:
-             dt = datetime.now() # Fallback
+             dt = datetime.now(timezone.utc) # Fallback
     except Exception:
-        dt = datetime.now()
+        dt = datetime.now(timezone.utc)
 
     try:
         new_msg = WhatsAppMessage(
@@ -114,16 +116,17 @@ def sync_historical():
         messages_data = result.get('messages', [])
         saved_count = 0
         
+        from datetime import timezone
         for msg_data in messages_data:
             # Tentar processar timestamp
             timestamp = msg_data.get('timestamp')
             try:
                 if isinstance(timestamp, (int, float)):
-                    dt = datetime.fromtimestamp(timestamp)
+                    dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
                 else:
-                     dt = datetime.now()
+                     dt = datetime.now(timezone.utc)
             except Exception:
-                dt = datetime.now()
+                dt = datetime.now(timezone.utc)
 
             # Evita duplicatas pelo message_id que é único na tabela
             exists = WhatsAppMessage.query.filter_by(message_id=msg_data.get('message_id')).first()
@@ -201,10 +204,22 @@ def processar_mensagens():
 
     # Formatar mensagens como Log de texto
     log_lines = []
+    
+    from app.utils.date_utils import get_local_tz
+    local_tz = get_local_tz()
+    
     for msg in messages:
+        # Converter UTC para timezone local antes de formatar
+        local_dt = msg.timestamp
+        if local_dt.tzinfo:
+            local_dt = local_dt.astimezone(local_tz)
+        else:
+            import pytz
+            local_dt = pytz.utc.localize(local_dt).astimezone(local_tz)
+            
         # Formato compatível com o parser: [18:30, 01/01/2026] Nome: texto
-        time_str = msg.timestamp.strftime('%H:%M')
-        date_str = msg.timestamp.strftime('%d/%m/%Y')
+        time_str = local_dt.strftime('%H:%M')
+        date_str = local_dt.strftime('%d/%m/%Y')
         author = msg.push_name or msg.participant_jid
         log_lines.append(f"[{time_str}, {date_str}] {author}: {msg.content}")
 

@@ -441,9 +441,21 @@ def processar_whatsapp_bd_ajax():
             
         # Formatar mensagens como Log de texto
         log_lines = []
+        
+        from app.utils.date_utils import get_local_tz
+        local_tz = get_local_tz()
+        
         for msg in messages:
-            time_str = msg.timestamp.strftime('%H:%M')
-            date_str = msg.timestamp.strftime('%d/%m/%Y')
+            # Converter de UTC para o timezone local
+            local_dt = msg.timestamp
+            if local_dt.tzinfo:
+                local_dt = local_dt.astimezone(local_tz)
+            else:
+                import pytz
+                local_dt = pytz.utc.localize(local_dt).astimezone(local_tz)
+
+            time_str = local_dt.strftime('%H:%M')
+            date_str = local_dt.strftime('%d/%m/%Y')
             author = msg.push_name or msg.participant_jid
             content = msg.content.replace('\n', ' ')
             log_lines.append(f"[{time_str}, {date_str}] {author}: {content}")
