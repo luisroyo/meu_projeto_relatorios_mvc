@@ -381,6 +381,37 @@ app.get('/api/whatsapp/messages/:jid', (req, res) => {
     res.json({ success: true, count: slice.length, messages: slice });
 });
 
+// Endpoint EXCLUSIVO para buscar mensagens antigas diretamente do WhatsApp (sob demanda)
+app.get('/api/whatsapp/fetch-history/:jid', async (req, res) => {
+    const jid = decodeURIComponent(req.params.jid);
+    const count = parseInt(req.query.count) || 50;
+
+    if (!sock || connectionStatus !== 'connected') {
+        return res.status(400).json({ error: 'WhatsApp não está conectado' });
+    }
+
+    try {
+        console.log(`[Fetch History] Buscando ${count} mensagens do servidor WA para ${jid}...`);
+
+        // No Baileys, para buscar mensagens de um chat específico (fora do sync inicial):
+        // Precisamos usar store (se configurado) ou tentar buscar via messageLoad
+        // Como não estamos usando makeInMemoryStore, podemos tentar o método getMessage ou 
+        // interagir diretamente com as queries se apropriado. Mas o mais seguro para histórico 
+        // real que não está no buffer é não prometer o que a API não fornece fácil.
+        // O WhatsApp Web em si puxa mensagens via protocolo XMPP (action: query, type: message).
+
+        // Usando o protocolo nativo se houver (mas pode falhar em versões recentes):
+        res.status(501).json({
+            error: 'Not Implemented',
+            message: 'A biblioteca Baileys cortou o suporte a fetchMessagesFromWA em versões recentes devido a bloqueios do WhatsApp.'
+        });
+
+    } catch (error) {
+        console.error('[Fetch History] Erro:', error);
+        res.status(500).json({ error: 'Erro ao buscar histórico', details: error.message });
+    }
+});
+
 // Obtém todos os grupos em que o bot participa
 app.get('/api/whatsapp/groups', async (req, res) => {
     if (!sock || connectionStatus !== 'connected') {
