@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { default: makeWASocket, DisconnectReason, useMultiFileAuthState } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, Browsers } = require('@whiskeysockets/baileys');
 const { usePostgresAuthState } = require('./db-auth-state');
 const { Boom } = require('@hapi/boom');
 const qrcode = require('qrcode');
@@ -87,7 +87,7 @@ async function connectToWhatsApp() {
         sock = makeWASocket({
             auth: authState,
             logger,
-            browser: ['Ubuntu', 'Chrome', '20.0.04'],
+            browser: Browsers.macOS('Desktop'),
             syncFullHistory: true,
             connectTimeoutMs: 60000,
             defaultQueryTimeoutMs: 0,
@@ -118,23 +118,30 @@ async function connectToWhatsApp() {
 
                 const error = lastDisconnect?.error;
                 const statusCode = error?.output?.statusCode;
-                const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+                const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
                 const isConflict = statusCode === 440;
 
                 lastError = error ? (error.stack || error.message || JSON.stringify(error)) : 'Desconexão desconhecida';
                 console.log(`[Conexão] Fechada. Status: ${statusCode}, LoggedOut: ${isLoggedOut}, Conflict: ${isConflict}, Erro: ${lastError}`);
 
                 if (isLoggedOut) {
-                    console.log('[Conexão] Deslogado. Necessário escanear novo QR Code.');
+                    console.log('[Conexão] Deslogado. Limpando sessão antiga e aguardando novo scan...');
+                    if (globalClearSession) {
+                        try { globalClearSession(); } catch (e) { }
+                    }
                     connectionStatus = 'disconnected';
+                    // Tenta reconectar limpo após 2s
+                    setTimeout(() => connectToWhatsApp(), 2000);
                 } else if (isConflict) {
                     console.log('[Conexão] Conflito detectado. Aguardando 10s antes de reconectar...');
                     connectionStatus = 'reconnecting';
                     setTimeout(() => connectToWhatsApp(), 10000);
                 } else {
-                    console.log('[Conexão] Reconectando em 3s...');
+                    const isConnFailure = lastError && lastError.includes('Connection Failure');
+                    const waitTime = isConnFailure ? 10000 : 3000;
+                    console.log(`[Conexão] Reconectando em ${waitTime / 1000}s...`);
                     connectionStatus = 'reconnecting';
-                    setTimeout(() => connectToWhatsApp(), 3000);
+                    setTimeout(() => connectToWhatsApp(), waitTime);
                 }
             } else if (connection === 'open') {
                 console.log('✅ WhatsApp Conectado com Sucesso!');
