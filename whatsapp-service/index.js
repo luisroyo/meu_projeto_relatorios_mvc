@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, Browsers } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, Browsers, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const { usePostgresAuthState } = require('./db-auth-state');
 const { Boom } = require('@hapi/boom');
 const qrcode = require('qrcode');
@@ -84,7 +84,18 @@ async function connectToWhatsApp() {
         globalClearSession = clearSession;
         const logger = pino({ level: 'silent' });
 
+        // Tenta buscar a versão mais recente do WA Web, usa fallback se falhar
+        let waVersion = [2, 3000, 1015901307];
+        try {
+            const { version, isLatest } = await fetchLatestBaileysVersion();
+            if (version) waVersion = version;
+            console.log(`[WhatsApp] Usando WA versão: ${waVersion.join('.')} (isLatest: ${isLatest})`);
+        } catch (e) {
+            console.error('[WhatsApp] Erro ao buscar versão, usando fallback:', e.message);
+        }
+
         sock = makeWASocket({
+            version: waVersion,
             auth: authState,
             logger,
             browser: Browsers.macOS('Desktop'),
@@ -93,6 +104,7 @@ async function connectToWhatsApp() {
             defaultQueryTimeoutMs: 0,
             keepAliveIntervalMs: 10000,
             emitOwnEvents: true,
+            markOnlineOnConnect: true
         });
 
         const currentSock = sock;
