@@ -20,6 +20,7 @@ let currentQR = null;
 let connectionStatus = 'initializing';
 let globalClearSession = null; // Será definido em connectToWhatsApp
 let isConnecting = false; // Guard contra reconexões simultâneas
+let lastError = null; // Armazena o último erro de conexão
 
 // Buffer simples de mensagens por grupo (Map: jid -> array de msgs)
 // Guarda as últimas 500 mensagens por grupo em memória
@@ -90,9 +91,12 @@ async function connectToWhatsApp() {
             syncFullHistory: true,
         });
 
+        const currentSock = sock;
+
         sock.ev.on('creds.update', saveCreds);
 
         sock.ev.on('connection.update', (update) => {
+            if (sock !== currentSock) return;
             const { connection, lastDisconnect, qr } = update;
 
             if (qr) {
@@ -113,7 +117,8 @@ async function connectToWhatsApp() {
                 const isLoggedOut = statusCode === DisconnectReason.loggedOut;
                 const isConflict = statusCode === 440;
 
-                console.log(`[Conexão] Fechada. Status: ${statusCode}, LoggedOut: ${isLoggedOut}, Conflict: ${isConflict}`);
+                lastError = error ? (error.message || JSON.stringify(error)) : 'Desconexão desconhecida';
+                console.log(`[Conexão] Fechada. Status: ${statusCode}, LoggedOut: ${isLoggedOut}, Conflict: ${isConflict}, Erro: ${lastError}`);
 
                 if (isLoggedOut) {
                     console.log('[Conexão] Deslogado. Necessário escanear novo QR Code.');
@@ -137,6 +142,7 @@ async function connectToWhatsApp() {
 
         // Escutar por novas mensagens e também mensagens históricas (type='append')
         sock.ev.on('messages.upsert', async ({ messages, type }) => {
+            if (sock !== currentSock) return;
             for (const m of messages) {
                 if (!m.message) continue;
 
@@ -181,6 +187,7 @@ async function connectToWhatsApp() {
 
         // Captura mensagens históricas sincronizadas pelo WhatsApp ao conectar
         sock.ev.on('messaging-history.set', async ({ messages: histMessages }) => {
+            if (sock !== currentSock) return;
             const groupMsgs = [];
             for (const m of histMessages) {
                 if (!m.message) continue;
@@ -304,8 +311,15 @@ app.get('/', (req, res) => {
                     if (statusName === 'reconnecting') statusName = '🔄 Reconectando...';
                     else if (statusName === 'initializing') statusName = '⏳ Inicializando...';
                     else if (statusName === 'disconnected') statusName = '❌ Desconectado';
+                    
+                    let errorHtml = '';
+                    if (d.error && statusName !== '❌ Desconectado') {
+                        errorHtml = '<div style="background:#451a1a; color:#fca5a5; padding:8px; border-radius:8px; font-size:0.8rem; margin-top:10px; text-align:left; word-wrap: break-word;"><strong>Último Erro:</strong> ' + d.error + '</div>';
+                    }
+
                     el.innerHTML = '<div class="status ' + d.status + '">' + statusName + '</div>' +
                         '<p class="msg">Aguardando conexão com o WhatsApp...</p>' +
+                        errorHtml +
                         '<br><button class="btn btn-danger" onclick="resync()">🛑 Parar e Tentar Novamente</button>';
                 }
             } catch(e) { console.error(e); }
@@ -329,7 +343,8 @@ app.get('/', (req, res) => {
 app.get('/api/whatsapp/status', (req, res) => {
     res.json({
         status: connectionStatus,
-        qr: currentQR
+        qr: currentQR,
+        error: lastError
     });
 });
 
