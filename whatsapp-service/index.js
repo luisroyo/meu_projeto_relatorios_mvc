@@ -117,6 +117,7 @@ async function connectToWhatsApp() {
 
                 if (isLoggedOut) {
                     console.log('[Conexão] Deslogado. Necessário escanear novo QR Code.');
+                    connectionStatus = 'disconnected';
                 } else if (isConflict) {
                     console.log('[Conexão] Conflito detectado. Aguardando 10s antes de reconectar...');
                     connectionStatus = 'reconnecting';
@@ -296,15 +297,21 @@ app.get('/', (req, res) => {
                 } else if (d.status === 'qr_ready' && d.qr) {
                     el.innerHTML = '<div class="status qr_ready">📷 Aguardando scan</div>' +
                         '<br><img id="qr-img" src="' + d.qr + '" alt="QR Code">' +
-                        '<p class="msg">Abra o WhatsApp → Dispositivos Conectados → Escanear</p>';
+                        '<p class="msg">Abra o WhatsApp → Dispositivos Conectados → Escanear</p>' +
+                        '<br><button class="btn btn-danger" onclick="resync()">🛑 Cancelar / Tentar Novamente</button>';
                 } else {
-                    el.innerHTML = '<div class="status ' + d.status + '">' + d.status + '</div>' +
-                        '<p class="msg">Aguardando conexão...</p>';
+                    let statusName = d.status;
+                    if (statusName === 'reconnecting') statusName = '🔄 Reconectando...';
+                    else if (statusName === 'initializing') statusName = '⏳ Inicializando...';
+                    else if (statusName === 'disconnected') statusName = '❌ Desconectado';
+                    el.innerHTML = '<div class="status ' + d.status + '">' + statusName + '</div>' +
+                        '<p class="msg">Aguardando conexão com o WhatsApp...</p>' +
+                        '<br><button class="btn btn-danger" onclick="resync()">🛑 Parar e Tentar Novamente</button>';
                 }
             } catch(e) { console.error(e); }
         }
         async function resync() {
-            if (!confirm('Isso vai desconectar o WhatsApp e gerar um novo QR Code para sincronizar o histórico. Continuar?')) return;
+            if (!confirm('Isso vai desconectar o WhatsApp, limpar os dados da sessão e gerar um novo QR Code. Continuar?')) return;
             try {
                 const r = await fetch('/api/whatsapp/resync', { method: 'POST' });
                 const d = await r.json();
@@ -339,26 +346,36 @@ app.post('/api/whatsapp/logout', async (req, res) => {
     }
 });
 
-// Endpoint para forçar re-sync: limpa sessão e reconecta para puxar histórico
 app.post('/api/whatsapp/resync', async (req, res) => {
     try {
         console.log('[Resync] Iniciando re-sincronização forçada...');
         // 1. Desconecta o socket atual
         if (sock) {
-            sock.end(undefined);
+            try { sock.end(undefined); } catch (e) { }
+            sock = null;
         }
         // 2. Limpa a sessão no banco
         if (globalClearSession) {
             await globalClearSession();
             console.log('[Resync] Sessão limpa do banco.');
+        } else {
+            const fs = require('fs');
+            const path = require('path');
+            const dir = 'auth_info_baileys';
+            if (fs.existsSync(dir)) {
+                fs.readdirSync(dir).forEach(f => {
+                    try { fs.unlinkSync(path.join(dir, f)); } catch (e) { }
+                });
+            }
         }
         // 3. Limpa buffers
         messageBuffer.clear();
         // 4. Reconecta (vai gerar novo QR Code e sincronizar histórico)
         connectionStatus = 'initializing';
         currentQR = null;
+        isConnecting = false;
         setTimeout(() => connectToWhatsApp(), 1000);
-        res.json({ success: true, message: 'Re-sync iniciado! Escaneie o novo QR Code para sincronizar o histórico.' });
+        res.json({ success: true, message: 'Re-sync iniciado! Parando conexões ativas e limpando sessão. Aguarde para novo QR Code.' });
     } catch (error) {
         console.error('[Resync] Erro:', error);
         res.status(500).json({ success: false, error: error.message });
