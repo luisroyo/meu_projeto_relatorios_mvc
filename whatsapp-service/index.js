@@ -87,8 +87,12 @@ async function connectToWhatsApp() {
         sock = makeWASocket({
             auth: authState,
             logger,
-            browser: ['GestaoSeguranca', 'Desktop', '10.0'],
+            browser: ['Ubuntu', 'Chrome', '20.0.04'],
             syncFullHistory: true,
+            connectTimeoutMs: 60000,
+            defaultQueryTimeoutMs: 0,
+            keepAliveIntervalMs: 10000,
+            emitOwnEvents: true,
         });
 
         const currentSock = sock;
@@ -117,7 +121,7 @@ async function connectToWhatsApp() {
                 const isLoggedOut = statusCode === DisconnectReason.loggedOut;
                 const isConflict = statusCode === 440;
 
-                lastError = error ? (error.message || JSON.stringify(error)) : 'Desconexão desconhecida';
+                lastError = error ? (error.stack || error.message || JSON.stringify(error)) : 'Desconexão desconhecida';
                 console.log(`[Conexão] Fechada. Status: ${statusCode}, LoggedOut: ${isLoggedOut}, Conflict: ${isConflict}, Erro: ${lastError}`);
 
                 if (isLoggedOut) {
