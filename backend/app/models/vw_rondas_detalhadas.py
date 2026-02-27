@@ -1,4 +1,5 @@
 from app import db
+from sqlalchemy.orm import deferred
 
 class VWRondasDetalhadas(db.Model):
     """View para rondas com informações detalhadas."""
@@ -39,8 +40,8 @@ class VWRondasDetalhadas(db.Model):
     ultimo_evento_log_dt = db.Column(db.DateTime)
     
     # Status e processamento
-    relatorio_processado = db.Column(db.Text)
-    log_ronda_bruto = db.Column(db.Text)
+    relatorio_processado = deferred(db.Column(db.Text))
+    log_ronda_bruto = deferred(db.Column(db.Text))
     
     # Campos calculados (se necessário)
     duracao_horas = db.Column(db.Float)  # duracao_total_rondas_minutos / 60

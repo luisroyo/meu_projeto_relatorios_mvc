@@ -49,11 +49,11 @@ class Config:
         }
     else:
         SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_size': 1,          # REDUZIDO de 10 para 1
-            'pool_timeout': 10,      # REDUZIDO de 20 para 10
-            'pool_recycle': 1800,    # REDUZIDO de 3600 para 1800 (30 min)
-            'pool_pre_ping': False,  # DESABILITADO para economizar DB
-            'max_overflow': 2,       # REDUZIDO de 20 para 2
+            'pool_size': 5,          # Restored for performance
+            'pool_timeout': 10,      
+            'pool_recycle': 1800,    
+            'pool_pre_ping': True,   # Enabled for reliability
+            'max_overflow': 10,      # Restored for performance
         }
 
 
@@ -171,29 +171,29 @@ class ProductionConfig(Config):
             }
         }
     elif "neon.tech" in database_url:
-        # Configurações ULTRA OTIMIZADAS para Neon (máxima economia de DB)
+        # Performance mode for Neon
         SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_size': 1,          # REDUZIDO para 1 conexão
-            'pool_timeout': 30,      # REDUZIDO para 30 segundos
-            'pool_recycle': 600,     # REDUZIDO para 10 minutos
-            'pool_pre_ping': False,  # DESABILITADO para economizar DB
-            'max_overflow': 1,       # REDUZIDO para 1 conexão extra
+            'pool_size': 5,
+            'pool_timeout': 30,
+            'pool_recycle': 600,
+            'pool_pre_ping': True,
+            'max_overflow': 10,
             'connect_args': {
                 'connect_timeout': 10,
-                'application_name': 'gestao_seguranca_app_neon_eco',
+                'application_name': 'gestao_seguranca_app_neon',
             }
         }
     else:
-        # Configurações ULTRA OTIMIZADAS para produção (máxima economia de DB)
+        # Performance mode for production
         SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_size': 1,          # REDUZIDO para 1 conexão
-            'pool_timeout': 20,      # REDUZIDO para 20 segundos
-            'pool_recycle': 900,     # REDUZIDO para 15 minutos
-            'pool_pre_ping': False,  # DESABILITADO para economizar DB
-            'max_overflow': 1,       # REDUZIDO para 1 conexão extra
+            'pool_size': 5,
+            'pool_timeout': 20,
+            'pool_recycle': 900,
+            'pool_pre_ping': True,
+            'max_overflow': 10,
             'connect_args': {
                 'connect_timeout': 8,
-                'application_name': 'gestao_seguranca_app_eco',
+                'application_name': 'gestao_seguranca_app',
             }
         }
     

@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime, timezone
+from sqlalchemy.orm import deferred
 
 class Ronda(db.Model):
     """Modelo de registro de ronda (patrulha)."""
@@ -11,8 +12,8 @@ class Ronda(db.Model):
         default=lambda: datetime.now(timezone.utc),
     )
     data_hora_fim = db.Column(db.DateTime(timezone=True), nullable=True)
-    log_ronda_bruto = db.Column(db.Text, nullable=False)
-    relatorio_processado = db.Column(db.Text, nullable=True)
+    log_ronda_bruto = deferred(db.Column(db.Text, nullable=False))
+    relatorio_processado = deferred(db.Column(db.Text, nullable=True))
     condominio_id = db.Column(
         db.Integer, db.ForeignKey("condominio.id"), nullable=False, index=True
     )

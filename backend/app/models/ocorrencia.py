@@ -1,6 +1,7 @@
 from app import db
 from sqlalchemy import func
 from datetime import datetime, timezone
+from sqlalchemy.orm import deferred
 
 ocorrencia_orgaos = db.Table(
     "ocorrencia_orgaos",
@@ -29,7 +30,7 @@ class Ocorrencia(db.Model):
     """Modelo de ocorrência (incidente registrado)."""
     __tablename__ = "ocorrencia"
     id = db.Column(db.Integer, primary_key=True)
-    relatorio_final = db.Column(db.Text, nullable=False)
+    relatorio_final = deferred(db.Column(db.Text, nullable=False))
     data_hora_ocorrencia = db.Column(
         db.DateTime(timezone=True),
         nullable=False,

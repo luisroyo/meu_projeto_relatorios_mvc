@@ -1,4 +1,5 @@
 from app import db
+from sqlalchemy.orm import deferred
 
 class VWOcorrenciasDetalhadas(db.Model):
     __tablename__ = 'vw_ocorrencias_detalhadas'
@@ -12,4 +13,4 @@ class VWOcorrenciasDetalhadas(db.Model):
     condominio = db.Column(db.String)
     registrado_por = db.Column(db.String)
     supervisor = db.Column(db.String)
-    relatorio_final = db.Column(db.Text) 
+    relatorio_final = deferred(db.Column(db.Text)) 
