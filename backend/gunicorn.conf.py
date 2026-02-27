@@ -28,8 +28,9 @@ worker_tmp_dir = "/dev/shm"  # Usa memória para arquivos temporários
 
 # Configurações específicas para Render
 if os.getenv("RENDER"):
-    # Configurações otimizadas para Render
-    workers = 2
-    worker_class = "sync"
+    # Configurações otimizadas para Render (Plano gratuito tem apenas 512MB RAM)
+    workers = 1
+    threads = 2
+    worker_class = "gthread"
     timeout = 120
     keepalive = 5
