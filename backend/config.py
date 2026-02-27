@@ -151,17 +151,8 @@ class ProductionConfig(Config):
     if database_url and database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
     
-    # Adiciona parâmetros SSL para PostgreSQL no Render
-    if "render.com" in database_url or "onrender.com" in database_url:
-        # Configurações específicas para Render
-        if "?" not in database_url:
-            database_url += "?sslmode=require"
-        else:
-            database_url += "&sslmode=require"
-    
-    # Configurações específicas para Neon
-    if "neon.tech" in database_url:
-        # Configurações otimizadas para Neon (auto-suspension)
+    # Adiciona parâmetros SSL genéricos (se já não estiver na URL)
+    if "sslmode=require" not in database_url and "sqlite" not in database_url:
         if "?" not in database_url:
             database_url += "?sslmode=require"
         else:
