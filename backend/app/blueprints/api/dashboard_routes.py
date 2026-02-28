@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func, desc
 
-from app import db
+from app import db, cache
 from app.models import Ocorrencia, Ronda, User, Condominio
 from app.blueprints.api.utils import success_response, error_response
 
@@ -53,6 +53,7 @@ def test_public():
 
 @dashboard_api_bp.route('/stats', methods=['GET'])
 @jwt_required()
+@cache.cached(timeout=300, key_prefix='dashboard_stats')
 def get_dashboard_stats():
     """Obter estatísticas gerais do dashboard."""
     try:

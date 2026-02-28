@@ -268,15 +268,11 @@ def create_app(config_class=DevelopmentConfig):
             'code': 'DB_DISCONNECTION'
         }), 503
 
-    # Fecha a sessão ao final de cada request para ECONOMIZAR DB
+    # Fecha a sessão ao final de cada request (devolve a conexão ao pool)
     @app.teardown_appcontext
     def shutdown_session(exception=None):
         try:
-            # SEMPRE fecha a sessão para economizar horas de DB
             db.session.remove()
-            # Força fechamento da conexão para economizar DB
-            if hasattr(db.engine, 'dispose'):
-                db.engine.dispose()
         except Exception as e:
             module_logger.error(f"Erro ao encerrar sessão do DB no teardown: {e}")
 
@@ -288,10 +284,12 @@ def create_app(config_class=DevelopmentConfig):
             from flask_login import current_user, logout_user
             from datetime import datetime, timezone, timedelta
 
-            # Ignora estáticos, preflight e APIs para economizar DB
+            # Ignora estáticos, preflight, APIs e paths leves
             if (request.method == 'OPTIONS' or 
                 (request.endpoint and 'static' in request.endpoint) or
-                request.path.startswith('/api/')):
+                request.path.startswith('/api/') or
+                request.path in ('/favicon.ico', '/manifest.json', '/sw.js') or
+                request.path.startswith('/uptime')):
                 return
 
             if not current_user.is_authenticated:

@@ -33,4 +33,5 @@ if os.getenv("RENDER"):
     threads = 2
     worker_class = "gthread"
     timeout = 120
-    keepalive = 5
+    keepalive = 10
+    graceful_timeout = 30
