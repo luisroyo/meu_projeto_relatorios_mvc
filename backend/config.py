@@ -188,12 +188,16 @@ class ProductionConfig(Config):
         SQLALCHEMY_ENGINE_OPTIONS = {
             'pool_size': 5,
             'pool_timeout': 20,
-            'pool_recycle': 900,
+            'pool_recycle': 280,  # Recicla conexões antes que o NAT do Render as derrube silenciosamente (que causa timeout de 60s)
             'pool_pre_ping': True,
             'max_overflow': 10,
             'connect_args': {
                 'connect_timeout': 8,
                 'application_name': 'gestao_seguranca_app',
+                'keepalives': 1,
+                'keepalives_idle': 30,
+                'keepalives_interval': 10,
+                'keepalives_count': 5
             }
         }
     
