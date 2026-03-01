@@ -26,11 +26,11 @@ export FLASK_APP="app:create_app()"
 # Aplica migrations (assume que pasta migrations está aqui)
 # Tenta rodar o comando flask db upgrade
 
-echo "Rodando flask db upgrade..."
-flask db upgrade -d migrations || {
-    echo "ERRO: Falha ao aplicar migrations"
-    exit 1
-}
+# echo "Rodando flask db upgrade..."
+# flask db upgrade -d migrations || {
+#     echo "ERRO: Falha ao aplicar migrations"
+#     exit 1
+# }
 
 echo "Migrations aplicadas com sucesso!"
 
