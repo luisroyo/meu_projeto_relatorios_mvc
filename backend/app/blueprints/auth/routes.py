@@ -67,21 +67,20 @@ def login():
 
             login_user(user, remember=form.remember.data)
             session.permanent = True  # Garante expiração por inatividade
-            # Reinicia marcador de atividade para evitar expirar logo após login
             session['last_seen_utc'] = datetime.now(timezone.utc).isoformat()
             login_success = True
             user.last_login = datetime.now(timezone.utc)
-            db.session.commit()  # Garante que o last_login seja salvo imediatamente
+            # Registra login no mesmo commit que last_login (1 round-trip ao DB)
+            _registrar_login(user, True, request, None)
             flash(f"Bem-vindo, {user.username}!", "success")
         else:
             flash("Login falhou. Verifique email e senha.", "danger")
-
-        _registrar_login(
-            user,
-            login_success,
-            request,
-            None if login_success else "Credenciais inválidas",
-        )
+            _registrar_login(
+                user,
+                False,
+                request,
+                "Credenciais inválidas",
+            )
 
         if login_success:
             next_page = request.args.get("next")
@@ -156,7 +155,7 @@ def logout():
 def _registrar_login(
     user: User | None, sucesso: bool, req, motivo_falha: str | None
 ) -> None:
-    """Registra tentativa de login no histórico."""
+    """Registra tentativa de login no histórico e faz commit único."""
     try:
         log = LoginHistory(  # type: ignore
             user_id=user.id if user else None,
@@ -168,7 +167,7 @@ def _registrar_login(
             failure_reason=motivo_falha,
         )
         db.session.add(log)
-        db.session.commit()
+        db.session.commit()  # Commit único (inclui last_login se login bem-sucedido)
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Erro ao registrar tentativa de login: {e}")

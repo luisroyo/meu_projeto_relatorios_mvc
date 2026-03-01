@@ -16,16 +16,7 @@ function getCachedElement(key) {
   if (!DOMCache.has(key)) {
     DOMCache.set(key, DOMElements[key]);
   }
-  const element = DOMCache.get(key);
-  
-  // Log para debug
-  if (!element) {
-    console.warn(`getCachedElement: Elemento não encontrado para chave: ${key}`);
-    console.warn(`getCachedElement: DOMElements[${key}]:`, DOMElements[key]);
-    console.warn(`getCachedElement: DOMElements disponíveis:`, Object.keys(DOMElements));
-  }
-  
-  return element;
+  return DOMCache.get(key) || null;
 }
 
 // Função para inicializar botões com HTML inicial
@@ -70,7 +61,7 @@ function setupEventListeners() {
   // Botão WhatsApp padrão
   const btnEnviarWhatsAppResultado = getCachedElement('btnEnviarWhatsAppResultado');
   if (btnEnviarWhatsAppResultado) {
-    btnEnviarWhatsAppResultado.addEventListener("click", () => 
+    btnEnviarWhatsAppResultado.addEventListener("click", () =>
       handleSendToWhatsApp("standard")
     );
     btnEnviarWhatsAppResultado.style.display = "none";
@@ -79,7 +70,7 @@ function setupEventListeners() {
   // Botão WhatsApp email
   const btnEnviarWhatsAppEmail = getCachedElement('btnEnviarWhatsAppEmail');
   if (btnEnviarWhatsAppEmail) {
-    btnEnviarWhatsAppEmail.addEventListener("click", () => 
+    btnEnviarWhatsAppEmail.addEventListener("click", () =>
       handleSendToWhatsApp("email")
     );
     btnEnviarWhatsAppEmail.style.display = "none";
@@ -103,19 +94,19 @@ function setupEventListeners() {
 function setupEmailCheckbox() {
   const checkbox = getCachedElement('formatarParaEmailCheckbox');
   const colunaEmail = getCachedElement('colunaRelatorioEmail');
-  
+
   if (checkbox && colunaEmail) {
-    checkbox.addEventListener("change", function() {
+    checkbox.addEventListener("change", function () {
       const showEmailColumn = this.checked;
       colunaEmail.style.display = showEmailColumn ? "block" : "none";
-      
+
       if (!showEmailColumn) {
         // Limpa e esconde elementos relacionados ao email
         const resultadoEmail = getCachedElement('resultadoEmail');
         const statusEmail = getCachedElement('statusProcessamentoEmail');
         const btnCopiarEmail = getCachedElement('btnCopiarEmail');
         const btnWhatsAppEmail = getCachedElement('btnEnviarWhatsAppEmail');
-        
+
         if (resultadoEmail) resultadoEmail.value = "";
         if (statusEmail) displayStatus("", "info", "email");
         if (btnCopiarEmail) btnCopiarEmail.style.display = "none";
@@ -137,27 +128,27 @@ function initializeButtons() {
 function validateEssentialElements() {
   const essentialElements = [
     'relatorioBruto',
-    'btnProcessar', 
+    'btnProcessar',
     'resultadoProcessamento'
   ];
-  
+
   const missingElements = essentialElements.filter(key => !getCachedElement(key));
-  
+
   if (missingElements.length > 0) {
     console.error(
       `index_page/main.js: Elementos DOM essenciais não encontrados: ${missingElements.join(', ')}`
     );
-    
+
     // Log adicional para debug
     console.error('index_page/main.js: DOMElements disponíveis:', Object.keys(DOMElements));
     console.error('index_page/main.js: Selectors configurados:', CONFIG.selectors);
-    
+
     const btnProcessar = getCachedElement('btnProcessar');
     if (btnProcessar) btnProcessar.disabled = true;
-    
+
     return false;
   }
-  
+
   return true;
 }
 
@@ -172,12 +163,12 @@ function setupInitialUIState() {
 document.addEventListener("DOMContentLoaded", function () {
   function init() {
     console.log("index_page/main.js: Iniciando inicialização...");
-    
+
     try {
       // Inicializar elementos DOM primeiro
       console.log("index_page/main.js: Inicializando elementos DOM...");
       initializeDOMElements();
-      
+
       // Validação de elementos essenciais
       if (!validateEssentialElements()) {
         console.error("index_page/main.js: Falha na validação de elementos essenciais.");
@@ -189,12 +180,12 @@ document.addEventListener("DOMContentLoaded", function () {
       setupEventListeners();
       setupEmailCheckbox();
       setupInitialUIState();
-      
+
       console.log("index_page/main.js: Inicialização concluída com sucesso.");
     } catch (error) {
       console.error("index_page/main.js: Erro durante a inicialização:", error);
     }
   }
-  
+
   init();
 });
