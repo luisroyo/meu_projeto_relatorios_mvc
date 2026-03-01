@@ -10,7 +10,7 @@ import {
   updateReportUI,
   updateEmailReportUI,
 } from "./uiHandlers.js";
-import { callProcessReportAPI } from "./apiService.js";
+import { callProcessReportAPI, callConsolidateReportAPI } from "./apiService.js";
 
 /**
  * Cria e exibe o botão para registar o relatório como uma ocorrência oficial.
@@ -22,7 +22,7 @@ function exibirBotaoRegistrarOcorrencia(logBruto, relatorioProcessado) {
   console.log('exibirBotaoRegistrarOcorrencia: Iniciando...');
   console.log('exibirBotaoRegistrarOcorrencia: logBruto:', logBruto ? logBruto.substring(0, 100) + '...' : 'N/A');
   console.log('exibirBotaoRegistrarOcorrencia: relatorioProcessado:', relatorioProcessado ? relatorioProcessado.substring(0, 100) + '...' : 'N/A');
-  
+
   // Encontra o container específico para botões de ação
   const containerBotoes = document.querySelector("#container-botoes-acoes");
   if (!containerBotoes) {
@@ -31,9 +31,9 @@ function exibirBotaoRegistrarOcorrencia(logBruto, relatorioProcessado) {
     );
     return;
   }
-  
+
   console.log('exibirBotaoRegistrarOcorrencia: Container encontrado:', containerBotoes);
-  
+
   // Mostra o container
   containerBotoes.style.display = "flex";
 
@@ -68,7 +68,7 @@ function exibirBotaoRegistrarOcorrencia(logBruto, relatorioProcessado) {
 
   // Ativa o tooltip do Bootstrap para o novo botão.
   new bootstrap.Tooltip(botaoSalvar);
-  
+
   console.log('exibirBotaoRegistrarOcorrencia: Botão criado e inserido com sucesso');
 }
 
@@ -77,7 +77,7 @@ export async function handleProcessReport() {
   console.log('handleProcessReport: DOMElements disponíveis:', Object.keys(DOMElements));
   console.log('handleProcessReport: btnProcessar:', DOMElements.btnProcessar);
   console.log('handleProcessReport: btnCopiar:', DOMElements.btnCopiar);
-  
+
   if (!DOMElements.relatorioBruto || !DOMElements.resultadoProcessamento) {
     console.error('handleProcessReport: Elementos essenciais não encontrados');
     return false;
@@ -178,9 +178,81 @@ export async function handleProcessReport() {
   }
 }
 
+export async function handleConsolidateReport() {
+  console.log('handleConsolidateReport: Iniciando...');
+
+  if (!DOMElements.relatorioBruto || !DOMElements.resultadoProcessamento) {
+    console.error('handleConsolidateReport: Elementos essenciais não encontrados');
+    return false;
+  }
+
+  const btnConsolidar = document.getElementById('btnConsolidar');
+  if (btnConsolidar && !btnConsolidar.dataset.originalHTML) {
+    btnConsolidar.dataset.originalHTML = btnConsolidar.innerHTML;
+  }
+
+  const relatorioBrutoValue = DOMElements.relatorioBruto.value;
+
+  resetOutputUI(false);
+
+  if (!relatorioBrutoValue.trim()) {
+    displayStatus(CONFIG.messages.emptyReport, "warning", "standard");
+    if (DOMElements.relatorioBruto) DOMElements.relatorioBruto.focus();
+    return false;
+  }
+  if (relatorioBrutoValue.length > CONFIG.maxInputLengthFrontend) {
+    displayStatus(
+      CONFIG.messages.reportTooLongFrontend(
+        CONFIG.maxInputLengthFrontend,
+        relatorioBrutoValue.length
+      ),
+      "danger",
+      "standard"
+    );
+    if (DOMElements.relatorioBruto) DOMElements.relatorioBruto.focus();
+    return false;
+  }
+
+  // UI state: Processing
+  if (btnConsolidar) {
+    btnConsolidar.disabled = true;
+    btnConsolidar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Consolidando...`;
+  }
+  displayStatus("Consolidando relatório diário. Por favor aguarde...", "info", "standard");
+
+  try {
+    const data = await callConsolidateReportAPI(relatorioBrutoValue);
+    console.log('handleConsolidateReport: Dados recebidos da API.');
+
+    // Mostrando o texto final
+    DOMElements.resultadoProcessamento.value = data.relatorio_processado;
+    displayStatus("Relatório consolidado com sucesso!", "success", "standard");
+
+    if (DOMElements.btnCopiar) {
+      DOMElements.btnCopiar.style.display = "block";
+    }
+
+    if (document.getElementById('enviarWhatsAppResultado')) {
+      document.getElementById('enviarWhatsAppResultado').style.display = "block";
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Erro em handleConsolidateReport:", error);
+    let userErrorMessage = error.message || CONFIG.messages.communicationFailure;
+    displayStatus(userErrorMessage, "danger", "standard");
+    return false;
+  } finally {
+    if (btnConsolidar) {
+      btnConsolidar.disabled = false;
+      btnConsolidar.innerHTML = btnConsolidar.dataset.originalHTML;
+    }
+  }
+}
+
 export function handleClearFields() {
   console.log('handleClearFields: Iniciando...');
-  
+
   if (DOMElements.relatorioBruto) {
     DOMElements.relatorioBruto.value = "";
     updateCharCount();
@@ -189,7 +261,7 @@ export function handleClearFields() {
   } else {
     console.warn('handleClearFields: Campo relatório bruto não encontrado');
   }
-  
+
   if (DOMElements.formatarParaEmailCheckbox) {
     DOMElements.formatarParaEmailCheckbox.checked = false;
     if (DOMElements.colunaRelatorioEmail)
@@ -198,7 +270,7 @@ export function handleClearFields() {
   } else {
     console.warn('handleClearFields: Checkbox de email não encontrado');
   }
-  
+
   console.log('handleClearFields: Chamando resetOutputUI...');
   resetOutputUI(false);
 
@@ -210,7 +282,7 @@ export function handleClearFields() {
   } else {
     console.log('handleClearFields: Botão de registrar ocorrência não encontrado');
   }
-  
+
   console.log('handleClearFields: Concluído');
 }
 
@@ -219,7 +291,7 @@ export function handleCopyResult(target = "standard") {
   console.log('handleCopyResult: DOMElements disponíveis:', Object.keys(DOMElements));
   console.log('handleCopyResult: btnCopiar:', DOMElements.btnCopiar);
   console.log('handleCopyResult: btnCopiarEmail:', DOMElements.btnCopiarEmail);
-  
+
   let textoParaCopiar = "";
   let buttonElement = null;
 
@@ -256,7 +328,7 @@ export function handleCopyResult(target = "standard") {
   }
 
   console.log('handleCopyResult: Tentando copiar texto com length:', textoParaCopiar.length);
-  
+
   if (navigator.clipboard) {
     console.log('handleCopyResult: Usando navigator.clipboard');
     navigator.clipboard
@@ -278,7 +350,7 @@ export function handleCopyResult(target = "standard") {
 export function handleSendToWhatsApp(target = "standard") {
   console.log('handleSendToWhatsApp: Iniciando com target:', target);
   console.log('handleSendToWhatsApp: DOMElements disponíveis:', Object.keys(DOMElements));
-  
+
   let textoParaEnviar = "";
 
   if (target === "email" && DOMElements.resultadoEmail) {
@@ -299,22 +371,22 @@ export function handleSendToWhatsApp(target = "standard") {
 
   const textoCodificado = encodeURIComponent(textoParaEnviar.trim());
   console.log('handleSendToWhatsApp: Texto codificado:', textoCodificado.substring(0, 100) + '...');
-  
+
   // Função para tentar abrir WhatsApp com fallback para web
   const openWhatsApp = (text) => {
     const isMobile = CONFIG.isMobile();
     console.log('handleSendToWhatsApp: Dispositivo mobile:', isMobile);
-    
+
     if (isMobile) {
       // Para mobile: tentar app primeiro, depois web
       const appUrl = `whatsapp://send?text=${text}`;
       const webUrl = `https://wa.me/?text=${text}`;
-      
+
       console.log('handleSendToWhatsApp: Tentando abrir app mobile');
-      
+
       // Tentar abrir o app
       const appWindow = window.open(appUrl, '_blank');
-      
+
       // Se o app não abrir em 1 segundo, tentar web
       setTimeout(() => {
         if (appWindow && appWindow.closed) {
@@ -323,7 +395,7 @@ export function handleSendToWhatsApp(target = "standard") {
           window.open(webUrl, '_blank');
         }
       }, 1000);
-      
+
     } else {
       // Para desktop: sempre usar web
       const webUrl = `https://wa.me/?text=${text}`;
@@ -331,7 +403,7 @@ export function handleSendToWhatsApp(target = "standard") {
       window.open(webUrl, '_blank');
     }
   };
-  
+
   console.log('handleSendToWhatsApp: Chamando openWhatsApp...');
   openWhatsApp(textoCodificado);
   console.log('handleSendToWhatsApp: Concluído');

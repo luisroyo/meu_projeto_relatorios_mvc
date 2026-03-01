@@ -1,13 +1,10 @@
-// app/static/js/index_page/apiService.js
 import { CONFIG } from './config.js';
 import { displayStatus } from './uiHandlers.js'; // Para erros de CSRF
 
-// Função de fallback para processar relatório localmente
+/* ... */
 function processarRelatorioLocal(relatorioBruto, formatarParaEmail = false) {
     console.log('processarRelatorioLocal: Iniciando processamento local...');
     console.log('processarRelatorioLocal: Texto original:', relatorioBruto.substring(0, 200) + '...');
-
-    // Processamento básico de correção de texto
     let relatorioProcessado = relatorioBruto
         .replace(/\xa0/g, ' ') // Remove caracteres especiais
         .trim()
@@ -127,11 +124,56 @@ export async function callProcessReportAPI(relatorioBrutoValue, formatarParaEmai
 
             return data; // Retorna os dados como estão se não seguir o padrão
         } else {
-            console.warn('callProcessReportAPI: Resposta não é JSON, usando fallback local');
             return processarRelatorioLocal(relatorioBrutoValue, formatarParaEmailChecked);
         }
     } catch (error) {
         console.warn('callProcessReportAPI: Erro na requisição, usando fallback local:', error.message);
         return processarRelatorioLocal(relatorioBrutoValue, formatarParaEmailChecked);
+    }
+}
+
+export async function callConsolidateReportAPI(relatorioBrutoValue) {
+    console.log('callConsolidateReportAPI: Iniciando...');
+
+    try {
+        const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+        let headers = { 'Content-Type': 'application/json' };
+
+        if (csrfTokenElement) {
+            headers['X-CSRFToken'] = csrfTokenElement.getAttribute('content');
+        }
+
+        const payload = { dados_brutos: relatorioBrutoValue };
+        const endpoint = '/api/text/consolidate'; // Endpoint we just created
+
+        console.log('callConsolidateReportAPI: Fazendo fetch para:', endpoint);
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erro na API (${response.status}): ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            return {
+                relatorio_processado: data.consolidated,
+            };
+        } else {
+            throw new Error("A resposta não está no formato JSON.");
+        }
+    } catch (error) {
+        console.error('callConsolidateReportAPI: Falha brutal ao consolidar.', error);
+        throw error;
     }
 }

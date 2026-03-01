@@ -22,6 +22,7 @@ export const CONFIG = {
         btnEnviarWhatsAppResultado: '#enviarWhatsAppResultado',
         btnEnviarWhatsAppEmail: '#enviarWhatsAppEmail',
         btnLimpar: '#limpar-campos',
+        btnConsolidar: '#btnConsolidar',
         charCount: '#charCount',
         formatarParaEmailCheckbox: '#formatarParaEmail',
     },

@@ -3,6 +3,7 @@ from flask_login import login_required
 
 from app.blueprints.api import api_bp
 from app.services.text_tools import clean_text, languagetool_check, ai_transform, parse_eml_to_text
+from app.services.consolidated_report_service import ConsolidatedReportService
 
 
 @api_bp.route('/text/clean', methods=['POST'])
@@ -52,5 +53,22 @@ def api_text_transform():
     max_chars = data.get('max_chars')
     transformed = ai_transform(text, mode=mode, tone=tone, max_chars=max_chars)
     return jsonify({ 'transformed': transformed })
+
+
+@api_bp.route('/text/consolidate', methods=['POST'])
+@login_required
+def api_text_consolidate():
+    data = request.get_json() or {}
+    dados_brutos = data.get('dados_brutos', '')
+    
+    if not dados_brutos:
+        return jsonify({'error': 'Nenhum dado bruto fornecido para consolidação.'}), 400
+        
+    try:
+        service = ConsolidatedReportService()
+        relatorio_consolidado = service.gerar_relatorio_consolidado(dados_brutos)
+        return jsonify({'consolidated': relatorio_consolidado})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 

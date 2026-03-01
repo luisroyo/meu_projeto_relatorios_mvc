@@ -6,6 +6,7 @@ import {
   handleClearFields,
   handleCopyResult,
   handleSendToWhatsApp,
+  handleConsolidateReport,
 } from "./reportLogic.js";
 
 // Cache para elementos DOM frequentemente acessados
@@ -37,6 +38,15 @@ function setupEventListeners() {
     console.log('main.js: Event listener adicionado ao botão processar');
   } else {
     console.warn('main.js: Botão processar não encontrado');
+  }
+
+  // Botão consolidar
+  const btnConsolidar = getCachedElement('btnConsolidar');
+  if (btnConsolidar) {
+    btnConsolidar.addEventListener("click", handleConsolidateReport);
+    console.log('main.js: Event listener adicionado ao botão consolidar');
+  } else {
+    console.warn('main.js: Botão consolidar não encontrado');
   }
 
   // Botão copiar padrão
@@ -145,6 +155,9 @@ function validateEssentialElements() {
 
     const btnProcessar = getCachedElement('btnProcessar');
     if (btnProcessar) btnProcessar.disabled = true;
+
+    const btnConsolidar = getCachedElement('btnConsolidar');
+    if (btnConsolidar) btnConsolidar.disabled = true;
 
     return false;
   }

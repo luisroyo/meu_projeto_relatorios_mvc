@@ -1,0 +1,113 @@
+CONTEXTO:
+Este é um relatório consolidado diário de segurança patrimonial (Plantão Noturno/Diurno) que unifica:
+1. Operação Interna (Master / Residenciais) com distribuição da equipe, remanejamentos, faltas e férias.
+2. Informações Gerais (Senha do dia, abastecimentos, folgas trabalhadas).
+3. Operação Uniseter com distribuição de inspetores, líderes, vigilantes (VTR, MT) e Apoio 90.
+4. Rondas realizadas e paradas à frente dos residenciais.
+5. Ocorrências registradas no turno.
+
+TAREFA:
+A partir dos dados brutos fornecidos (escalas, números de rondas, relatórios de ocorrências individuais), monte o "Relatório Consolidado" seguindo estritamente a estrutura e formatação do MODELO DE SAÍDA abaixo.
+
+REGRAS DE FORMATAÇÃO E ESTRUTURA:
+
+1. Dados Pessoais e Postos:
+Mantenha os nomes dos colaboradores vazados no relatório bruto. Aloque cada um em sua respectiva seção (Agente de Monitoramento, VTR, Apoio 90, etc.) conforme os dados de entrada.
+Se algum campo (faltas, atestados) estiver vazio nos dados brutos, não invente nomes (escreva "Nenhuma alteração" ou omita a categoria se vazia).
+
+2. Contagem de Rondas e Paradas:
+Apresente a lista de residenciais em ordem alfabética e o número total na frente (Ex: Arosa – 06).
+Calcule e preencha corretamente o "Total de rondas:" e "Total de paradas:".
+
+3. Ocorrências (Seção 3):
+Se houver ocorrências nos dados brutos, transcreva-as numeradas (3.1 Ocorrência, 3.2 Ocorrência).
+Siga o padrão estrito de linguagem operacional nas ocorrências (em terceira pessoa, sem inventar dados, usando hifens para ações, etc.).
+Se não houver ocorrências, escreva: "Sem alterações registradas no turno." embaixo de "3. OCORRÊNCIAS REGISTRADAS".
+
+4. Saudação e Encerramento:
+Mantenha a saudação inicial e a despedida formal idênticas ao modelo. Inclua a data correta.
+
+MODELO DE SAÍDA ESPERADO:
+
+Prezados, bom dia/boa noite.
+
+Encaminho abaixo o relatório consolidado referente ao plantão [Turno] do dia [DD] de [Mês] de [AAAA], unificando as informações operacionais, distribuição Master e Uniseter, rondas realizadas e registro de ocorrências.
+Supervisor Responsável: [Nome do Supervisor]
+
+1. OPERAÇÃO INTERNA – MASTER / RESIDENCIAIS
+
+1.1 Distribuição da Equipe
+
+Agentes de Monitoramento
+[Lista de Agentes]
+
+Agentes de Portaria – Ronda – Monitoramento / Cobertura
+[Lista de Agentes]
+
+1.2 Coberturas e Remanejamentos
+[Para cada remanejado, listar:]
+[Nome]
+Função Original: [Função]
+Função Desempenhada: [Função]
+Local: [Local]
+Horário: [HH:MM às HH:MM]
+Motivo: [Motivo]
+
+1.3 Ausências
+Master
+[Lista com motivo (Atestado/Falta)]
+
+Residenciais
+[Lista com motivo (Atestado/Falta)]
+
+1.4 Férias
+[Lista de colaboradores em férias]
+
+1.5 Informações Gerais
+Senha do dia: [Senha]
+Abastecimentos: [Viaturas]
+Folgas Trabalhadas (FT - Reforço Residencial):
+[Lista]
+
+2. OPERAÇÃO UNISETER
+
+2.1 Distribuição da Equipe
+Inspetor
+S.1: [Nome]
+
+Líder
+S.2: [Nome]
+
+Vigilantes
+[Listar VTR e MT]
+
+Apoio 90
+[Listar PAs e Velados]
+
+2.2 Rotas
+Rota 1
+[Residenciais]
+Rota 2
+[Residenciais]
+Rota 3
+[Residenciais]
+
+2.3 Rondas Realizadas
+
+Rondas
+[Lista de Residenciais - Quantidade]
+Total de rondas: [Soma]
+
+Paradas à frente dos residenciais
+[Lista de Residenciais - Quantidade]
+Total de paradas: [Soma]
+
+3. OCORRÊNCIAS REGISTRADAS
+[Listar cada ocorrência como sub-item 3.1, 3.2, seguindo o padrão completo com Descrição, Ações Realizadas em tópicos com hífen (-), etc.]
+
+Permaneço à disposição para esclarecimentos.
+
+Atenciosamente,
+
+DADOS BRUTOS PARA CONSOLIDAÇÃO:
+{{ dados_brutos }}
