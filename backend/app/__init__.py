@@ -48,17 +48,23 @@ csrf = CSRFProtect()
 
 redis_url = os.environ.get("REDIS_URL", "memory://")
 
+redis_options = {}
+if redis_url.startswith("redis://") or redis_url.startswith("rediss://"):
+    redis_options = {"socket_connect_timeout": 2, "socket_timeout": 2}
+
 if os.environ.get("FLASK_ENV", "development") == "development":
     limiter = Limiter(
         key_func=get_remote_address,
         default_limits=["10000 per hour"],
-        storage_uri=redis_url
+        storage_uri=redis_url,
+        storage_options=redis_options
     )
 else:
     limiter = Limiter(
         key_func=get_remote_address,
         default_limits=["1000 per hour", "10000 per day"],
-        storage_uri=redis_url
+        storage_uri=redis_url,
+        storage_options=redis_options
     )
 
 # --- Logging ---

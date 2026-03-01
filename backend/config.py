@@ -37,6 +37,7 @@ class Config:
     if REDIS_URL:
         CACHE_TYPE = "RedisCache"
         CACHE_REDIS_URL = REDIS_URL
+        CACHE_OPTIONS = {'socket_timeout': 2, 'socket_connect_timeout': 2}
     else:
         # Fallback para SimpleCache se Redis não estiver disponível
         CACHE_TYPE = "SimpleCache"
@@ -115,6 +116,7 @@ class LocalConfig(Config):
         CACHE_TYPE = "RedisCache"
         CACHE_REDIS_URL = REDIS_URL
         CACHE_DEFAULT_TIMEOUT = 3600  # 1 hora
+        CACHE_OPTIONS = {'socket_timeout': 2, 'socket_connect_timeout': 2}
     else:
         # Fallback para SimpleCache se Redis não estiver disponível
         CACHE_TYPE = "SimpleCache"
