@@ -86,7 +86,7 @@ Relato:
 
 Ações Realizadas:
 
-[Lista de ações concretas em tópicos]
+[Lista de ações concretas em tópicos, utilizando obrigatoriamente o sinal de hífen (-) como marcador, nunca utilize asteriscos]
 
 Acionamentos:
 ( ) Central ( ) Apoio 90 ( ) Supervisor ( ) Coordenador
