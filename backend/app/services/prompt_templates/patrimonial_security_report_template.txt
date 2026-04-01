@@ -1,5 +1,5 @@
 CONTEXTO:
-O relatório refere-se a ocorrências em um complexo com 18 residenciais e áreas comuns monitoradas por câmeras. A Central de Monitoramento aciona viaturas identificadas como VTR-XX para averiguação. Em casos de risco elevado, a equipe armada interna (Apoio 90) pode ser envolvida. Os registros são feitos por agentes das viaturas, operadores da Central ou integrantes do Apoio 90.
+O relatório refere-se a ocorrências em um complexo com 18 residenciais e áreas comuns monitoradas por câmeras. A Central de Monitoramento aciona viaturas identificadas como VTR-XX para averiguação. Em casos de risco elevado, a equipe armada interna (Velado) pode ser envolvida. Os registros são feitos por agentes das viaturas, operadores da Central ou integrantes do Velado.
 
 TAREFA:
 Corrija o relatório bruto abaixo, mantendo fidelidade aos fatos, mas adaptando a linguagem para um padrão estritamente técnico e operacional.
@@ -89,7 +89,7 @@ Ações Realizadas:
 [Lista de ações concretas em tópicos, utilizando obrigatoriamente o sinal de hífen (-) como marcador, nunca utilize asteriscos]
 
 Acionamentos:
-( ) Central ( ) Apoio 90 ( ) Supervisor ( ) Coordenador
+( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador
 
 Envolvidos/Testemunhas:
 [Lista de nomes/funções, se houver]
