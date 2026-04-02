@@ -9,6 +9,8 @@ Responda APENAS com o relatório corrigido.
 NÃO inclua introduções.
 Inicie diretamente com "Data:".
 
+---
+
 REGRAS DE PADRONIZAÇÃO (Siga rigorosamente):
 
 Uso da terceira pessoa:
@@ -36,42 +38,54 @@ Melhore a clareza, mas não adicione informações que não existam no original.
 Endereço/local:
 Mantenha exatamente como descrito no original (mesmo que seja apenas o nome do local).
 
-Substituição obrigatória de termos operacionais sensíveis:
-Sempre que aparecerem os termos "patrulhamento", "em patrulhamento", "ronda", "em ronda" ou variações semelhantes, substituir obrigatoriamente por uma das seguintes expressões:
+---
 
-"em deslocamento para o Residencial [nome citado no contexto]"
+USO DE TERMOS OPERACIONAIS (DESLOCAMENTO x VIGILÂNCIA):
 
-"em deslocamento para averiguação no Residencial [nome citado]"
+* Quando o relatório indicar que a equipe estava em **ronda, patrulhamento ou já no interior do residencial**, substituir por:
 
-"em deslocamento preventivo com destino ao Residencial [nome citado]"
+  * “durante ação de vigilância no interior do Residencial [nome citado]”
+  * “durante atividade de vigilância no Residencial [nome citado]”
 
-⚠️ O deslocamento deve sempre indicar destino específico para algum residencial mencionado no relatório.
-Nunca utilizar apenas "em deslocamento" de forma genérica.
-Não utilizar os termos patrulhamento ou ronda sob nenhuma hipótese.
+* Quando o relatório indicar que a equipe estava **em deslocamento para um local específico**, utilizar:
+
+  * “em deslocamento para o Residencial [nome citado]”
+  * “em deslocamento para averiguação no Residencial [nome citado]”
+  * “em deslocamento preventivo com destino ao Residencial [nome citado]”
+
+⚠️ Regras obrigatórias:
+
+* Nunca utilizar os termos “ronda” ou “patrulhamento”.
+* O termo utilizado deve respeitar o contexto original da ocorrência (presença no local x deslocamento).
+* É proibido alterar o sentido operacional da ação descrita no relatório.
+* Nunca utilizar “em deslocamento” de forma genérica, sempre com destino definido.
+
+---
 
 VOCABULÁRIO OBRIGATÓRIO (Substituição de Termos Rígidos):
+
 É estritamente proibido usar as palavras:
 "Regimento", "Regimento Interno", "Normas", "Regras", "Lei", "Estatuto" ou "Proibição".
 
 Ao encontrar esses conceitos, traduzir para linguagem técnica utilizando apenas:
 
-"Protocolos de segurança"
-
-"Diretrizes operacionais"
-
-"Procedimentos padrão"
-
-"Orientações vigentes"
-
-"Rotinas estabelecidas"
+* "Protocolos de segurança"
+* "Diretrizes operacionais"
+* "Procedimentos padrão"
+* "Orientações vigentes"
+* "Rotinas estabelecidas"
 
 Exemplo:
 Em vez de "Isso é contra as normas", escrever:
 "O procedimento está em desacordo com as diretrizes operacionais".
 
+---
+
 IMPORTANTE:
 Caso alguma informação do modelo abaixo não conste no texto original, simplesmente apagar a linha correspondente.
 Não deixar campos em branco.
+
+---
 
 MODELO DE SAÍDA:
 
@@ -86,7 +100,7 @@ Relato:
 
 Ações Realizadas:
 
-[Lista de ações concretas em tópicos, utilizando obrigatoriamente o sinal de hífen (-) como marcador, nunca utilize asteriscos]
+* [Lista de ações concretas em tópicos, utilizando obrigatoriamente o sinal de hífen (-)]
 
 Acionamentos:
 ( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador
@@ -98,6 +112,8 @@ Veículo (envolvido na ocorrência):
 [Modelo, cor, placa, se houver]
 
 Responsável pelo registro: [Nome/Viatura]
+
+---
 
 RELATÓRIO BRUTO PARA CORRIGIR:
 {{ dados_brutos }}
