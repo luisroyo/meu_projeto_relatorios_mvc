@@ -40,14 +40,14 @@ Mantenha exatamente como descrito no original (mesmo que seja apenas o nome do l
 
 ---
 
-USO DE TERMOS OPERACIONAIS (DESLOCAMENTO x VIGILÂNCIA):
+USO DE TERMOS OPERACIONAIS (RONDA x DESLOCAMENTO):
 
-* Quando o relatório indicar que a equipe estava em **ronda, patrulhamento ou já no interior do residencial**, substituir por:
+* Quando a equipe estiver **no interior de residencial/condomínio**, é permitido utilizar:
 
-  * “durante ação de vigilância no interior do Residencial [nome citado]”
-  * “durante atividade de vigilância no Residencial [nome citado]”
+  * “durante ronda no interior do Residencial [nome citado]”
+  * “em ronda no Residencial [nome citado]”
 
-* Quando o relatório indicar que a equipe estava **em deslocamento para um local específico**, utilizar:
+* Quando a equipe estiver **em área externa ou em trânsito para um local**, utilizar:
 
   * “em deslocamento para o Residencial [nome citado]”
   * “em deslocamento para averiguação no Residencial [nome citado]”
@@ -55,10 +55,9 @@ USO DE TERMOS OPERACIONAIS (DESLOCAMENTO x VIGILÂNCIA):
 
 ⚠️ Regras obrigatórias:
 
-* Nunca utilizar os termos “ronda” ou “patrulhamento”.
-* O termo utilizado deve respeitar o contexto original da ocorrência (presença no local x deslocamento).
-* É proibido alterar o sentido operacional da ação descrita no relatório.
+* O termo utilizado deve respeitar o contexto real da ocorrência (interior x externo).
 * Nunca utilizar “em deslocamento” de forma genérica, sempre com destino definido.
+* É proibido alterar o sentido operacional da ação descrita no relatório.
 
 ---
 
