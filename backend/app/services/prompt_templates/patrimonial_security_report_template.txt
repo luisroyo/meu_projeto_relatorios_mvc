@@ -1,5 +1,7 @@
 CONTEXTO:
-O relatório refere-se a ocorrências em um complexo com 18 residenciais e áreas comuns monitoradas por câmeras. A Central de Monitoramento aciona viaturas identificadas como VTR-XX para averiguação. Em casos de risco elevado, a equipe armada interna (Velado) pode ser envolvida. Os registros são feitos por agentes das viaturas, operadores da Central ou integrantes do Velado.
+O relatório refere-se a ocorrências em um complexo com múltiplos residenciais e áreas comuns monitoradas por câmeras. Os residenciais contemplados são: "Arosa", "Associação Master", "Baden", "Basel", "Bern", "Biel", "Botanico", "Davos", "Fribourg", "Genebra", "Geneve", "Glarus", "La Vie", "Lauerz", "Lenk", "Lugano", "Luzern", "Noville", "Office", "St. Moritz", "Vevey", "Villeneuve", "Zermatt" e "Zurich".
+
+A Central de Monitoramento aciona viaturas identificadas como VTR-XX e motos identificadas como MT-XX para averiguação. Em casos de risco elevado, a equipe armada interna (Velado) pode ser envolvida. Os registros são feitos por agentes das viaturas ou motos, operadores da Central ou integrantes do Velado.
 
 TAREFA:
 Corrija o relatório bruto abaixo, mantendo fidelidade aos fatos, mas adaptando a linguagem para um padrão estritamente técnico e operacional.
@@ -8,8 +10,6 @@ IMPORTANTE:
 Responda APENAS com o relatório corrigido.
 NÃO inclua introduções.
 Inicie diretamente com "Data:".
-
----
 
 REGRAS DE PADRONIZAÇÃO (Siga rigorosamente):
 
@@ -20,11 +20,12 @@ Datas e horários:
 Formato: DD/MM/AAAA e HH:MM (24h).
 Se o ano for "25", converta para 2025.
 
-Padronização de viaturas:
-Padronize qualquer menção a veículo, viatura ou Águia como "VTR-XX" (dois dígitos).
+Padronização de viaturas e motos:
+Padronize qualquer menção a veículo, viatura ou Águia como "VTR-XX" (dois dígitos) e qualquer menção a moto como "MT-XX" (dois dígitos).
 Exemplo:
 "VTR 3" → "VTR-03"
 "Águia-03" → "VTR-03"
+"Moto 2" → "MT-02"
 
 Uso do termo “pernoite”:
 Refere-se sempre ao veículo, salvo se especificado o contrário.
@@ -38,28 +39,38 @@ Melhore a clareza, mas não adicione informações que não existam no original.
 Endereço/local:
 Mantenha exatamente como descrito no original (mesmo que seja apenas o nome do local).
 
----
+Padronização de residenciais:
+Caso o nome de um residencial no relatório bruto apresente erro de ortografia, variação ou inconsistência, corrigir utilizando como referência a lista oficial informada no CONTEXTO.
+A correção deve ser feita apenas quando houver correspondência clara, sem alterar o sentido do relato.
+
+PADRONIZAÇÃO DE LISTAS (OBRIGATÓRIO):
+
+É proibido o uso de asterisco (*) em qualquer parte do relatório.
+Todas as listas devem utilizar obrigatoriamente o hífen (-) como marcador.
+
+Exemplo correto:
+
+Ação realizada
+
+Exemplo proibido:
+
+Ação realizada
 
 USO DE TERMOS OPERACIONAIS (RONDA x DESLOCAMENTO):
 
-* Quando a equipe estiver **no interior de residencial/condomínio**, é permitido utilizar:
-
-  * “durante ronda no interior do Residencial [nome citado]”
-  * “em ronda no Residencial [nome citado]”
-
-* Quando a equipe estiver **em área externa ou em trânsito para um local**, utilizar:
-
-  * “em deslocamento para o Residencial [nome citado]”
-  * “em deslocamento para averiguação no Residencial [nome citado]”
-  * “em deslocamento preventivo com destino ao Residencial [nome citado]”
+Quando a equipe estiver no interior de residencial/condomínio, é permitido utilizar:
+“durante ronda no interior do Residencial [nome citado]”
+“em ronda no Residencial [nome citado]”
+Quando a equipe estiver em área externa ou em trânsito para um local, utilizar:
+“em deslocamento para o Residencial [nome citado]”
+“em deslocamento para averiguação no Residencial [nome citado]”
+“em deslocamento preventivo com destino ao Residencial [nome citado]”
 
 ⚠️ Regras obrigatórias:
 
-* O termo utilizado deve respeitar o contexto real da ocorrência (interior x externo).
-* Nunca utilizar “em deslocamento” de forma genérica, sempre com destino definido.
-* É proibido alterar o sentido operacional da ação descrita no relatório.
-
----
+O termo utilizado deve respeitar o contexto real da ocorrência (interior x externo).
+Nunca utilizar “em deslocamento” de forma genérica, sempre com destino definido.
+É proibido alterar o sentido operacional da ação descrita no relatório.
 
 VOCABULÁRIO OBRIGATÓRIO (Substituição de Termos Rígidos):
 
@@ -68,23 +79,19 @@ VOCABULÁRIO OBRIGATÓRIO (Substituição de Termos Rígidos):
 
 Ao encontrar esses conceitos, traduzir para linguagem técnica utilizando apenas:
 
-* "Protocolos de segurança"
-* "Diretrizes operacionais"
-* "Procedimentos padrão"
-* "Orientações vigentes"
-* "Rotinas estabelecidas"
+"Protocolos de segurança"
+"Diretrizes operacionais"
+"Procedimentos padrão"
+"Orientações vigentes"
+"Rotinas estabelecidas"
 
 Exemplo:
 Em vez de "Isso é contra as normas", escrever:
 "O procedimento está em desacordo com as diretrizes operacionais".
 
----
-
 IMPORTANTE:
 Caso alguma informação do modelo abaixo não conste no texto original, simplesmente apagar a linha correspondente.
 Não deixar campos em branco.
-
----
 
 MODELO DE SAÍDA:
 
@@ -99,7 +106,7 @@ Relato:
 
 Ações Realizadas:
 
-* [Lista de ações concretas em tópicos, utilizando obrigatoriamente o sinal de hífen (-)]
+[Lista de ações concretas em tópicos]
 
 Acionamentos:
 ( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador
@@ -110,9 +117,7 @@ Envolvidos/Testemunhas:
 Veículo (envolvido na ocorrência):
 [Modelo, cor, placa, se houver]
 
-Responsável pelo registro: [Nome/Viatura]
-
----
+Responsável pelo registro: [Nome/Viatura ou Moto]
 
 RELATÓRIO BRUTO PARA CORRIGIR:
 {{ dados_brutos }}
