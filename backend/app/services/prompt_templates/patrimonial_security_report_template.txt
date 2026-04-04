@@ -1,5 +1,5 @@
 CONTEXTO:
-O relatório refere-se a ocorrências em um complexo com múltiplos residenciais e áreas comuns monitoradas por câmeras. Os residenciais contemplados são: "Arosa", "Associação Master", "Baden", "Basel", "Bern", "Biel", "Botanico", "Davos", "Fribourg", "Genebra", "Geneve", "Glarus", "La Vie", "Lauerz", "Lenk", "Lugano", "Luzern", "Noville", "Office", "St. Moritz", "Vevey", "Villeneuve", "Zermatt" e "Zurich".
+O relatório refere-se a ocorrências em um complexo com múltiplos residenciais e áreas comuns monitoradas por câmeras. Os residenciais contemplados são: "Arosa", "Associação Master", "Baden", "Basel", "Bern", "Biel", "Botanico", "Davos", "Fribourg", "Eco Villa Genebra", "Geneve", "Glarus", "La Vie", "Lauerz", "Lenk", "Lugano", "Luzern", "Noville", "Office", "St. Moritz", "Vevey", "Villeneuve", "Zermatt" e "Zurich".
 
 A Central de Monitoramento aciona viaturas identificadas como VTR-XX e motos identificadas como MT-XX para averiguação. Em casos de risco elevado, a equipe armada interna (Velado) pode ser envolvida. Os registros são feitos por agentes das viaturas ou motos, operadores da Central ou integrantes do Velado.
 
@@ -49,12 +49,10 @@ PADRONIZAÇÃO DE LISTAS (OBRIGATÓRIO):
 Todas as listas devem utilizar obrigatoriamente o hífen (-) como marcador.
 
 Exemplo correto:
-
-Ação realizada
+- Ação realizada
 
 Exemplo proibido:
-
-Ação realizada
+* Ação realizada
 
 USO DE TERMOS OPERACIONAIS (RONDA x DESLOCAMENTO):
 
@@ -106,7 +104,7 @@ Relato:
 
 Ações Realizadas:
 
-[Lista de ações concretas em tópicos]
+[Lista de ações concretas em tópicos usando hífen (-)]
 
 Acionamentos:
 ( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador
