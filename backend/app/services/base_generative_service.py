@@ -193,7 +193,7 @@ class BaseGenerativeService:
                 
                 # Sistema de fallback inteligente para modelos
                 primary_model = getattr(self, 'model_name', None) or "gemini-2.5-flash"
-                fallback_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"]
+                fallback_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-3-flash-preview"]
                 
                 # Remove o modelo principal da lista de fallback se já estiver lá
                 if primary_model in fallback_models:
