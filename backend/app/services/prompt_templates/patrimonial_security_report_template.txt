@@ -1,88 +1,82 @@
 CONTEXTO:
-O relatório refere-se a ocorrências em um complexo com múltiplos residenciais e áreas comuns monitoradas por câmeras. Os residenciais contemplados são: "Arosa", "Associação Master", "Baden", "Basel", "Bern", "Biel", "Botanico", "Davos", "Fribourg", "Eco Villa Genebra", "Geneve", "Glarus", "La Vie", "Lauerz", "Lenk", "Lugano", "Luzern", "Noville", "Office", "St. Moritz", "Vevey", "Villeneuve", "Zermatt" e "Zurich".
+O relatório refere-se a ocorrências em um complexo com múltiplos residenciais monitorados por câmeras. Residenciais válidos: Arosa, Associação Master, Baden, Basel, Bern, Biel, Botanico, Davos, Fribourg, Eco Villa Genebra, Geneve, Glarus, La Vie, Lauerz, Lenk, Lugano, Luzern, Noville, Office, St. Moritz, Vevey, Villeneuve, Zermatt e Zurich.
 
-A Central de Monitoramento aciona viaturas identificadas como VTR-XX e motos identificadas como MT-XX para averiguação. Em casos de risco elevado, a equipe armada interna (Velado) pode ser envolvida. Os registros são feitos por agentes das viaturas ou motos, operadores da Central ou integrantes do Velado.
+A Central aciona viaturas (VTR-XX) e motos (MT-XX). Em ocorrências de maior risco, pode haver envolvimento do Velado. Registros podem ser feitos por viaturas, motos, Central ou Velado.
 
 TAREFA:
-Corrija o relatório bruto abaixo, mantendo fidelidade aos fatos, mas adaptando a linguagem para um padrão estritamente técnico e operacional.
+Corrigir o relatório mantendo 100% fidelidade aos fatos e adequando para linguagem técnica e operacional.
 
-REGRAS DE ESTRUTURAÇÃO DO RELATO (DIVISÃO EM BLOCOS):
+REGRAS GERAIS:
 
-    É PROIBIDO gerar o campo "Relato" como um bloco único ou contínuo de texto.
+Responder apenas com o relatório final
+Iniciar obrigatoriamente com "Data:"
+Não adicionar, inferir ou deduzir informações inexistentes
+Caso falte informação, manter a ausência sem preenchimento
+Não usar frases automáticas genéricas
 
-    O texto deve ser obrigatoriamente dividido em parágrafos lógicos (blocos) para facilitar a leitura:
+ESTRUTURA DO RELATO:
 
-        Bloco 1: Contexto inicial, localização da equipe e visualização do fato.
+O Relato deve ser dividido em parágrafos conforme a necessidade e volume de informações.
 
-        Bloco 2: Ações tomadas, contatos realizados e procedimentos técnicos.
+Quando houver informações suficientes, utilizar:
+Abertura: localização da equipe e situação observada
+Desenvolvimento: ações, contatos e interações
+Fechamento: desfecho e informações finais
+Quando o conteúdo for simples ou curto, NÃO forçar divisão artificial.
+Manter em um único parágrafo ou no menor número de blocos possível.
 
-        Bloco 3: Desfecho, ciência de superiores e situação final do local.
+PADRONIZAÇÃO:
 
-REGRAS DE PADRONIZAÇÃO (Siga rigorosamente):
+Terceira pessoa sempre
+Data: DD/MM/AAAA
+Hora: HH:MM (24h)
+Viaturas: VTR-XX
+Motos: MT-XX
+“Pernoite” refere-se ao veículo
+Siglas (PA, PC, PL, PG) mantidas
+Local exatamente como no original
+Corrigir nomes de residenciais conforme lista do contexto
+Listas com hífen (-), nunca asterisco
 
-    Terceira pessoa: Substitua "eu falei" ou "abordamos" por "foi feito contato", "a equipe orientou", etc.
+TERMINOLOGIA OPERACIONAL:
 
-    Datas e horários: Formato DD/MM/AAAA e HH:MM (24h). Se o ano for "25", converta para 2025.
+Dentro do residencial: “em ronda no Residencial [nome]”
+Fora/em trânsito: “em deslocamento para o Residencial [nome]”
+Nunca usar “em deslocamento” sem destino
 
-    Viaturas/Motos: Padronize como VTR-XX e MT-XX (ex: VTR-03, MT-02).
+VOCABULÁRIO:
 
-    Pernoite: Refere-se sempre ao veículo, salvo especificação contrária.
+Proibido: Regimento, Normas, Regras, Lei, Estatuto, Proibição
 
-    Siglas: Mantenha PA, PC, PL, PG inalteradas.
+Substituir por:
 
-    Residenciais: Corrija grafias usando a lista do CONTEXTO como base.
+Protocolos de segurança
+Diretrizes operacionais
+Procedimentos padrão
+Orientações vigentes
+Rotinas estabelecidas
 
-    Listas: Use apenas o hífen (-). Proibido o uso de asterisco (*).
+MODELO FINAL:
 
-    Ronda x Deslocamento: Use "durante ronda no interior do Residencial [Nome]" ou "em deslocamento para o Residencial [Destino]". Nunca use "deslocamento" sem um destino definido.
+Data:
+Hora:
+Local:
 
-VOCABULÁRIO OBRIGATÓRIO (Substituição de Termos Rígidos):
-
-    PROIBIDO: "Regimento", "Normas", "Regras", "Lei", "Estatuto" ou "Proibição".
-
-    USE APENAS: "Protocolos de segurança", "Diretrizes operacionais", "Procedimentos padrão", "Orientações vigentes" ou "Rotinas estabelecidas".
-
-IMPORTANTE:
-
-    Responda APENAS com o relatório corrigido.
-
-    NÃO inclua introduções. Inicie diretamente com "Data:".
-
-    Apague linhas de campos que não possuam informações no original.
-
-MODELO DE SAÍDA:
-
-Data: [DD/MM/AAAA]
-Hora: [HH:MM]
-Local: [Local descrito no relatório]
-
-Ocorrência: [Resumo/Título da ocorrência]
+Ocorrência:
 
 Relato:
-[Parágrafo do Contexto Inicial]
-
-[Parágrafo das Ações e Procedimentos]
-
-[Parágrafo do Desfecho e Ciência]
+[Parágrafo(s) conforme necessidade]
 
 Ações Realizadas:
-
-    [Ação 1]
-
-    [Ação 2]
 
 Acionamentos:
 ( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador
 
 Envolvidos/Testemunhas:
 
-    [Nomes/Funções]
-
 Veículo (envolvido na ocorrência):
 
-    [Modelo, cor, placa]
+Responsável pelo registro:
 
-Responsável pelo registro: [Nome/Viatura ou Moto]
-
-RELATÓRIO BRUTO PARA CORRIGIR:
+RELATÓRIO BRUTO:
 {{ dados_brutos }}
