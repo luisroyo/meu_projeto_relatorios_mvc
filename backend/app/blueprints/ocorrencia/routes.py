@@ -16,8 +16,8 @@ from app import db
 from app.forms import OcorrenciaForm
 from app.models import (Colaborador, Condominio, Ocorrencia, OcorrenciaTipo,
                         OrgaoPublico, User)
-## [ADICIONADO] Importa o novo serviço de ocorrência para usar a função de filtro
 from app.services import ocorrencia_service
+from app.services.email_patrimonial_format_service import EmailPatrimonialFormatService
 from app.utils.classificador import classificar_ocorrencia
 
 logger = logging.getLogger(__name__)
@@ -417,6 +417,30 @@ def analisar_relatorio():
         return jsonify(resposta), 200
         
     except Exception as e:
-        print(f"Erro ao analisar relatório: {e}")
         return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
 
+
+@ocorrencia_bp.route("/gerar-email-patrimonial/<int:ocorrencia_id>", methods=["POST"])
+@login_required
+def gerar_email_patrimonial(ocorrencia_id):
+    """
+    Rota para gerar a versão em formato de e-mail de um relatório patrimonial já salvo.
+    Usa o serviço de IA dedicado com o prompt exclusivo.
+    """
+    ocorrencia = db.get_or_404(Ocorrencia, ocorrencia_id)
+
+    if not ocorrencia.relatorio_final:
+        return jsonify({"erro": "A ocorrência não possui um relatório final para formatar."}), 400
+
+    try:
+        service = EmailPatrimonialFormatService()
+        email_formatado = service.formatar_email_patrimonial(ocorrencia.relatorio_final)
+
+        return jsonify({
+            "sucesso": True,
+            "email_formatado": email_formatado
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Erro ao gerar e-mail patrimonial para ocorrência {ocorrencia.id}: {e}", exc_info=True)
+        return jsonify({"erro": f"Erro ao gerar e-mail: {str(e)}"}), 500

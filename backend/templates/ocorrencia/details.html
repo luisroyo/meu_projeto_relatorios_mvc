@@ -55,9 +55,14 @@ endblock %} {% block content %}
       <hr />
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h6 class="fw-bold mb-0">Relatório Final Oficial</h6>
-        <button class="btn btn-outline-primary btn-sm" onclick="copyRelatorio()" id="copyBtn">
-          <i class="bi bi-clipboard me-1"></i>Copiar Relatório
-        </button>
+        <div>
+          <button class="btn btn-outline-info btn-sm me-2" onclick="gerarEmailPatrimonial({{ ocorrencia.id }})" id="gerarEmailBtn">
+            <i class="bi bi-envelope-paper me-1"></i>Gerar E-mail
+          </button>
+          <button class="btn btn-outline-primary btn-sm" onclick="copyRelatorio()" id="copyBtn">
+            <i class="bi bi-clipboard me-1"></i>Copiar Relatório
+          </button>
+        </div>
       </div>
       <pre class="themed-pre" id="relatorioText">{{ ocorrencia.relatorio_final }}</pre>
     </div>
@@ -138,6 +143,35 @@ endblock %} {% block content %}
   </div>
 </div>
 
+<!-- Modal para exibir o E-mail Gerado -->
+<div class="modal fade" id="emailModal" tabindex="-1" aria-labelledby="emailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="emailModalLabel"><i class="bi bi-envelope-open me-2"></i>E-mail Formatado</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body position-relative">
+        <!-- Spinner de carregamento -->
+        <div id="emailLoading" class="text-center py-4 d-none">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Gerando...</span>
+          </div>
+          <p class="mt-2 text-muted">A Inteligência Artificial está reformatando o relatório...</p>
+        </div>
+        <!-- Área de texto do E-mail -->
+        <pre class="themed-pre" id="emailText" style="display: none; white-space: pre-wrap; word-wrap: break-word;"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        <button type="button" class="btn btn-primary" onclick="window.copyEmail()" id="copyEmailBtn" style="display: none;">
+          <i class="bi bi-clipboard me-1"></i>Copiar E-mail
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 function copyRelatorio() {
   const relatorioText = document.getElementById('relatorioText').textContent;
@@ -195,8 +229,79 @@ function copyRelatorio() {
       }, 2000);
     }
     
+    
     document.body.removeChild(textArea);
   }
 }
+
+// Funções para o E-mail Patrimonial
+function getCsrfToken() {
+  const metaTag = document.querySelector('meta[name="csrf-token"]');
+  if (metaTag) {
+      return metaTag.getAttribute('content');
+  }
+  return null;
+}
+
+function gerarEmailPatrimonial(id) {
+  const modal = new bootstrap.Modal(document.getElementById('emailModal'));
+  modal.show();
+  
+  const loadingDiv = document.getElementById('emailLoading');
+  const emailTextDiv = document.getElementById('emailText');
+  const copyEmailBtn = document.getElementById('copyEmailBtn');
+  
+  loadingDiv.classList.remove('d-none');
+  emailTextDiv.style.display = 'none';
+  copyEmailBtn.style.display = 'none';
+  
+  const csrfToken = getCsrfToken();
+  const headers = {
+      'Content-Type': 'application/json'
+  };
+  if (csrfToken) {
+      headers['X-CSRFToken'] = csrfToken;
+  }
+
+  fetch(`/ocorrencias/gerar-email-patrimonial/${id}`, {
+    method: 'POST',
+    headers: headers
+  })
+  .then(response => response.json())
+  .then(data => {
+    loadingDiv.classList.add('d-none');
+    if(data.sucesso) {
+      emailTextDiv.textContent = data.email_formatado;
+      emailTextDiv.style.display = 'block';
+      copyEmailBtn.style.display = 'inline-block';
+    } else {
+      emailTextDiv.textContent = 'Erro ao gerar e-mail: ' + data.erro;
+      emailTextDiv.style.display = 'block';
+      emailTextDiv.classList.add('text-danger');
+    }
+  })
+  .catch(error => {
+    loadingDiv.classList.add('d-none');
+    emailTextDiv.textContent = 'Erro de conexão ao gerar o e-mail.';
+    emailTextDiv.style.display = 'block';
+    emailTextDiv.classList.add('text-danger');
+    console.error('Erro:', error);
+  });
+}
+
+window.copyEmail = function() {
+  const text = document.getElementById('emailText').textContent;
+  const btn = document.getElementById('copyEmailBtn');
+  const originalHtml = btn.innerHTML;
+  
+  navigator.clipboard.writeText(text).then(() => {
+    btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Copiado!';
+    btn.classList.replace('btn-primary', 'btn-success');
+    setTimeout(() => {
+      btn.innerHTML = originalHtml;
+      btn.classList.replace('btn-success', 'btn-primary');
+    }, 2000);
+  });
+};
 </script>
 {% endblock %}
