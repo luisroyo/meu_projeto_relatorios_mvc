@@ -6,90 +6,49 @@ A Central de Monitoramento aciona viaturas identificadas como VTR-XX e motos ide
 TAREFA:
 Corrija o relatório bruto abaixo, mantendo fidelidade aos fatos, mas adaptando a linguagem para um padrão estritamente técnico e operacional.
 
-IMPORTANTE:
-Responda APENAS com o relatório corrigido.
-NÃO inclua introduções.
-Inicie diretamente com "Data:".
+REGRAS DE ESTRUTURAÇÃO DO RELATO (DIVISÃO EM BLOCOS):
+
+    É PROIBIDO gerar o campo "Relato" como um bloco único ou contínuo de texto.
+
+    O texto deve ser obrigatoriamente dividido em parágrafos lógicos (blocos) para facilitar a leitura:
+
+        Bloco 1: Contexto inicial, localização da equipe e visualização do fato.
+
+        Bloco 2: Ações tomadas, contatos realizados e procedimentos técnicos.
+
+        Bloco 3: Desfecho, ciência de superiores e situação final do local.
 
 REGRAS DE PADRONIZAÇÃO (Siga rigorosamente):
 
-Uso da terceira pessoa:
-Reescreva sempre em terceira pessoa. Substitua "eu falei" ou "abordamos" por "foi feito contato", "a equipe orientou", etc.
+    Terceira pessoa: Substitua "eu falei" ou "abordamos" por "foi feito contato", "a equipe orientou", etc.
 
-Datas e horários:
-Formato: DD/MM/AAAA e HH:MM (24h).
-Se o ano for "25", converta para 2025.
+    Datas e horários: Formato DD/MM/AAAA e HH:MM (24h). Se o ano for "25", converta para 2025.
 
-Padronização de viaturas e motos:
-Padronize qualquer menção a veículo, viatura ou Águia como "VTR-XX" (dois dígitos) e qualquer menção a moto como "MT-XX" (dois dígitos).
-Exemplo:
-"VTR 3" → "VTR-03"
-"Águia-03" → "VTR-03"
-"Moto 2" → "MT-02"
+    Viaturas/Motos: Padronize como VTR-XX e MT-XX (ex: VTR-03, MT-02).
 
-Uso do termo “pernoite”:
-Refere-se sempre ao veículo, salvo se especificado o contrário.
+    Pernoite: Refere-se sempre ao veículo, salvo especificação contrária.
 
-Siglas de postos (PA, PC, PL, PG):
-Mantenha as siglas inalteradas.
+    Siglas: Mantenha PA, PC, PL, PG inalteradas.
 
-Não invente dados:
-Melhore a clareza, mas não adicione informações que não existam no original.
+    Residenciais: Corrija grafias usando a lista do CONTEXTO como base.
 
-Endereço/local:
-Mantenha exatamente como descrito no original (mesmo que seja apenas o nome do local).
+    Listas: Use apenas o hífen (-). Proibido o uso de asterisco (*).
 
-Padronização de residenciais:
-Caso o nome de um residencial no relatório bruto apresente erro de ortografia, variação ou inconsistência, corrigir utilizando como referência a lista oficial informada no CONTEXTO.
-A correção deve ser feita apenas quando houver correspondência clara, sem alterar o sentido do relato.
-
-PADRONIZAÇÃO DE LISTAS (OBRIGATÓRIO):
-
-É proibido o uso de asterisco (*) em qualquer parte do relatório.
-Todas as listas devem utilizar obrigatoriamente o hífen (-) como marcador.
-
-Exemplo correto:
-- Ação realizada
-
-Exemplo proibido:
-* Ação realizada
-
-USO DE TERMOS OPERACIONAIS (RONDA x DESLOCAMENTO):
-
-Quando a equipe estiver no interior de residencial/condomínio, é permitido utilizar:
-“durante ronda no interior do Residencial [nome citado]”
-“em ronda no Residencial [nome citado]”
-Quando a equipe estiver em área externa ou em trânsito para um local, utilizar:
-“em deslocamento para o Residencial [nome citado]”
-“em deslocamento para averiguação no Residencial [nome citado]”
-“em deslocamento preventivo com destino ao Residencial [nome citado]”
-
-⚠️ Regras obrigatórias:
-
-O termo utilizado deve respeitar o contexto real da ocorrência (interior x externo).
-Nunca utilizar “em deslocamento” de forma genérica, sempre com destino definido.
-É proibido alterar o sentido operacional da ação descrita no relatório.
+    Ronda x Deslocamento: Use "durante ronda no interior do Residencial [Nome]" ou "em deslocamento para o Residencial [Destino]". Nunca use "deslocamento" sem um destino definido.
 
 VOCABULÁRIO OBRIGATÓRIO (Substituição de Termos Rígidos):
 
-É estritamente proibido usar as palavras:
-"Regimento", "Regimento Interno", "Normas", "Regras", "Lei", "Estatuto" ou "Proibição".
+    PROIBIDO: "Regimento", "Normas", "Regras", "Lei", "Estatuto" ou "Proibição".
 
-Ao encontrar esses conceitos, traduzir para linguagem técnica utilizando apenas:
-
-"Protocolos de segurança"
-"Diretrizes operacionais"
-"Procedimentos padrão"
-"Orientações vigentes"
-"Rotinas estabelecidas"
-
-Exemplo:
-Em vez de "Isso é contra as normas", escrever:
-"O procedimento está em desacordo com as diretrizes operacionais".
+    USE APENAS: "Protocolos de segurança", "Diretrizes operacionais", "Procedimentos padrão", "Orientações vigentes" ou "Rotinas estabelecidas".
 
 IMPORTANTE:
-Caso alguma informação do modelo abaixo não conste no texto original, simplesmente apagar a linha correspondente.
-Não deixar campos em branco.
+
+    Responda APENAS com o relatório corrigido.
+
+    NÃO inclua introduções. Inicie diretamente com "Data:".
+
+    Apague linhas de campos que não possuam informações no original.
 
 MODELO DE SAÍDA:
 
@@ -100,20 +59,28 @@ Local: [Local descrito no relatório]
 Ocorrência: [Resumo/Título da ocorrência]
 
 Relato:
-[Descrição cronológica e técnica dos fatos, aplicando todas as regras acima.]
+[Parágrafo do Contexto Inicial]
+
+[Parágrafo das Ações e Procedimentos]
+
+[Parágrafo do Desfecho e Ciência]
 
 Ações Realizadas:
 
-[Lista de ações concretas em tópicos usando hífen (-)]
+    [Ação 1]
+
+    [Ação 2]
 
 Acionamentos:
 ( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador
 
 Envolvidos/Testemunhas:
-[Lista de nomes/funções, se houver]
+
+    [Nomes/Funções]
 
 Veículo (envolvido na ocorrência):
-[Modelo, cor, placa, se houver]
+
+    [Modelo, cor, placa]
 
 Responsável pelo registro: [Nome/Viatura ou Moto]
 
