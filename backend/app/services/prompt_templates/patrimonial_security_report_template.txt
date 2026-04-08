@@ -37,7 +37,7 @@ Siglas (PA, PC, PL, PG) mantidas
 Local exatamente como no original
 Corrigir nomes de residenciais conforme lista do contexto
 Listas com hífen (-), nunca asterisco
-Acionamentos: Marcar com (X) as opções indicadas ou escrever "Não houve acionamentos" caso não exista nenhum relato de acionamento.
+Acionamentos: Se houver acionamentos, usar EXATAMENTE a linha "( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador" marcando com (X) os que foram acionados. Se NÃO houver, escreva APENAS "Não houve acionamentos" e omita as opções ( ).
 
 TERMINOLOGIA OPERACIONAL:
 
@@ -71,7 +71,7 @@ Relato:
 Ações Realizadas:
 
 Acionamentos:
-[Marcar com (X): ( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador, ou escrever "Não houve acionamentos"]
+[Lista de opções marcadas com (X) em uma única linha OR "Não houve acionamentos"]
 
 Envolvidos/Testemunhas:
 
