@@ -19,10 +19,9 @@ class EmailPatrimonialFormatService(BaseGenerativeService):
             jinja_env = Environment(
                 loader=FileSystemLoader(template_folder), autoescape=True
             )
-            self._template = jinja_env.get_template(template_filename)
-            self.logger.info(
-                f"Template '{template_filename}' carregado para EmailPatrimonialFormatService."
-            )
+            self._template_padrao = jinja_env.get_template("email_patrimonial_format_template.txt")
+            self._template_consolidado = jinja_env.get_template("email_consolidado_format_template.txt")
+            self.logger.info("Templates de formatação carregados para EmailPatrimonialFormatService.")
         except Exception as e:
             self.logger.error(
                 f"Erro ao carregar template '{template_filename}' para EmailPatrimonialFormatService: {e}",
@@ -32,15 +31,17 @@ class EmailPatrimonialFormatService(BaseGenerativeService):
                 f"Falha ao carregar template para EmailPatrimonialFormatService: {e}"
             ) from e
 
-    def _construir_prompt(self, dados_brutos: str) -> str:
-        if not self._template:
+    def _construir_prompt(self, dados_brutos: str, consolidado=False) -> str:
+        template = self._template_consolidado if consolidado else self._template_padrao
+        
+        if not template:
             raise RuntimeError("Template de formatação não está carregado.")
 
         if not isinstance(dados_brutos, str):
             raise ValueError("Os dados brutos devem ser uma string.")
 
         try:
-            return self._template.render(dados_brutos=dados_brutos)
+            return template.render(dados_brutos=dados_brutos)
         except Exception as e:
             self.logger.error(f"Erro ao renderizar template: {e}", exc_info=True)
             raise ValueError(f"Erro ao construir o prompt: {str(e)}") from e
@@ -56,10 +57,28 @@ class EmailPatrimonialFormatService(BaseGenerativeService):
             raise RuntimeError("Serviço de IA não configurado corretamente.")
 
         try:
-            prompt_para_ia = self._construir_prompt(texto_relatorio)
+            prompt_para_ia = self._construir_prompt(texto_relatorio, consolidado=False)
             texto_formatado = self._call_generative_model(prompt_para_ia)
             self.logger.info("E-mail formatado pela IA com sucesso.")
             return texto_formatado
         except Exception as e:
             self.logger.exception("Erro inesperado ao formatar e-mail patrimonial:")
+            raise RuntimeError(f"Erro inesperado no serviço de IA: {str(e)}") from e
+
+    def formatar_email_consolidado(self, texto_relatorios: str) -> str:
+        """
+        Formata MÚLTIPLOS relatórios patrimoniais em um único e-mail
+        """
+        self.logger.info("Iniciando formatação de E-mail Consolidado.")
+
+        if self.client is None:
+            raise RuntimeError("Serviço de IA não configurado corretamente.")
+
+        try:
+            prompt_para_ia = self._construir_prompt(texto_relatorios, consolidado=True)
+            texto_formatado = self._call_generative_model(prompt_para_ia)
+            self.logger.info("E-mail múltiplo formatado pela IA com sucesso.")
+            return texto_formatado
+        except Exception as e:
+            self.logger.exception("Erro inesperado ao consolidar e-mails:")
             raise RuntimeError(f"Erro inesperado no serviço de IA: {str(e)}") from e

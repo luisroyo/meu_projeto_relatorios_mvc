@@ -444,3 +444,52 @@ def gerar_email_patrimonial(ocorrencia_id):
     except Exception as e:
         logger.error(f"Erro ao gerar e-mail patrimonial para ocorrência {ocorrencia.id}: {e}", exc_info=True)
         return jsonify({"erro": f"Erro ao gerar e-mail: {str(e)}"}), 500
+
+
+@ocorrencia_bp.route("/gerar-email-consolidado", methods=["POST"])
+@login_required
+def gerar_email_consolidado():
+    """
+    Rota para compilar múltiplos relatórios patrimoniais em um único e-mail consolidado.
+    """
+    dados = request.get_json()
+    if not dados or "ids" not in dados:
+        return jsonify({"erro": "IDs não fornecidos."}), 400
+
+    ocorrencia_ids = dados["ids"]
+    if not ocorrencia_ids:
+        return jsonify({"erro": "Nenhum ID de ocorrência fornecido."}), 400
+
+    # Busca as ocorrências
+    ocorrencias = Ocorrencia.query.filter(Ocorrencia.id.in_(ocorrencia_ids)).order_by(Ocorrencia.data_hora_ocorrencia.asc()).all()
+
+    if not ocorrencias:
+        return jsonify({"erro": "Nenhuma ocorrência encontrada para os IDs fornecidos."}), 404
+
+    # Verifica se todas pertencem ao mesmo condomínio (segurança adicional)
+    primeiro_condominio = ocorrencias[0].condominio.nome if ocorrencias[0].condominio else None
+    for occ in ocorrencias:
+        if (occ.condominio.nome if occ.condominio else None) != primeiro_condominio:
+            return jsonify({"erro": "Não é possível consolidar relatórios de condomínios diferentes."}), 400
+
+    # Prepara o texto unificado enviando os blocos
+    blocos_texto = []
+    for occ in ocorrencias:
+        horario = occ.data_hora_ocorrencia.strftime('%H:%M') if occ.data_hora_ocorrencia else "S/H"
+        relatorio = occ.relatorio_final or "Sem relatório final."
+        blocos_texto.append(f"--- HORÁRIO DA OCORRÊNCIA: {horario} ---\n{relatorio}\n")
+
+    texto_unificado = "\n".join(blocos_texto)
+
+    try:
+        service = EmailPatrimonialFormatService()
+        email_formatado = service.formatar_email_consolidado(texto_unificado)
+
+        return jsonify({
+            "sucesso": True,
+            "email_formatado": email_formatado
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Erro ao gerar e-mail consolidado: {e}", exc_info=True)
+        return jsonify({"erro": f"Erro interno ao gerar consolidação: {str(e)}"}), 500
