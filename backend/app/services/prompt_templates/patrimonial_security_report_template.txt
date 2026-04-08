@@ -48,14 +48,10 @@ Nunca usar “em deslocamento” sem destino
 VOCABULÁRIO:
 
 Proibido: Regimento, Normas, Regras, Lei, Estatuto, Proibição
+Substituir por: Protocolos de segurança, Diretrizes operacionais, Procedimentos padrão, Orientações vigentes, Rotinas estabelecidas
 
-Substituir por:
-
-Protocolos de segurança
-Diretrizes operacionais
-Procedimentos padrão
-Orientações vigentes
-Rotinas estabelecidas
+Proibido (Jargão Policial): Abordagem, abordar, abordado
+Substituir por: Contato, orientação, averiguação, atendimento, verificação
 
 MODELO FINAL:
 
