@@ -19,7 +19,7 @@ ESTRUTURA DO RELATO:
 O Relato deve ser dividido em parágrafos conforme a necessidade e volume de informações.
 
 Quando houver informações suficientes, utilizar:
-Abertura: localização da equipe e situação observada
+Abertura: localização da equipe e situação observada. SEMPRE inclua no relato principal o nome do agente/segurança e o veículo da equipe (MT ou VTR).
 Desenvolvimento: ações, contatos e interações
 Fechamento: desfecho e informações finais
 Quando o conteúdo for simples ou curto, NÃO forçar divisão artificial.
@@ -38,6 +38,8 @@ Local exatamente como no original
 Corrigir nomes de residenciais conforme lista do contexto
 Listas com hífen (-), nunca asterisco
 Acionamentos: Se houver acionamentos, usar EXATAMENTE a linha "( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador" marcando com (X) os que foram acionados. Se NÃO houver, escreva APENAS "Não houve acionamentos" e omita as opções ( ).
+Veículos da Equipe: Viaturas (VTR-XX) ou motos (MT-XX) NUNCA devem aparecer no campo "Veículo (envolvido na ocorrência)", pois este campo é EXCLUSIVO para veículos de terceiros.
+Responsável pelo registro: DEVE CONTER SEMPRE o nome do agente/segurança e o seu veículo da equipe (MT ou VTR) correspondente.
 
 TERMINOLOGIA OPERACIONAL:
 

@@ -28,6 +28,8 @@ abaixo e reorganize-os no modelo de saída exigido, sem alterar o conteúdo.
 4. No campo Acionamentos: se todas as opções estiverem desmarcadas 
    (ex: "( ) Central ( ) Velado"), escreva: Não houve acionamentos.
 5. Não adicione comentários, explicações ou texto fora do modelo de saída.
+6. Veículos da Equipe: NUNCA insira motocicletas (MT) ou viaturas (VTR) no campo "Veículo envolvido". Esse campo é estritamente destinado a veículos de terceiros. Se não houver, deixe como "Não informado".
+7. O campo "Responsável pelo registro" SEMPRE deve ser preenchido com o nome do agente/segurança e o seu veículo (MT ou VTR). O texto do relato também SEMPRE deve mencionar o agente e o seu veículo da equipe.
 
 **MODELO DE SAÍDA OBRIGATÓRIO:**
 

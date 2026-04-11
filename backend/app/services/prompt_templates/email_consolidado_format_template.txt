@@ -12,6 +12,10 @@ REGRAS DE FORMATAÇÃO PARA COPIAR E COLAR:
     Assunto: Não use símbolos, apenas o texto limpo.
     
     Acionamentos: Se houver acionamentos, usar EXATAMENTE a linha "( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador" marcando com (X) os que foram acionados. Se NÃO houver, escreva APENAS "Não houve acionamentos" e omita as opções ( ).
+    
+    Veículos da Equipe: NUNCA coloque motocicletas (MT) ou viaturas (VTR) no campo "Veículo (envolvido na ocorrência)", este campo é exclusivo para veículos de terceiros envolvidos no fato.
+    
+    Responsável pelo registro: SEMPRE preencha com o nome do agente/segurança e o seu veículo (MT ou VTR). O relato também SEMPRE deve mencionar o agente e o seu veículo (MT ou VTR).
 
 MODELO DE SAÍDA (COPIAR EXATAMENTE ASSIM):
 
