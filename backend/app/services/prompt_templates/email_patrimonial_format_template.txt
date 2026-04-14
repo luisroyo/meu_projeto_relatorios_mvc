@@ -18,8 +18,8 @@ abaixo e reorganize-os no modelo de saída exigido, sem alterar o conteúdo.
 - Ações Realizadas
 - Acionamentos
 - Envolvidos/Testemunhas
-- Veículo envolvido (placa, modelo, cor — se houver)
-- Responsável pelo registro (nome e função/serviço)
+- Veículo (envolvido na ocorrência): (placa, modelo, cor — se houver)
+- Responsável pelo registro: (nome e veículo MT/VTR)
 
 **REGRAS:**
 1. Você NÃO deve inventar, adicionar ou inferir dados ausentes.
@@ -28,8 +28,8 @@ abaixo e reorganize-os no modelo de saída exigido, sem alterar o conteúdo.
 4. No campo Acionamentos: se todas as opções estiverem desmarcadas 
    (ex: "( ) Central ( ) Velado"), escreva: Não houve acionamentos.
 5. Não adicione comentários, explicações ou texto fora do modelo de saída.
-6. Veículos da Equipe: NUNCA insira motocicletas (MT) ou viaturas (VTR) no campo "Veículo envolvido". Esse campo é estritamente destinado a veículos de terceiros. Se não houver, deixe como "Não informado".
-7. O campo "Responsável pelo registro" SEMPRE deve ser preenchido com o nome do agente/segurança e o seu veículo (MT ou VTR). O texto do relato também SEMPRE deve mencionar o agente e o seu veículo da equipe.
+6. Veículos Operacionais: NUNCA insira motocicletas (MT) ou viaturas (VTR) no campo "Veículo (envolvido na ocorrência)". Esse campo é estritamente destinado a veículos de terceiros. Se não houver, coloque: "Não houve".
+7. Responsável pelo registro: Deve conter sempre o nome do agente/segurança e seu respectivo veículo (MT ou VTR). O texto do relato também deve ser no singular, pois os agentes trabalham sozinhos. Caso haja apoio, mencione como "apoio de outra unidade".
 
 **MODELO DE SAÍDA OBRIGATÓRIO:**
 
@@ -43,6 +43,7 @@ referente à data de [Data], conforme detalhamento abaixo:
 Data: [Data]
 Hora: [Hora]
 Local: [Local]
+
 Ocorrência: [Ocorrência]
 
 Relato:
@@ -52,15 +53,15 @@ Ações Realizadas:
 [Ações do relatório bruto]
 
 Acionamentos:
-[Acionamentos realizados ou "Não houve acionamentos."]
+[Acionamentos realizados ou "Não houve acionamentos"]
 
 Envolvidos/Testemunhas:
 [Pessoas envolvidas]
 
-Veículo envolvido:
-[Dados do veículo ou "Não informado"]
+Veículo (envolvido na ocorrência):
+[Dados do veículo ou "Não houve"]
 
-Responsável pelo registro: [Nome e função]
+Responsável pelo registro: [Nome], [VTR/MT]
 
 Permaneço à disposição para esclarecimentos.
 
@@ -108,7 +109,7 @@ Local: Residencial Luzern
 Ocorrência: Veículo com vidros abertos
 
 Relato:
-Em ronda no Residencial Luzern, a equipe MT-02 Jorge constatou um veículo Jeep
+Em ronda no Residencial Luzern, o Agente Jorge, a bordo da MT-02, constatou um veículo Jeep
 Renegade, placa RVR-7F47, estacionado com os vidros abertos na Rua Quirino
 Requio Henrique, S/N, ao lado da residência N:31. A situação foi comunicada ao
 agente de portaria Fabiano, que informou que notificaria o proprietário do
@@ -122,14 +123,14 @@ Acionamentos:
 Não houve acionamentos.
 
 Envolvidos/Testemunhas:
-- Agente MT-02 Jorge
+- Agente Jorge, MT-02
 - Agente de Portaria Fabiano
 
-Veículo envolvido:
-- Tipo: Jeep Renegade
+Veículo (envolvido na ocorrência):
+- Marca/Modelo: Jeep Renegade
 - Placa: RVR-7F47
 
-Responsável pelo registro: MT-02 Jorge
+Responsável pelo registro: Jorge, MT-02
 
 Permaneço à disposição para esclarecimentos.
 

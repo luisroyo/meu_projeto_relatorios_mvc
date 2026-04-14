@@ -1,62 +1,57 @@
-CONTEXTO:
+**CONTEXTO:**
 O relatório refere-se a ocorrências em um complexo com múltiplos residenciais monitorados por câmeras. Residenciais válidos: Arosa, Associação Master, Baden, Basel, Bern, Biel, Botanico, Davos, Fribourg, Eco Villa Genebra, Geneve, Glarus, La Vie, Lauerz, Lenk, Lugano, Luzern, Noville, Office, St. Moritz, Vevey, Villeneuve, Zermatt e Zurich.
-
 A Central aciona viaturas (VTR-XX) e motos (MT-XX). Em ocorrências de maior risco, pode haver envolvimento do Velado. Registros podem ser feitos por viaturas, motos, Central ou Velado.
 
-TAREFA:
+**TAREFA:**
 Corrigir o relatório mantendo 100% fidelidade aos fatos e adequando para linguagem técnica e operacional.
 
-REGRAS GERAIS:
+**REGRAS GERAIS:**
+- Iniciar obrigatoriamente com "Data:"
+- Redigir sempre em terceira pessoa
+- Não adicionar, inferir ou deduzir informações inexistentes
+- Caso falte informação, manter a ausência sem preenchimento
+- Não usar frases automáticas genéricas
 
-Responder apenas com o relatório final
-Iniciar obrigatoriamente com "Data:"
-Não adicionar, inferir ou deduzir informações inexistentes
-Caso falte informação, manter a ausência sem preenchimento
-Não usar frases automáticas genéricas
-
-ESTRUTURA DO RELATO:
-
-O Relato deve ser dividido em parágrafos conforme a necessidade e volume de informações.
+**ESTRUTURA DO RELATO:**
+O Relato deve ser dividido em parágrafos conforme a necessidade e volume de informações. Quando o conteúdo for simples ou curto, manter em um único parágrafo ou no menor número de blocos possível, sem forçar divisão artificial.
 
 Quando houver informações suficientes, utilizar:
-Abertura: localização da equipe e situação observada. SEMPRE inclua no relato principal o nome do agente/segurança e o veículo da equipe (MT ou VTR).
-Desenvolvimento: ações, contatos e interações
-Fechamento: desfecho e informações finais
-Quando o conteúdo for simples ou curto, NÃO forçar divisão artificial.
-Manter em um único parágrafo ou no menor número de blocos possível.
+- **Abertura:** localização do agente e situação observada — incluir sempre o nome do agente/segurança e seu respectivo veículo (MT ou VTR)
+- **Desenvolvimento:** ações, contatos e interações
+- **Fechamento:** desfecho e informações finais
 
-PADRONIZAÇÃO:
+**PADRONIZAÇÃO:**
+- Data: DD/MM/AAAA
+- Hora: HH:MM (24h)
+- Viaturas: VTR-XX | Motos: MT-XX
+- "Pernoite" refere-se ao veículo
+- Siglas (PA, PC, PL, PG) mantidas
+- Local exatamente como no original
+- Corrigir nomes de residenciais conforme lista do contexto
+- Listas com hífen (-), nunca asterisco
 
-Terceira pessoa sempre
-Data: DD/MM/AAAA
-Hora: HH:MM (24h)
-Viaturas: VTR-XX
-Motos: MT-XX
-“Pernoite” refere-se ao veículo
-Siglas (PA, PC, PL, PG) mantidas
-Local exatamente como no original
-Corrigir nomes de residenciais conforme lista do contexto
-Listas com hífen (-), nunca asterisco
-Acionamentos: Se houver acionamentos, usar EXATAMENTE a linha "( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador" marcando com (X) os que foram acionados. Se NÃO houver, escreva APENAS "Não houve acionamentos" e omita as opções ( ).
-Veículos da Equipe: Viaturas (VTR-XX) ou motos (MT-XX) NUNCA devem aparecer no campo "Veículo (envolvido na ocorrência)", pois este campo é EXCLUSIVO para veículos de terceiros.
-Responsável pelo registro: DEVE CONTER SEMPRE o nome do agente/segurança e o seu veículo da equipe (MT ou VTR) correspondente.
+**Acionamentos:** Se houver, usar exatamente a linha abaixo marcando com (X) os acionados:
+`( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador`
+Se não houver, escrever apenas "Não houve acionamentos" e omitir as opções.
 
-TERMINOLOGIA OPERACIONAL:
+**Veículo (envolvido na ocorrência):** campo exclusivo para veículos de terceiros — VTR-XX e MT-XX nunca devem constar aqui.
 
-Dentro do residencial: “em ronda no Residencial [nome]”
-Fora/em trânsito: “em deslocamento para o Residencial [nome]”
-Nunca usar “em deslocamento” sem destino
+**Responsável pelo registro:** sempre o nome do agente/segurança e seu respectivo veículo (MT ou VTR).
 
-VOCABULÁRIO:
+**TERMINOLOGIA OPERACIONAL:**
+- Dentro do residencial: "em ronda no Residencial [nome]"
+- Fora/em trânsito: "em deslocamento para o Residencial [nome]"
+- Nunca usar "em deslocamento" sem destino
 
-Proibido: Regimento, Normas, Regras, Lei, Estatuto, Proibição
-Substituir por: Protocolos de segurança, Diretrizes operacionais, Procedimentos padrão, Orientações vigentes, Rotinas estabelecidas
+**VOCABULÁRIO:**
 
-Proibido (Jargão Policial): Abordagem, abordar, abordado
-Substituir por: Contato, orientação, averiguação, atendimento, verificação
+| Proibido | Substituir por |
+|---|---|
+| Regimento, Normas, Regras, Lei, Estatuto, Proibição | Protocolos de segurança, Diretrizes operacionais, Procedimentos padrão, Orientações vigentes, Rotinas estabelecidas |
+| Abordagem, abordar, abordado | Contato, orientação, averiguação, atendimento, verificação |
 
-MODELO FINAL:
-
+**MODELO FINAL:**
+```
 Data:
 Hora:
 Local:
@@ -65,17 +60,13 @@ Ocorrência:
 
 Relato:
 [Parágrafo(s) conforme necessidade]
-
 Ações Realizadas:
-
 Acionamentos:
-[Lista de opções marcadas com (X) em uma única linha OR "Não houve acionamentos"]
-
 Envolvidos/Testemunhas:
-
 Veículo (envolvido na ocorrência):
 
 Responsável pelo registro:
+```
 
-RELATÓRIO BRUTO:
+**RELATÓRIO BRUTO:**
 {{ dados_brutos }}
