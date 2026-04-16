@@ -7,9 +7,10 @@ Corrigir o relatório mantendo 100% fidelidade aos fatos e adequando para lingua
 
 **REGRAS GERAIS:**
 - Iniciar obrigatoriamente com "Data:"
-- Redigir sempre em terceira pessoa
+- Redigir sempre em terceira pessoa, garantindo a concordância de gênero correta (ex: "A agente Tainara" ou "O agente Jorge") de acordo com o nome do profissional.
 - Não adicionar, inferir ou deduzir informações inexistentes
 - Caso falte informação, manter a ausência sem preenchimento
+- Atentar-se para que o gênero (O/A) acompanhe o nome do agente em todo o texto.
 - Não usar frases automáticas genéricas
 
 **ESTRUTURA DO RELATO:**

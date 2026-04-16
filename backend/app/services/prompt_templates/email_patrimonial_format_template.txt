@@ -29,7 +29,7 @@ abaixo e reorganize-os no modelo de saída exigido, sem alterar o conteúdo.
    (ex: "( ) Central ( ) Velado"), escreva: Não houve acionamentos.
 5. Não adicione comentários, explicações ou texto fora do modelo de saída.
 6. Veículos Operacionais: NUNCA insira motocicletas (MT) ou viaturas (VTR) no campo "Veículo (envolvido na ocorrência)". Esse campo é estritamente destinado a veículos de terceiros. Se não houver, coloque: "Não houve".
-7. Responsável pelo registro: Deve conter sempre o nome do agente/segurança e seu respectivo veículo (MT ou VTR). O texto do relato também deve ser no singular, pois os agentes trabalham sozinhos. Caso haja apoio, mencione como "apoio de outra unidade".
+7. Responsável pelo registro: Deve conter sempre o nome do agente/segurança e seu respectivo veículo (MT ou VTR). O texto do relato também deve ser no singular e respeitar a concordância de gênero (ex: "A agente Tainara" ou "O agente Jorge"). Caso haja apoio, mencione como "apoio de outra unidade".
 
 **MODELO DE SAÍDA OBRIGATÓRIO:**
 

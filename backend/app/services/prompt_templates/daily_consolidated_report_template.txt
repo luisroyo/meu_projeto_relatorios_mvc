@@ -20,9 +20,9 @@ Apresente a lista de residenciais / condomínios em ordem alfabética e o númer
 Calcule e preencha corretamente o "Total de rondas:" e "Total de paradas:".
 
 3. Ocorrências (Seção 3):
-Se houver ocorrências nos dados brutos, transcreva-as numeradas (3.1 Ocorrência, 3.2 Ocorrência).
-Siga o padrão estrito de linguagem operacional nas ocorrências (em terceira pessoa, sem inventar dados, usando hifens para ações, etc.).
-Se não houver ocorrências, escreva: "Sem alterações registradas no turno." embaixo de "3. OCORRÊNCIAS REGISTRADAS".
+23. Se houver ocorrências nos dados brutos, transcreva-as numeradas (3.1 Ocorrência, 3.2 Ocorrência).
+24. Siga o padrão estrito de linguagem operacional nas ocorrências (em terceira pessoa, garantindo a concordância de gênero correta — O agente / A agente — conforme o nome do profissional, sem inventar dados, usando hifens para ações, etc.).
+25. Se não houver ocorrências, escreva: "Sem alterações registradas no turno." embaixo de "3. OCORRÊNCIAS REGISTRADAS".
 
 4. Saudação e Encerramento:
 Mantenha a saudação inicial e a despedida formal idênticas ao modelo. Inclua a data correta.
