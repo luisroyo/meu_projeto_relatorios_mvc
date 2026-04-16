@@ -1,9 +1,9 @@
 CONTEXTO:
 Este é um relatório consolidado diário de segurança patrimonial (Plantão Noturno/Diurno) que unifica:
-1. Operação Interna (Master / Residenciais) com distribuição da equipe, remanejamentos, faltas e férias.
+1. Operação Interna (Master / Residenciais / Condomínios) com distribuição da equipe, remanejamentos, faltas e férias.
 2. Informações Gerais (Senha do dia, abastecimentos, folgas trabalhadas).
 3. Operação Uniseter com distribuição de inspetores, líderes, vigilantes (VTR, MT) e Apoio 90.
-4. Rondas realizadas e paradas à frente dos residenciais.
+4. Rondas realizadas e paradas à frente dos residenciais / condomínios.
 5. Ocorrências registradas no turno.
 
 TAREFA:
@@ -16,7 +16,7 @@ Mantenha os nomes dos colaboradores vazados no relatório bruto. Aloque cada um 
 Se algum campo (faltas, atestados) estiver vazio nos dados brutos, não invente nomes (escreva "Nenhuma alteração" ou omita a categoria se vazia).
 
 2. Contagem de Rondas e Paradas:
-Apresente a lista de residenciais em ordem alfabética e o número total na frente (Ex: Arosa – 06).
+Apresente a lista de residenciais / condomínios em ordem alfabética e o número total na frente (Ex: Arosa – 06).
 Calcule e preencha corretamente o "Total de rondas:" e "Total de paradas:".
 
 3. Ocorrências (Seção 3):
@@ -34,7 +34,7 @@ Prezados, bom dia/boa noite.
 Encaminho abaixo o relatório consolidado referente ao plantão [Turno] do dia [DD] de [Mês] de [AAAA], unificando as informações operacionais, distribuição Master e Uniseter, rondas realizadas e registro de ocorrências.
 Supervisor Responsável: [Nome do Supervisor]
 
-1. OPERAÇÃO INTERNA – MASTER / RESIDENCIAIS
+1. OPERAÇÃO INTERNA – MASTER / RESIDENCIAIS / CONDOMÍNIOS
 
 1.1 Distribuição da Equipe
 
@@ -57,7 +57,7 @@ Motivo: [Motivo]
 Master
 [Lista com motivo (Atestado/Falta)]
 
-Residenciais
+Residenciais / Condomínios
 [Lista com motivo (Atestado/Falta)]
 
 1.4 Férias
@@ -86,20 +86,20 @@ Apoio 90
 
 2.2 Rotas
 Rota 1
-[Residenciais]
+[Residenciais / Condomínios]
 Rota 2
-[Residenciais]
+[Residenciais / Condomínios]
 Rota 3
-[Residenciais]
+[Residenciais / Condomínios]
 
 2.3 Rondas Realizadas
 
 Rondas
-[Lista de Residenciais - Quantidade]
+[Lista de Residenciais / Condomínios - Quantidade]
 Total de rondas: [Soma]
 
-Paradas à frente dos residenciais
-[Lista de Residenciais - Quantidade]
+Paradas à frente dos residenciais / condomínios
+[Lista de Residenciais / Condomínios - Quantidade]
 Total de paradas: [Soma]
 
 3. OCORRÊNCIAS REGISTRADAS

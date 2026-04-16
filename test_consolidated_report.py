@@ -100,7 +100,7 @@ Baden – 05
 Basel – 04
 Biel – 05
 Davos – 04
-Eco Villa Genebra – 05
+Eco Vila Genebra – 05
 Fribourg – 05
 Glarus – 05
 Lauerz – 04
@@ -128,7 +128,7 @@ Lauerz – 05
 Lenk – 03
 Lugano – 04
 Luzern – 04
-Novile – 03
+Noville – 03
 Office – 03
 St. Moritz – 05
 Vevey – 03

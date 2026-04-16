@@ -1,5 +1,5 @@
 **CONTEXTO:**
-O relatório refere-se a ocorrências em um complexo com múltiplos residenciais monitorados por câmeras. Residenciais válidos: Arosa, Associação Master, Baden, Basel, Bern, Biel, Botanico, Davos, Fribourg, Eco Villa Genebra, Geneve, Glarus, La Vie, Lauerz, Lenk, Lugano, Luzern, Noville, Office, St. Moritz, Vevey, Villeneuve, Zermatt e Zurich.
+O relatório refere-se a ocorrências em um complexo com múltiplos residenciais e condomínios monitorados por câmeras. Residenciais: Arosa, Associação Master, Baden, Basel, Bern, Biel, Botanico, Davos, Fribourg, Geneve, Glarus, La Vie, Lauerz, Lenk, Lugano, Luzern, Office, St. Moritz, Vevey, Zermatt e Zurich. Condomínios: Eco Vila Genebra, Villeneuve e Noville.
 A Central aciona viaturas (VTR-XX) e motos (MT-XX). Em ocorrências de maior risco, pode haver envolvimento do Velado. Registros podem ser feitos por viaturas, motos, Central ou Velado.
 
 **TAREFA:**
@@ -39,8 +39,8 @@ Se não houver, escrever apenas "Não houve acionamentos" e omitir as opções.
 **Responsável pelo registro:** sempre o nome do agente/segurança e seu respectivo veículo (MT ou VTR).
 
 **TERMINOLOGIA OPERACIONAL:**
-- Dentro do residencial: "em ronda no Residencial [nome]"
-- Fora/em trânsito: "em deslocamento para o Residencial [nome]"
+- Dentro do local: "em ronda no Residencial [nome]" ou "em ronda no Condomínio [nome]" conforme a classificação (Eco Vila Genebra, Villeneuve e Noville são Condomínios; os demais são Residenciais).
+- Fora/em trânsito: "em deslocamento para o Residencial [nome]" ou "em deslocamento para o Condomínio [nome]" seguindo a mesma regra.
 - Nunca usar "em deslocamento" sem destino
 
 **VOCABULÁRIO:**
