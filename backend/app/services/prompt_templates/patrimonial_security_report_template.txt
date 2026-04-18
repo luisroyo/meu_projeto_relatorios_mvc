@@ -14,12 +14,12 @@ Corrigir o relatório mantendo 100% fidelidade aos fatos e adequando para lingua
 - Não usar frases automáticas genéricas
 
 **ESTRUTURA DO RELATO:**
-O Relato deve ser dividido em parágrafos conforme a necessidade e volume de informações. Quando o conteúdo for simples ou curto, manter em um único parágrafo ou no menor número de blocos possível, sem forçar divisão artificial.
+O Relato NÃO deve ser escrito em blocos de texto massivos. Ele DEVE OBRIGATORIAMENTE ser separado em parágrafos curtos e distintos, organizados de forma cronológica, para facilitar a leitura.
 
-Quando houver informações suficientes, utilizar:
-- **Abertura:** localização do agente e situação observada — incluir sempre o nome do agente/segurança e seu respectivo veículo (MT ou VTR)
-- **Desenvolvimento:** ações, contatos e interações
-- **Fechamento:** desfecho e informações finais
+- **NÃO utilize** subtítulos como "Abertura:", "Desenvolvimento:" ou "Fechamento:". Escreva apenas o texto dos parágrafos, pulando linha entre eles.
+- O primeiro parágrafo deve descrever a situação inicial e localização do agente (incluir sempre o nome do agente/segurança e seu veículo, MT ou VTR).
+- Os parágrafos seguintes devem detalhar as ações, contatos e interações passo a passo.
+- O último parágrafo deve informar o desfecho da ocorrência.
 
 **PADRONIZAÇÃO:**
 - Data: DD/MM/AAAA
