@@ -14,12 +14,12 @@ Corrigir o relatório mantendo 100% fidelidade aos fatos e adequando para lingua
 - Não usar frases automáticas genéricas
 
 **ESTRUTURA DO RELATO:**
-O Relato NÃO deve ser escrito em blocos de texto massivos. Ele DEVE OBRIGATORIAMENTE ser separado em parágrafos curtos e distintos, organizados de forma cronológica, para facilitar a leitura.
-
-- **NÃO utilize** subtítulos como "Abertura:", "Desenvolvimento:" ou "Fechamento:". Escreva apenas o texto dos parágrafos, pulando linha entre eles.
-- O primeiro parágrafo deve descrever a situação inicial e localização do agente (incluir sempre o nome do agente/segurança e seu veículo, MT ou VTR).
-- Os parágrafos seguintes devem detalhar as ações, contatos e interações passo a passo.
-- O último parágrafo deve informar o desfecho da ocorrência.
+O Relato deve ser coeso e fluído, adequado à complexidade da ocorrência.
+- Para ocorrências simples: redija de forma direta, unificando as informações em um único parágrafo conciso (ou dois, se necessário).
+- Para ocorrências complexas ou extensas: é OBRIGATÓRIO utilizar quebras de parágrafo. Separe as ações e os fatos em parágrafos distintos e organizados cronologicamente para garantir o melhor entendimento do texto e evitar blocos de texto massivos.
+- **NÃO utilize** subtítulos como "Abertura:", "Desenvolvimento:" ou "Fechamento:".
+- O relato (seja em um ou mais parágrafos) deve sempre iniciar descrevendo a situação inicial e localização do agente (incluindo o nome e veículo, MT ou VTR), detalhar as ações de forma fluída e informar o desfecho da ocorrência.
+- Separe as seções principais do relatório (Local, Ocorrência, Relato, Ações Realizadas, etc.) com uma linha em branco para melhor visualização, conforme o modelo abaixo.
 
 **PADRONIZAÇÃO:**
 - Data: DD/MM/AAAA
@@ -61,9 +61,13 @@ Ocorrência:
 
 Relato:
 [Parágrafo(s) conforme necessidade]
+
 Ações Realizadas:
+
 Acionamentos:
+
 Envolvidos/Testemunhas:
+
 Veículo (envolvido na ocorrência):
 
 Responsável pelo registro:
