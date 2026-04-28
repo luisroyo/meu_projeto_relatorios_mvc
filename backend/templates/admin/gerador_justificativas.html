@@ -77,6 +77,12 @@
         <p class="lead text-center">Selecione o tipo de justificativa e preencha os campos para gerar o texto com IA.</p>
     </div>
     <hr>
+    
+    <div class="text-end mb-3">
+        <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#quickAddColaboradorModal">
+            <i class="bi bi-person-plus"></i> Adicionar Colaborador Rápido
+        </button>
+    </div>
 
     <div class="justificativa-container">
         <div class="mb-3">
@@ -129,6 +135,36 @@
         </a>
     </div>
 </div>
+
+<!-- Modal Quick Add Colaborador -->
+<div class="modal fade" id="quickAddColaboradorModal" tabindex="-1" aria-labelledby="quickAddColaboradorModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="quickAddColaboradorModalLabel">Adicionar Colaborador Rápido</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="quickAddColaboradorForm">
+          <div class="mb-3">
+            <label for="quickAddNome" class="form-label">Nome Completo</label>
+            <input type="text" class="form-control" id="quickAddNome" required>
+          </div>
+          <div class="mb-3">
+            <label for="quickAddCargo" class="form-label">Cargo</label>
+            <input type="text" class="form-control" id="quickAddCargo" placeholder="Ex: Agente de Portaria" value="Agente de Portaria">
+          </div>
+          <div id="quickAddError" class="text-danger mb-3" style="display: none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnSalvarQuickAdd">Salvar e Preencher</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -138,6 +174,7 @@
     const apiUrlSearchColaboradores = "{{ url_for('admin.api_search_colaboradores') }}";
     const apiUrlGetColaboradorDetailsBase = "{{ url_for('admin.api_get_colaborador_details', colaborador_id=0) }}".slice(0, -1); // Remove o '0' para usar como base
     const justificativaApiUrl = "{{ url_for('admin.api_processar_justificativa') }}";
+    const apiUrlQuickAddColaborador = "{{ url_for('admin.api_quick_add_colaborador') }}";
     const csrfToken = "{{ csrf_token() if csrf_token else '' }}"; 
 </script>
 <script src="{{ url_for('static', filename='js/admin_justificativas.js') }}"></script>

@@ -359,4 +359,82 @@ document.addEventListener('DOMContentLoaded', function () {
         tipoSelect.addEventListener('change', mostrarCamposJustificativa);
         mostrarCamposJustificativa();
     }
+    
+    // Quick Add Colaborador logic
+    const btnSalvarQuickAdd = document.getElementById('btnSalvarQuickAdd');
+    const quickAddNome = document.getElementById('quickAddNome');
+    const quickAddCargo = document.getElementById('quickAddCargo');
+    const quickAddError = document.getElementById('quickAddError');
+
+    if (btnSalvarQuickAdd) {
+        btnSalvarQuickAdd.addEventListener('click', async function() {
+            const nome = quickAddNome.value.trim();
+            const cargo = quickAddCargo.value.trim();
+            
+            if (!nome) {
+                quickAddError.innerText = "Nome é obrigatório.";
+                quickAddError.style.display = 'block';
+                return;
+            }
+            
+            btnSalvarQuickAdd.disabled = true;
+            quickAddError.style.display = 'none';
+            
+            try {
+                const response = await fetch(apiUrlQuickAddColaborador, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ nome_completo: nome, cargo: cargo })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    // Success
+                    const modalEl = document.getElementById('quickAddColaboradorModal');
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                    
+                    // Clear form
+                    quickAddNome.value = '';
+                    quickAddCargo.value = 'Agente de Portaria';
+                    
+                    // Try to auto-fill the active input
+                    // We look for the active element, if it's an autocomplete input, fill it.
+                    // Otherwise fill the first one found or the one that was recently clicked
+                    let targetInput = document.activeElement;
+                    if (!targetInput || !targetInput.classList.contains('colaborador-autocomplete-nome')) {
+                         const inputs = document.querySelectorAll('.colaborador-autocomplete-nome');
+                         if (inputs.length > 0) {
+                             targetInput = inputs[inputs.length - 1]; // Use the last one added/visible
+                         }
+                    }
+                                        
+                    if (targetInput) {
+                        targetInput.value = data.colaborador.nome_completo;
+                        const targetIdEl = document.getElementById(targetInput.dataset.targetId);
+                        const targetCargoEl = document.getElementById(targetInput.dataset.targetCargo);
+                        if (targetIdEl) targetIdEl.value = data.colaborador.id;
+                        if (targetCargoEl) targetCargoEl.value = data.colaborador.cargo;
+                    }
+                    
+                    // Show a success message briefly
+                    alert(`Colaborador ${data.colaborador.nome_completo} adicionado com sucesso e preenchido!`);
+                } else {
+                    quickAddError.innerText = data.erro || "Erro ao adicionar colaborador.";
+                    quickAddError.style.display = 'block';
+                }
+            } catch (e) {
+                console.error(e);
+                quickAddError.innerText = "Falha de comunicação.";
+                quickAddError.style.display = 'block';
+            } finally {
+                btnSalvarQuickAdd.disabled = false;
+            }
+        });
+    }
 });

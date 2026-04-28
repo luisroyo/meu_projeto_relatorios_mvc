@@ -9,6 +9,7 @@ from app import db, limiter
 from app.decorators.admin_required import admin_required
 from app.forms import ColaboradorForm
 from app.models import Colaborador
+from datetime import date
 
 from . import admin_bp
 
@@ -155,3 +156,36 @@ def api_get_colaborador_details(colaborador_id):
             }
         )
     return jsonify({"erro": "Colaborador não encontrado ou inativo"}), 404
+
+@admin_bp.route("/api/colaboradores/quick-add", methods=["POST"])
+@login_required
+@admin_required
+def api_quick_add_colaborador():
+    data = request.get_json()
+    nome = data.get("nome_completo", "").strip()
+    cargo = data.get("cargo", "Colaborador").strip()
+    
+    if not nome:
+        return jsonify({"success": False, "erro": "Nome do colaborador é obrigatório."}), 400
+        
+    try:
+        novo_colaborador = Colaborador(
+            nome_completo=nome,
+            cargo=cargo,
+            status="Ativo",
+            data_admissao=date.today()
+        )
+        db.session.add(novo_colaborador)
+        db.session.commit()
+        return jsonify({
+            "success": True,
+            "colaborador": {
+                "id": novo_colaborador.id,
+                "nome_completo": novo_colaborador.nome_completo,
+                "cargo": novo_colaborador.cargo
+            }
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro no quick-add de colaborador: {e}", exc_info=True)
+        return jsonify({"success": False, "erro": str(e)}), 500
