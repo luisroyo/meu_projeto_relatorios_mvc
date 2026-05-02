@@ -33,7 +33,7 @@ abaixo e reorganize-os no modelo de saída exigido, sem alterar o conteúdo.
 
 **MODELO DE SAÍDA OBRIGATÓRIO:**
 
-Assunto: Relatório de Ocorrência – [Ocorrência] – [Local] – [Data]
+Assunto: [Local] – [Ocorrência] – [Data] 
 
 Prezados, bom dia.
 
