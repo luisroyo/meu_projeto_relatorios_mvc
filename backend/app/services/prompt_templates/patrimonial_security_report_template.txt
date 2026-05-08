@@ -127,6 +127,7 @@ Se não houver:
 **VEÍCULO (ENVOLVIDO NA OCORRÊNCIA):**
 
 * Apenas veículos de terceiros (nunca VTR ou MT)
+* Se não houver nenhum veículo de terceiro envolvido na ocorrência, OMita completamente esta seção do relatório final (não escreva o título "Veículo (envolvido na ocorrência):").
 
 ---
 
@@ -152,6 +153,7 @@ Acionamentos:
 
 Envolvidos/Testemunhas:
 
+[APENAS SE HOUVER VEÍCULOS ENVOLVIDOS:]
 Veículo (envolvido na ocorrência):
 
 Responsável pelo registro:
