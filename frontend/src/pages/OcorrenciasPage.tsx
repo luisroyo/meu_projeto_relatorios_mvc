@@ -31,7 +31,8 @@ import {
   Divider,
   InputAdornment,
   Collapse,
-  Fab
+  Fab,
+  Checkbox
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -44,7 +45,7 @@ import {
   ExpandLess as ExpandLessIcon,
   Report as ReportIcon,
   Refresh as RefreshIcon,
-
+  Download as DownloadIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -60,6 +61,7 @@ const OcorrenciasPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [pagination, setPagination] = useState({
     page: 1,
     pages: 1,
@@ -160,6 +162,7 @@ const OcorrenciasPage: React.FC = () => {
         has_next: false,
         has_prev: false
       });
+      setSelectedIds([]); // Limpar seleção ao recarregar
     } catch (error) {
       console.error('Erro ao carregar ocorrências:', error);
       setError('Erro ao carregar ocorrências');
@@ -349,6 +352,50 @@ const OcorrenciasPage: React.FC = () => {
     }
   };
 
+  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      const newSelecteds = ocorrencias.map((n) => n.id);
+      setSelectedIds(newSelecteds);
+      return;
+    }
+    setSelectedIds([]);
+  };
+
+  const handleSelect = (event: React.ChangeEvent<HTMLInputElement>, id: number) => {
+    const selectedIndex = selectedIds.indexOf(id);
+    let newSelected: number[] = [];
+
+    if (selectedIndex === -1) {
+      newSelected = newSelected.concat(selectedIds, id);
+    } else if (selectedIndex === 0) {
+      newSelected = newSelected.concat(selectedIds.slice(1));
+    } else if (selectedIndex === selectedIds.length - 1) {
+      newSelected = newSelected.concat(selectedIds.slice(0, -1));
+    } else if (selectedIndex > 0) {
+      newSelected = newSelected.concat(
+        selectedIds.slice(0, selectedIndex),
+        selectedIds.slice(selectedIndex + 1),
+      );
+    }
+
+    setSelectedIds(newSelected);
+  };
+
+  const handleExportDocx = async () => {
+    if (selectedIds.length === 0) return;
+    
+    try {
+      setLoading(true);
+      await ocorrenciaService.exportarDocx(selectedIds);
+      toast.success('Relatório DOCX gerado com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao gerar relatório DOCX');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner message="Carregando ocorrências..." />;
   }
@@ -433,6 +480,28 @@ const OcorrenciasPage: React.FC = () => {
                 }}
               >
                 {showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<DownloadIcon />}
+                onClick={handleExportDocx}
+                disabled={selectedIds.length === 0}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  ...(selectedIds.length > 0 ? {
+                    background: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)',
+                    color: '#fff',
+                    boxShadow: '0 4px 15px rgba(253, 160, 133, 0.3)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #f5c345 0%, #fc8a65 100%)',
+                      boxShadow: '0 6px 20px rgba(253, 160, 133, 0.4)',
+                    }
+                  } : {})
+                }}
+              >
+                Gerar Relatório DOCX {selectedIds.length > 0 ? `(${selectedIds.length})` : ''}
               </Button>
               <Button
                 variant="contained"
@@ -659,6 +728,14 @@ const OcorrenciasPage: React.FC = () => {
             <Table>
               <TableHead>
                 <TableRow sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.05) }}>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      color="primary"
+                      indeterminate={selectedIds.length > 0 && selectedIds.length < ocorrencias.length}
+                      checked={ocorrencias.length > 0 && selectedIds.length === ocorrencias.length}
+                      onChange={handleSelectAll}
+                    />
+                  </TableCell>
                   <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>ID</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>Tipo</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>Condomínio</TableCell>
@@ -671,7 +748,7 @@ const OcorrenciasPage: React.FC = () => {
               <TableBody>
                 {ocorrencias.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                       <Typography variant="body1" color="text.secondary">
                         Nenhuma ocorrência encontrada
                       </Typography>
@@ -681,13 +758,25 @@ const OcorrenciasPage: React.FC = () => {
                   ocorrencias.map((ocorrencia) => (
                     <TableRow
                       key={ocorrencia.id}
+                      hover
+                      onClick={(event) => handleSelect(event as any, ocorrencia.id)}
+                      role="checkbox"
+                      aria-checked={selectedIds.indexOf(ocorrencia.id) !== -1}
+                      selected={selectedIds.indexOf(ocorrencia.id) !== -1}
                       sx={{
+                        cursor: 'pointer',
                         '&:hover': {
                           backgroundColor: alpha(theme.palette.primary.main, 0.02),
                         },
                         transition: 'background-color 0.2s ease',
                       }}
                     >
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          color="primary"
+                          checked={selectedIds.indexOf(ocorrencia.id) !== -1}
+                        />
+                      </TableCell>
                       <TableCell sx={{ fontWeight: 500 }}>#{ocorrencia.id}</TableCell>
                       <TableCell>{ocorrencia.tipo}</TableCell>
                       <TableCell>{ocorrencia.condominio}</TableCell>

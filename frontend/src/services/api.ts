@@ -580,6 +580,40 @@ export const ocorrenciaService = {
       throw handleApiError(error as AxiosError);
     }
   },
+
+  exportarDocx: async (ocorrenciaIds: number[]): Promise<void> => {
+    try {
+      const response = await api.post('/api/ocorrencias/export/docx', {
+        ocorrencia_ids: ocorrenciaIds
+      }, {
+        responseType: 'blob' // Importante para receber arquivo
+      });
+      
+      // Criar link para download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Extrair nome do arquivo do header content-disposition se possível
+      let filename = 'Relatorio_consolidado.docx';
+      const disposition = response.headers['content-disposition'];
+      if (disposition && disposition.indexOf('attachment') !== -1) {
+        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+        const matches = filenameRegex.exec(disposition);
+        if (matches != null && matches[1]) { 
+          filename = matches[1].replace(/['"]/g, '');
+        }
+      }
+      
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
 };
 
 // Serviço do analisador

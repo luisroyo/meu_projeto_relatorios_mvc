@@ -7,7 +7,8 @@ from functools import wraps
 
 import pytz
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
-                   render_template, request, url_for)
+                   render_template, request, url_for, send_file)
+import io
 from flask_login import current_user, login_required
 from flask_cors import cross_origin
 from flask_wtf import csrf
@@ -493,3 +494,154 @@ def gerar_email_consolidado():
     except Exception as e:
         logger.error(f"Erro ao gerar e-mail consolidado: {e}", exc_info=True)
         return jsonify({"erro": f"Erro interno ao gerar consolidação: {str(e)}"}), 500
+
+@ocorrencia_bp.route("/exportar-docx-consolidado", methods=["POST"])
+@login_required
+def exportar_docx_consolidado():
+    """
+    Rota para compilar múltiplos relatórios patrimoniais em um único arquivo DOCX consolidado.
+    """
+    dados = request.get_json()
+    if not dados or "ids" not in dados:
+        return jsonify({"erro": "IDs não fornecidos."}), 400
+
+    ocorrencia_ids = dados["ids"]
+    if not ocorrencia_ids:
+        return jsonify({"erro": "Nenhum ID de ocorrência fornecido."}), 400
+
+    # Busca as ocorrências
+    ocorrencias = Ocorrencia.query.filter(Ocorrencia.id.in_(ocorrencia_ids)).order_by(Ocorrencia.data_hora_ocorrencia.asc()).all()
+
+    if not ocorrencias:
+        return jsonify({"erro": "Nenhuma ocorrência encontrada para os IDs fornecidos."}), 404
+
+    try:
+        from docx import Document
+        from docx.shared import Pt, Cm, Mm, RGBColor
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        
+        # Criar documento Word
+        document = Document()
+        
+        # Configurações da página A4 e margens moderadas (2cm)
+        for section in document.sections:
+            section.page_width = Mm(210)
+            section.page_height = Mm(297)
+            section.top_margin = Cm(2)
+            section.bottom_margin = Cm(2)
+            section.left_margin = Cm(2)
+            section.right_margin = Cm(2)
+        
+        # Estilos globais
+        style = document.styles['Normal']
+        font = style.font
+        font.name = 'Calibri'
+        font.size = Pt(12)
+        style.paragraph_format.line_spacing = 1.15
+        style.paragraph_format.space_after = Pt(0) # Impede espaços gigantescos entre parágrafos
+        style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        
+        # Título principal
+        titulo = document.add_heading('3. OCORRÊNCIAS REGISTRADAS', level=1)
+        titulo.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        for run in titulo.runs:
+            run.font.bold = True
+            run.font.name = 'Calibri'
+            run.font.color.rgb = RGBColor(0, 0, 0) # Força cor preta no título
+        
+        for idx, o in enumerate(ocorrencias, start=1):
+            # Subtítulo da ocorrência
+            subtitulo = document.add_heading(f'3.{idx} Ocorrência', level=2)
+            for run in subtitulo.runs:
+                run.font.bold = True
+                run.font.name = 'Calibri'
+                run.font.color.rgb = RGBColor(0, 0, 0) # Força cor preta no subtítulo
+            
+            if o.relatorio_final:
+                # O relatorio_final já vem formatado pela IA com todos os campos.
+                linhas = o.relatorio_final.split('\n')
+                in_relato = False
+                
+                current_p = None
+                current_alignment = None
+                
+                for linha in linhas:
+                    linha_texto = linha.rstrip('\r\n')
+                    linha_limpa = linha_texto.strip()
+                    
+                    if not linha_limpa:
+                        # Linha em branco estrutural original
+                        document.add_paragraph()
+                        current_p = None
+                        continue
+                        
+                    # Controle de contexto para aplicar alinhamento justificado apenas no corpo do relato
+                    if linha_limpa.startswith('Relato:'):
+                        in_relato = True
+                    elif linha_limpa.startswith('Ações Realizadas:') or \
+                         linha_limpa.startswith('Acionamentos:') or \
+                         linha_limpa.startswith('Envolvidos/Testemunhas:') or \
+                         linha_limpa.startswith('Veículo') or \
+                         linha_limpa.startswith('Responsável pelo registro:'):
+                        in_relato = False
+
+                    line_alignment = WD_ALIGN_PARAGRAPH.JUSTIFY if (in_relato and not linha_limpa.startswith('Relato:')) else WD_ALIGN_PARAGRAPH.LEFT
+
+                    # Sempre cria novo parágrafo se for texto justificado (evita esticar linhas curtas).
+                    # Se for alinhado à esquerda, agrupa na mesma caixa usando Shift+Enter (\n) para ficar bem colado.
+                    force_new_p = (line_alignment == WD_ALIGN_PARAGRAPH.JUSTIFY)
+
+                    if current_p is None or current_alignment != line_alignment or force_new_p:
+                        current_p = document.add_paragraph()
+                        current_p.paragraph_format.space_after = Pt(0)
+                        current_p.paragraph_format.line_spacing = 1.15
+                        current_p.alignment = line_alignment
+                        current_alignment = line_alignment
+                    else:
+                        # Adiciona quebra de linha manual dentro do mesmo parágrafo (fica perfeitamente agrupado)
+                        current_p.add_run('\n')
+                        
+                    # Procura pelo primeiro dois-pontos para identificar o rótulo
+                    parts = linha_texto.split(':', 1)
+                    if len(parts) == 2 and len(parts[0]) < 40 and not linha_limpa.startswith('-'):
+                        current_p.add_run(parts[0] + ':').bold = True
+                        current_p.add_run(parts[1])
+                    else:
+                        current_p.add_run(linha_texto)
+            else:
+                p = document.add_paragraph()
+                p.paragraph_format.space_after = Pt(0)
+                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                p.add_run('Relatório final não disponível.').italic = True
+            
+            # Adicionar linha de separação entre ocorrências se não for a última
+            if idx < len(ocorrencias):
+                document.add_paragraph() # Espaço antes do separador
+                
+                p_sep = document.add_paragraph()
+                p_sep.paragraph_format.space_after = Pt(0)
+                p_sep.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                # Uma linha contínua ocupando a largura da área útil
+                p_sep.add_run('_' * 78)
+                
+                document.add_paragraph() # Espaço depois do separador
+        
+        # Salvar em BytesIO
+        file_stream = io.BytesIO()
+        document.save(file_stream)
+        file_stream.seek(0)
+        
+        hoje_str = datetime.now().strftime('%d%m%Y')
+        filename = f"Relatorio_consolidado_{hoje_str}.docx"
+        
+        return send_file(
+            file_stream,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+
+    except Exception as e:
+        logger.error(f"Erro ao exportar DOCX consolidado: {e}", exc_info=True)
+        return jsonify({"erro": f"Erro interno ao gerar DOCX: {str(e)}"}), 500
+

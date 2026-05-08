@@ -12,6 +12,12 @@ from app import db
 from app.models import Ocorrencia, OcorrenciaTipo, Condominio, User, Colaborador, OrgaoPublico
 from app.services import ocorrencia_service
 from app.blueprints.api.utils import success_response, error_response, pagination_response
+import io
+from flask import send_file
+from docx import Document
+from docx.shared import Pt, Inches
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
 
 ocorrencia_api_bp = Blueprint('ocorrencia_api', __name__, url_prefix='/api/ocorrencias')
 
@@ -502,3 +508,116 @@ def listar_orgaos_publicos():
     except Exception as e:
         logger.error(f"Erro ao listar órgãos públicos: {e}")
         return error_response('Erro interno ao listar órgãos públicos', status_code=500)
+
+@ocorrencia_api_bp.route('/export/docx', methods=['POST'])
+@jwt_required()
+def exportar_ocorrencias_docx():
+    """Exportar ocorrências selecionadas para DOCX."""
+    try:
+        data = request.get_json()
+        if not data or not data.get('ocorrencia_ids'):
+            return error_response('Nenhum ID de ocorrência fornecido', status_code=400)
+            
+        ocorrencia_ids = data['ocorrencia_ids']
+        
+        # Buscar as ocorrências no banco
+        ocorrencias = Ocorrencia.query.options(
+            db.joinedload(Ocorrencia.tipo),
+            db.joinedload(Ocorrencia.condominio),
+            db.joinedload(Ocorrencia.supervisor),
+            db.joinedload(Ocorrencia.colaboradores_envolvidos),
+            db.joinedload(Ocorrencia.orgaos_acionados)
+        ).filter(Ocorrencia.id.in_(ocorrencia_ids)).order_by(Ocorrencia.data_hora_ocorrencia.asc()).all()
+        
+        if not ocorrencias:
+            return error_response('Nenhuma ocorrência encontrada para os IDs fornecidos', status_code=404)
+            
+        # Criar documento Word
+        document = Document()
+        
+        # Estilos globais
+        style = document.styles['Normal']
+        font = style.font
+        font.name = 'Calibri'
+        font.size = Pt(11)
+        
+        # Título principal
+        titulo = document.add_heading('3. OCORRÊNCIAS REGISTRADAS', level=1)
+        titulo.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        
+        for idx, o in enumerate(ocorrencias, start=1):
+            # Subtítulo da ocorrência
+            subtitulo = document.add_heading(f'3.{idx} Ocorrência', level=2)
+            
+            # Extrair data e hora
+            data_str = ""
+            hora_str = ""
+            if o.data_hora_ocorrencia:
+                data_str = o.data_hora_ocorrencia.strftime('%d/%m/%Y')
+                hora_str = o.data_hora_ocorrencia.strftime('%H:%M')
+                
+            # Adicionar parágrafos
+            p = document.add_paragraph()
+            p.add_run('Data: ').bold = True
+            p.add_run(f'{data_str}\n')
+            p.add_run('Hora: ').bold = True
+            p.add_run(f'{hora_str}\n')
+            p.add_run('Local: ').bold = True
+            p.add_run(f"{o.endereco_especifico or (o.condominio.nome if o.condominio else 'Não informado')}\n")
+            p.add_run('Ocorrência: ').bold = True
+            p.add_run(f"{o.tipo.nome if o.tipo else 'Não informado'}\n")
+            p.add_run('Relato:\n').bold = True
+            p.add_run(f"{o.relatorio_final or 'Sem relato'}")
+            
+            p_acoes = document.add_paragraph()
+            p_acoes.add_run('Ações Realizadas:\n').bold = True
+            # Aqui no futuro pode ser extraído do relato, mas por padrão deixamos placeholder ou o texto
+            p_acoes.add_run('- Registro da ocorrência no sistema')
+            
+            p_ac = document.add_paragraph()
+            p_ac.add_run('Acionamentos:\n').bold = True
+            if o.orgaos_acionados:
+                for org in o.orgaos_acionados:
+                    p_ac.add_run(f'- {org.nome}\n')
+            else:
+                p_ac.add_run('Não houve acionamentos\n')
+                
+            p_env = document.add_paragraph()
+            p_env.add_run('Envolvidos/Testemunhas:\n').bold = True
+            if o.colaboradores_envolvidos:
+                for col in o.colaboradores_envolvidos:
+                    p_env.add_run(f'- {col.nome_completo}\n')
+            else:
+                p_env.add_run('Não há envolvidos cadastrados\n')
+                
+            p_vei = document.add_paragraph()
+            p_vei.add_run('Veículo (envolvido na ocorrência):\n').bold = True
+            p_vei.add_run('Não registrado na ficha\n')
+            
+            p_resp = document.add_paragraph()
+            p_resp.add_run('Responsável pelo registro: ').bold = True
+            registrado_por = get_user_name(o.registrado_por_user_id)
+            p_resp.add_run(registrado_por)
+            
+            # Adicionar linha de separação entre ocorrências se não for a última
+            if idx < len(ocorrencias):
+                document.add_paragraph().add_run('_'*40)
+        
+        # Salvar em BytesIO
+        file_stream = io.BytesIO()
+        document.save(file_stream)
+        file_stream.seek(0)
+        
+        hoje_str = datetime.now().strftime('%d%m%Y')
+        filename = f"Relatorio_consolidado_{hoje_str}.docx"
+        
+        return send_file(
+            file_stream,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        
+    except Exception as e:
+        logger.error(f"Erro ao exportar DOCX: {e}")
+        return error_response(f'Erro interno ao gerar DOCX: {str(e)}', status_code=500)

@@ -8,6 +8,9 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h2 class="mb-0"><i class="bi bi-clipboard-data me-2"></i>Histórico de Ocorrências</h2>
         <div class="d-flex gap-2">
+            <button id="btnGerarDocx" class="btn btn-outline-warning d-flex align-items-center gap-2" disabled>
+                <i class="bi bi-file-earmark-word"></i> <span>Gerar Relatório DOCX (0)</span>
+            </button>
             <button id="btnGerarConsolidado" class="btn btn-outline-info d-flex align-items-center gap-2" disabled>
                 <i class="bi bi-envelope-paper"></i> <span>Consolidar E-mails (0)</span>
             </button>
@@ -217,16 +220,26 @@
         const btnConsolidar = document.getElementById('btnGerarConsolidado');
         const btnText = btnConsolidar.querySelector('span');
 
+        const btnGerarDocx = document.getElementById('btnGerarDocx');
+        const btnDocxText = btnGerarDocx.querySelector('span');
+
         function updateConsolidarBtn() {
             const selecionados = Array.from(checkboxes).filter(cb => cb.checked);
             
             if (selecionados.length === 0) {
                 btnConsolidar.disabled = true;
                 btnText.textContent = `Consolidar E-mails (0)`;
+                btnGerarDocx.disabled = true;
+                btnDocxText.textContent = `Gerar Relatório DOCX (0)`;
                 return;
             }
 
-            // Verifica se todos pertencem ao mesmo condomínio
+            // Ativa o botão DOCX sempre que houver seleções
+            btnGerarDocx.disabled = false;
+            btnDocxText.textContent = `Gerar Relatório DOCX (${selecionados.length})`;
+            btnGerarDocx.classList.replace('btn-outline-warning', 'btn-warning');
+
+            // Verifica se todos pertencem ao mesmo condomínio para o botão de Email
             const primeiroCondominio = selecionados[0].dataset.condominio;
             const condominoMisto = selecionados.some(cb => cb.dataset.condominio !== primeiroCondominio);
 
@@ -248,6 +261,46 @@
 
         checkboxes.forEach(cb => {
             cb.addEventListener('change', updateConsolidarBtn);
+        });
+
+        // Lógica de Geração DOCX
+        btnGerarDocx.addEventListener('click', function() {
+            const selecionados = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+            if(selecionados.length < 1) return;
+
+            btnGerarDocx.disabled = true;
+            btnDocxText.textContent = "Gerando...";
+
+            fetch(`/ocorrencias/exportar-docx-consolidado`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken() || ''
+                },
+                body: JSON.stringify({ ids: selecionados })
+            })
+            .then(res => {
+                if(!res.ok) throw new Error('Erro na geração do DOCX');
+                return res.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Relatorio_consolidado.docx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                
+                btnGerarDocx.disabled = false;
+                btnDocxText.textContent = `Gerar Relatório DOCX (${selecionados.length})`;
+            })
+            .catch(err => {
+                alert('Erro ao gerar relatório DOCX: ' + err.message);
+                btnGerarDocx.disabled = false;
+                btnDocxText.textContent = `Gerar Relatório DOCX (${selecionados.length})`;
+            });
         });
 
         // Lógica de Geração AJAX
