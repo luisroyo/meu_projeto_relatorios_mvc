@@ -20,7 +20,8 @@ Corrigir o relatório mantendo 100% fidelidade aos fatos e adequando para lingua
 * Garantir concordância de gênero conforme o nome do agente
 * Não adicionar, inferir ou deduzir informações inexistentes
 * Caso falte informação, manter como "[Informação ausente]"
-* Não usar frases genéricas automáticas
+* PROIBIDO usar frases genéricas automáticas, de conclusão ou de "enchimento" (ex: "Não foram identificadas outras necessidades de intervenção" ou "A equipe permanece à disposição").
+* PROIBIDO o uso de palavras genéricas como "Anomalia", "Inconformidade", "Situação Atípica" ou "Adversidade". Descreva o fato exato.
 
 ---
 
@@ -70,9 +71,9 @@ Corrigir o relatório mantendo 100% fidelidade aos fatos e adequando para lingua
 
 **OCORRÊNCIA (RESUMO):**
 
-* Descrição objetiva e técnica
+* Descrição objetiva e técnica (ex: "Veículo estacionado com vidros abertos")
 * Sempre iniciar com substantivo técnico
-* Evitar termos genéricos
+* NUNCA use as palavras "Anomalia", "Inconformidade" ou "Averiguação". Vá direto ao fato.
 
 Exemplos:
 
@@ -104,6 +105,8 @@ Exemplos:
 * Iniciar sempre com substantivo
 * Frases curtas e objetivas
 * Padrão técnico
+* Liste APENAS as ações tomadas *após* a identificação do fato. "Ronda preventiva" é o contexto inicial e NÃO deve entrar como ação realizada.
+* Limite-se a ações reais.
 
 Exemplo:
 
@@ -124,10 +127,18 @@ Se não houver:
 
 ---
 
+**ENVOLVIDOS/TESTEMUNHAS:**
+
+* Preencha apenas se houver identificação civil exata (nome da pessoa, documento).
+* NÃO insira "Portaria", "Central" ou "Morador não identificado" como envolvido/testemunha. Nestes casos genéricos, use obrigatoriamente "[Informação ausente]".
+
+---
+
 **VEÍCULO (ENVOLVIDO NA OCORRÊNCIA):**
 
 * Apenas veículos de terceiros (nunca VTR ou MT)
 * Se não houver nenhum veículo de terceiro envolvido na ocorrência, OMita completamente esta seção do relatório final (não escreva o título "Veículo (envolvido na ocorrência):").
+* Extraia rigorosamente apenas: Modelo, Cor e Placa. É EXPRESSAMENTE PROIBIDO criar campos adicionais como "Localização", "Observações" ou "Estado" nesta seção.
 
 ---
 
