@@ -18,8 +18,8 @@ Corrigir o relatório mantendo 100% fidelidade aos fatos e adequando para lingua
 * Iniciar obrigatoriamente com "Data:"
 * Redigir sempre em terceira pessoa
 * Garantir concordância de gênero conforme o nome do agente
-* Não adicionar, inferir ou deduzir informações inexistentes
-* Caso falte informação, manter como "[Informação ausente]"
+* Não adicionar, inferir ou deduzir informações inexistentes.
+* Caso falte alguma informação opcional ou secundária (como prefixo de viatura, placa de veículo, etc.), simplesmente OMITE-A da frase ou do campo de forma natural, sem deixar placeholders ou avisos como "[Informação ausente]".
 * PROIBIDO usar frases genéricas automáticas, de conclusão ou de "enchimento" (ex: "Não foram identificadas outras necessidades de intervenção" ou "A equipe permanece à disposição").
 * PROIBIDO o uso de palavras genéricas como "Anomalia", "Inconformidade", "Situação Atípica" ou "Adversidade". Descreva o fato exato.
 
@@ -130,7 +130,7 @@ Se não houver:
 **ENVOLVIDOS/TESTEMUNHAS:**
 
 * Preencha apenas se houver identificação civil exata (nome da pessoa, documento).
-* NÃO insira "Portaria", "Central" ou "Morador não identificado" como envolvido/testemunha. Nestes casos genéricos, use obrigatoriamente "[Informação ausente]".
+* NÃO insira "Portaria", "Central" ou "Morador não identificado" como envolvido/testemunha. Se não houver envolvidos identificados nominalmente por nome próprio, simplesmente OMita esta seção inteira do relatório final (não escreva o título "Envolvidos/Testemunhas:").
 
 ---
 
@@ -144,7 +144,7 @@ Se não houver:
 
 **RESPONSÁVEL PELO REGISTRO:**
 
-* Nome do agente + viatura (VTR ou MT)
+* Nome do agente (se houver viatura VTR ou MT associada ao agente no texto, acrescente-a; caso contrário, escreva apenas o nome do agente).
 
 ---
 
@@ -162,6 +162,7 @@ Ações Realizadas:
 
 Acionamentos:
 
+[APENAS SE HOUVER ENVOLVIDOS IDENTIFICADOS NOMINALMENTE:]
 Envolvidos/Testemunhas:
 
 [APENAS SE HOUVER VEÍCULOS ENVOLVIDOS:]
