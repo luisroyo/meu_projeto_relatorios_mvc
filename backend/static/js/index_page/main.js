@@ -53,8 +53,13 @@ function setupEventListeners() {
   const btnCopiar = getCachedElement('btnCopiar');
   if (btnCopiar) {
     btnCopiar.addEventListener("click", () => handleCopyResult("standard"));
-    btnCopiar.style.display = "none";
-    console.log('main.js: Event listener adicionado ao botão copiar, display definido como none');
+    const resultado = getCachedElement('resultadoProcessamento');
+    if (!resultado || !resultado.value.trim()) {
+      btnCopiar.style.display = "none";
+    } else {
+      btnCopiar.style.display = "block";
+    }
+    console.log('main.js: Event listener adicionado ao botão copiar');
   } else {
     console.warn('main.js: Botão copiar não encontrado');
   }
@@ -63,7 +68,12 @@ function setupEventListeners() {
   const btnCopiarEmail = getCachedElement('btnCopiarEmail');
   if (btnCopiarEmail) {
     btnCopiarEmail.addEventListener("click", () => handleCopyResult("email"));
-    btnCopiarEmail.style.display = "none";
+    const resultadoEmail = getCachedElement('resultadoEmail');
+    if (!resultadoEmail || !resultadoEmail.value.trim()) {
+      btnCopiarEmail.style.display = "none";
+    } else {
+      btnCopiarEmail.style.display = "block";
+    }
   } else {
     console.warn('main.js: Botão copiar email não encontrado');
   }
@@ -74,7 +84,12 @@ function setupEventListeners() {
     btnEnviarWhatsAppResultado.addEventListener("click", () =>
       handleSendToWhatsApp("standard")
     );
-    btnEnviarWhatsAppResultado.style.display = "none";
+    const resultado = getCachedElement('resultadoProcessamento');
+    if (!resultado || !resultado.value.trim()) {
+      btnEnviarWhatsAppResultado.style.display = "none";
+    } else {
+      btnEnviarWhatsAppResultado.style.display = "block";
+    }
   }
 
   // Botão WhatsApp email
@@ -83,7 +98,12 @@ function setupEventListeners() {
     btnEnviarWhatsAppEmail.addEventListener("click", () =>
       handleSendToWhatsApp("email")
     );
-    btnEnviarWhatsAppEmail.style.display = "none";
+    const resultadoEmail = getCachedElement('resultadoEmail');
+    if (!resultadoEmail || !resultadoEmail.value.trim()) {
+      btnEnviarWhatsAppEmail.style.display = "none";
+    } else {
+      btnEnviarWhatsAppEmail.style.display = "block";
+    }
   }
 
   // Botão limpar
