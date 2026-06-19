@@ -27,6 +27,13 @@ class User(UserMixin, db.Model):
         foreign_keys="Ronda.user_id",
         back_populates="criador"
     )
+    paradas_criadas = db.relationship(
+        "Parada",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+        foreign_keys="Parada.user_id",
+        back_populates="criador"
+    )
     processing_history = db.relationship(
         "ProcessingHistory",
         backref="user",
@@ -54,6 +61,12 @@ class User(UserMixin, db.Model):
         "Ronda",
         lazy="dynamic",
         foreign_keys="Ronda.supervisor_id",
+        back_populates="supervisor"
+    )
+    paradas_supervisionadas = db.relationship(
+        "Parada",
+        lazy="dynamic",
+        foreign_keys="Parada.supervisor_id",
         back_populates="supervisor"
     )
 

@@ -657,3 +657,60 @@ body.dark-theme #relatorio_final {
   color: var(--text-color);
   border-color: var(--border-color);
 }
+
+/* Estilos elegantes para Dropdowns */
+.dropdown-menu {
+  border: 1px solid var(--border-color) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1) !important;
+  padding: 0.5rem !important;
+  background-color: var(--content-bg) !important;
+  transition: all 0.2s ease;
+  min-width: 200px;
+}
+
+body.dark-theme .dropdown-menu {
+  box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dropdown-item {
+  border-radius: 0.5rem !important;
+  padding: 0.6rem 1rem !important;
+  font-weight: 500 !important;
+  color: var(--text-color) !important;
+  transition: all 0.2s ease;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem;
+}
+
+.dropdown-item i {
+  color: var(--text-muted-custom) !important;
+  transition: color 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(var(--primary-color-rgb), 0.08) !important;
+  color: var(--primary-color) !important;
+}
+
+.dropdown-item:hover i {
+  color: var(--primary-color) !important;
+}
+
+.dropdown-item.active, 
+.dropdown-item:active {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+}
+
+.dropdown-item.active i, 
+.dropdown-item:active i {
+  color: white !important;
+}
+
+.dropdown-divider {
+  border-top: 1px solid var(--border-color) !important;
+  margin: 0.4rem 0 !important;
+}
+

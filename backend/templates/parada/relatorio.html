@@ -6,7 +6,7 @@ block head %} {{ super() }}
   <div class="mb-4">
     <h2 class="mb-1"><i class="bi bi-pencil-square me-2"></i>{{ title }}</h2>
     <p class="lead text-muted">
-      Insira os dados e o log para gerar um relatório profissional.
+      Insira os dados e o log para gerar um relatório de parada profissional.
     </p>
   </div>
 
@@ -14,28 +14,28 @@ block head %} {{ super() }}
     <div class="col-lg-6 d-flex">
       <div class="card shadow-sm w-100 d-flex flex-column">
         <div class="card-header bg-light border-bottom p-0">
-          <ul class="nav nav-tabs border-bottom-0" id="rondaTabs" role="tablist">
+          <ul class="nav nav-tabs border-bottom-0" id="paradaTabs" role="tablist">
             <li class="nav-item" role="presentation">
               <button class="nav-link active fw-bold py-3 px-4 border-0" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual-pane" type="button" role="tab" aria-controls="manual-pane" aria-selected="true" style="color: var(--primary-color);">
-                <i class="bi bi-input-cursor-text me-2"></i>Registrar Ronda
+                <i class="bi bi-input-cursor-text me-2"></i>Registrar Parada
               </button>
             </li>
             {% if current_user.is_admin %}
             <li class="nav-item" role="presentation">
               <button class="nav-link fw-bold py-3 px-4 border-0" id="lote-tab" data-bs-toggle="tab" data-bs-target="#lote-pane" type="button" role="tab" aria-controls="lote-pane" aria-selected="false" style="color: var(--accent-color);">
-                <i class="bi bi-cloud-arrow-up-fill me-2 text-success"></i>Upload em Lote (.txt / .xlsx)
+                <i class="bi bi-cloud-arrow-up-fill me-2 text-success"></i>Upload Planilha (.xlsx)
               </button>
             </li>
             {% endif %}
           </ul>
         </div>
         <div class="card-body p-4 flex-grow-1">
-          <div class="tab-content" id="rondaTabsContent">
+          <div class="tab-content" id="paradaTabsContent">
             <!-- Aba 1: Preenchimento Manual / Log Único -->
             <div class="tab-pane fade show active" id="manual-pane" role="tabpanel" aria-labelledby="manual-tab">
               <form
                 method="POST"
-                id="processar-ronda-form"
+                id="processar-parada-form"
                 class="d-flex flex-column h-100"
               >
                 {{ form.hidden_tag() }}
@@ -57,7 +57,7 @@ block head %} {{ super() }}
                     </div>
                     <div class="col-md-6 mb-3">
                       {{ render_field(form.supervisor_id, label_visible=true,
-                      label_text="SUPERVISOR DA RONDA") }}
+                      label_text="SUPERVISOR DA PARADA") }}
                     </div>
                   </div>
                   <div
@@ -69,7 +69,7 @@ block head %} {{ super() }}
                     label_text='NOME DO NOVO CONDOMÍNIO') }}
                   </div>
                   
-                  <!-- Campo de upload WhatsApp - Apenas para Administradores -->
+                  <!-- Campo de upload WhatsApp/Excel - Apenas para Administradores -->
                   {% if current_user.is_admin %}
                   <div class="mb-3">
                     <label for="{{ form.arquivo_whatsapp.id }}" class="form-label">
@@ -112,8 +112,8 @@ block head %} {{ super() }}
                   {% endif %}
                   
                   <div class="mb-3">
-                    {{ render_field(form.log_bruto_rondas, label_visible=true,
-                    label_text="LOG BRUTO DAS RONDAS", rows="10") }}
+                    {{ render_field(form.log_bruto_paradas, label_visible=true,
+                    label_text="LOG BRUTO DAS PARADAS", rows="10") }}
                   </div>
                 </div>
                 <div class="d-grid mt-auto">
@@ -125,51 +125,25 @@ block head %} {{ super() }}
             <!-- Aba 2: Importação em Lote -->
             {% if current_user.is_admin %}
             <div class="tab-pane fade" id="lote-pane" role="tabpanel" aria-labelledby="lote-tab">
-              <form id="lote-upload-form" enctype="multipart/form-data" class="d-flex flex-column h-100">
+              <form method="POST" enctype="multipart/form-data" action="{{ url_for('parada.upload_process_parada') }}" class="d-flex flex-column h-100">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <p class="text-muted small mb-4">
                   <i class="bi bi-info-circle-fill text-primary me-1"></i>
-                  Faça o upload de um arquivo de log do WhatsApp (.txt) ou Excel (.xlsx) contendo as rondas de múltiplos condomínios para processar e salvá-las no sistema automaticamente de uma só vez.
+                  Faça o upload do arquivo Excel (.xlsx) contendo as paradas para processamento e registro automático em lote.
                 </p>
                 
-                <div class="mb-3">
-                  <label for="lote_arquivo" class="form-label fw-bold">Arquivo de Origem (.txt ou .xlsx)</label>
-                  <input type="file" id="lote_arquivo" name="whatsapp_file" accept=".txt,.xlsx" required class="form-control">
-                  <div class="form-text">Apenas arquivos .txt e .xlsx são permitidos.</div>
-                </div>
-
-                <div class="row g-3 mb-4">
-                  <div class="col-md-6">
-                    <label for="lote_month" class="form-label fw-bold">Mês (Opcional - apenas para .txt)</label>
-                    <select id="lote_month" name="month" class="form-select">
-                      <option value="">Todos os Meses</option>
-                      <option value="1">Janeiro</option>
-                      <option value="2">Fevereiro</option>
-                      <option value="3">Março</option>
-                      <option value="4">Abril</option>
-                      <option value="5">Maio</option>
-                      <option value="6">Junho</option>
-                      <option value="7">Julho</option>
-                      <option value="8">Agosto</option>
-                      <option value="9">Setembro</option>
-                      <option value="10">Outubro</option>
-                      <option value="11">Novembro</option>
-                      <option value="12">Dezembro</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label for="lote_year" class="form-label fw-bold">Ano (Opcional - apenas para .txt)</label>
-                    <input type="number" id="lote_year" name="year" placeholder="Ex: 2024" class="form-control">
-                  </div>
+                <div class="mb-4">
+                  <label for="lote_file" class="form-label fw-bold">Planilha Excel (.xlsx)</label>
+                  <input type="file" id="lote_file" name="file" accept=".xlsx" required class="form-control">
+                  <div class="form-text">Apenas arquivos .xlsx são permitidos nesta página.</div>
                 </div>
 
                 <div class="d-grid mt-auto">
-                  <button type="submit" class="btn btn-premium-success btn-lg" id="lote-process-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
-                    <span id="lote-btn-text"><i class="bi bi-lightning-charge-fill me-2"></i> Processar e Importar Lote</span>
-                    <span id="lote-loading-spinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                  <button type="submit" class="btn btn-premium-success btn-lg" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
+                    <i class="bi bi-cloud-arrow-up-fill me-2"></i> Enviar e Processar Planilha
                   </button>
                 </div>
               </form>
-              <div id="lote-response-message" class="mt-4 p-3 rounded d-none"></div>
             </div>
             {% endif %}
           </div>
@@ -196,17 +170,14 @@ block head %} {{ super() }}
           {% endif %}
         </div>
         <div class="card-body p-4 flex-grow-1">
-          {# MUDANÇA: Usando a classe .themed-pre para que o fundo se adapte aos
-          temas claro/escuro #}
           <pre id="relatorio-gerado-box" class="themed-pre h-100">
-{% if relatorio_processado %}{{ relatorio_processado }}{% else %}O relatório processado aparecerá aqui.{% endif %}</pre
-          >
+{% if relatorio_processado %}{{ relatorio_processado }}{% else %}O relatório processado aparecerá aqui.{% endif %}</pre>
         </div>
         {% if relatorio_processado %}
         <div class="card-footer p-3">
           <div class="d-grid">
-            <button id="salvar-ronda-btn" class="btn btn-success btn-lg">
-              <i class="bi bi-save-fill me-1"></i>Salvar Ronda no Sistema
+            <button id="salvar-parada-btn" class="btn btn-success btn-lg">
+              <i class="bi bi-save-fill me-1"></i>Salvar Parada no Sistema
             </button>
           </div>
         </div>
@@ -217,11 +188,9 @@ block head %} {{ super() }}
 </div>
 {% endblock %} {% block scripts %} {{ super() }}
 <script>
-      // Variável global para verificar se usuário é admin
       var isAdmin = {{ 'true' if current_user.is_admin else 'false' }};
       
       document.addEventListener('DOMContentLoaded', function () {
-          // Configuração e inicialização do Select2
           const select2Config = {
               theme: "bootstrap-5",
               width: '100%'
@@ -230,14 +199,12 @@ block head %} {{ super() }}
           $('#escala_plantao').select2({ ...select2Config, placeholder: "Selecione uma escala" });
           $('#supervisor_id').select2({ ...select2Config, placeholder: "Selecione ou deixe automático", allowClear: true });
 
-          // Lógica para exibir o campo "Outro Condomínio" e reprocessar Excel/WhatsApp
           const condominioSelect = document.getElementById('nome_condominio');
           const outroCondominioField = document.getElementById('outro-condominio-field');
           if (condominioSelect) {
               $(condominioSelect).on('change', function () {
                   outroCondominioField.style.display = this.value === 'Outro' ? 'block' : 'none';
                   
-                  // Se tiver arquivo selecionado ou fixo, reprocessa automaticamente
                   const temArquivoSelecionado = whatsappFileInput && whatsappFileInput.files.length > 0;
                   const temArquivoFixo = document.getElementById('arquivo-fixo-status').style.display !== 'none';
                   if (temArquivoSelecionado || temArquivoFixo) {
@@ -249,11 +216,10 @@ block head %} {{ super() }}
               }
           }
 
-          // Preview do nome do arquivo WhatsApp e processamento automático
           const whatsappFileInput = document.getElementById('{{ form.arquivo_whatsapp.id }}');
           const dataPlantaoInput = document.getElementById('{{ form.data_plantao.id }}');
           const escalaPlantaoSelect = document.getElementById('{{ form.escala_plantao.id }}');
-          const logBrutoTextarea = document.getElementById('{{ form.log_bruto_rondas.id }}');
+          const logBrutoTextarea = document.getElementById('{{ form.log_bruto_paradas.id }}');
           
           if (whatsappFileInput) {
               whatsappFileInput.addEventListener('change', function(e) {
@@ -263,7 +229,7 @@ block head %} {{ super() }}
                       const button = inputGroup.querySelector('.btn');
                       button.textContent = fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName;
                       
-                      const isExcel = fileName.toLowerCase().endsWith('.xlsx');
+                      const isExcel = fileName.toLowerCase().endswith('.xlsx');
                       const registrarTudoBtn = document.getElementById('registrar-tudo-excel-btn');
                       if (isExcel) {
                           document.getElementById('arquivo-fixo-status').style.display = 'block';
@@ -273,7 +239,6 @@ block head %} {{ super() }}
                           if (registrarTudoBtn) registrarTudoBtn.style.display = 'none';
                       }
                       
-                      // Processa automaticamente se for Excel OU se data e escala estiverem preenchidas
                       if (isExcel || (dataPlantaoInput && escalaPlantaoSelect && dataPlantaoInput.value && escalaPlantaoSelect.value)) {
                           processarWhatsAppAutomaticamente();
                       }
@@ -281,10 +246,8 @@ block head %} {{ super() }}
               });
           }
           
-          // Processa automaticamente quando data ou escala mudam
           if (dataPlantaoInput) {
               dataPlantaoInput.addEventListener('change', function() {
-                  // Verifica se há arquivo selecionado OU arquivo fixo
                   const temArquivoSelecionado = whatsappFileInput && whatsappFileInput.files.length > 0;
                   const temArquivoFixo = document.getElementById('arquivo-fixo-status').style.display !== 'none';
                   
@@ -296,7 +259,6 @@ block head %} {{ super() }}
           
           if (escalaPlantaoSelect) {
               escalaPlantaoSelect.addEventListener('change', function() {
-                  // Verifica se há arquivo selecionado OU arquivo fixo
                   const temArquivoSelecionado = whatsappFileInput && whatsappFileInput.files.length > 0;
                   const temArquivoFixo = document.getElementById('arquivo-fixo-status').style.display !== 'none';
                   
@@ -306,7 +268,6 @@ block head %} {{ super() }}
               });
           }
           
-          // Função para mostrar toast
           function showToast(message, type = 'info') {
               const toast = document.createElement('div');
               toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
@@ -324,9 +285,7 @@ block head %} {{ super() }}
               }, 4000);
           }
           
-          // Função para processar WhatsApp ou Excel automaticamente
           function processarWhatsAppAutomaticamente() {
-              // Verifica se o usuário é administrador
               if (!isAdmin) {
                   showToast('Funcionalidade disponível apenas para administradores.', 'warning');
                   return;
@@ -339,23 +298,14 @@ block head %} {{ super() }}
               const nomeArquivo = arquivo ? arquivo.name : document.getElementById('arquivo-fixo-nome').textContent;
               const isExcel = nomeArquivo && nomeArquivo.toLowerCase().endsWith('.xlsx');
               
-              console.log('[DEBUG] Arquivo:', arquivo);
-              console.log('[DEBUG] Data:', dataPlantao);
-              console.log('[DEBUG] Escala:', escalaPlantao);
-              console.log('[DEBUG] Tem arquivo fixo:', temArquivoFixo);
-              console.log('[DEBUG] É Excel:', isExcel);
-              
               if (!arquivo && !temArquivoFixo) {
-                  console.log('[DEBUG] Nenhum arquivo disponível');
                   return;
               }
               
               if (!isExcel && (!dataPlantao || !escalaPlantao)) {
-                  console.log('[DEBUG] Para arquivo de log, data e escala são obrigatórios');
                   return;
               }
               
-              // Mostra indicador de processamento
               const button = whatsappFileInput.closest('.input-group').querySelector('.btn');
               const originalText = button.textContent;
               button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
@@ -368,35 +318,25 @@ block head %} {{ super() }}
               formData.append('data_plantao', dataPlantao);
               formData.append('escala_plantao', escalaPlantao);
               
-              // Adiciona dados do condomínio selecionado
               const condominioId = condominioSelect.value;
               const condominioNome = condominioSelect.options[condominioSelect.selectedIndex]?.text || '';
               formData.append('condominio_id', condominioId);
               formData.append('condominio_nome', condominioNome);
               
-              console.log('[DEBUG] FormData criado:', formData);
-              
-              // Adiciona token CSRF
               const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
               
-              fetch('{{ url_for("ronda.processar_whatsapp_ajax") }}', {
+              fetch('{{ url_for("parada.processar_whatsapp_ajax") }}', {
                   method: 'POST',
                   headers: {
                       'X-CSRFToken': csrfToken
                   },
                   body: formData
               })
-              .then(response => {
-                  console.log('[DEBUG] Response status:', response.status);
-                  return response.json();
-              })
+              .then(response => response.json())
               .then(data => {
-                  console.log('[DEBUG] Data recebida:', data);
-                  
                   if (data.success) {
                       logBrutoTextarea.value = data.log_formatado;
                       
-                      // Preenche automaticamente data e escala se vierem do backend (Excel)
                       if (data.data_plantao) {
                           dataPlantaoInput.value = data.data_plantao;
                       }
@@ -408,14 +348,12 @@ block head %} {{ super() }}
                       }
                       
                       showToast(data.message, 'success');
-                      console.log('[DEBUG] Log atualizado:', data.log_formatado.substring(0, 100) + '...');
                   } else {
-                      console.log('[DEBUG] Erro no processamento:', data.message);
                       showToast(data.message || 'Erro ao processar arquivo.', 'danger');
                   }
               })
               .catch(error => {
-                  console.error('[DEBUG] Erro:', error);
+                  console.error('Erro:', error);
                   showToast('Erro ao processar arquivo.', 'danger');
               })
               .finally(() => {
@@ -424,23 +362,21 @@ block head %} {{ super() }}
               });
           }
           
-          // Função para verificar status do arquivo fixo e exibir botão de lote Excel
           function verificarArquivoFixo() {
               if (!isAdmin) return;
               
-              fetch('{{ url_for("ronda.status_arquivo_fixo") }}')
+              fetch('{{ url_for("parada.status_arquivo_fixo") }}')
               .then(response => response.json())
               .then(data => {
                   const statusDiv = document.getElementById('arquivo-fixo-status');
                   const nomeSpan = document.getElementById('arquivo-fixo-nome');
                   const registrarTudoBtn = document.getElementById('registrar-tudo-excel-btn');
                   
-                  if (data.success && data.has_file) {
+                  if (data.success) {
                       statusDiv.style.display = 'block';
                       nomeSpan.textContent = data.file_name;
                       
-                      const isExcel = data.file_name.toLowerCase().endsWith('.xlsx');
-                      if (isExcel) {
+                      if (data.is_excel) {
                           if (registrarTudoBtn) registrarTudoBtn.style.display = 'inline-block';
                       } else {
                           if (registrarTudoBtn) registrarTudoBtn.style.display = 'none';
@@ -455,14 +391,12 @@ block head %} {{ super() }}
               });
           }
           
-          // Função para limpar arquivo fixo
           function limparArquivoFixo() {
               if (!isAdmin) return;
               
-              // Adiciona token CSRF
               const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
               
-              fetch('{{ url_for("ronda.limpar_arquivo_fixo") }}', {
+              fetch('{{ url_for("parada.limpar_arquivo_fixo") }}', {
                   method: 'POST',
                   headers: {
                       'X-CSRFToken': csrfToken
@@ -485,22 +419,18 @@ block head %} {{ super() }}
               });
           }
           
-          // Event listeners para arquivo fixo
           if (isAdmin) {
-              // Verifica status do arquivo fixo ao carregar a página
               verificarArquivoFixo();
               
-              // Botão para limpar arquivo fixo
               const limparArquivoFixoBtn = document.getElementById('limpar-arquivo-fixo');
               if (limparArquivoFixoBtn) {
                   limparArquivoFixoBtn.addEventListener('click', limparArquivoFixo);
               }
               
-              // Botão para registrar todas as rondas do Excel em lote
               const registrarTudoExcelBtn = document.getElementById('registrar-tudo-excel-btn');
               if (registrarTudoExcelBtn) {
                   registrarTudoExcelBtn.addEventListener('click', function() {
-                      if (!confirm("Tem certeza que deseja registrar automaticamente todas as rondas contidas neste arquivo Excel?")) {
+                      if (!confirm("Tem certeza que deseja registrar automaticamente todas as paradas contidas neste arquivo Excel?")) {
                           return;
                       }
                       
@@ -511,7 +441,7 @@ block head %} {{ super() }}
                       
                       const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                       
-                      fetch('{{ url_for("ronda.registrar_excel_lote_ajax") }}', {
+                      fetch('{{ url_for("parada.registrar_excel_lote_ajax") }}', {
                           method: 'POST',
                           headers: {
                               'X-CSRFToken': csrfToken
@@ -524,9 +454,9 @@ block head %} {{ super() }}
                               if (relatorioBox) {
                                   relatorioBox.innerHTML = data.message;
                               }
-                              showToast('Todas as rondas foram registradas com sucesso!', 'success');
+                              showToast('Todas as paradas foram registradas com sucesso!', 'success');
                           } else {
-                              showToast(data.message || 'Erro ao registrar rondas em lote.', 'danger');
+                              showToast(data.message || 'Erro ao registrar paradas em lote.', 'danger');
                           }
                       })
                       .catch(error => {
@@ -541,71 +471,7 @@ block head %} {{ super() }}
               }
           }
 
-          // Lógica para o processamento de lote (Aba 2)
-          const loteForm = document.getElementById('lote-upload-form');
-          if (loteForm) {
-              loteForm.addEventListener('submit', async function(event) {
-                  event.preventDefault();
-                  
-                  const responseMessage = document.getElementById('lote-response-message');
-                  const processBtn = document.getElementById('lote-process-btn');
-                  const btnText = document.getElementById('lote-btn-text');
-                  const spinner = document.getElementById('lote-loading-spinner');
-                  const fileInput = document.getElementById('lote_arquivo');
-                  
-                  if (!fileInput.files.length) {
-                      showToast('Selecione um arquivo.', 'warning');
-                      return;
-                  }
-                  
-                  responseMessage.classList.add('d-none');
-                  responseMessage.className = 'mt-4 p-3 rounded d-none';
-                  
-                  processBtn.disabled = true;
-                  btnText.classList.add('d-none');
-                  spinner.classList.remove('d-none');
-                  
-                  const formData = new FormData();
-                  formData.append('whatsapp_file', fileInput.files[0]);
-                  formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-                  
-                  const month = document.getElementById('lote_month').value;
-                  const year = document.getElementById('lote_year').value;
-                  if (month) formData.append('month', month);
-                  if (year) formData.append('year', year);
-                  
-                  try {
-                      const response = await fetch("{{ url_for('ronda.upload_process_ronda') }}", {
-                          method: 'POST',
-                          body: formData
-                      });
-                      
-                      const result = await response.json();
-                      responseMessage.classList.remove('d-none');
-                      if (response.ok && result.success) {
-                          responseMessage.classList.add('alert', 'alert-success');
-                          responseMessage.innerHTML = result.message;
-                          showToast('Processamento em lote concluído!', 'success');
-                      } else {
-                          responseMessage.classList.add('alert', 'alert-danger');
-                          responseMessage.innerHTML = result.message || 'Erro ao processar lote.';
-                          showToast('Erro no processamento em lote.', 'danger');
-                      }
-                  } catch (e) {
-                      console.error(e);
-                      responseMessage.classList.remove('d-none');
-                      responseMessage.classList.add('alert', 'alert-danger');
-                      responseMessage.innerHTML = 'Erro no servidor: ' + e.message;
-                  } finally {
-                      processBtn.disabled = false;
-                      btnText.classList.remove('d-none');
-                      spinner.classList.add('d-none');
-                  }
-              });
-          }
-
-          // Lógica para o botão de processar
-          const processarForm = document.getElementById('processar-ronda-form');
+          const processarForm = document.getElementById('processar-parada-form');
           if (processarForm) {
               processarForm.addEventListener('submit', function () {
                   const processarBtn = document.getElementById('processar-btn');
@@ -616,7 +482,6 @@ block head %} {{ super() }}
               });
           }
 
-          // Lógica para o botão de COPIAR
           const copiarBtn = document.getElementById('copiar-relatorio-btn');
           if (copiarBtn) {
               copiarBtn.addEventListener('click', function () {
@@ -636,8 +501,7 @@ block head %} {{ super() }}
               });
           }
 
-          // Lógica para SALVAR a ronda via AJAX com async/await
-          const salvarBtn = document.getElementById('salvar-ronda-btn');
+          const salvarBtn = document.getElementById('salvar-parada-btn');
           if (salvarBtn) {
               salvarBtn.addEventListener('click', async function () {
                   this.disabled = true;
@@ -651,9 +515,9 @@ block head %} {{ super() }}
                       toast.style.right = '20px';
                       toast.style.zIndex = '9999';
                       toast.innerHTML = `
-              ${mensagem}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          `;
+                          ${mensagem}
+                          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                      `;
                       document.body.appendChild(toast);
                       setTimeout(() => {
                           toast.classList.remove('show');
@@ -664,10 +528,10 @@ block head %} {{ super() }}
 
                   try {
                       const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-                      const form = document.getElementById('processar-ronda-form');
+                      const form = document.getElementById('processar-parada-form');
                       const data = {
-                          ronda_id: {{ ronda_data_to_save.ronda_id | tojson }},
-                          log_bruto: form.querySelector('#log_bruto_rondas').value,
+                          parada_id: {{ parada_data_to_save.parada_id | tojson }},
+                          log_bruto: form.querySelector('#log_bruto_paradas').value,
                           condominio_id: form.querySelector('#nome_condominio').value,
                           nome_condominio_outro: form.querySelector('#nome_condominio_outro').value,
                           data_plantao: form.querySelector('#data_plantao').value,
@@ -675,7 +539,7 @@ block head %} {{ super() }}
                           supervisor_id: form.querySelector('#supervisor_id').value
                       };
 
-                      const response = await fetch("{{ url_for('ronda.salvar_ronda') }}", {
+                      const response = await fetch("{{ url_for('parada.salvar_parada') }}", {
                           method: 'POST',
                           headers: {
                               'Content-Type': 'application/json',
@@ -687,17 +551,17 @@ block head %} {{ super() }}
                       const result = await response.json();
 
                       if (!response.ok || !result.success) {
-                          throw new Error(result.message || 'Falha ao salvar a ronda.');
+                          throw new Error(result.message || 'Falha ao salvar a parada.');
                       }
 
                       showToast(result.message, 'success');
 
                   } catch (error) {
-                      console.error('Erro ao salvar a ronda:', error);
-                      showToast(error.message || 'Erro inesperado ao salvar a ronda.', 'danger');
+                      console.error('Erro ao salvar a parada:', error);
+                      showToast(error.message || 'Erro inesperado ao salvar a parada.', 'danger');
                   } finally {
                       this.disabled = false;
-                      this.innerHTML = '<i class="bi bi-save-fill me-1"></i>Salvar Ronda no Sistema';
+                      this.innerHTML = '<i class="bi bi-save-fill me-1"></i>Salvar Parada no Sistema';
                   }
               });
           }

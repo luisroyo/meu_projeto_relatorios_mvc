@@ -18,11 +18,19 @@ def apply_migrations():
         try:
             # Cria todas as tabelas (incluindo os novos campos)
             db.create_all()
-            print("✅ Tabelas criadas/atualizadas com sucesso!")
+            print("[OK] Tabelas criadas/atualizadas com sucesso!")
             
             # Verifica se os novos campos foram criados
             from sqlalchemy import inspect
             inspector = inspect(db.engine)
+            
+            # Verifica tabela parada
+            tables = inspector.get_table_names()
+            if 'parada' in tables:
+                print("[OK] Tabela 'parada' criada/verificada com sucesso!")
+            else:
+                print("[ERRO] Tabela 'parada' nao encontrada!")
+                
             columns = inspector.get_columns('ronda')
             
             new_fields = ['km_entrada', 'km_saida', 'km_total_percorrido', 'data_hora_entrada', 'data_hora_saida']
@@ -32,12 +40,12 @@ def apply_migrations():
             
             for field in new_fields:
                 if field in existing_fields:
-                    print(f"✅ Campo {field} encontrado!")
+                    print(f"[OK] Campo {field} encontrado!")
                 else:
-                    print(f"❌ Campo {field} NÃO encontrado!")
+                    print(f"[AVISO] Campo {field} NAO encontrado!")
                     
         except Exception as e:
-            print(f"❌ Erro ao aplicar migrações: {e}")
+            print(f"[ERRO] Erro ao aplicar migracoes: {e}")
             return False
     
     return True
@@ -45,6 +53,6 @@ def apply_migrations():
 if __name__ == "__main__":
     success = apply_migrations()
     if success:
-        print("🎉 Migrações aplicadas com sucesso!")
+        print("Migracoes aplicadas com sucesso!")
     else:
-        print("💥 Falha ao aplicar migrações!")
+        print("Falha ao aplicar migracoes!")

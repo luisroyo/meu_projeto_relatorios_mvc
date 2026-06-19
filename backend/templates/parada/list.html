@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% from "_pagination_helper.html" import render_pagination %}
+
+{% block title %}Histórico de Paradas{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-clock-history me-2"></i>Histórico de Paradas</h2>
+            <p class="lead text-muted mb-0">Visualize todas as paradas registradas no sistema.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('parada.registrar_parada') }}" class="btn btn-primary d-flex align-items-center gap-2">
+                <i class="bi bi-plus-circle"></i> <span>Registrar Nova Parada</span>
+            </a>
+        </div>
+    </div>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom d-flex align-items-center">
+            <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('parada.listar_paradas') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label for="condominio" class="form-label">Condomínio</label>
+                        <select name="condominio" id="condominio" class="form-select">
+                            <option value="">Todos</option>
+                            {% for c in condominios %}
+                                <option value="{{ c.nome }}" {% if active_filter_params.condominio == c.nome %}selected{% endif %}>{{ c.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="supervisor" class="form-label">Supervisor</label>
+                        <select name="supervisor" id="supervisor" class="form-select">
+                            <option value="">Todos</option>
+                            {% for s in supervisores %}
+                                <option value="{{ s.id }}" {% if active_filter_params.supervisor == s.id|string %}selected{% endif %}>{{ s.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="turno" class="form-label">Turno</label>
+                        <select name="turno" id="turno" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="Noturno Par" {% if active_filter_params.turno == 'Noturno Par' %}selected{% endif %}>Noturno Par</option>
+                            <option value="Noturno Impar" {% if active_filter_params.turno == 'Noturno Impar' %}selected{% endif %}>Noturno Impar</option>
+                            <option value="Diurno Par" {% if active_filter_params.turno == 'Diurno Par' %}selected{% endif %}>Diurno Par</option>
+                            <option value="Diurno Impar" {% if active_filter_params.turno == 'Diurno Impar' %}selected{% endif %}>Diurno Impar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="data_inicio" class="form-label">Data Início</label>
+                        <input type="date" name="data_inicio" id="data_inicio" value="{{ active_filter_params.data_inicio or '' }}" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="data_fim" class="form-label">Data Fim</label>
+                        <input type="date" name="data_fim" id="data_fim" value="{{ active_filter_params.data_fim or '' }}" class="form-control">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i>Filtrar</button>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{{ url_for('parada.listar_paradas') }}" class="btn btn-outline-secondary">Limpar</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#ID</th>
+                        <th>Condomínio</th>
+                        <th>Data Plantão</th>
+                        <th>Turno</th>
+                        <th>Supervisor</th>
+                        <th class="text-center">Paradas no Log</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for parada in paradas %}
+                    <tr>
+                        <td>{{ parada.id }}</td>
+                        <td>{{ parada.condominio.nome if parada.condominio else 'N/A' }}</td>
+                        <td>{{ parada.data_plantao_parada.strftime('%d/%m/%Y') if parada.data_plantao_parada else 'N/A' }}</td>
+                        <td><span class="badge bg-secondary">{{ parada.turno_parada or 'N/A' }}</span></td>
+                        <td>{{ parada.supervisor.username if parada.supervisor else 'Automático' }}</td>
+                        <td class="text-center">{{ parada.total_paradas_no_log or 0 }}</td>
+                        <td class="text-end text-nowrap">
+                            <div class="btn-group btn-group-sm rounded-pill shadow-sm" role="group" aria-label="Ações de Parada">
+                                <a href="{{ url_for('parada.obter_detalhes_parada', parada_id=parada.id) }}" class="btn btn-info rounded-start" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver Detalhes">
+                                    <i class="bi bi-eye fs-5"></i>
+                                </a>
+                                <a href="{{ url_for('parada.registrar_parada', parada_id=parada.id) }}" class="btn btn-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar Parada">
+                                    <i class="bi bi-pencil fs-5"></i>
+                                </a>
+                                {% if current_user.is_admin %}
+                                <button type="button" 
+                                        class="btn btn-danger rounded-end" 
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="top" 
+                                        title="Excluir Parada"
+                                        onclick="window.helpSystem?.showConfirmationModal(
+                                            'Tem certeza que deseja excluir esta parada?<br><small class=\'text-muted\'>Esta ação não pode ser desfeita e todos os dados do registro de parada serão permanentemente removidos.</small>',
+                                            () => {
+                                                const form = document.createElement('form');
+                                                form.method = 'POST';
+                                                form.action = '{{ url_for('parada.excluir_parada', parada_id=parada.id) }}';
+                                                form.innerHTML = '<input type=\'hidden\' name=\'csrf_token\' value=\'{{ csrf_token() }}\'/>';
+                                                document.body.appendChild(form);
+                                                form.submit();
+                                            },
+                                            {
+                                                title: 'Excluir Parada',
+                                                confirmText: 'Sim, Excluir',
+                                                cancelText: 'Cancelar',
+                                                type: 'danger'
+                                            }
+                                        )">
+                                    <i class="bi bi-trash fs-5"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center p-4 text-muted">Nenhuma parada encontrada com os filtros aplicados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if pagination.pages > 1 %}
+        <div class="card-footer">
+            {{ render_pagination(pagination, 'parada.listar_paradas', query_params=active_filter_params) }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

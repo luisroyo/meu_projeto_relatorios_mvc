@@ -8,8 +8,8 @@ from flask_login import current_user, login_required
 
 ## [MELHORIA] Importando Enums para popular os filtros do formulário.
 from app.decorators.admin_required import admin_required
-from app.models import Condominio, OcorrenciaTipo, Ronda, User
-from app.services.dashboard import get_ronda_dashboard_data
+from app.models import Condominio, OcorrenciaTipo, Ronda, Parada, User
+from app.services.dashboard import get_ronda_dashboard_data, get_parada_dashboard_data
 from app.services.dashboard.comparativo_dashboard import \
     get_monthly_comparison_data
 from app.services.dashboard.main_dashboard import get_main_dashboard_data
@@ -176,6 +176,60 @@ def ronda_dashboard():
     )
 
     return render_template("admin/ronda_dashboard.html", **context_data)
+
+
+@admin_bp.route("/parada_dashboard")
+@login_required
+@admin_required
+def parada_dashboard():
+    """Exibe o dashboard de métricas e análises de Paradas."""
+    logger.info(f"Usuário '{current_user.username}' acessou o dashboard de paradas.")
+
+    current_year = datetime.now().year
+
+    filters = {
+        "turno": request.args.get("turno", ""),
+        "supervisor_id": request.args.get("supervisor_id", type=int),
+        "condominio_id": request.args.get("condominio_id", type=int),
+        "mes": request.args.get("mes", type=int),
+        "data_inicio_str": request.args.get("data_inicio", ""),
+        "data_fim_str": request.args.get("data_fim", ""),
+    }
+
+    if filters["mes"] and not (filters["data_inicio_str"] or filters["data_fim_str"]):
+        start_date, end_date = _get_date_range_from_month(current_year, filters["mes"])
+        if start_date and end_date:
+            filters["data_inicio_str"] = start_date
+            filters["data_fim_str"] = end_date
+        else:
+            flash("Mês inválido selecionado.", "danger")
+            filters["mes"] = None
+
+    context_data = get_parada_dashboard_data(filters)
+
+    # --- Preenchendo dados para os filtros do template ---
+    context_data["title"] = "Dashboard de Métricas de Paradas"
+    context_data["turnos"] = ["Noturno Par", "Noturno Impar", "Diurno Par", "Diurno Impar"]
+    context_data["supervisors"] = (
+        User.query.filter_by(is_supervisor=True, is_approved=True)
+        .order_by(User.username)
+        .all()
+    )
+    context_data["condominios"] = (
+        Condominio.query.join(Parada).distinct().order_by(Condominio.nome).all()
+    )
+    context_data["meses_do_ano"] = _get_months_of_year(current_year)
+
+    context_data["selected_filters"] = filters
+
+    context_data["period_description"] = _get_period_description(
+        current_year,
+        filters["mes"],
+        context_data["selected_data_inicio_str"],
+        context_data["selected_data_fim_str"],
+    )
+
+    return render_template("admin/parada_dashboard.html", **context_data)
 
 
 

@@ -2,6 +2,7 @@ from .user import User
 from .colaborador import Colaborador
 from .condominio import Condominio
 from .ronda import Ronda
+from .parada import Parada
 from .processing_history import ProcessingHistory
 from .escala_mensal import EscalaMensal
 from .ocorrencia_tipo import OcorrenciaTipo

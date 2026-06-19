@@ -105,6 +105,8 @@
                   href="{{ url_for('admin.dashboard_metrics') }}">Métricas Gerais</a></li>
               <li><a class="dropdown-item {% if request.endpoint == 'admin.ronda_dashboard' %}active{% endif %}"
                   href="{{ url_for('admin.ronda_dashboard') }}">Métricas de Rondas</a></li>
+              <li><a class="dropdown-item {% if request.endpoint == 'admin.parada_dashboard' %}active{% endif %}"
+                  href="{{ url_for('admin.parada_dashboard') }}">Métricas de Paradas</a></li>
               <li><a class="dropdown-item {% if request.endpoint == 'admin.ocorrencia_dashboard' %}active{% endif %}"
                   href="{{ url_for('admin.ocorrencia_dashboard') }}">Métricas de Ocorrências</a></li>
               <li><a class="dropdown-item {% if request.endpoint == 'admin.dashboard_comparativo' %}active{% endif %}"
@@ -115,10 +117,6 @@
               <li><a class="dropdown-item {% if request.endpoint == 'gemini_dashboard.dashboard' %}active{% endif %}"
                   href="{{ url_for('gemini_dashboard.dashboard') }}"><i class="bi bi-robot me-2"></i>Monitoramento
                   Gemini</a></li>
-              <li>
-                <hr class="dropdown-divider">
-              </li>
-              {# Item de Usuários Online removido #}
             </ul>
           </li>
 
@@ -128,39 +126,49 @@
               <i class="bi bi-file-earmark-richtext me-1"></i>Analisar Relatório
             </a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'ronda.registrar_ronda' %}active{% endif %}"
-              href="{{ url_for('ronda.registrar_ronda') }}">
-              <i class="bi bi-shield-check me-1"></i>Registrar Ronda
+
+          <!-- Dropdown Rondas -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {% if request.endpoint and request.endpoint.startswith('ronda.') %}active{% endif %}"
+              href="#" id="navbarRondaDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-shield-check me-1"></i>Rondas
             </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarRondaDropdown">
+              <li><a class="dropdown-item {% if request.endpoint == 'ronda.registrar_ronda' %}active{% endif %}"
+                  href="{{ url_for('ronda.registrar_ronda') }}"><i class="bi bi-shield-fill-check me-2"></i>Registrar Ronda</a></li>
+              {% if show_rondas_tempo_real %}
+              <li><a class="dropdown-item {% if request.endpoint == 'ronda.ronda_tempo_real' %}active{% endif %}"
+                  href="{{ url_for('ronda.ronda_tempo_real') }}"><i class="bi bi-clock-fill me-2"></i>Tempo Real</a></li>
+              {% endif %}
+              <li><a class="dropdown-item {% if request.endpoint == 'ronda.listar_rondas' %}active{% endif %}"
+                  href="{{ url_for('ronda.listar_rondas') }}"><i class="bi bi-journals me-2"></i>Histórico de Rondas</a></li>
+            </ul>
           </li>
-          {% if show_rondas_tempo_real %}
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'ronda.ronda_tempo_real' %}active{% endif %}"
-              href="{{ url_for('ronda.ronda_tempo_real') }}">
-              <i class="bi bi-clock me-1"></i>Rondas em Tempo Real
+
+          <!-- Dropdown Paradas -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {% if request.endpoint and request.endpoint.startswith('parada.') %}active{% endif %}"
+              href="#" id="navbarParadaDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-clock me-1"></i>Paradas
             </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarParadaDropdown">
+              <li><a class="dropdown-item {% if request.endpoint == 'parada.registrar_parada' %}active{% endif %}"
+                  href="{{ url_for('parada.registrar_parada') }}"><i class="bi bi-clock-fill me-2"></i>Registrar Parada</a></li>
+              <li><a class="dropdown-item {% if request.endpoint == 'parada.listar_paradas' %}active{% endif %}"
+                  href="{{ url_for('parada.listar_paradas') }}"><i class="bi bi-clock-history me-2"></i>Histórico de Paradas</a></li>
+            </ul>
           </li>
-          {% endif %}
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'ronda.listar_rondas' %}active{% endif %}"
-              href="{{ url_for('ronda.listar_rondas') }}">
-              <i class="bi bi-journals me-1"></i>Histórico de Rondas
+
+          <!-- Dropdown Ocorrências -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {% if request.endpoint and request.endpoint.startswith('ocorrencia.') %}active{% endif %}"
+              href="#" id="navbarOcorrenciaDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-file-earmark-text-fill me-1"></i>Ocorrências
             </a>
-          </li>
-          {% if current_user.is_admin %}
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'ronda.upload_process_ronda' %}active{% endif %}"
-              href="{{ url_for('ronda.upload_process_ronda') }}">
-              <i class="bi bi-cloud-arrow-up me-1"></i>Upload Rondas
-            </a>
-          </li>
-          {% endif %}
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'ocorrencia.listar_ocorrencias' %}active{% endif %}"
-              href="{{ url_for('ocorrencia.listar_ocorrencias') }}">
-              <i class="bi bi-file-earmark-text-fill me-1"></i>Histórico de Ocorrências
-            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarOcorrenciaDropdown">
+              <li><a class="dropdown-item {% if request.endpoint == 'ocorrencia.listar_ocorrencias' %}active{% endif %}"
+                  href="{{ url_for('ocorrencia.listar_ocorrencias') }}"><i class="bi bi-journals me-2"></i>Histórico de Ocorrências</a></li>
+            </ul>
           </li>
 
           <li class="nav-item dropdown">

@@ -3,8 +3,8 @@ from flask_wtf.file import FileField, FileAllowed
 from wtforms import SelectField, StringField, DateField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Optional, Length, ValidationError
 
-class TestarRondasForm(FlaskForm):
-    """Formulário para testar e registrar rondas."""
+class TestarParadasForm(FlaskForm):
+    """Formulário para testar e registrar paradas."""
     nome_condominio = SelectField(
         "Nome do Condomínio",
         choices=[],
@@ -27,21 +27,21 @@ class TestarRondasForm(FlaskForm):
         validators=[DataRequired(message="Selecione a escala.")],
     )
     supervisor_id = SelectField(
-        "Supervisor da Ronda", coerce=int, validators=[Optional()]
+        "Supervisor da Parada", coerce=int, validators=[Optional()]
     )
     arquivo_whatsapp = FileField(
         "Arquivo de Origem (.txt ou .xlsx) - Opcional",
         validators=[FileAllowed(['txt', 'xlsx'], message="Apenas arquivos .txt e .xlsx são permitidos.")]
     )
-    log_bruto_rondas = TextAreaField(
-        "Log Bruto das Rondas",
-        validators=[DataRequired(message="Insira o log bruto das rondas.")],
+    log_bruto_paradas = TextAreaField(
+        "Log Bruto das Paradas",
+        validators=[DataRequired(message="Insira o log bruto das paradas.")],
         render_kw={"rows": 10, "class": "form-control"},
     )
     submit = SubmitField(
-        "Processar Relatório de Ronda", render_kw={"class": "btn btn-primary"}
+        "Processar Relatório de Parada", render_kw={"class": "btn btn-primary"}
     )
 
     def validate_nome_condominio_outro(self, field) -> None:
         if self.nome_condominio.data == 'Outro' and not field.data.strip():
-            raise ValidationError('Por favor, especifique o nome do condomínio se "Outro" foi selecionado.') 
+            raise ValidationError('Por favor, especifique o nome do condomínio se "Outro" foi selecionado.')

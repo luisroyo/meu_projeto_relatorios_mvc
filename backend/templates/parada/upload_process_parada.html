@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Upload e Processamento de Paradas{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="card shadow-lg animate__animated animate__fadeIn">
+        <div class="card-header bg-light">
+            <h2 class="card-title h4 mb-0 d-flex align-items-center">
+                <i class="bi bi-cloud-arrow-up-fill text-primary me-2"></i>
+                Upload e Processamento de Paradas
+            </h2>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-4">
+                Faça o upload do arquivo Excel (.xlsx) contendo as paradas para processamento e registro automático em lote.
+                O arquivo será mantido em cache temporário da sessão para que você possa revisar os dados de cada condomínio e registrá-los.
+            </p>
+
+            <form id="uploadForm" method="POST" enctype="multipart/form-data" action="{{ url_for('parada.upload_process_parada') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-4">
+                    <label for="file" class="form-label fw-bold">
+                        Planilha Excel (.xlsx)
+                    </label>
+                    <input type="file" id="file" name="file" accept=".xlsx" required
+                           class="form-control">
+                    <div class="form-text">Apenas arquivos .xlsx são permitidos nesta página.</div>
+                </div>
+
+                <button type="submit" id="processButton"
+                        class="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center">
+                    <span><i class="bi bi-gear-fill me-2"></i> Enviar e Processar Planilha</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
