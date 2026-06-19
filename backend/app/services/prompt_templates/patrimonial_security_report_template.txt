@@ -118,11 +118,16 @@ Exemplo:
 ---
 
 **ACIONAMENTOS:**
-Se houver:
-( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador
-→ Marcar com (X)
+Analise a dinâmica do atendimento para identificar quais recursos foram ativados:
+* **Central**: Marque se a ocorrência foi iniciada por disparo/visualização da Central que acionou a ronda, OU se a equipe de ronda solicitou apoio visual/cobertura de câmeras à Central durante o atendimento.
+* **Velado**: Marque se agentes de segurança velada foram acionados para apoio no local.
+* **Supervisor**: Marque se o supervisor foi acionado para apoio, fiscalização ou tomada de decisão no local.
+* **Coordenador**: Marque se a coordenação de segurança foi acionada para incidentes de alta relevância.
 
-Se não houver:
+Se houver acionamentos, formate exatamente assim, marcando com (X) as opções ativadas:
+( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador
+
+Se o ronda resolveu a situação de forma autônoma e sem solicitar apoio visual de câmeras ou apoio físico de supervisores/velados:
 → "Não houve acionamentos"
 
 ---
