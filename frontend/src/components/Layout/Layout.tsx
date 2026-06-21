@@ -49,6 +49,7 @@ const Layout: React.FC = () => {
         { text: 'Métricas Gerais', icon: <Assessment />, path: '/admin/metrics' },
         { text: 'Dashboard Rondas', icon: <Timeline />, path: '/admin/rondas-dashboard' },
         { text: 'Dashboard Ocorrências', icon: <ReportIcon />, path: '/admin/ocorrencias-dashboard' },
+        { text: 'Análise Comparativa', icon: <Timeline />, path: '/admin/comparativo-dashboard' },
         { text: 'Gerenciar Usuários', icon: <People />, path: '/admin/users' },
         { text: 'Gerenciar Colaboradores', icon: <Badge />, path: '/admin/colaboradores' },
     ];
