@@ -95,6 +95,9 @@ block head %} {{ super() }}
                       <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('{{ form.arquivo_whatsapp.id }}').click()">
                         <i class="fas fa-folder-open"></i> Escolher
                       </button>
+                      <button class="btn btn-outline-secondary" type="button" id="googleDriveBtnManual">
+                        <i class="bi bi-google me-1"></i> Google Drive
+                      </button>
                     </div>
                     
                     {% if form.arquivo_whatsapp.errors %}
@@ -134,8 +137,13 @@ block head %} {{ super() }}
                 
                 <div class="mb-4">
                   <label for="lote_file" class="form-label fw-bold">Planilha Excel (.xlsx)</label>
-                  <input type="file" id="lote_file" name="file" accept=".xlsx" required class="form-control">
-                  <div class="form-text">Apenas arquivos .xlsx são permitidos nesta página.</div>
+                  <div class="input-group">
+                    <input type="file" id="lote_file" name="file" accept=".xlsx" required class="form-control">
+                    <button class="btn btn-outline-secondary" type="button" id="googleDriveBtnLote">
+                      <i class="bi bi-google me-1"></i> Google Drive
+                    </button>
+                  </div>
+                  <div class="form-text">Apenas arquivos .xlsx são permitidos ou selecione do Google Drive.</div>
                 </div>
 
                 <div class="d-grid mt-auto">
@@ -187,10 +195,212 @@ block head %} {{ super() }}
   </div>
 </div>
 {% endblock %} {% block scripts %} {{ super() }}
+<!-- Google Picker and OAuth Scripts -->
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <script>
       var isAdmin = {{ 'true' if current_user.is_admin else 'false' }};
       
       document.addEventListener('DOMContentLoaded', function () {
+          // Google Integration Credentials
+          const CLIENT_ID = "{{ config.GOOGLE_CLIENT_ID }}";
+          const API_KEY = "{{ config.GOOGLE_API_KEY }}";
+          
+          let accessToken = null;
+          let pickerApiLoaded = false;
+          let tokenClient;
+          let currentPickerMode = 'manual'; // 'manual' ou 'lote'
+
+          // Initialize Google Picker API
+          function gapiStart() {
+              gapi.load('picker', { 'callback': () => { pickerApiLoaded = true; } });
+          }
+
+          if (typeof gapi !== 'undefined') {
+              gapiStart();
+          } else {
+              window.addEventListener('load', () => {
+                  if (typeof gapi !== 'undefined') {
+                      gapiStart();
+                  }
+              });
+          }
+
+          function initGoogleAuth(mode) {
+              if (!CLIENT_ID || !API_KEY) {
+                  alert("As credenciais do Google Drive não estão configuradas nas variáveis de ambiente (.env). Por favor, configure GOOGLE_CLIENT_ID e GOOGLE_API_KEY.");
+                  return;
+              }
+
+              if (typeof google === 'undefined') {
+                  alert("Não foi possível carregar a biblioteca de autenticação do Google. Verifique sua conexão com a internet.");
+                  return;
+              }
+
+              currentPickerMode = mode;
+
+              tokenClient = google.accounts.oauth2.initTokenClient({
+                  client_id: CLIENT_ID,
+                  scope: 'https://www.googleapis.com/auth/drive.readonly',
+                  callback: async (response) => {
+                      if (response.error !== undefined) {
+                          console.error("Erro na autenticação:", response);
+                          return;
+                      }
+                      accessToken = response.access_token;
+                      
+                      if (!pickerApiLoaded && typeof gapi !== 'undefined') {
+                          gapi.load('picker', {
+                              'callback': () => {
+                                  pickerApiLoaded = true;
+                                  createPicker();
+                              }
+                          });
+                      } else {
+                          createPicker();
+                      }
+                  },
+              });
+
+              tokenClient.requestAccessToken({ prompt: 'consent' });
+          }
+
+          const googleDriveBtnManual = document.getElementById('googleDriveBtnManual');
+          if (googleDriveBtnManual) {
+              googleDriveBtnManual.addEventListener('click', () => initGoogleAuth('manual'));
+          }
+
+          const googleDriveBtnLote = document.getElementById('googleDriveBtnLote');
+          if (googleDriveBtnLote) {
+              googleDriveBtnLote.addEventListener('click', () => initGoogleAuth('lote'));
+          }
+
+          function createPicker() {
+              const docsView = new google.picker.DocsView()
+                  .setIncludeFolders(true)
+                  .setMimeTypes("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+              const picker = new google.picker.PickerBuilder()
+                  .addView(docsView)
+                  .setOAuthToken(accessToken)
+                  .setDeveloperKey(API_KEY)
+                  .setCallback(pickerCallback)
+                  .setTitle(currentPickerMode === 'manual' ? "Selecione a planilha de Paradas" : "Selecione a planilha de Paradas para Lote")
+                  .build();
+              picker.setVisible(true);
+          }
+
+          async function pickerCallback(data) {
+              if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+                  const doc = data[google.picker.Response.DOCUMENTS][0];
+                  const fileId = doc[google.picker.Document.ID];
+                  const fileName = doc[google.picker.Document.NAME];
+                  
+                  if (currentPickerMode === 'manual') {
+                      await processGoogleDriveManual(fileId, accessToken, fileName);
+                  } else {
+                      await processGoogleDriveLote(fileId, accessToken, fileName);
+                  }
+              }
+          }
+
+          async function processGoogleDriveManual(fileId, token, fileName) {
+              const button = document.getElementById('googleDriveBtnManual');
+              const originalHtml = button.innerHTML;
+              button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+              button.disabled = true;
+              
+              const formData = new FormData();
+              formData.append('google_file_id', fileId);
+              formData.append('google_access_token', token);
+              formData.append('google_file_name', fileName);
+              
+              const dataPlantao = dataPlantaoInput.value;
+              const escalaPlantao = escalaPlantaoSelect.value;
+              formData.append('data_plantao', dataPlantao);
+              formData.append('escala_plantao', escalaPlantao);
+              
+              const condominioId = condominioSelect.value;
+              const condominioNome = condominioSelect.options[condominioSelect.selectedIndex]?.text || '';
+              formData.append('condominio_id', condominioId);
+              formData.append('condominio_nome', condominioNome);
+
+              const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+              
+              try {
+                  const response = await fetch('{{ url_for("parada.processar_whatsapp_ajax") }}', {
+                      method: 'POST',
+                      headers: {
+                          'X-CSRFToken': csrfToken
+                      },
+                      body: formData
+                  });
+                  const data = await response.json();
+                  if (data.success) {
+                      logBrutoTextarea.value = data.log_formatado;
+                      if (data.data_plantao) {
+                          dataPlantaoInput.value = data.data_plantao;
+                      }
+                      if (data.escala_plantao) {
+                          $(escalaPlantaoSelect).val(data.escala_plantao).trigger('change');
+                      }
+                      if (data.supervisor_id && data.supervisor_id !== '0') {
+                          $('#supervisor_id').val(data.supervisor_id).trigger('change');
+                      }
+                      showToast(data.message, 'success');
+                  } else {
+                      showToast(data.message || 'Erro ao processar arquivo do Google Drive.', 'danger');
+                  }
+              } catch (error) {
+                  console.error(error);
+                  showToast('Erro de conexão ou servidor.', 'danger');
+              } finally {
+                  button.innerHTML = originalHtml;
+                  button.disabled = false;
+              }
+          }
+
+          async function processGoogleDriveLote(fileId, token, fileName) {
+              const processBtn = document.querySelector('#lote-pane button[type="submit"]');
+              const originalHtml = processBtn.innerHTML;
+              processBtn.disabled = true;
+              processBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processando...';
+              
+              const formData = new FormData();
+              formData.append('google_file_id', fileId);
+              formData.append('google_access_token', token);
+              formData.append('google_file_name', fileName);
+              formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+              
+              try {
+                  const response = await fetch("{{ url_for('parada.upload_process_parada') }}", {
+                      method: 'POST',
+                      headers: {
+                          'X-Requested-With': 'XMLHttpRequest'
+                      },
+                      body: formData
+                  });
+                  const result = await response.json();
+                  if (response.ok && result.success) {
+                      showToast(result.message, 'success');
+                      if (result.redirect_url) {
+                          setTimeout(() => {
+                              window.location.href = result.redirect_url;
+                          }, 1000);
+                      }
+                  } else {
+                      showToast(result.message || 'Erro ao processar arquivo do Google Drive.', 'danger');
+                  }
+              } catch (e) {
+                  console.error(e);
+                  showToast('Erro no servidor: ' + e.message, 'danger');
+              } finally {
+                  processBtn.disabled = false;
+                  processBtn.innerHTML = originalHtml;
+              }
+          }
+
           const select2Config = {
               theme: "bootstrap-5",
               width: '100%'
@@ -229,7 +439,7 @@ block head %} {{ super() }}
                       const button = inputGroup.querySelector('.btn');
                       button.textContent = fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName;
                       
-                      const isExcel = fileName.toLowerCase().endswith('.xlsx');
+                      const isExcel = fileName.toLowerCase().endsWith('.xlsx');
                       const registrarTudoBtn = document.getElementById('registrar-tudo-excel-btn');
                       if (isExcel) {
                           document.getElementById('arquivo-fixo-status').style.display = 'block';

@@ -289,18 +289,44 @@ def processar_whatsapp_ajax():
     try:
         arquivo_whatsapp = request.files.get('arquivo_whatsapp')
         arquivo_fixo_path = session.get('parada_file_path')
+        google_file_id = request.form.get('google_file_id')
+        google_access_token = request.form.get('google_access_token')
+        google_file_name = request.form.get('google_file_name', 'google_drive_file.xlsx')
         
         print(f"[DEBUG PARADAS AJAX] arquivo_whatsapp: {arquivo_whatsapp}")
         print(f"[DEBUG PARADAS AJAX] arquivo_fixo_path: {arquivo_fixo_path}")
+        print(f"[DEBUG PARADAS AJAX] google_file_id: {google_file_id}")
         
-        if not arquivo_whatsapp and not arquivo_fixo_path:
+        if not arquivo_whatsapp and not arquivo_fixo_path and not google_file_id:
             return jsonify({'success': False, 'message': 'Nenhum arquivo fornecido'}), 400
         
         data_plantao = request.form.get('data_plantao')
         escala_plantao = request.form.get('escala_plantao')
         condominio_nome = request.form.get('condominio_nome', '').strip()
         
-        if arquivo_whatsapp:
+        if google_file_id and google_access_token:
+            try:
+                import requests
+                headers = {"Authorization": f"Bearer {google_access_token}"}
+                download_url = f"https://www.googleapis.com/drive/v3/files/{google_file_id}?alt=media"
+                response = requests.get(download_url, headers=headers)
+                if response.status_code != 200:
+                    return jsonify({"success": False, "message": f"Erro ao baixar do Google Drive (Status {response.status_code}): {response.text}"}), 400
+                
+                temp_dir = os.path.join(tempfile.gettempdir(), 'whatsapp_parada')
+                os.makedirs(temp_dir, exist_ok=True)
+                temp_path = os.path.join(temp_dir, google_file_name)
+                with open(temp_path, 'wb') as f:
+                    f.write(response.content)
+                
+                session['parada_file_path'] = temp_path
+                session['parada_file_name'] = google_file_name
+                file_path = temp_path
+                print(f"[DEBUG PARADAS AJAX] Arquivo do Google Drive salvo: {file_path}")
+            except Exception as e:
+                logger.error(f"Erro ao baixar do Google Drive no AJAX de paradas: {e}", exc_info=True)
+                return jsonify({"success": False, "message": f"Erro ao acessar Google Drive: {str(e)}"}), 500
+        elif arquivo_whatsapp:
             temp_dir = os.path.join(tempfile.gettempdir(), 'whatsapp_parada')
             os.makedirs(temp_dir, exist_ok=True)
             temp_path = os.path.join(temp_dir, arquivo_whatsapp.filename)
