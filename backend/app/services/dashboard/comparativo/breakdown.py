@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple
 from sqlalchemy import func
 from app import db
-from app.models import Condominio, Ronda, Ocorrencia, User, OcorrenciaTipo
+from app.models import Condominio, Ronda, Ocorrencia, User, OcorrenciaTipo, Parada
 from .filters import FilterApplier
 
 
@@ -14,8 +14,10 @@ class BreakdownAnalyzer:
         return {
             "rondas_por_condominio": BreakdownAnalyzer._get_rondas_por_condominio(year, filters),
             "ocorrencias_por_condominio": BreakdownAnalyzer._get_ocorrencias_por_condominio(year, filters),
+            "paradas_por_condominio": BreakdownAnalyzer._get_paradas_por_condominio(year, filters),
             "rondas_por_supervisor": BreakdownAnalyzer._get_rondas_por_supervisor(year, filters),
             "ocorrencias_por_supervisor": BreakdownAnalyzer._get_ocorrencias_por_supervisor(year, filters),
+            "paradas_por_supervisor": BreakdownAnalyzer._get_paradas_por_supervisor(year, filters),
             "rondas_por_turno": BreakdownAnalyzer._get_rondas_por_turno(year, filters),
             "ocorrencias_por_tipo": BreakdownAnalyzer._get_ocorrencias_por_tipo(year, filters),
             "ocorrencias_por_status": BreakdownAnalyzer._get_ocorrencias_por_status(year, filters),
@@ -131,5 +133,43 @@ class BreakdownAnalyzer:
         return (
             query.group_by(Ocorrencia.status)
             .order_by(func.count(Ocorrencia.id).desc())
+            .all()
+        )
+
+    @staticmethod
+    def _get_paradas_por_condominio(year: int, filters: Dict) -> List[Tuple]:
+        """Busca paradas por condomínio."""
+        query = (
+            db.session.query(
+                Condominio.nome,
+                func.coalesce(func.sum(Parada.total_paradas_no_log), 0).label("total"),
+            )
+            .join(Parada, Condominio.id == Parada.condominio_id)
+            .filter(func.to_char(Parada.data_plantao_parada, "YYYY") == str(year))
+        )
+        query = FilterApplier.apply_parada_filters(query, filters)
+        return (
+            query.group_by(Condominio.nome)
+            .order_by(func.coalesce(func.sum(Parada.total_paradas_no_log), 0).desc())
+            .limit(10)
+            .all()
+        )
+
+    @staticmethod
+    def _get_paradas_por_supervisor(year: int, filters: Dict) -> List[Tuple]:
+        """Busca paradas por supervisor."""
+        query = (
+            db.session.query(
+                User.username,
+                func.coalesce(func.sum(Parada.total_paradas_no_log), 0).label("total"),
+            )
+            .join(Parada, User.id == Parada.supervisor_id)
+            .filter(func.to_char(Parada.data_plantao_parada, "YYYY") == str(year))
+        )
+        query = FilterApplier.apply_parada_filters(query, filters)
+        return (
+            query.group_by(User.username)
+            .order_by(func.coalesce(func.sum(Parada.total_paradas_no_log), 0).desc())
+            .limit(10)
             .all()
         ) 

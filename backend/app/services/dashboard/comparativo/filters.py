@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Dict
-from app.models import Ronda, Ocorrencia
+from app.models import Ronda, Ocorrencia, Parada
 
 
 class FilterApplier:
@@ -32,6 +32,37 @@ class FilterApplier:
             try:
                 end_date = datetime.strptime(filters["data_fim_str"], "%Y-%m-%d")
                 query = query.filter(Ronda.data_plantao_ronda <= end_date)
+            except ValueError:
+                pass
+
+        return query
+
+    @staticmethod
+    def apply_parada_filters(query, filters: Dict):
+        """Aplica filtros à query de paradas."""
+        if not filters:
+            return query
+            
+        if filters.get("condominio_id"):
+            query = query.filter(Parada.condominio_id == filters["condominio_id"])
+
+        if filters.get("supervisor_id"):
+            query = query.filter(Parada.supervisor_id == filters["supervisor_id"])
+
+        if filters.get("turno"):
+            query = query.filter(Parada.turno_parada == filters["turno"])
+
+        if filters.get("data_inicio_str"):
+            try:
+                start_date = datetime.strptime(filters["data_inicio_str"], "%Y-%m-%d")
+                query = query.filter(Parada.data_plantao_parada >= start_date)
+            except ValueError:
+                pass
+
+        if filters.get("data_fim_str"):
+            try:
+                end_date = datetime.strptime(filters["data_fim_str"], "%Y-%m-%d")
+                query = query.filter(Parada.data_plantao_parada <= end_date)
             except ValueError:
                 pass
 

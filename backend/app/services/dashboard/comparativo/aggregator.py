@@ -2,7 +2,7 @@
 from typing import Dict, List, Tuple
 from sqlalchemy import func
 from app import db
-from app.models import Ronda, Ocorrencia
+from app.models import Ronda, Ocorrencia, Parada
 from .filters import FilterApplier
 
 
@@ -11,16 +11,25 @@ class DataAggregator:
     
     @staticmethod
     def get_monthly_aggregation_with_filters(
-        model, date_column, year: int, filters: Dict, is_ronda: bool = True
+        model, date_column, year: int, filters: Dict, is_ronda: bool = True, entity_type: str = None
     ) -> List[Tuple]:
         """
         Função genérica para agregar dados de um modelo por mês com filtros.
         """
-        if is_ronda:
+        if entity_type is None:
+            entity_type = "ronda" if is_ronda else "ocorrencia"
+
+        if entity_type == "ronda":
             # Para rondas, usa total_rondas_no_log (soma das rondas individuais)
             query = db.session.query(
                 func.to_char(date_column, "YYYY-MM"),
                 func.coalesce(func.sum(Ronda.total_rondas_no_log), 0),
+            )
+        elif entity_type == "parada":
+            # Para paradas, usa total_paradas_no_log (soma das paradas individuais)
+            query = db.session.query(
+                func.to_char(date_column, "YYYY-MM"),
+                func.coalesce(func.sum(Parada.total_paradas_no_log), 0),
             )
         else:
             # Para ocorrências, conta registros
@@ -29,8 +38,10 @@ class DataAggregator:
             )
 
         # Aplica filtros específicos
-        if is_ronda:
+        if entity_type == "ronda":
             query = FilterApplier.apply_ronda_filters(query, filters)
+        elif entity_type == "parada":
+            query = FilterApplier.apply_parada_filters(query, filters)
         else:
             query = FilterApplier.apply_ocorrencia_filters(query, filters)
 

@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 from typing import Dict, List, Tuple
-from app.models import Ronda, Ocorrencia
+from app.models import Ronda, Ocorrencia, Parada
 from .aggregator import DataAggregator
 
 
@@ -8,7 +8,7 @@ class DataProcessor:
     """Classe para processar dados de diferentes modos de comparação."""
     
     @staticmethod
-    def process_single_month_mode(year: int, month: int, filters: Dict) -> Tuple[List[int], List[int]]:
+    def process_single_month_mode(year: int, month: int, filters: Dict) -> Tuple[List[int], List[int], List[int]]:
         """Processa dados para modo de mês único."""
         start_date = date(year, month, 1)
         if month == 12:
@@ -23,31 +23,40 @@ class DataProcessor:
 
         # Busca dados apenas para o mês selecionado
         rondas_raw = DataAggregator.get_monthly_aggregation_with_filters(
-            Ronda, Ronda.data_plantao_ronda, year, temp_filters, is_ronda=True
+            Ronda, Ronda.data_plantao_ronda, year, temp_filters, entity_type="ronda"
+        )
+        paradas_raw = DataAggregator.get_monthly_aggregation_with_filters(
+            Parada, Parada.data_plantao_parada, year, temp_filters, entity_type="parada"
         )
         ocorrencias_raw = DataAggregator.get_monthly_aggregation_with_filters(
-            Ocorrencia, Ocorrencia.data_hora_ocorrencia, year, temp_filters, is_ronda=False
+            Ocorrencia, Ocorrencia.data_hora_ocorrencia, year, temp_filters, entity_type="ocorrencia"
         )
 
         # Prepara série apenas para o mês selecionado
         rondas_series = [0] * 12
+        paradas_series = [0] * 12
         ocorrencias_series = [0] * 12
 
         for mes_str, total in rondas_raw:
             mes_num = int(mes_str.split("-")[1])
             rondas_series[mes_num - 1] = total
 
+        for mes_str, total in paradas_raw:
+            mes_num = int(mes_str.split("-")[1])
+            paradas_series[mes_num - 1] = total
+
         for mes_str, total in ocorrencias_raw:
             mes_num = int(mes_str.split("-")[1])
             ocorrencias_series[mes_num - 1] = total
 
-        return rondas_series, ocorrencias_series
+        return rondas_series, ocorrencias_series, paradas_series
 
     @staticmethod
-    def process_comparison_mode(year: int, selected_months: List[int], filters: Dict) -> Tuple[List[int], List[int]]:
+    def process_comparison_mode(year: int, selected_months: List[int], filters: Dict) -> Tuple[List[int], List[int], List[int]]:
         """Processa dados para modo de comparação entre meses."""
         rondas_series = [0] * 12
         ocorrencias_series = [0] * 12
+        paradas_series = [0] * 12
 
         for month in selected_months:
             start_date = date(year, month, 1)
@@ -63,14 +72,17 @@ class DataProcessor:
 
             # Busca dados para o mês
             rondas_raw = DataAggregator.get_monthly_aggregation_with_filters(
-                Ronda, Ronda.data_plantao_ronda, year, temp_filters, is_ronda=True
+                Ronda, Ronda.data_plantao_ronda, year, temp_filters, entity_type="ronda"
+            )
+            paradas_raw = DataAggregator.get_monthly_aggregation_with_filters(
+                Parada, Parada.data_plantao_parada, year, temp_filters, entity_type="parada"
             )
             ocorrencias_raw = DataAggregator.get_monthly_aggregation_with_filters(
                 Ocorrencia,
                 Ocorrencia.data_hora_ocorrencia,
                 year,
                 temp_filters,
-                is_ronda=False,
+                entity_type="ocorrencia",
             )
 
             # Adiciona aos dados
@@ -78,23 +90,32 @@ class DataProcessor:
                 mes_num = int(mes_str.split("-")[1])
                 rondas_series[mes_num - 1] = total
 
+            for mes_str, total in paradas_raw:
+                mes_num = int(mes_str.split("-")[1])
+                paradas_series[mes_num - 1] = total
+
             for mes_str, total in ocorrencias_raw:
                 mes_num = int(mes_str.split("-")[1])
                 ocorrencias_series[mes_num - 1] = total
 
-        return rondas_series, ocorrencias_series
+        return rondas_series, ocorrencias_series, paradas_series
 
     @staticmethod
-    def process_all_months_mode(year: int, filters: Dict) -> Tuple[List[int], List[int]]:
+    def process_all_months_mode(year: int, filters: Dict) -> Tuple[List[int], List[int], List[int]]:
         """Processa dados para modo padrão - todos os meses."""
         rondas_raw = DataAggregator.get_monthly_aggregation_with_filters(
-            Ronda, Ronda.data_plantao_ronda, year, filters, is_ronda=True
+            Ronda, Ronda.data_plantao_ronda, year, filters, entity_type="ronda"
         )
         rondas_series = DataAggregator.prepare_monthly_series(rondas_raw, year)
 
+        paradas_raw = DataAggregator.get_monthly_aggregation_with_filters(
+            Parada, Parada.data_plantao_parada, year, filters, entity_type="parada"
+        )
+        paradas_series = DataAggregator.prepare_monthly_series(paradas_raw, year)
+
         ocorrencias_raw = DataAggregator.get_monthly_aggregation_with_filters(
-            Ocorrencia, Ocorrencia.data_hora_ocorrencia, year, filters, is_ronda=False
+            Ocorrencia, Ocorrencia.data_hora_ocorrencia, year, filters, entity_type="ocorrencia"
         )
         ocorrencias_series = DataAggregator.prepare_monthly_series(ocorrencias_raw, year)
 
-        return rondas_series, ocorrencias_series 
+        return rondas_series, ocorrencias_series, paradas_series 

@@ -165,8 +165,8 @@
         </div>
     </div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-lg-3 col-md-6">
+    <div class="row g-4 mb-4 row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-5">
+        <div class="col">
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body d-flex flex-column justify-content-center align-items-center">
                     <span class="kpi-icon kpi-primary"><i class="bi bi-shield-check"></i></span>
@@ -183,7 +183,24 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6">
+        <div class="col">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <span class="kpi-icon kpi-success"><i class="bi bi-sign-stop-fill text-success"></i></span>
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase">
+                        Total de Paradas
+                        <i class="fas fa-question-circle text-muted" style="cursor: help; font-size: 14px; margin-left: 5px;" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Número total de paradas registradas no período selecionado."></i>
+                    </h6>
+                    <p class="card-text fs-1 fw-bold text-success mb-0">{{ metrics.total_paradas }}</p>
+                    <small class="text-muted">Média: {{ metrics.media_paradas_mensal }}/mês</small>
+                    <small class="text-muted d-block">{{ metrics.proporcao_paradas_por_ronda }}% de paradas por ronda</small>
+                </div>
+            </div>
+        </div>
+        <div class="col">
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body d-flex flex-column justify-content-center align-items-center">
                     <span class="kpi-icon kpi-warning"><i class="bi bi-exclamation-triangle"></i></span>
@@ -199,7 +216,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6">
+        <div class="col">
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body d-flex flex-column justify-content-center align-items-center">
                     <span class="kpi-icon kpi-info"><i class="bi bi-percent"></i></span>
@@ -215,7 +232,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6">
+        <div class="col">
             <div class="card shadow-sm text-center h-100">
                 <div class="card-body d-flex flex-column justify-content-center align-items-center">
                     <span class="kpi-icon kpi-success"><i class="bi bi-graph-up"></i></span>
@@ -245,7 +262,7 @@
         <div class="col-12">
             <div class="card shadow-sm">
                 <div class="card-header fw-bold">
-                    <i class="bi bi-graph-up-arrow me-2"></i>Comparativo Mensal: Rondas vs Ocorrências
+                    <i class="bi bi-graph-up-arrow me-2"></i>Comparativo Mensal: Rondas, Paradas vs Ocorrências
                 </div>
                 <div class="card-body">
                     <div id="comparativoCombinadoChart" style="height: 500px; width: 100%;"></div>
@@ -255,7 +272,7 @@
     </div>
 
     <div class="row g-4">
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header fw-bold d-flex justify-content-between align-items-center">
                     <span>Evolução Mensal de Rondas</span>
@@ -266,7 +283,18 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-6">
+        <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+                    <span>Evolução Mensal de Paradas</span>
+                    <span class="badge bg-success">{{ metrics.mes_mais_paradas if metrics.mes_mais_paradas != 'N/A' else 'N/A' }} - Pico</span>
+                </div>
+                <div class="card-body">
+                    <div id="paradasMensalChart" style="height: 400px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header fw-bold d-flex justify-content-between align-items-center">
                     <span>Evolução Mensal de Ocorrências</span>
@@ -287,7 +315,7 @@
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-6">
+                        <div class="col-4">
                             <div class="text-center p-3 border rounded">
                                 <h6 class="text-primary">Rondas</h6>
                                 <p class="mb-1 fs-4 fw-bold">
@@ -302,7 +330,22 @@
                                 </p>
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
+                            <div class="text-center p-3 border rounded">
+                                <h6 class="text-success">Paradas</h6>
+                                <p class="mb-1 fs-4 fw-bold">
+                                    {% if metrics.tendencia_paradas == "Crescimento" %}
+                                        <i class="bi bi-arrow-up text-success"></i>
+                                    {% elif metrics.tendencia_paradas == "Queda" %}
+                                        <i class="bi bi-arrow-down text-danger"></i>
+                                    {% else %}
+                                        <i class="bi bi-dash text-secondary"></i>
+                                    {% endif %}
+                                    {{ metrics.tendencia_paradas }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-4">
                             <div class="text-center p-3 border rounded">
                                 <h6 class="text-warning">Ocorrências</h6>
                                 <p class="mb-1 fs-4 fw-bold">
@@ -330,6 +373,9 @@
                             {% if metrics.tendencia_rondas == "Crescimento" %}
                                 <li><i class="bi bi-arrow-up-circle text-primary me-2"></i>Rondas em crescimento</li>
                             {% endif %}
+                            {% if metrics.tendencia_paradas == "Crescimento" %}
+                                <li><i class="bi bi-arrow-up-circle text-success me-2"></i>Paradas em crescimento</li>
+                            {% endif %}
                             {% if metrics.tendencia_ocorrencias == "Queda" %}
                                 <li><i class="bi bi-arrow-down-circle text-success me-2"></i>Ocorrências em queda</li>
                             {% endif %}
@@ -345,24 +391,34 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-sm">
+                        <table class="table table-sm text-center">
                             <thead>
                                 <tr>
-                                    <th>Mês</th>
+                                    <th class="text-start">Mês</th>
                                     <th>Rondas</th>
+                                    <th>Paradas</th>
                                     <th>Ocorrências</th>
-                                    <th>Proporção</th>
+                                    <th>Proporção (Ocor.)</th>
+                                    <th>Proporção (Par.)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for i in range(12) %}
                                 <tr>
-                                    <td>{{ month_labels[i] }}</td>
+                                    <td class="text-start">{{ month_labels[i] }}</td>
                                     <td>{{ rondas_data[i] }}</td>
+                                    <td>{{ paradas_data[i] }}</td>
                                     <td>{{ ocorrencias_data[i] }}</td>
                                     <td>
                                         {% if rondas_data[i] > 0 %}
                                             {{ "%.1f"|format(ocorrencias_data[i] / rondas_data[i] * 100) }}%
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if rondas_data[i] > 0 %}
+                                            {{ "%.1f"|format(paradas_data[i] / rondas_data[i] * 100) }}%
                                         {% else %}
                                             -
                                         {% endif %}
@@ -386,7 +442,7 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-6">
+                        <div class="col-4">
                             <h6 class="text-primary">Rondas</h6>
                             <div class="table-responsive">
                                 <table class="table table-sm">
@@ -407,7 +463,28 @@
                                 </table>
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
+                            <h6 class="text-success">Paradas</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Condomínio</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in breakdown.paradas_por_condominio %}
+                                        <tr>
+                                            <td>{{ item[0] }}</td>
+                                            <td><span class="badge bg-success">{{ item[1] }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-4">
                             <h6 class="text-warning">Ocorrências</h6>
                             <div class="table-responsive">
                                 <table class="table table-sm">
@@ -439,7 +516,7 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-6">
+                        <div class="col-4">
                             <h6 class="text-primary">Rondas</h6>
                             <div class="table-responsive">
                                 <table class="table table-sm">
@@ -460,7 +537,28 @@
                                 </table>
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
+                            <h6 class="text-success">Paradas</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Supervisor</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in breakdown.paradas_por_supervisor %}
+                                        <tr>
+                                            <td>{{ item[0] }}</td>
+                                            <td><span class="badge bg-success">{{ item[1] }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-4">
                             <h6 class="text-warning">Ocorrências</h6>
                             <div class="table-responsive">
                                 <table class="table table-sm">
@@ -625,9 +723,9 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // Gráfico combinado (barras + linha)
-    const renderCombinedChart = (elementId, labels, rondasData, ocorrenciasData) => {
+    const renderCombinedChart = (elementId, labels, rondasData, ocorrenciasData, paradasData) => {
         const chartDom = document.getElementById(elementId);
-        const hasData = rondasData.some(v => v > 0) || ocorrenciasData.some(v => v > 0);
+        const hasData = rondasData.some(v => v > 0) || ocorrenciasData.some(v => v > 0) || paradasData.some(v => v > 0);
         
         if (!chartDom || !hasData) {
             showNoDataMessage(elementId);
@@ -648,7 +746,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             },
             legend: {
-                data: ['Rondas', 'Ocorrências', 'Proporção (%)'],
+                data: ['Rondas', 'Paradas', 'Ocorrências', 'Proporção (%)'],
                 top: 10
             },
             grid: {
@@ -681,6 +779,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'bar',
                     data: rondasData,
                     itemStyle: { color: '#5470c6' }
+                },
+                {
+                    name: 'Paradas',
+                    type: 'bar',
+                    data: paradasData,
+                    itemStyle: { color: '#198754' }
                 },
                 {
                     name: 'Ocorrências',
@@ -737,12 +841,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const monthLabels = {{ month_labels | tojson | safe }};
     const rondasData = {{ rondas_data | tojson | safe }};
     const ocorrenciasData = {{ ocorrencias_data | tojson | safe }};
+    const paradasData = {{ paradas_data | tojson | safe }};
 
     // Gráfico combinado principal
-    renderCombinedChart('comparativoCombinadoChart', monthLabels, rondasData, ocorrenciasData);
+    renderCombinedChart('comparativoCombinadoChart', monthLabels, rondasData, ocorrenciasData, paradasData);
 
     // Gráficos separados
     renderBarChart('rondasMensalChart', monthLabels, rondasData, 'Total de Rondas', '#5470c6');
+    renderBarChart('paradasMensalChart', monthLabels, paradasData, 'Total de Paradas', '#198754');
     renderBarChart('ocorrenciasMensalChart', monthLabels, ocorrenciasData, 'Total de Ocorrências', '#ee6666');
 
     // Tornar gráficos responsivos

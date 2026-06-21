@@ -37,7 +37,7 @@ def get_monthly_comparison_data(
 
     # Processa dados baseado no modo de comparação
     if comparison_mode == "single" and selected_months:
-        rondas_series, ocorrencias_series = DataProcessor.process_single_month_mode(
+        rondas_series, ocorrencias_series, paradas_series = DataProcessor.process_single_month_mode(
             year, selected_months[0], filters
         )
         # Garante que o filtro de data do mês selecionado seja passado para o breakdown
@@ -49,7 +49,7 @@ def get_monthly_comparison_data(
         filters["data_inicio_str"] = data_inicio_str
         filters["data_fim_str"] = data_fim_str
     elif comparison_mode == "comparison" and len(selected_months) >= 2:
-        rondas_series, ocorrencias_series = DataProcessor.process_comparison_mode(
+        rondas_series, ocorrencias_series, paradas_series = DataProcessor.process_comparison_mode(
             year, selected_months, filters
         )
         # Para comparação múltipla, pode-se definir o menor e maior mês como range
@@ -62,14 +62,14 @@ def get_monthly_comparison_data(
         filters["data_inicio_str"] = data_inicio_str
         filters["data_fim_str"] = data_fim_str
     else:
-        rondas_series, ocorrencias_series = DataProcessor.process_all_months_mode(
+        rondas_series, ocorrencias_series, paradas_series = DataProcessor.process_all_months_mode(
             year, filters
         )
         # Para o modo 'all', pode-se deixar os filtros como estão
 
     # Calcula métricas comparativas
     metrics = MetricsCalculator.calculate_comparison_metrics(
-        rondas_series, ocorrencias_series, filters
+        rondas_series, ocorrencias_series, paradas_series, filters
     )
 
     # Busca breakdown detalhado
@@ -94,6 +94,7 @@ def get_monthly_comparison_data(
         "month_names": month_names,
         "rondas_data": rondas_series,
         "ocorrencias_data": ocorrencias_series,
+        "paradas_data": paradas_series,
         "metrics": metrics,
         "breakdown": breakdown,
         "filters": filters,

@@ -65,16 +65,26 @@ class MetricsCalculator:
     def calculate_comparison_metrics(
         rondas_series: List[int], 
         ocorrencias_series: List[int], 
+        paradas_series: Optional[List[int]] = None,
         filters: Optional[Dict] = None
     ) -> Dict:
-        """Calcula métricas comparativas entre rondas e ocorrências."""
+        """Calcula métricas comparativas entre rondas, ocorrências e paradas."""
+        if paradas_series is None:
+            paradas_series = [0] * 12
+
         total_rondas = sum(rondas_series)
         total_ocorrencias = sum(ocorrencias_series)
+        total_paradas = sum(paradas_series)
 
         # Calcula médias mensais
         meses_com_dados = len([x for x in rondas_series if x > 0])
         media_rondas_mensal = (
             round(total_rondas / meses_com_dados, 1) if meses_com_dados > 0 else 0
+        )
+
+        meses_com_paradas = len([x for x in paradas_series if x > 0])
+        media_paradas_mensal = (
+            round(total_paradas / meses_com_paradas, 1) if meses_com_paradas > 0 else 0
         )
 
         meses_com_ocorrencias = len([x for x in ocorrencias_series if x > 0])
@@ -95,28 +105,38 @@ class MetricsCalculator:
         # Encontra meses com mais atividade
         mes_mais_rondas = MetricsCalculator._find_most_active_month(rondas_series, "rondas")
         mes_mais_ocorrencias = MetricsCalculator._find_most_active_month(ocorrencias_series, "ocorrencias")
+        mes_mais_paradas = MetricsCalculator._find_most_active_month(paradas_series, "paradas")
 
         # Calcula tendências
         tendencia_rondas = MetricsCalculator.calculate_trend(rondas_series)
         tendencia_ocorrencias = MetricsCalculator.calculate_trend(ocorrencias_series)
+        tendencia_paradas = MetricsCalculator.calculate_trend(paradas_series)
 
         # Calcula proporção
         proporcao_ocorrencias_por_ronda = (
             round((total_ocorrencias / total_rondas) * 100, 1) if total_rondas > 0 else 0
         )
+        proporcao_paradas_por_ronda = (
+            round((total_paradas / total_rondas) * 100, 1) if total_rondas > 0 else 0
+        )
 
         return {
             "total_rondas": total_rondas,
             "total_ocorrencias": total_ocorrencias,
+            "total_paradas": total_paradas,
             "media_rondas_mensal": media_rondas_mensal,
+            "media_paradas_mensal": media_paradas_mensal,
             "media_ocorrencias_mensal": media_ocorrencias_mensal,
             "media_rondas_dia_trabalhado": media_rondas_dia_trabalhado,
             "dias_trabalhados_periodo": dias_trabalhados,
             "mes_mais_rondas": mes_mais_rondas,
             "mes_mais_ocorrencias": mes_mais_ocorrencias,
+            "mes_mais_paradas": mes_mais_paradas,
             "tendencia_rondas": tendencia_rondas,
             "tendencia_ocorrencias": tendencia_ocorrencias,
+            "tendencia_paradas": tendencia_paradas,
             "proporcao_ocorrencias_por_ronda": proporcao_ocorrencias_por_ronda,
+            "proporcao_paradas_por_ronda": proporcao_paradas_por_ronda,
         }
 
     @staticmethod
