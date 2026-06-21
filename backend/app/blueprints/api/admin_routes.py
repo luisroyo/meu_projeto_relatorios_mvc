@@ -481,16 +481,91 @@ def formatar_email():
 @admin_required
 def get_dashboard_comparativo():
     """Obter dados do dashboard comparativo."""
-    ano = request.args.get('ano', datetime.now().year, type=int)
-    mes = request.args.get('mes', datetime.now().month, type=int)
-    
     try:
-        dados = get_monthly_comparison_data(ano, mes)
-        return jsonify(dados), 200
+        # Parâmetros de filtro
+        year = request.args.get("year", type=int) or request.args.get("ano", type=int) or datetime.now().year
+        comparison_mode = request.args.get("comparison_mode", "all")  # 'all', 'single', 'comparison'
+        
+        # Seleção de meses
+        selected_months = []
+        if comparison_mode == 'single':
+            month = request.args.get("selected_month", type=int) or request.args.get("mes", type=int)
+            if month and 1 <= month <= 12:
+                selected_months = [month]
+        elif comparison_mode == 'comparison':
+            months_str = request.args.get("selected_months", "")
+            if months_str:
+                try:
+                    selected_months = [int(m) for m in months_str.split(',') if 1 <= int(m) <= 12]
+                except ValueError:
+                    selected_months = []
+
+        filters = {
+            "condominio_id": request.args.get("condominio_id", type=int),
+            "supervisor_id": request.args.get("supervisor_id", type=int),
+            "turno": request.args.get("turno", ""),
+            "tipo_ocorrencia_id": request.args.get("tipo_ocorrencia_id", type=int),
+            "status": request.args.get("status", ""),
+            "data_inicio_str": request.args.get("data_inicio", ""),
+            "data_fim_str": request.args.get("data_fim", ""),
+        }
+
+        # Remove filtros vazios
+        filters = {k: v for k, v in filters.items() if v not in [None, ""]}
+
+        # Busca dados
+        data = get_monthly_comparison_data(
+            year=year, 
+            filters=filters, 
+            selected_months=selected_months,
+            comparison_mode=comparison_mode
+        )
+        
+        def format_breakdown_list(items):
+            return [{"name": item[0], "value": item[1]} for item in items]
+            
+        formatted_breakdown = {
+            "rondas_por_condominio": format_breakdown_list(data["breakdown"]["rondas_por_condominio"]),
+            "ocorrencias_por_condominio": format_breakdown_list(data["breakdown"]["ocorrencias_por_condominio"]),
+            "paradas_por_condominio": format_breakdown_list(data["breakdown"]["paradas_por_condominio"]),
+            "rondas_por_supervisor": format_breakdown_list(data["breakdown"]["rondas_por_supervisor"]),
+            "ocorrencias_por_supervisor": format_breakdown_list(data["breakdown"]["ocorrencias_por_supervisor"]),
+            "paradas_por_supervisor": format_breakdown_list(data["breakdown"]["paradas_por_supervisor"]),
+            "rondas_por_turno": format_breakdown_list(data["breakdown"]["rondas_por_turno"]),
+            "ocorrencias_por_tipo": format_breakdown_list(data["breakdown"]["ocorrencias_por_tipo"]),
+            "ocorrencias_por_status": format_breakdown_list(data["breakdown"]["ocorrencias_por_status"]),
+        }
+        
+        api_data = {
+            "selected_year": data["selected_year"],
+            "selected_months": data["selected_months"],
+            "comparison_mode": data["comparison_mode"],
+            "month_labels": data["month_labels"],
+            "month_names": data["month_names"],
+            "rondas_data": data["rondas_data"],
+            "ocorrencias_data": data["ocorrencias_data"],
+            "paradas_data": data["paradas_data"],
+            "metrics": data["metrics"],
+            "breakdown": formatted_breakdown,
+            "filters": data["filters"],
+            "filter_options": {
+                "condominios": [{"id": c.id, "nome": c.nome} for c in data["filter_options"]["condominios"]],
+                "supervisors": [{"id": s.id, "username": s.username} for s in data["filter_options"]["supervisors"]],
+                "turnos": data["filter_options"]["turnos"],
+                "tipos_ocorrencia": [{"id": t.id, "nome": t.nome} for t in data["filter_options"]["tipos_ocorrencia"]],
+                "status_list": data["filter_options"]["status_list"]
+            }
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': api_data,
+            'message': 'Dados comparativos obtidos com sucesso'
+        }), 200
         
     except Exception as e:
-        logger.error(f"Erro ao obter dashboard comparativo: {e}")
-        return jsonify({'error': 'Erro ao obter dados comparativos'}), 500
+        logger.error(f"Erro ao obter dashboard comparativo: {e}", exc_info=True)
+        return jsonify({'error': 'Erro interno ao obter dados comparativos'}), 500
 
 @admin_api_bp.route('/dashboard/ocorrencias', methods=['GET'])
 @jwt_required()
