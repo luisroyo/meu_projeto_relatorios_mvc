@@ -14,6 +14,7 @@ import {
     Timeline,
     Report as ReportIcon,
     Badge,
+    StopCircle as ParadasIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../hooks';
@@ -43,12 +44,14 @@ const Layout: React.FC = () => {
         { text: 'Analisador IA', icon: <AnalisadorIcon />, path: '/analisador' },
         { text: 'Ocorrências', icon: <OcorrenciasIcon />, path: '/ocorrencias' },
         { text: 'Rondas', icon: <RondasIcon />, path: '/rondas' },
+        { text: 'Paradas', icon: <ParadasIcon />, path: '/paradas' },
     ];
 
     const adminMenuItems = [
         { text: 'Métricas Gerais', icon: <Assessment />, path: '/admin/metrics' },
         { text: 'Dashboard Rondas', icon: <Timeline />, path: '/admin/rondas-dashboard' },
         { text: 'Dashboard Ocorrências', icon: <ReportIcon />, path: '/admin/ocorrencias-dashboard' },
+        { text: 'Dashboard Paradas', icon: <Assessment />, path: '/admin/paradas-dashboard' },
         { text: 'Análise Comparativa', icon: <Timeline />, path: '/admin/comparativo-dashboard' },
         { text: 'Gerenciar Usuários', icon: <People />, path: '/admin/users' },
         { text: 'Gerenciar Colaboradores', icon: <Badge />, path: '/admin/colaboradores' },

@@ -1057,7 +1057,6 @@ export const rondaService = {
       throw handleApiError(error as AxiosError);
     }
   },
-
   uploadRondaLog: async (file: File, month?: number, year?: number): Promise<{
     success: boolean;
     message: string;
@@ -1066,11 +1065,11 @@ export const rondaService = {
   }> => {
     try {
       const formData = new FormData();
-      formData.append('whatsapp_file', file);
+      formData.append('file', file);
       if (month) formData.append('month', month.toString());
       if (year) formData.append('year', year.toString());
 
-      const response = await api.post('/rondas/upload-process-ronda', formData, {
+      const response = await api.post('/api/rondas/upload-process', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -1095,7 +1094,7 @@ export const rondaService = {
       if (month) formData.append('month', month.toString());
       if (year) formData.append('year', year.toString());
 
-      const response = await api.post('/rondas/upload-process-ronda', formData, {
+      const response = await api.post('/api/rondas/upload-process', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -1105,7 +1104,6 @@ export const rondaService = {
       throw handleApiError(error as AxiosError);
     }
   },
-
   processarWhatsApp: async (data: {
     condominio_id: number;
     data_inicio: string;
@@ -1178,6 +1176,107 @@ export const escalaService = {
   }> => {
     try {
       const response = await api.put(`/api/admin/escalas/${id}`, data);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
+};
+
+
+// Serviço de paradas
+export const paradaService = {
+  list: async (filters?: any): Promise<any> => {
+    try {
+      const params = new URLSearchParams();
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            params.append(key, String(value));
+          }
+        });
+      }
+      const response = await api.get(`/api/paradas?${params.toString()}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
+
+  get: async (id: number): Promise<any> => {
+    try {
+      const response = await api.get(`/api/paradas/${id}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
+
+  delete: async (id: number): Promise<any> => {
+    try {
+      const response = await api.delete(`/api/paradas/${id}`);
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
+
+  uploadParadaLog: async (file: File, condominioId?: number, datePlantao?: string, escalaPlantao?: string, supervisorId?: number): Promise<any> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (condominioId) formData.append('condominio_id', condominioId.toString());
+      if (datePlantao) formData.append('data_plantao', datePlantao);
+      if (escalaPlantao) formData.append('escala_plantao', escalaPlantao);
+      if (supervisorId) formData.append('supervisor_id', supervisorId.toString());
+
+      const response = await api.post('/api/paradas/upload-process', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
+
+  uploadParadaFromGoogleDrive: async (
+    fileId: string, 
+    accessToken: string, 
+    fileName: string, 
+    condominioId?: number, 
+    datePlantao?: string, 
+    escalaPlantao?: string, 
+    supervisorId?: number
+  ): Promise<any> => {
+    try {
+      const formData = new FormData();
+      formData.append('google_file_id', fileId);
+      formData.append('google_access_token', accessToken);
+      formData.append('google_file_name', fileName);
+      if (condominioId) formData.append('condominio_id', condominioId.toString());
+      if (datePlantao) formData.append('data_plantao', datePlantao);
+      if (escalaPlantao) formData.append('escala_plantao', escalaPlantao);
+      if (supervisorId) formData.append('supervisor_id', supervisorId.toString());
+
+      const response = await api.post('/api/paradas/upload-process', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
+
+  getDashboardStats: async (year?: number, condominioId?: number): Promise<any> => {
+    try {
+      const params = new URLSearchParams();
+      if (year) params.append('year', year.toString());
+      if (condominioId) params.append('condominio_id', condominioId.toString());
+      const response = await api.get(`/api/paradas/dashboard?${params.toString()}`);
       return handleApiResponse(response);
     } catch (error) {
       throw handleApiError(error as AxiosError);

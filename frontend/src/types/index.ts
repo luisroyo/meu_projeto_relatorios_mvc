@@ -452,4 +452,52 @@ export interface PaginationResponse<T> {
     has_next: boolean;
     has_prev: boolean;
   };
-} 
+}
+
+// Tipos de Parada (Downtime/Stop)
+export interface Parada {
+  id: number;
+  condominio?: { id: number; nome: string };
+  condominio_id: number;
+  data_plantao_parada?: string;
+  escala_plantao?: string;
+  turno_parada?: string;
+  supervisor?: { id: number; username: string } | null;
+  supervisor_id?: number;
+  user?: string;
+  user_id: number;
+  data_criacao?: string;
+  total_paradas_no_log?: number;
+  duracao_minutos?: number;
+  log_parada_bruto: string;
+  relatorio_processado?: string;
+  primeiro_evento_log_dt?: string;
+  ultimo_evento_log_dt?: string;
+}
+
+export interface ParadaFilters {
+  page?: number;
+  per_page?: number;
+  condominio_id?: number;
+  supervisor_id?: number;
+  turno?: string;
+  data_inicio?: string;
+  data_fim?: string;
+}
+
+export interface ParadaDashboardData {
+  stats: {
+    total_paradas: number;
+    duracao_total: number;
+    duracao_media: number;
+  };
+  historico: {
+    meses: string[];
+    count: number[];
+    duracao: number[];
+  };
+  breakdown: {
+    condominios: Array<{ name: string; value: number }>;
+    supervisores: Array<{ name: string; value: number }>;
+  };
+}
