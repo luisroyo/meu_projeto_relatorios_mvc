@@ -29,6 +29,10 @@ class Config:
     # Fuso horário padrão da aplicação
     DEFAULT_TIMEZONE = os.environ.get("DEFAULT_TIMEZONE", "America/Sao_Paulo")
 
+    # Credenciais do Google Drive API / Google Picker API
+    GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+    GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
+
     # Timeout de inatividade (minutos) para logout forçado - REDUZIDO para economizar DB
     INACTIVITY_TIMEOUT_MIN = int(os.environ.get("INACTIVITY_TIMEOUT_MIN", "60"))
 

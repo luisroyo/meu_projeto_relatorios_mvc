@@ -23,17 +23,184 @@
                     <label for="file" class="form-label fw-bold">
                         Planilha Excel (.xlsx)
                     </label>
-                    <input type="file" id="file" name="file" accept=".xlsx" required
-                           class="form-control">
-                    <div class="form-text">Apenas arquivos .xlsx são permitidos nesta página.</div>
+                    <div class="input-group">
+                        <input type="file" id="file" name="file" accept=".xlsx" required
+                               class="form-control">
+                        <button class="btn btn-outline-secondary" type="button" id="googleDriveBtn">
+                            <i class="bi bi-google me-1"></i> Google Drive
+                        </button>
+                    </div>
+                    <div class="form-text">Apenas arquivos .xlsx são permitidos nesta página ou selecione do Google Drive.</div>
                 </div>
 
                 <button type="submit" id="processButton"
                         class="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center">
-                    <span><i class="bi bi-gear-fill me-2"></i> Enviar e Processar Planilha</span>
+                    <span id="buttonText"><i class="bi bi-gear-fill me-2"></i> Enviar e Processar Planilha</span>
+                    <span id="loadingSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
                 </button>
             </form>
+            <div id="responseMessage" class="mt-4 p-3 rounded d-none"></div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Google Picker and OAuth Scripts -->
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const uploadForm = document.getElementById('uploadForm');
+        const processButton = document.getElementById('processButton');
+        const buttonText = document.getElementById('buttonText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const responseMessage = document.getElementById('responseMessage');
+        const googleDriveBtn = document.getElementById('googleDriveBtn');
+
+        // Google Integration Credentials
+        const CLIENT_ID = "{{ config.GOOGLE_CLIENT_ID }}";
+        const API_KEY = "{{ config.GOOGLE_API_KEY }}";
+        
+        let accessToken = null;
+        let pickerApiLoaded = false;
+        let tokenClient;
+
+        // Initialize Google Picker API
+        function gapiStart() {
+            gapi.load('picker', { 'callback': () => { pickerApiLoaded = true; } });
+        }
+
+        window.addEventListener('load', () => {
+            if (typeof gapi !== 'undefined') {
+                gapiStart();
+            }
+        });
+
+        googleDriveBtn.addEventListener('click', function() {
+            if (!CLIENT_ID || !API_KEY) {
+                alert("As credenciais do Google Drive não estão configuradas nas variáveis de ambiente (.env). Por favor, configure GOOGLE_CLIENT_ID e GOOGLE_API_KEY.");
+                return;
+            }
+
+            if (typeof google === 'undefined') {
+                alert("Não foi possível carregar a biblioteca de autenticação do Google. Verifique sua conexão com a internet.");
+                return;
+            }
+
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: 'https://www.googleapis.com/auth/drive.readonly',
+                callback: async (response) => {
+                    if (response.error !== undefined) {
+                        console.error("Erro na autenticação:", response);
+                        return;
+                    }
+                    accessToken = response.access_token;
+                    
+                    if (!pickerApiLoaded && typeof gapi !== 'undefined') {
+                        gapi.load('picker', {
+                            'callback': () => {
+                                pickerApiLoaded = true;
+                                createPicker();
+                            }
+                        });
+                    } else {
+                        createPicker();
+                    }
+                },
+            });
+
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        });
+
+        function createPicker() {
+            // Only allow spreadsheets for Paradas
+            const docsView = new google.picker.DocsView()
+                .setIncludeFolders(true)
+                .setMimeTypes("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+            const picker = new google.picker.PickerBuilder()
+                .addView(docsView)
+                .setOAuthToken(accessToken)
+                .setDeveloperKey(API_KEY)
+                .setCallback(pickerCallback)
+                .setTitle("Selecione a planilha de Paradas")
+                .build();
+            picker.setVisible(true);
+        }
+
+        async function pickerCallback(data) {
+            if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+                const doc = data[google.picker.Response.DOCUMENTS][0];
+                const fileId = doc[google.picker.Document.ID];
+                const fileName = doc[google.picker.Document.NAME];
+                
+                await processGoogleDriveFile(fileId, accessToken, fileName);
+            }
+        }
+
+        async function processGoogleDriveFile(fileId, token, fileName) {
+            if (responseMessage) {
+                responseMessage.classList.add('d-none');
+                responseMessage.classList.remove('alert-success', 'alert-danger', 'alert-warning');
+                responseMessage.innerHTML = '';
+            }
+
+            if (buttonText) buttonText.classList.add('d-none');
+            if (loadingSpinner) loadingSpinner.classList.remove('d-none');
+            processButton.disabled = true;
+
+            const formData = new FormData();
+            formData.append('google_file_id', fileId);
+            formData.append('google_access_token', token);
+            formData.append('google_file_name', fileName);
+            formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+
+            try {
+                const response = await fetch("{{ url_for('parada.upload_process_parada') }}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    if (result.redirect_url) {
+                        window.location.href = result.redirect_url;
+                    } else {
+                        displayMessage(result.message, 'success');
+                    }
+                } else {
+                    displayMessage(result.message || 'Ocorreu um erro desconhecido.', 'error');
+                }
+            } catch (error) {
+                console.error('Erro na requisição Google Drive:', error);
+                displayMessage('Erro de conexão ou servidor: ' + error.message, 'error');
+            } finally {
+                processButton.disabled = false;
+                if (buttonText) buttonText.classList.remove('d-none');
+                if (loadingSpinner) loadingSpinner.classList.add('d-none');
+            }
+        }
+
+        function displayMessage(message, type) {
+            if (!responseMessage) return;
+            responseMessage.classList.remove('d-none');
+            responseMessage.innerHTML = message;
+            if (type === 'success') {
+                responseMessage.className = 'mt-4 p-3 rounded alert alert-success';
+            } else if (type === 'error') {
+                responseMessage.className = 'mt-4 p-3 rounded alert alert-danger';
+            } else if (type === 'warning') {
+                responseMessage.className = 'mt-4 p-3 rounded alert alert-warning';
+            }
+        }
+    });
+</script>
 {% endblock %}

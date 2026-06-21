@@ -23,9 +23,14 @@
                     <label for="whatsapp_file" class="form-label fw-bold">
                         Arquivo de Origem (.txt ou .xlsx)
                     </label>
-                    <input type="file" id="whatsapp_file" name="whatsapp_file" accept=".txt,.xlsx" required
-                           class="form-control">
-                    <div class="form-text">Apenas arquivos .txt e .xlsx são permitidos.</div>
+                    <div class="input-group">
+                        <input type="file" id="whatsapp_file" name="whatsapp_file" accept=".txt,.xlsx" required
+                               class="form-control">
+                        <button class="btn btn-outline-secondary" type="button" id="googleDriveBtn">
+                            <i class="bi bi-google me-1"></i> Google Drive
+                        </button>
+                    </div>
+                    <div class="form-text">Apenas arquivos .txt e .xlsx são permitidos ou selecione diretamente do Google Drive.</div>
                 </div>
 
                 <div class="row g-3 mb-4">
@@ -75,6 +80,10 @@
 
 {% block scripts %}
 {{ super() }}
+<!-- Google Picker and OAuth Scripts -->
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const uploadForm = document.getElementById('uploadForm');
@@ -85,6 +94,135 @@
         const buttonText = document.getElementById('buttonText');
         const loadingSpinner = document.getElementById('loadingSpinner');
         const responseMessage = document.getElementById('responseMessage');
+        const googleDriveBtn = document.getElementById('googleDriveBtn');
+
+        // Google Integration Credentials
+        const CLIENT_ID = "{{ config.GOOGLE_CLIENT_ID }}";
+        const API_KEY = "{{ config.GOOGLE_API_KEY }}";
+        
+        let accessToken = null;
+        let pickerApiLoaded = false;
+
+        // GIS client for OAuth token requests
+        let tokenClient;
+
+        // Initialize Google Picker API
+        function gapiStart() {
+            gapi.load('picker', { 'callback': () => { pickerApiLoaded = true; } });
+        }
+
+        // Load gapi script when script is ready
+        window.addEventListener('load', () => {
+            if (typeof gapi !== 'undefined') {
+                gapiStart();
+            }
+        });
+
+        googleDriveBtn.addEventListener('click', function() {
+            if (!CLIENT_ID || !API_KEY) {
+                alert("As credenciais do Google Drive não estão configuradas nas variáveis de ambiente (.env). Por favor, configure GOOGLE_CLIENT_ID e GOOGLE_API_KEY.");
+                return;
+            }
+
+            if (typeof google === 'undefined') {
+                alert("Não foi possível carregar a biblioteca de autenticação do Google. Verifique sua conexão com a internet.");
+                return;
+            }
+
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: 'https://www.googleapis.com/auth/drive.readonly',
+                callback: async (response) => {
+                    if (response.error !== undefined) {
+                        console.error("Erro na autenticação:", response);
+                        return;
+                    }
+                    accessToken = response.access_token;
+                    
+                    if (!pickerApiLoaded && typeof gapi !== 'undefined') {
+                        gapi.load('picker', {
+                            'callback': () => {
+                                pickerApiLoaded = true;
+                                createPicker();
+                            }
+                        });
+                    } else {
+                        createPicker();
+                    }
+                },
+            });
+
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        });
+
+        function createPicker() {
+            const docsView = new google.picker.DocsView()
+                .setIncludeFolders(true)
+                .setMimeTypes("text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+            const picker = new google.picker.PickerBuilder()
+                .addView(docsView)
+                .setOAuthToken(accessToken)
+                .setDeveloperKey(API_KEY)
+                .setCallback(pickerCallback)
+                .setTitle("Selecione o arquivo de Rondas")
+                .build();
+            picker.setVisible(true);
+        }
+
+        async function pickerCallback(data) {
+            if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+                const doc = data[google.picker.Response.DOCUMENTS][0];
+                const fileId = doc[google.picker.Document.ID];
+                const fileName = doc[google.picker.Document.NAME];
+                
+                await processGoogleDriveFile(fileId, accessToken, fileName);
+            }
+        }
+
+        async function processGoogleDriveFile(fileId, token, fileName) {
+            responseMessage.classList.add('d-none');
+            responseMessage.classList.remove('alert-success', 'alert-danger', 'alert-warning');
+            responseMessage.innerHTML = '';
+
+            processButton.disabled = true;
+            buttonText.classList.add('d-none');
+            loadingSpinner.classList.remove('d-none');
+
+            const formData = new FormData();
+            formData.append('google_file_id', fileId);
+            formData.append('google_access_token', token);
+            formData.append('google_file_name', fileName);
+            formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+            if (monthSelect.value) {
+                formData.append('month', monthSelect.value);
+            }
+            if (yearInput.value) {
+                formData.append('year', yearInput.value);
+            }
+
+            try {
+                const response = await fetch("{{ url_for('ronda.upload_process_ronda') }}", {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    displayMessage(result.message, 'success');
+                } else {
+                    displayMessage(result.message || 'Ocorreu um erro desconhecido.', 'error');
+                }
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+                displayMessage('Erro de conexão ou servidor: ' + error.message, 'error');
+            } finally {
+                processButton.disabled = false;
+                buttonText.classList.remove('d-none');
+                loadingSpinner.classList.add('d-none');
+            }
+        }
 
         uploadForm.addEventListener('submit', async function(event) {
             event.preventDefault(); // Previne o envio padrão do formulário
@@ -116,7 +254,6 @@
                 const response = await fetch("{{ url_for('ronda.upload_process_ronda') }}", {
                     method: 'POST',
                     body: formData,
-                    // Não defina Content-Type; o navegador fará isso automaticamente para FormData
                 });
 
                 const result = await response.json();

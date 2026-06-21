@@ -261,14 +261,18 @@ def excluir_ronda(ronda_id):
 def processar_whatsapp_ajax():
     """Processa arquivo WhatsApp ou Excel via AJAX."""
     try:
-        # Verifica se há arquivo ou arquivo fixo
+        # Verifica se há arquivo, arquivo fixo ou arquivo do Google Drive
         arquivo_whatsapp = request.files.get('arquivo_whatsapp')
         arquivo_fixo_path = session.get('whatsapp_file_path')
+        google_file_id = request.form.get('google_file_id')
+        google_access_token = request.form.get('google_access_token')
+        google_file_name = request.form.get('google_file_name', 'google_drive_file.txt')
         
         print(f"[DEBUG AJAX] arquivo_whatsapp: {arquivo_whatsapp}")
         print(f"[DEBUG AJAX] arquivo_fixo_path: {arquivo_fixo_path}")
+        print(f"[DEBUG AJAX] google_file_id: {google_file_id}")
         
-        if not arquivo_whatsapp and not arquivo_fixo_path:
+        if not arquivo_whatsapp and not arquivo_fixo_path and not google_file_id:
             return jsonify({'success': False, 'message': 'Nenhum arquivo fornecido'}), 400
         
         # Obtém parâmetros
@@ -280,7 +284,29 @@ def processar_whatsapp_ajax():
         import tempfile
         import os
         
-        if arquivo_whatsapp:
+        if google_file_id and google_access_token:
+            try:
+                import requests
+                headers = {"Authorization": f"Bearer {google_access_token}"}
+                download_url = f"https://www.googleapis.com/drive/v3/files/{google_file_id}?alt=media"
+                response = requests.get(download_url, headers=headers)
+                if response.status_code != 200:
+                    return jsonify({"success": False, "message": f"Erro ao baixar do Google Drive (Status {response.status_code}): {response.text}"}), 400
+                
+                temp_dir = os.path.join(tempfile.gettempdir(), 'whatsapp_ronda')
+                os.makedirs(temp_dir, exist_ok=True)
+                temp_path = os.path.join(temp_dir, google_file_name)
+                with open(temp_path, 'wb') as f:
+                    f.write(response.content)
+                
+                session['whatsapp_file_path'] = temp_path
+                session['whatsapp_file_name'] = google_file_name
+                file_path = temp_path
+                print(f"[DEBUG AJAX] Arquivo do Google Drive salvo: {file_path}")
+            except Exception as e:
+                logger.error(f"Erro ao baixar do Google Drive no AJAX: {e}", exc_info=True)
+                return jsonify({"success": False, "message": f"Erro ao acessar Google Drive: {str(e)}"}), 500
+        elif arquivo_whatsapp:
             # Novo arquivo enviado - salva na sessão
             temp_dir = os.path.join(tempfile.gettempdir(), 'whatsapp_ronda')
             os.makedirs(temp_dir, exist_ok=True)
@@ -296,7 +322,7 @@ def processar_whatsapp_ajax():
             # Usa arquivo fixo da sessão
             file_path = arquivo_fixo_path
             print(f"[DEBUG AJAX] Usando arquivo fixo: {file_path}")
-            if not os.path.exists(file_path):
+            if not file_path or not os.path.exists(file_path):
                 session.pop('whatsapp_file_path', None)
                 session.pop('whatsapp_file_name', None)
                 return jsonify({'success': False, 'message': 'Arquivo fixo não encontrado'}), 400
@@ -563,27 +589,57 @@ def upload_process_ronda():
         return render_template("ronda/upload_process_ronda.html", title="Upload e Processamento de Rondas")
     
     elif request.method == "POST":
-        if 'whatsapp_file' not in request.files:
-            return jsonify({"success": False, "message": "Nenhum arquivo enviado."}), 400
-        
-        whatsapp_file = request.files['whatsapp_file']
-        if whatsapp_file.filename == '':
-            return jsonify({"success": False, "message": "Nenhum arquivo selecionado."}), 400
-        
-        filename_lower = whatsapp_file.filename.lower()
-        if not (filename_lower.endswith('.txt') or filename_lower.endswith('.xlsx')):
-            return jsonify({"success": False, "message": "Apenas arquivos .txt e .xlsx são permitidos."}), 400
+        google_file_id = request.form.get('google_file_id')
+        google_access_token = request.form.get('google_access_token')
+        google_file_name = request.form.get('google_file_name', 'google_drive_file.txt')
 
         month = request.form.get('month', type=int)
         year = request.form.get('year', type=int)
 
-        try:
-            # Salvar o arquivo temporariamente para processamento
-            temp_dir = tempfile.gettempdir()
-            temp_filepath = os.path.join(temp_dir, whatsapp_file.filename)
-            whatsapp_file.save(temp_filepath)
-            logger.info(f"Arquivo temporário salvo em: {temp_filepath}")
+        temp_filepath = None
+        if google_file_id and google_access_token:
+            try:
+                import requests
+                headers = {"Authorization": f"Bearer {google_access_token}"}
+                download_url = f"https://www.googleapis.com/drive/v3/files/{google_file_id}?alt=media"
+                response = requests.get(download_url, headers=headers)
+                if response.status_code != 200:
+                    return jsonify({"success": False, "message": f"Erro ao baixar do Google Drive (Status {response.status_code}): {response.text}"}), 400
+                
+                temp_dir = tempfile.gettempdir()
+                temp_filepath = os.path.join(temp_dir, google_file_name)
+                with open(temp_filepath, 'wb') as f:
+                    f.write(response.content)
+                logger.info(f"Arquivo do Google Drive salvo temporariamente em: {temp_filepath}")
+                filename_lower = google_file_name.lower()
+                filename_to_use = google_file_name
+            except Exception as e:
+                logger.error(f"Erro ao baixar do Google Drive: {e}", exc_info=True)
+                return jsonify({"success": False, "message": f"Erro ao acessar Google Drive: {str(e)}"}), 500
+        else:
+            if 'whatsapp_file' not in request.files:
+                return jsonify({"success": False, "message": "Nenhum arquivo enviado."}), 400
+            
+            whatsapp_file = request.files['whatsapp_file']
+            if whatsapp_file.filename == '':
+                return jsonify({"success": False, "message": "Nenhum arquivo selecionado."}), 400
+            
+            filename_lower = whatsapp_file.filename.lower()
+            if not (filename_lower.endswith('.txt') or filename_lower.endswith('.xlsx')):
+                return jsonify({"success": False, "message": "Apenas arquivos .txt e .xlsx são permitidos."}), 400
+            
+            try:
+                # Salvar o arquivo temporariamente para processamento
+                temp_dir = tempfile.gettempdir()
+                temp_filepath = os.path.join(temp_dir, whatsapp_file.filename)
+                whatsapp_file.save(temp_filepath)
+                logger.info(f"Arquivo temporário salvo em: {temp_filepath}")
+                filename_to_use = whatsapp_file.filename
+            except Exception as e:
+                logger.error(f"Erro ao salvar arquivo temporário: {e}", exc_info=True)
+                return jsonify({"success": False, "message": "Erro ao salvar arquivo temporário no servidor."}), 500
 
+        try:
             if filename_lower.endswith('.xlsx'):
                 # Processamento de Excel (.xlsx)
                 parsed_data = ExcelProcessor.parse_excel_file(temp_filepath)
@@ -664,10 +720,10 @@ def upload_process_ronda():
             
             else:
                 # Mantém fluxo original para arquivo de texto .txt
-                condominio = infer_condominio_from_filename(whatsapp_file.filename)
+                condominio = infer_condominio_from_filename(filename_to_use)
                 if not condominio:
                     os.remove(temp_filepath)
-                    return jsonify({"success": False, "message": f"Não foi possível identificar o condomínio pelo nome do arquivo '{whatsapp_file.filename}'."}), 400
+                    return jsonify({"success": False, "message": f"Não foi possível identificar o condomínio pelo nome do arquivo '{filename_to_use}'."}), 400
 
                 processor = WhatsAppProcessor()
                 plantoes_encontrados = processor.process_file(temp_filepath)

@@ -95,6 +95,9 @@ block head %} {{ super() }}
                       <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('{{ form.arquivo_whatsapp.id }}').click()">
                         <i class="fas fa-folder-open"></i> Escolher
                       </button>
+                      <button class="btn btn-outline-secondary" type="button" id="googleDriveBtnManual">
+                        <i class="bi bi-google me-1"></i> Google Drive
+                      </button>
                     </div>
                     
                     {% if form.arquivo_whatsapp.errors %}
@@ -133,8 +136,13 @@ block head %} {{ super() }}
                 
                 <div class="mb-3">
                   <label for="lote_arquivo" class="form-label fw-bold">Arquivo de Origem (.txt ou .xlsx)</label>
-                  <input type="file" id="lote_arquivo" name="whatsapp_file" accept=".txt,.xlsx" required class="form-control">
-                  <div class="form-text">Apenas arquivos .txt e .xlsx são permitidos.</div>
+                  <div class="input-group">
+                    <input type="file" id="lote_arquivo" name="whatsapp_file" accept=".txt,.xlsx" required class="form-control">
+                    <button class="btn btn-outline-secondary" type="button" id="googleDriveBtnLote">
+                      <i class="bi bi-google me-1"></i> Google Drive
+                    </button>
+                  </div>
+                  <div class="form-text">Apenas arquivos .txt e .xlsx são permitidos ou selecione do Google Drive.</div>
                 </div>
 
                 <div class="row g-3 mb-4">
@@ -216,6 +224,10 @@ block head %} {{ super() }}
   </div>
 </div>
 {% endblock %} {% block scripts %} {{ super() }}
+<!-- Google Picker and OAuth Scripts -->
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <script>
       // Variável global para verificar se usuário é admin
       var isAdmin = {{ 'true' if current_user.is_admin else 'false' }};
@@ -229,6 +241,222 @@ block head %} {{ super() }}
           $('#nome_condominio').select2({ ...select2Config, placeholder: "Selecione um condomínio" });
           $('#escala_plantao').select2({ ...select2Config, placeholder: "Selecione uma escala" });
           $('#supervisor_id').select2({ ...select2Config, placeholder: "Selecione ou deixe automático", allowClear: true });
+
+          // DOM references defined early
+          const whatsappFileInput = document.getElementById('{{ form.arquivo_whatsapp.id }}');
+          const dataPlantaoInput = document.getElementById('{{ form.data_plantao.id }}');
+          const escalaPlantaoSelect = document.getElementById('{{ form.escala_plantao.id }}');
+          const logBrutoTextarea = document.getElementById('{{ form.log_bruto_rondas.id }}');
+
+          // Google Integration Credentials
+          const CLIENT_ID = "{{ config.GOOGLE_CLIENT_ID }}";
+          const API_KEY = "{{ config.GOOGLE_API_KEY }}";
+          
+          let accessToken = null;
+          let pickerApiLoaded = false;
+          let tokenClient;
+          let currentPickerMode = 'manual'; // 'manual' ou 'lote'
+
+          // Initialize Google Picker API
+          function gapiStart() {
+              gapi.load('picker', { 'callback': () => { pickerApiLoaded = true; } });
+          }
+
+          if (typeof gapi !== 'undefined') {
+              gapiStart();
+          } else {
+              window.addEventListener('load', () => {
+                  if (typeof gapi !== 'undefined') {
+                      gapiStart();
+                  }
+              });
+          }
+
+          function initGoogleAuth(mode) {
+              if (!CLIENT_ID || !API_KEY) {
+                  alert("As credenciais do Google Drive não estão configuradas nas variáveis de ambiente (.env). Por favor, configure GOOGLE_CLIENT_ID e GOOGLE_API_KEY.");
+                  return;
+              }
+
+              if (typeof google === 'undefined') {
+                  alert("Não foi possível carregar a biblioteca de autenticação do Google. Verifique sua conexão com a internet.");
+                  return;
+              }
+
+              currentPickerMode = mode;
+
+              tokenClient = google.accounts.oauth2.initTokenClient({
+                  client_id: CLIENT_ID,
+                  scope: 'https://www.googleapis.com/auth/drive.readonly',
+                  callback: async (response) => {
+                      if (response.error !== undefined) {
+                          console.error("Erro na autenticação:", response);
+                          return;
+                      }
+                      accessToken = response.access_token;
+                      
+                      if (!pickerApiLoaded && typeof gapi !== 'undefined') {
+                          gapi.load('picker', {
+                              'callback': () => {
+                                  pickerApiLoaded = true;
+                                  createPicker();
+                              }
+                          });
+                      } else {
+                          createPicker();
+                      }
+                  },
+              });
+
+              tokenClient.requestAccessToken({ prompt: 'consent' });
+          }
+
+          const googleDriveBtnManual = document.getElementById('googleDriveBtnManual');
+          if (googleDriveBtnManual) {
+              googleDriveBtnManual.addEventListener('click', () => initGoogleAuth('manual'));
+          }
+
+          const googleDriveBtnLote = document.getElementById('googleDriveBtnLote');
+          if (googleDriveBtnLote) {
+              googleDriveBtnLote.addEventListener('click', () => initGoogleAuth('lote'));
+          }
+
+          function createPicker() {
+              const docsView = new google.picker.DocsView()
+                  .setIncludeFolders(true)
+                  .setMimeTypes("text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+              const picker = new google.picker.PickerBuilder()
+                  .addView(docsView)
+                  .setOAuthToken(accessToken)
+                  .setDeveloperKey(API_KEY)
+                  .setCallback(pickerCallback)
+                  .setTitle(currentPickerMode === 'manual' ? "Selecione o arquivo de Ronda" : "Selecione o arquivo de Lote")
+                  .build();
+              picker.setVisible(true);
+          }
+
+          async function pickerCallback(data) {
+              if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+                  const doc = data[google.picker.Response.DOCUMENTS][0];
+                  const fileId = doc[google.picker.Document.ID];
+                  const fileName = doc[google.picker.Document.NAME];
+                  
+                  if (currentPickerMode === 'manual') {
+                      await processGoogleDriveManual(fileId, accessToken, fileName);
+                  } else {
+                      await processGoogleDriveLote(fileId, accessToken, fileName);
+                  }
+              }
+          }
+
+          async function processGoogleDriveManual(fileId, token, fileName) {
+              const button = document.getElementById('googleDriveBtnManual');
+              const originalHtml = button.innerHTML;
+              button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+              button.disabled = true;
+              
+              const formData = new FormData();
+              formData.append('google_file_id', fileId);
+              formData.append('google_access_token', token);
+              formData.append('google_file_name', fileName);
+              
+              const dataPlantao = dataPlantaoInput.value;
+              const escalaPlantao = escalaPlantaoSelect.value;
+              formData.append('data_plantao', dataPlantao);
+              formData.append('escala_plantao', escalaPlantao);
+              
+              const condominioId = condominioSelect.value;
+              const condominioNome = condominioSelect.options[condominioSelect.selectedIndex]?.text || '';
+              formData.append('condominio_id', condominioId);
+              formData.append('condominio_nome', condominioNome);
+
+              const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+              
+              try {
+                  const response = await fetch('{{ url_for("ronda.processar_whatsapp_ajax") }}', {
+                      method: 'POST',
+                      headers: {
+                          'X-CSRFToken': csrfToken
+                      },
+                      body: formData
+                  });
+                  const data = await response.json();
+                  if (data.success) {
+                      logBrutoTextarea.value = data.log_formatado;
+                      if (data.data_plantao) {
+                          dataPlantaoInput.value = data.data_plantao;
+                      }
+                      if (data.escala_plantao) {
+                          $(escalaPlantaoSelect).val(data.escala_plantao).trigger('change');
+                      }
+                      if (data.supervisor_id && data.supervisor_id !== '0') {
+                          $('#supervisor_id').val(data.supervisor_id).trigger('change');
+                      }
+                      showToast(data.message, 'success');
+                  } else {
+                      showToast(data.message || 'Erro ao processar arquivo do Google Drive.', 'danger');
+                  }
+              } catch (error) {
+                  console.error(error);
+                  showToast('Erro de conexão ou servidor.', 'danger');
+              } finally {
+                  button.innerHTML = originalHtml;
+                  button.disabled = false;
+              }
+          }
+
+          async function processGoogleDriveLote(fileId, token, fileName) {
+              const responseMessage = document.getElementById('lote-response-message');
+              const processBtn = document.getElementById('lote-process-btn');
+              const btnText = document.getElementById('lote-btn-text');
+              const spinner = document.getElementById('lote-loading-spinner');
+              
+              responseMessage.classList.add('d-none');
+              responseMessage.className = 'mt-4 p-3 rounded d-none';
+              
+              processBtn.disabled = true;
+              btnText.classList.add('d-none');
+              spinner.classList.remove('d-none');
+              
+              const formData = new FormData();
+              formData.append('google_file_id', fileId);
+              formData.append('google_access_token', token);
+              formData.append('google_file_name', fileName);
+              formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+              
+              const month = document.getElementById('lote_month').value;
+              const year = document.getElementById('lote_year').value;
+              if (month) formData.append('month', month);
+              if (year) formData.append('year', year);
+              
+              try {
+                  const response = await fetch("{{ url_for('ronda.upload_process_ronda') }}", {
+                      method: 'POST',
+                      body: formData
+                  });
+                  const result = await response.json();
+                  responseMessage.classList.remove('d-none');
+                  if (response.ok && result.success) {
+                      responseMessage.classList.add('alert', 'alert-success');
+                      responseMessage.innerHTML = result.message;
+                      showToast('Processamento em lote concluído!', 'success');
+                  } else {
+                      responseMessage.classList.add('alert', 'alert-danger');
+                      responseMessage.innerHTML = result.message || 'Erro ao processar lote.';
+                      showToast('Erro no processamento em lote.', 'danger');
+                  }
+              } catch (e) {
+                  console.error(e);
+                  responseMessage.classList.remove('d-none');
+                  responseMessage.classList.add('alert', 'alert-danger');
+                  responseMessage.innerHTML = 'Erro no servidor: ' + e.message;
+              } finally {
+                  processBtn.disabled = false;
+                  btnText.classList.remove('d-none');
+                  spinner.classList.add('d-none');
+              }
+          }
 
           // Lógica para exibir o campo "Outro Condomínio" e reprocessar Excel/WhatsApp
           const condominioSelect = document.getElementById('nome_condominio');
@@ -250,10 +478,6 @@ block head %} {{ super() }}
           }
 
           // Preview do nome do arquivo WhatsApp e processamento automático
-          const whatsappFileInput = document.getElementById('{{ form.arquivo_whatsapp.id }}');
-          const dataPlantaoInput = document.getElementById('{{ form.data_plantao.id }}');
-          const escalaPlantaoSelect = document.getElementById('{{ form.escala_plantao.id }}');
-          const logBrutoTextarea = document.getElementById('{{ form.log_bruto_rondas.id }}');
           
           if (whatsappFileInput) {
               whatsappFileInput.addEventListener('change', function(e) {

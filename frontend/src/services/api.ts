@@ -1081,6 +1081,31 @@ export const rondaService = {
     }
   },
 
+  uploadRondaFromGoogleDrive: async (fileId: string, accessToken: string, fileName: string, month?: number, year?: number): Promise<{
+    success: boolean;
+    message: string;
+    rondas_criadas?: number;
+    erros?: string[];
+  }> => {
+    try {
+      const formData = new FormData();
+      formData.append('google_file_id', fileId);
+      formData.append('google_access_token', accessToken);
+      formData.append('google_file_name', fileName);
+      if (month) formData.append('month', month.toString());
+      if (year) formData.append('year', year.toString());
+
+      const response = await api.post('/rondas/upload-process-ronda', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return handleApiResponse(response);
+    } catch (error) {
+      throw handleApiError(error as AxiosError);
+    }
+  },
+
   processarWhatsApp: async (data: {
     condominio_id: number;
     data_inicio: string;

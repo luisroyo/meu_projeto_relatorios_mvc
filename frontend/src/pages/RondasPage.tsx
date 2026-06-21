@@ -103,6 +103,29 @@ const RondasPage: React.FC = () => {
     }
   }, [rondas]);
 
+  useEffect(() => {
+    // Dynamic loading of Google APIs client (gapi.js) and GIS (client.js)
+    const gapiScript = document.createElement('script');
+    gapiScript.src = 'https://apis.google.com/js/api.js';
+    gapiScript.async = true;
+    gapiScript.defer = true;
+    gapiScript.onload = () => {
+      (window as any).gapi.load('picker', { 'callback': () => { (window as any).pickerApiLoaded = true; } });
+    };
+    document.body.appendChild(gapiScript);
+
+    const gisScript = document.createElement('script');
+    gisScript.src = 'https://accounts.google.com/gsi/client';
+    gisScript.async = true;
+    gisScript.defer = true;
+    document.body.appendChild(gisScript);
+
+    return () => {
+      document.body.removeChild(gapiScript);
+      document.body.removeChild(gisScript);
+    };
+  }, []);
+
   const loadFilterData = async () => {
     try {
       const [condominiosData, usersData] = await Promise.all([
@@ -208,6 +231,93 @@ const RondasPage: React.FC = () => {
     } catch (error: any) {
       console.error('Erro no upload:', error);
       alert('Erro ao processar arquivo: ' + (error.message || 'Erro desconhecido'));
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  const handleGoogleDriveClick = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+
+    if (!clientId || !apiKey) {
+      alert("As credenciais do Google Drive não estão configuradas nas variáveis de ambiente do Frontend (VITE_GOOGLE_CLIENT_ID / VITE_GOOGLE_API_KEY).");
+      return;
+    }
+
+    if (!(window as any).google) {
+      alert("A biblioteca de autenticação do Google ainda está carregando ou não está disponível.");
+      return;
+    }
+
+    const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'https://www.googleapis.com/auth/drive.readonly',
+      callback: async (response: any) => {
+        if (response.error !== undefined) {
+          console.error("Erro na autenticação:", response);
+          return;
+        }
+        const token = response.access_token;
+        
+        const createPicker = () => {
+          const docsView = new (window as any).google.picker.DocsView()
+            .setIncludeFolders(true)
+            .setMimeTypes("text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+          const picker = new (window as any).google.picker.PickerBuilder()
+            .addView(docsView)
+            .setOAuthToken(token)
+            .setDeveloperKey(apiKey)
+            .setCallback(async (data: any) => {
+              if (data[(window as any).google.picker.Response.ACTION] === (window as any).google.picker.Action.PICKED) {
+                const doc = data[(window as any).google.picker.Response.DOCUMENTS][0];
+                const fileId = doc[(window as any).google.picker.Document.ID];
+                const fileName = doc[(window as any).google.picker.Document.NAME];
+                
+                await handleGoogleDriveImport(fileId, token, fileName);
+              }
+            })
+            .setTitle("Selecione o arquivo de Rondas")
+            .build();
+          picker.setVisible(true);
+        };
+
+        if (!(window as any).pickerApiLoaded && (window as any).gapi) {
+          (window as any).gapi.load('picker', {
+            'callback': () => {
+              (window as any).pickerApiLoaded = true;
+              createPicker();
+            }
+          });
+        } else {
+          createPicker();
+        }
+      },
+    });
+
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  };
+
+  const handleGoogleDriveImport = async (fileId: string, token: string, fileName: string) => {
+    setUploadLoading(true);
+    try {
+      const month = uploadMonth ? parseInt(uploadMonth) : undefined;
+      const year = uploadYear ? parseInt(uploadYear) : undefined;
+
+      const result = await rondaService.uploadRondaFromGoogleDrive(fileId, token, fileName, month, year);
+
+      if (result.success) {
+        setUploadOpen(false);
+        setUploadFile(null);
+        setUploadMonth('');
+        setUploadYear('');
+        loadRondas(); // Refresh list
+        alert(result.message);
+      }
+    } catch (error: any) {
+      console.error('Erro no upload via Google Drive:', error);
+      alert('Erro ao processar arquivo do Google Drive: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setUploadLoading(false);
     }
@@ -502,6 +612,20 @@ const RondasPage: React.FC = () => {
                 accept=".txt"
                 onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
               />
+            </Button>
+
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', my: 0.5 }}>
+              ou
+            </Typography>
+
+            <Button
+              variant="outlined"
+              onClick={handleGoogleDriveClick}
+              color="info"
+              fullWidth
+              sx={{ py: 2, borderStyle: 'solid' }}
+            >
+              Selecionar do Google Drive
             </Button>
 
             <Box sx={{ display: 'flex', gap: 2 }}>

@@ -528,28 +528,70 @@ def registrar_excel_lote_ajax():
 def upload_process_parada():
     """Página específica para upload e processamento de paradas via Excel."""
     if request.method == "POST":
-        file = request.files.get("file")
-        if not file or file.filename == "":
-            flash("Nenhum arquivo selecionado.", "danger")
-            return redirect(request.url)
-            
-        if not file.filename.lower().endswith(".xlsx"):
-            flash("Apenas arquivos Excel (.xlsx) são suportados nesta página.", "danger")
-            return redirect(request.url)
-            
-        try:
-            temp_dir = os.path.join(tempfile.gettempdir(), "whatsapp_parada")
-            os.makedirs(temp_dir, exist_ok=True)
-            temp_path = os.path.join(temp_dir, file.filename)
-            file.save(temp_path)
-            
-            session['parada_file_path'] = temp_path
-            session['parada_file_name'] = file.filename
-            
-            flash("Planilha de paradas carregada com sucesso! Prossiga com o registro.", "success")
-            return redirect(url_for("parada.registrar_parada"))
-        except Exception as e:
-            logger.error(f"Erro ao salvar arquivo de upload de paradas: {e}", exc_info=True)
-            flash(f"Erro ao carregar arquivo: {str(e)}", "danger")
+        google_file_id = request.form.get('google_file_id')
+        google_access_token = request.form.get('google_access_token')
+        google_file_name = request.form.get('google_file_name', 'google_drive_file.xlsx')
+        
+        is_ajax = (request.headers.get('X-Requested-With') == 'XMLHttpRequest' or
+                   google_file_id is not None)
+
+        if google_file_id and google_access_token:
+            try:
+                import requests
+                headers = {"Authorization": f"Bearer {google_access_token}"}
+                download_url = f"https://www.googleapis.com/drive/v3/files/{google_file_id}?alt=media"
+                response = requests.get(download_url, headers=headers)
+                if response.status_code != 200:
+                    msg = f"Erro ao baixar do Google Drive (Status {response.status_code}): {response.text}"
+                    if is_ajax:
+                        return jsonify({"success": False, "message": msg}), 400
+                    flash(msg, "danger")
+                    return redirect(url_for("parada.upload_process_parada"))
+                
+                temp_dir = os.path.join(tempfile.gettempdir(), "whatsapp_parada")
+                os.makedirs(temp_dir, exist_ok=True)
+                temp_path = os.path.join(temp_dir, google_file_name)
+                with open(temp_path, 'wb') as f:
+                    f.write(response.content)
+                
+                session['parada_file_path'] = temp_path
+                session['parada_file_name'] = google_file_name
+                
+                if is_ajax:
+                    return jsonify({"success": True, "message": "Planilha carregada do Google Drive com sucesso!", "redirect_url": url_for("parada.registrar_parada")}), 200
+                flash("Planilha de paradas carregada do Google Drive com sucesso!", "success")
+                return redirect(url_for("parada.registrar_parada"))
+            except Exception as e:
+                logger.error(f"Erro ao baixar planilha do Google Drive: {e}", exc_info=True)
+                msg = f"Erro ao acessar Google Drive: {str(e)}"
+                if is_ajax:
+                    return jsonify({"success": False, "message": msg}), 500
+                flash(msg, "danger")
+                return redirect(url_for("parada.upload_process_parada"))
+        else:
+            file = request.files.get("file")
+            if not file or file.filename == "":
+                flash("Nenhum arquivo selecionado.", "danger")
+                return redirect(request.url)
+                
+            if not file.filename.lower().endswith(".xlsx"):
+                flash("Apenas arquivos Excel (.xlsx) são suportados nesta página.", "danger")
+                return redirect(request.url)
+                
+            try:
+                temp_dir = os.path.join(tempfile.gettempdir(), "whatsapp_parada")
+                os.makedirs(temp_dir, exist_ok=True)
+                temp_path = os.path.join(temp_dir, file.filename)
+                file.save(temp_path)
+                
+                session['parada_file_path'] = temp_path
+                session['parada_file_name'] = file.filename
+                
+                flash("Planilha de paradas carregada com sucesso! Prossiga com o registro.", "success")
+                return redirect(url_for("parada.registrar_parada"))
+            except Exception as e:
+                logger.error(f"Erro ao salvar arquivo de upload de paradas: {e}", exc_info=True)
+                flash(f"Erro ao carregar arquivo: {str(e)}", "danger")
+                return redirect(url_for("parada.upload_process_parada"))
             
     return render_template("parada/upload_process_parada.html")
