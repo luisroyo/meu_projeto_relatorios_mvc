@@ -143,100 +143,72 @@ def get_ocorrencia_dashboard_data(filters):
     # --- DEBUG: Logs para evolução diária ---
     logger.info(f"Filtros aplicados: {filters}")
 
-    # [NOVO] Evolução por turno diário (diurno e noturno) - Plantão 12x36
-    from datetime import datetime, time
-    import pytz
+    # [NOVO] Evolução por Supervisor Diário - Ajustado para Plantão 12x36
+    # Subtraímos 6 horas do horário da ocorrência. Como o plantão vira às 06:00,
+    # ocorrências entre 00:00 e 05:59 entram na contagem do dia anterior.
+    from datetime import timedelta
     
-    # Obtém o timezone local da configuração
-    local_tz_str = current_app.config.get("DEFAULT_TIMEZONE", "America/Sao_Paulo")
-    local_tz = pytz.timezone(local_tz_str)
+    logger.info("🔍 DEBUG: Iniciando query de evolução diária por supervisor")
     
-    # [CORRIGIDO] Query para ocorrências por turno e data usando a mesma lógica de filtros
-    logger.info("🔍 DEBUG: Iniciando query de ocorrências por turno e dia")
-    
-    ocorrencias_por_turno_dia_q = db.session.query(
-        func.date(VWOcorrenciasDetalhadas.data_hora_ocorrencia),
-        VWOcorrenciasDetalhadas.turno,
-        func.count(VWOcorrenciasDetalhadas.id)
-    ).filter(
-        VWOcorrenciasDetalhadas.turno.isnot(None)
+    ocorrencias_raw_q = db.session.query(
+        VWOcorrenciasDetalhadas.data_hora_ocorrencia,
+        VWOcorrenciasDetalhadas.supervisor
     )
     
-    logger.info(f"   Query inicial: {ocorrencias_por_turno_dia_q}")
+    # Aplicar os mesmos filtros
+    ocorrencias_raw_q = ocorrencia_service.apply_ocorrencia_filters(ocorrencias_raw_q, filters)
     
-    # Aplicar os mesmos filtros da base_kpi_query (inclui filtros de data)
-    ocorrencias_por_turno_dia_q = ocorrencia_service.apply_ocorrencia_filters(
-        ocorrencias_por_turno_dia_q, filters
-    )
-    
-    # [CRÍTICO] Adicionar filtro de data específico para garantir período correto
     from datetime import time, timezone, datetime
     date_start_range_dt = datetime.combine(date_start_range, time.min, tzinfo=timezone.utc)
     date_end_range_dt = datetime.combine(date_end_range, time.max, tzinfo=timezone.utc)
     
-    ocorrencias_por_turno_dia_q = ocorrencias_por_turno_dia_q.filter(
+    ocorrencias_raw_q = ocorrencias_raw_q.filter(
         VWOcorrenciasDetalhadas.data_hora_ocorrencia >= date_start_range_dt,
         VWOcorrenciasDetalhadas.data_hora_ocorrencia <= date_end_range_dt
     )
     
-    logger.info(f"   Query após filtros + data: {ocorrencias_por_turno_dia_q}")
-    logger.info(f"   SQL gerado: {str(ocorrencias_por_turno_dia_q)}")
-    
-    ocorrencias_por_turno_dia = (
-        ocorrencias_por_turno_dia_q.group_by(
-            func.date(VWOcorrenciasDetalhadas.data_hora_ocorrencia),
-            VWOcorrenciasDetalhadas.turno
-        )
-        .order_by(func.date(VWOcorrenciasDetalhadas.data_hora_ocorrencia))
-        .all()
-    )
+    ocorrencias_raw = ocorrencias_raw_q.all()
 
-    logger.info("🔍 DEBUG: Resultados da query de ocorrências por turno e dia")
-    logger.info(f"   Total de registros retornados: {len(ocorrencias_por_turno_dia)}")
-    logger.info(f"   Dados brutos: {ocorrencias_por_turno_dia}")
-    
-    # Verificar se há números suspeitos
-    for data, turno, count in ocorrencias_por_turno_dia:
-        if count > 100:
-            logger.warning(f"   ⚠️  ATENÇÃO: Data {data}, Turno {turno} tem {count} ocorrências (número suspeito!)")
-
-    # Processar dados para gráfico de barras empilhadas
-    evolucao_date_labels, evolucao_diurno_data, evolucao_noturno_data = [], [], []
+    evolucao_date_labels = []
+    evolucao_series_data = []
+    evolucao_total_data = [] # mantido para caso de necessidade de log
     
     if (date_end_range - date_start_range).days < 366:
-        # Gerar labels de data
         evolucao_date_labels = date_utils.generate_date_labels(
             date_start_range, date_end_range
         )
         
-        # Criar dicionário para organizar dados por data e turno
-        dados_por_data = {}
-        for data_str in evolucao_date_labels:
-            data_obj = datetime.strptime(data_str, "%Y-%m-%d").date()
-            dados_por_data[data_obj] = {"diurno": 0, "noturno": 0}
+        dados_por_data = { d: {} for d in evolucao_date_labels }
+        supervisores_set = set()
         
-        # Preencher dados das ocorrências
-        for data_ocorrencia, turno, count in ocorrencias_por_turno_dia:
-            if data_ocorrencia in dados_por_data:
-                # Normalizar nomes dos turnos
-                turno_normalizado = turno.lower().strip()
-                if "diurno" in turno_normalizado or "dia" in turno_normalizado:
-                    dados_por_data[data_ocorrencia]["diurno"] += count
-                elif "noturno" in turno_normalizado or "noite" in turno_normalizado:
-                    dados_por_data[data_ocorrencia]["noturno"] += count
-        
-        # Preparar dados para o gráfico
-        evolucao_total_data = []
-        for data_str in evolucao_date_labels:
-            data_obj = datetime.strptime(data_str, "%Y-%m-%d").date()
-            total_dia = dados_por_data[data_obj]["diurno"] + dados_por_data[data_obj]["noturno"]
-            evolucao_total_data.append(total_dia)
-            evolucao_diurno_data.append(dados_por_data[data_obj]["diurno"])
-            evolucao_noturno_data.append(dados_por_data[data_obj]["noturno"])
+        for dt_ocorrencia, supervisor in ocorrencias_raw:
+            # Ajuste de 6 horas (plantão vira às 06:00. ex: ocorrência 05:59 -> 23:59 do dia anterior)
+            shift_date = (dt_ocorrencia - timedelta(hours=6)).date()
+            shift_date_str = shift_date.strftime("%Y-%m-%d")
+            
+            sup_name = supervisor or "Sem Supervisor"
+            supervisores_set.add(sup_name)
+            
+            if shift_date_str in dados_por_data:
+                dados_por_data[shift_date_str][sup_name] = dados_por_data[shift_date_str].get(sup_name, 0) + 1
+
+        for sup in supervisores_set:
+            serie_data = []
+            for d in evolucao_date_labels:
+                serie_data.append(dados_por_data[d].get(sup, 0))
+            
+            evolucao_series_data.append({
+                "name": sup,
+                "type": "line",
+                "smooth": True,
+                "data": serie_data
+            })
+            
+        for d in evolucao_date_labels:
+            evolucao_total_data.append(sum(dados_por_data[d].values()))
 
         logger.info(f"Labels de data gerados: {len(evolucao_date_labels)}")
-        logger.info(f"Dados diurno: {evolucao_diurno_data[:5]}")
-        logger.info(f"Dados noturno: {evolucao_noturno_data[:5]}")
+        logger.info(f"Séries geradas: {len(evolucao_series_data)}")
 
     # [CORRIGIDO] Query para últimas ocorrências usando a mesma lógica de filtros
     logger.info("🔍 DEBUG: Iniciando query de últimas ocorrências")
@@ -378,6 +350,7 @@ def get_ocorrencia_dashboard_data(filters):
         "condominio_labels": condominio_labels,
         "ocorrencias_por_condominio_data": ocorrencias_por_condominio_data,
         "evolucao_date_labels": evolucao_date_labels,
+        "evolucao_ocorrencia_series": evolucao_series_data,
         "evolucao_ocorrencia_data": evolucao_total_data,
         "ultimas_ocorrencias": ultimas_ocorrencias,
         "top_colaboradores_labels": top_colaboradores_labels,
