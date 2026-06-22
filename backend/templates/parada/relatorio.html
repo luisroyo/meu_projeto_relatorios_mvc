@@ -69,11 +69,11 @@ block head %} {{ super() }}
                     label_text='NOME DO NOVO CONDOMÍNIO') }}
                   </div>
                   
-                  <!-- Campo de upload WhatsApp/Excel - Apenas para Administradores -->
+                  <!-- Campo de upload Planilha - Apenas para Administradores -->
                   {% if current_user.is_admin %}
                   <div class="mb-3">
-                    <label for="{{ form.arquivo_whatsapp.id }}" class="form-label">
-                      <strong>{{ form.arquivo_whatsapp.label.text }}</strong>
+                    <label for="arquivo_whatsapp" class="form-label">
+                      <strong>Planilha Excel de Paradas</strong>
                       <small class="text-muted ms-2">(Opcional - preenche o log automaticamente)</small>
                       <span class="badge bg-warning ms-2">ADMIN</span>
                     </label>
@@ -91,25 +91,18 @@ block head %} {{ super() }}
                     </div>
                     
                     <div class="input-group">
-                      {{ form.arquivo_whatsapp(class="form-control", accept=".txt,.xlsx") }}
-                      <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('{{ form.arquivo_whatsapp.id }}').click()">
-                        <i class="fas fa-folder-open"></i> Escolher
+                      <input type="file" id="arquivo_whatsapp" name="arquivo_whatsapp" class="form-control" accept=".xlsx" style="display: none;">
+                      <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('arquivo_whatsapp').click()">
+                        <i class="fas fa-folder-open"></i> Escolher Planilha
                       </button>
                       <button class="btn btn-outline-secondary" type="button" id="googleDriveBtnManual">
                         <i class="bi bi-google me-1"></i> Google Drive
                       </button>
                     </div>
                     
-                    {% if form.arquivo_whatsapp.errors %}
-                      <div class="text-danger mt-1">
-                        {% for error in form.arquivo_whatsapp.errors %}
-                          <small>{{ error }}</small><br>
-                        {% endfor %}
-                      </div>
-                    {% endif %}
                     <div class="form-text">
                       <i class="fas fa-info-circle me-1"></i>
-                      Faça o upload de logs do WhatsApp ou Excel de um condomínio específico para preencher o log abaixo automaticamente.
+                      Faça o upload de uma planilha Excel (.xlsx) de um condomínio específico para preencher o log abaixo automaticamente.
                     </div>
                   </div>
                   {% endif %}
@@ -426,7 +419,7 @@ block head %} {{ super() }}
               }
           }
 
-          const whatsappFileInput = document.getElementById('{{ form.arquivo_whatsapp.id }}');
+          const whatsappFileInput = document.getElementById('arquivo_whatsapp');
           const dataPlantaoInput = document.getElementById('{{ form.data_plantao.id }}');
           const escalaPlantaoSelect = document.getElementById('{{ form.escala_plantao.id }}');
           const logBrutoTextarea = document.getElementById('{{ form.log_bruto_paradas.id }}');

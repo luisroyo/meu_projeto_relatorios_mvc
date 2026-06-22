@@ -18,8 +18,7 @@ from app.decorators.admin_required import admin_required
 from app.forms import TestarParadasForm
 from app.models import Condominio, EscalaMensal, Parada, User
 from app.services.parada_routes_core.routes_service import ParadaRoutesService
-from app.services.whatsapp_processor import WhatsAppProcessor
-from app.services.parada_utils import get_system_user, infer_condominio_from_filename
+from app.services.parada_utils import get_system_user
 from app.services.excel_processor import ExcelProcessor
 
 logger = logging.getLogger(__name__)
@@ -73,105 +72,6 @@ def registrar_parada():
         relatorio_processado_final = parada.relatorio_processado
 
     if form.validate_on_submit():
-        arquivo_whatsapp = form.arquivo_whatsapp.data
-        arquivo_fixo_path = session.get('parada_file_path')
-        
-        print(f"[DEBUG] arquivo_whatsapp: {arquivo_whatsapp}")
-        print(f"[DEBUG] arquivo_fixo_path: {arquivo_fixo_path}")
-        
-        if arquivo_whatsapp or arquivo_fixo_path:
-            try:
-                import tempfile
-                import os
-                
-                if arquivo_whatsapp:
-                    temp_dir = os.path.join(tempfile.gettempdir(), 'whatsapp_parada')
-                    os.makedirs(temp_dir, exist_ok=True)
-                    temp_path = os.path.join(temp_dir, arquivo_whatsapp.filename)
-                    arquivo_whatsapp.save(temp_path)
-                    
-                    session['parada_file_path'] = temp_path
-                    session['parada_file_name'] = arquivo_whatsapp.filename
-                    file_path = temp_path
-                    print(f"[DEBUG] Novo arquivo salvo: {file_path}")
-                else:
-                    file_path = arquivo_fixo_path
-                    print(f"[DEBUG] Reutilizando arquivo fixo: {file_path}")
-                    if not os.path.exists(file_path):
-                        session.pop('parada_file_path', None)
-                        session.pop('parada_file_name', None)
-                        flash("Arquivo em cache não encontrado. Faça o upload novamente.", "danger")
-                        return redirect(url_for("parada.registrar_parada"))
-
-                # Processamento baseado no tipo de arquivo
-                is_excel = file_path.lower().endswith('.xlsx')
-                if is_excel:
-                    # Processamento Excel (.xlsx)
-                    parsed_data = ExcelProcessor.parse_excel_file_paradas(file_path)
-                    if not parsed_data.get("success"):
-                        flash(parsed_data.get("message", "Erro ao processar planilha Excel."), "danger")
-                        return redirect(url_for("parada.registrar_parada"))
-                        
-                    condominio_id_sel = form.nome_condominio.data
-                    condominio_nome = ""
-                    if condominio_id_sel == "Outro":
-                        condominio_nome = form.nome_condominio_outro.data.strip()
-                    else:
-                        condominio_obj = Condominio.query.get(int(condominio_id_sel)) if condominio_id_sel.isdigit() else None
-                        if condominio_obj:
-                            condominio_nome = condominio_obj.nome
-                            
-                    if not condominio_nome:
-                        flash("Selecione ou informe o condomínio para processar a planilha.", "warning")
-                        return render_template(
-                            "parada/relatorio.html",
-                            form=form,
-                            title=title,
-                            parada_id=parada_id,
-                            relatorio_processado=relatorio_processado_final,
-                            is_excel=is_excel
-                        )
-                        
-                    log_bruto_simulado = ExcelProcessor.generate_simulated_whatsapp_log_parada(parsed_data, condominio_nome)
-                    if not log_bruto_simulado:
-                        flash(f"Condomínio '{condominio_nome}' não encontrado na aba de Paradas do Excel.", "warning")
-                        return render_template(
-                            "parada/relatorio.html",
-                            form=form,
-                            title=title,
-                            parada_id=parada_id,
-                            relatorio_processado=relatorio_processado_final,
-                            is_excel=is_excel
-                        )
-                        
-                    form.log_bruto_paradas.data = log_bruto_simulado
-                    
-                else:
-                    # Processamento .txt (WhatsApp)
-                    processor = WhatsAppProcessor()
-                    data_plantao = form.data_plantao.data
-                    escala_plantao = form.escala_plantao.data
-                    
-                    data_dt = datetime.combine(data_plantao, datetime.min.time())
-                    if escala_plantao == "06h às 18h":
-                        data_inicio = data_dt.replace(hour=6, minute=0, second=0)
-                        data_fim = data_dt.replace(hour=17, minute=59, second=59)
-                    else:
-                        data_inicio = data_dt.replace(hour=18, minute=0, second=0)
-                        data_fim = (data_dt + timedelta(days=1)).replace(hour=5, minute=59, second=59)
-                        
-                    plantoes = processor.process_file(file_path, data_inicio, data_fim)
-                    if plantoes:
-                        log_formatado = processor.format_for_ronda_log(plantoes[0]) # format_for_ronda_log é genérico o suficiente
-                        form.log_bruto_paradas.data = log_formatado
-                        flash("Log de paradas extraído com sucesso do WhatsApp!", "success")
-                    else:
-                        flash("Nenhuma mensagem encontrada no arquivo para o plantão e escala informados.", "warning")
-                        
-            except Exception as e:
-                logger.error(f"Erro ao ler arquivo: {e}", exc_info=True)
-                flash(f"Erro ao processar arquivo: {str(e)}", "danger")
-
         # Processar registro de parada
         relatorio, condominio_obj, mensagem, status = (
             ParadaRoutesService.processar_registro_parada(form, current_user)
@@ -345,82 +245,53 @@ def processar_whatsapp_ajax():
                 return jsonify({'success': False, 'message': 'Arquivo fixo não encontrado'}), 400
         
         is_excel = file_path.lower().endswith('.xlsx')
+        if not is_excel:
+            return jsonify({'success': False, 'message': 'Apenas arquivos Excel (.xlsx) são suportados.'}), 400
+            
+        parsed_data = ExcelProcessor.parse_excel_file_paradas(file_path)
+        if not parsed_data.get("success"):
+            return jsonify({'success': False, 'message': parsed_data.get("message")}), 400
         
-        if is_excel:
-            parsed_data = ExcelProcessor.parse_excel_file_paradas(file_path)
-            if not parsed_data.get("success"):
-                return jsonify({'success': False, 'message': parsed_data.get("message")}), 400
+        nome_para_buscar = condominio_nome
+        if not nome_para_buscar or nome_para_buscar == "-- Selecione --" or nome_para_buscar == "Outro":
+            nome_para_buscar = request.form.get('nome_condominio_outro', '').strip()
+        
+        log_formatado = ""
+        msg = ""
+        
+        if nome_para_buscar:
+            log_formatado = ExcelProcessor.generate_simulated_whatsapp_log_parada(parsed_data, nome_para_buscar)
             
-            nome_para_buscar = condominio_nome
-            if not nome_para_buscar or nome_para_buscar == "-- Selecione --" or nome_para_buscar == "Outro":
-                nome_para_buscar = request.form.get('nome_condominio_outro', '').strip()
-            
-            log_formatado = ""
-            msg = ""
-            
-            if nome_para_buscar:
-                log_formatado = ExcelProcessor.generate_simulated_whatsapp_log_parada(parsed_data, nome_para_buscar)
-                
-            condos_disponiveis = list(parsed_data.get("condominios", {}).keys())
-            
-            if nome_para_buscar and log_formatado:
-                total_paradas = len(parsed_data["condominios"].get(nome_para_buscar, []))
-                msg = f"Paradas do condomínio {nome_para_buscar} carregadas com sucesso! ({total_paradas} paradas encontradas)."
-            else:
-                if nome_para_buscar:
-                    msg = f"Condomínio '{nome_para_buscar}' não encontrado na aba de Paradas do Excel. Disponíveis na planilha: {', '.join(condos_disponiveis)}"
-                else:
-                    msg = f"Arquivo Excel carregado! Selecione um condomínio para visualizar as paradas. Disponíveis na planilha: {', '.join(condos_disponiveis)}"
-            
-            supervisor_id_db = "0"
-            if parsed_data.get("supervisor"):
-                sup_name = parsed_data["supervisor"].strip().lower()
-                supervisors = User.query.filter_by(is_supervisor=True).all()
-                for s in supervisors:
-                    username_lower = s.username.lower()
-                    if sup_name in username_lower or username_lower in sup_name:
-                        supervisor_id_db = str(s.id)
-                        break
-            
-            return jsonify({
-                'success': True,
-                'log_formatado': log_formatado,
-                'data_plantao': parsed_data.get('data_iso'),
-                'escala_plantao': parsed_data.get('escala_plantao'),
-                'supervisor_id': supervisor_id_db,
-                'total_mensagens': len(log_formatado.split('\n')) if log_formatado else 0,
-                'message': msg
-            })
-            
+        condos_disponiveis = list(parsed_data.get("condominios", {}).keys())
+        
+        if nome_para_buscar and log_formatado:
+            total_paradas = len(parsed_data["condominios"].get(nome_para_buscar, []))
+            msg = f"Paradas do condomínio {nome_para_buscar} carregadas com sucesso! ({total_paradas} paradas encontradas)."
         else:
-            if not data_plantao or not escala_plantao:
-                return jsonify({'success': False, 'message': 'Data e escala são obrigatórios para arquivos de log'}), 400
-                
-            processor = WhatsAppProcessor()
-            data_dt = datetime.strptime(data_plantao, '%Y-%m-%d')
-            
-            if escala_plantao == "06h às 18h":
-                data_inicio = data_dt.replace(hour=6, minute=0, second=0)
-                data_fim = data_dt.replace(hour=17, minute=59, second=59)
+            if nome_para_buscar:
+                msg = f"Condomínio '{nome_para_buscar}' não encontrado na aba de Paradas do Excel. Disponíveis na planilha: {', '.join(condos_disponiveis)}"
             else:
-                data_inicio = data_dt.replace(hour=18, minute=0, second=0)
-                data_fim = (data_dt + timedelta(days=1)).replace(hour=5, minute=59, second=59)
-            
-            plantoes = processor.process_file(file_path, data_inicio, data_fim)
-            
-            if plantoes:
-                log_formatado = processor.format_for_ronda_log(plantoes[0])
-                return jsonify({
-                    'success': True,
-                    'log_formatado': log_formatado,
-                    'total_mensagens': len(plantoes[0].mensagens),
-                    'message': f'Log carregado com sucesso! {len(plantoes[0].mensagens)} mensagens encontradas.'
-                })
-            else:
-                return jsonify({
-                    'success': False,
-                    'message': 'Nenhuma mensagem encontrada no período selecionado.'
-                }), 404
+                msg = f"Arquivo Excel carregado! Selecione um condomínio para visualizar as paradas. Disponíveis na planilha: {', '.join(condos_disponiveis)}"
+        
+        supervisor_id_db = "0"
+        if parsed_data.get("supervisor"):
+            sup_name = parsed_data["supervisor"].strip().lower()
+            supervisors = User.query.filter_by(is_supervisor=True).all()
+            for s in supervisors:
+                username_lower = s.username.lower()
+                if sup_name in username_lower or username_lower in sup_name:
+                    supervisor_id_db = str(s.id)
+                    break
+        
+        return jsonify({
+            'success': True,
+            'log_formatado': log_formatado,
+            'data_plantao': parsed_data.get('data_iso'),
+            'escala_plantao': parsed_data.get('escala_plantao'),
+            'supervisor_id': supervisor_id_db,
+            'total_mensagens': len(log_formatado.split('\n')) if log_formatado else 0,
+            'message': msg
+        })
             
     except Exception as e:
         logger.error(f"Erro ao processar arquivo WhatsApp/Excel via AJAX para Paradas: {e}", exc_info=True)

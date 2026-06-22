@@ -31,7 +31,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  CircularProgress
+  CircularProgress,
+  LinearProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -76,6 +77,15 @@ const RondasPage: React.FC = () => {
     per_page: 10
   });
 
+  // Filtros temporários para digitação (evita recarregamento imediato ao digitar datas)
+  const [tempFilters, setTempFilters] = useState({
+    condominio: '',
+    supervisor: '',
+    turno: '',
+    data_inicio: '',
+    data_fim: '',
+  });
+
   // Dados para os filtros
   const [condominios, setCondominios] = useState<Array<{ id: number; nome: string }>>([]);
   const [supervisors, setSupervisors] = useState<Array<{ id: number; username: string }>>([]);
@@ -86,16 +96,9 @@ const RondasPage: React.FC = () => {
     'Diurno Impar'
   ]);
 
-  // Estados para Upload
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadMonth, setUploadMonth] = useState<string>('');
-  const [uploadYear, setUploadYear] = useState<string>('');
-  const [uploadLoading, setUploadLoading] = useState(false);
-
   useEffect(() => {
     loadRondas();
-  }, [filters, pagination.page, pagination.per_page]);
+  }, [filters]);
 
   useEffect(() => {
     if (rondas.length > 0) {
@@ -178,9 +181,16 @@ const RondasPage: React.FC = () => {
   };
 
   const handleFilterChange = (field: string, value: string | number) => {
+    setTempFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const applyFilters = () => {
     setFilters(prev => ({
       ...prev,
-      [field]: value,
+      ...tempFilters,
       page: 1
     }));
   };
@@ -190,15 +200,19 @@ const RondasPage: React.FC = () => {
   };
 
   const clearFilters = () => {
-    setFilters({
+    const cleared = {
       condominio: '',
       supervisor: '',
       turno: '',
       data_inicio: '',
       data_fim: '',
-      page: 1,
-      per_page: 10
-    });
+    };
+    setTempFilters(cleared);
+    setFilters(prev => ({
+      ...prev,
+      ...cleared,
+      page: 1
+    }));
   };
 
   const formatDate = (dateString: string) => {
@@ -209,121 +223,9 @@ const RondasPage: React.FC = () => {
     }
   };
 
-  // Upload Handlers
-  const handleUploadSubmit = async () => {
-    if (!uploadFile) return;
 
-    setUploadLoading(true);
-    try {
-      const month = uploadMonth ? parseInt(uploadMonth) : undefined;
-      const year = uploadYear ? parseInt(uploadYear) : undefined;
 
-      const result = await rondaService.uploadRondaLog(uploadFile, month, year);
-
-      if (result.success) {
-        setUploadOpen(false);
-        setUploadFile(null);
-        setUploadMonth('');
-        setUploadYear('');
-        loadRondas(); // Refresh list
-        alert(result.message);
-      }
-    } catch (error: any) {
-      console.error('Erro no upload:', error);
-      alert('Erro ao processar arquivo: ' + (error.message || 'Erro desconhecido'));
-    } finally {
-      setUploadLoading(false);
-    }
-  };
-
-  const handleGoogleDriveClick = () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-
-    if (!clientId || !apiKey) {
-      alert("As credenciais do Google Drive não estão configuradas nas variáveis de ambiente do Frontend (VITE_GOOGLE_CLIENT_ID / VITE_GOOGLE_API_KEY).");
-      return;
-    }
-
-    if (!(window as any).google) {
-      alert("A biblioteca de autenticação do Google ainda está carregando ou não está disponível.");
-      return;
-    }
-
-    const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: 'https://www.googleapis.com/auth/drive.readonly',
-      callback: async (response: any) => {
-        if (response.error !== undefined) {
-          console.error("Erro na autenticação:", response);
-          return;
-        }
-        const token = response.access_token;
-        
-        const createPicker = () => {
-          const docsView = new (window as any).google.picker.DocsView()
-            .setIncludeFolders(true)
-            .setMimeTypes("text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-
-          const picker = new (window as any).google.picker.PickerBuilder()
-            .addView(docsView)
-            .setOAuthToken(token)
-            .setDeveloperKey(apiKey)
-            .setCallback(async (data: any) => {
-              if (data[(window as any).google.picker.Response.ACTION] === (window as any).google.picker.Action.PICKED) {
-                const doc = data[(window as any).google.picker.Response.DOCUMENTS][0];
-                const fileId = doc[(window as any).google.picker.Document.ID];
-                const fileName = doc[(window as any).google.picker.Document.NAME];
-                
-                await handleGoogleDriveImport(fileId, token, fileName);
-              }
-            })
-            .setTitle("Selecione o arquivo de Rondas")
-            .build();
-          picker.setVisible(true);
-        };
-
-        if (!(window as any).pickerApiLoaded && (window as any).gapi) {
-          (window as any).gapi.load('picker', {
-            'callback': () => {
-              (window as any).pickerApiLoaded = true;
-              createPicker();
-            }
-          });
-        } else {
-          createPicker();
-        }
-      },
-    });
-
-    tokenClient.requestAccessToken({ prompt: 'consent' });
-  };
-
-  const handleGoogleDriveImport = async (fileId: string, token: string, fileName: string) => {
-    setUploadLoading(true);
-    try {
-      const month = uploadMonth ? parseInt(uploadMonth) : undefined;
-      const year = uploadYear ? parseInt(uploadYear) : undefined;
-
-      const result = await rondaService.uploadRondaFromGoogleDrive(fileId, token, fileName, month, year);
-
-      if (result.success) {
-        setUploadOpen(false);
-        setUploadFile(null);
-        setUploadMonth('');
-        setUploadYear('');
-        loadRondas(); // Refresh list
-        alert(result.message);
-      }
-    } catch (error: any) {
-      console.error('Erro no upload via Google Drive:', error);
-      alert('Erro ao processar arquivo do Google Drive: ' + (error.message || 'Erro desconhecido'));
-    } finally {
-      setUploadLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (loading && rondas.length === 0) {
     return <LoadingSpinner message="Carregando rondas..." size="large" />;
   }
 
@@ -346,15 +248,6 @@ const RondasPage: React.FC = () => {
           </Typography>
         </Box>
         <Stack direction="row" spacing={2}>
-          <Button
-            variant="contained"
-            startIcon={<CloudUploadIcon />}
-            onClick={() => setUploadOpen(true)}
-            color="secondary"
-            sx={{ borderRadius: 2 }}
-          >
-            Upload Log (WhatsApp)
-          </Button>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -396,7 +289,7 @@ const RondasPage: React.FC = () => {
               <FormControl fullWidth>
                 <InputLabel>Condomínio</InputLabel>
                 <Select
-                  value={filters.condominio}
+                  value={tempFilters.condominio}
                   onChange={(e) => handleFilterChange('condominio', e.target.value)}
                   label="Condomínio"
                 >
@@ -413,7 +306,7 @@ const RondasPage: React.FC = () => {
               <FormControl fullWidth>
                 <InputLabel>Supervisor</InputLabel>
                 <Select
-                  value={filters.supervisor}
+                  value={tempFilters.supervisor}
                   onChange={(e) => handleFilterChange('supervisor', e.target.value)}
                   label="Supervisor"
                 >
@@ -430,7 +323,7 @@ const RondasPage: React.FC = () => {
               <FormControl fullWidth>
                 <InputLabel>Turno</InputLabel>
                 <Select
-                  value={filters.turno}
+                  value={tempFilters.turno}
                   onChange={(e) => handleFilterChange('turno', e.target.value)}
                   label="Turno"
                 >
@@ -447,7 +340,7 @@ const RondasPage: React.FC = () => {
               <TextField
                 label="Data Início"
                 type="date"
-                value={filters.data_inicio}
+                value={tempFilters.data_inicio}
                 onChange={(e) => handleFilterChange('data_inicio', e.target.value)}
                 fullWidth
                 InputLabelProps={{ shrink: true }}
@@ -457,7 +350,7 @@ const RondasPage: React.FC = () => {
               <TextField
                 label="Data Fim"
                 type="date"
-                value={filters.data_fim}
+                value={tempFilters.data_fim}
                 onChange={(e) => handleFilterChange('data_fim', e.target.value)}
                 fullWidth
                 InputLabelProps={{ shrink: true }}
@@ -467,8 +360,9 @@ const RondasPage: React.FC = () => {
               <Stack direction="row" spacing={1}>
                 <Button
                   variant="contained"
-                  startIcon={<SearchIcon />}
-                  onClick={loadRondas}
+                  startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SearchIcon />}
+                  onClick={applyFilters}
+                  disabled={loading}
                   fullWidth
                   sx={{ borderRadius: 2 }}
                 >
@@ -478,6 +372,7 @@ const RondasPage: React.FC = () => {
                   variant="outlined"
                   startIcon={<ClearIcon />}
                   onClick={clearFilters}
+                  disabled={loading}
                   sx={{ borderRadius: 2 }}
                 >
                   Limpar
@@ -489,6 +384,7 @@ const RondasPage: React.FC = () => {
       </Card>
 
       {/* Tabela de Rondas */}
+      {loading && <LinearProgress sx={{ mb: 2, borderRadius: 1 }} />}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
@@ -589,76 +485,7 @@ const RondasPage: React.FC = () => {
         </Card>
       )}
 
-      {/* Upload Dialog */}
-      <Dialog open={uploadOpen} onClose={() => setUploadOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Upload de Log de Rondas (WhatsApp)</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Selecione o arquivo .txt exportado do WhatsApp para processar as rondas automaticamente.
-            </Typography>
 
-            <Button
-              variant="outlined"
-              component="label"
-              startIcon={<CloudUploadIcon />}
-              fullWidth
-              sx={{ py: 2, borderStyle: 'dashed' }}
-            >
-              {uploadFile ? uploadFile.name : 'Selecionar Arquivo .txt'}
-              <input
-                type="file"
-                hidden
-                accept=".txt"
-                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-              />
-            </Button>
-
-            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', my: 0.5 }}>
-              ou
-            </Typography>
-
-            <Button
-              variant="outlined"
-              onClick={handleGoogleDriveClick}
-              color="info"
-              fullWidth
-              sx={{ py: 2, borderStyle: 'solid' }}
-            >
-              Selecionar do Google Drive
-            </Button>
-
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField
-                label="Mês (Opcional)"
-                type="number"
-                value={uploadMonth}
-                onChange={(e) => setUploadMonth(e.target.value)}
-                InputProps={{ inputProps: { min: 1, max: 12 } }}
-                fullWidth
-              />
-              <TextField
-                label="Ano (Opcional)"
-                type="number"
-                value={uploadYear}
-                onChange={(e) => setUploadYear(e.target.value)}
-                fullWidth
-              />
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setUploadOpen(false)}>Cancelar</Button>
-          <Button
-            onClick={handleUploadSubmit}
-            variant="contained"
-            disabled={!uploadFile || uploadLoading}
-            startIcon={uploadLoading && <CircularProgress size={20} color="inherit" />}
-          >
-            {uploadLoading ? 'Processando...' : 'Enviar e Processar'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

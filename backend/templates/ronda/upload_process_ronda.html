@@ -13,55 +13,24 @@
         </div>
         <div class="card-body">
             <p class="text-muted mb-4">
-                Faça o upload de um arquivo de log do WhatsApp (.txt) ou Excel (.xlsx) para processar e registrar rondas automaticamente.
-                Para logs de WhatsApp, o nome do condomínio será inferido do nome do arquivo. Para arquivos Excel, as rondas de todos os condomínios da planilha serão registradas de uma só vez.
+                Faça o upload de uma planilha Excel (.xlsx) para processar e registrar rondas automaticamente.
+                As rondas de todos os condomínios da planilha serão registradas de uma só vez.
             </p>
 
             <form id="uploadForm" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="mb-3">
                     <label for="whatsapp_file" class="form-label fw-bold">
-                        Arquivo de Origem (.txt ou .xlsx)
+                        Planilha Excel (.xlsx)
                     </label>
                     <div class="input-group">
-                        <input type="file" id="whatsapp_file" name="whatsapp_file" accept=".txt,.xlsx" required
+                        <input type="file" id="whatsapp_file" name="whatsapp_file" accept=".xlsx" required
                                class="form-control">
                         <button class="btn btn-outline-secondary" type="button" id="googleDriveBtn">
                             <i class="bi bi-google me-1"></i> Google Drive
                         </button>
                     </div>
-                    <div class="form-text">Apenas arquivos .txt e .xlsx são permitidos ou selecione diretamente do Google Drive.</div>
-                </div>
-
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <label for="month" class="form-label fw-bold">
-                            Mês (Opcional)
-                        </label>
-                        <select id="month" name="month"
-                                class="form-select">
-                            <option value="">Todos os Meses</option>
-                            <option value="1">Janeiro</option>
-                            <option value="2">Fevereiro</option>
-                            <option value="3">Março</option>
-                            <option value="4">Abril</option>
-                            <option value="5">Maio</option>
-                            <option value="6">Junho</option>
-                            <option value="7">Julho</option>
-                            <option value="8">Agosto</option>
-                            <option value="9">Setembro</option>
-                            <option value="10">Outubro</option>
-                            <option value="11">Novembro</option>
-                            <option value="12">Dezembro</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="year" class="form-label fw-bold">
-                            Ano (Opcional)
-                        </label>
-                        <input type="number" id="year" name="year" placeholder="Ex: 2024"
-                               class="form-control">
-                    </div>
+                    <div class="form-text">Apenas planilhas Excel (.xlsx) são permitidas ou selecione diretamente do Google Drive.</div>
                 </div>
 
                 <button type="submit" id="processButton"
@@ -88,8 +57,6 @@
     document.addEventListener('DOMContentLoaded', function() {
         const uploadForm = document.getElementById('uploadForm');
         const whatsappFile = document.getElementById('whatsapp_file');
-        const monthSelect = document.getElementById('month');
-        const yearInput = document.getElementById('year');
         const processButton = document.getElementById('processButton');
         const buttonText = document.getElementById('buttonText');
         const loadingSpinner = document.getElementById('loadingSpinner');
@@ -158,7 +125,7 @@
         function createPicker() {
             const docsView = new google.picker.DocsView()
                 .setIncludeFolders(true)
-                .setMimeTypes("text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                .setMimeTypes("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
             const picker = new google.picker.PickerBuilder()
                 .addView(docsView)
@@ -194,12 +161,6 @@
             formData.append('google_access_token', token);
             formData.append('google_file_name', fileName);
             formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
-            if (monthSelect.value) {
-                formData.append('month', monthSelect.value);
-            }
-            if (yearInput.value) {
-                formData.append('year', yearInput.value);
-            }
 
             try {
                 const response = await fetch("{{ url_for('ronda.upload_process_ronda') }}", {
@@ -243,12 +204,6 @@
             const formData = new FormData();
             formData.append('whatsapp_file', whatsappFile.files[0]);
             formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
-            if (monthSelect.value) {
-                formData.append('month', monthSelect.value);
-            }
-            if (yearInput.value) {
-                formData.append('year', yearInput.value);
-            }
 
             try {
                 const response = await fetch("{{ url_for('ronda.upload_process_ronda') }}", {

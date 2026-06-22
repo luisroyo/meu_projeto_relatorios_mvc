@@ -440,37 +440,7 @@ def listar_tipos():
 @jwt_required()
 def processar_whatsapp():
     """Processar arquivo WhatsApp para ronda."""
-    try:
-        if 'file' not in request.files:
-            return error_response('Nenhum arquivo enviado', status_code=400)
-        
-        file = request.files['file']
-        if file.filename == '':
-            return error_response('Nenhum arquivo selecionado', status_code=400)
-        
-        # Validação de arquivo
-        allowed_extensions = {'txt', 'csv'}
-        if not (file.filename and '.' in file.filename and 
-                file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
-            return error_response('Tipo de arquivo não permitido. Use .txt ou .csv', status_code=400)
-        
-        # TODO: Implementar processamento do arquivo WhatsApp
-        # Por enquanto, retornar dados mockados
-        resultado_processado = {
-            'arquivo_processado': file.filename,
-            'total_mensagens': 0,
-            'rondas_detectadas': 0,
-            'status': 'processado'
-        }
-        
-        return success_response(
-            data={'resultado': resultado_processado},
-            message='Arquivo WhatsApp processado com sucesso'
-        )
-        
-    except Exception as e:
-        logger.error(f"Erro ao processar arquivo WhatsApp: {e}")
-        return error_response('Erro interno ao processar arquivo', status_code=500)
+    return error_response('Funcionalidade de processamento de WhatsApp descontinuada.', status_code=400)
 
 
 @ronda_api_bp.route('/upload-process', methods=['POST'])
@@ -480,9 +450,9 @@ def upload_processar_ronda():
     try:
         import os
         import tempfile
-        from app.services.whatsapp_processor import WhatsAppProcessor
-        from app.services.ronda_utils import infer_condominio_from_filename, get_system_user
+        from app.services.ronda_utils import get_system_user
         from app.services.ronda_routes_core.routes_service import RondaRoutesService
+        from app.services.excel_processor import ExcelProcessor
 
         if 'file' not in request.files:
             return error_response('Nenhum arquivo enviado', status_code=400)
@@ -492,18 +462,13 @@ def upload_processar_ronda():
             return error_response('Nenhum arquivo selecionado', status_code=400)
         
         # Validação de arquivo
-        # Por enquanto, focamos em .txt que é o padrão do WhatsApp exportado
-        allowed_extensions = {'txt'}
+        allowed_extensions = {'xlsx'}
         if not (file.filename and '.' in file.filename and 
                 file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
             return error_response(
-                'Tipo de arquivo não permitido. Apenas .txt é suportado no momento.', 
+                'Tipo de arquivo não permitido. Apenas .xlsx é suportado.', 
                 status_code=400
             )
-        
-        # Filtros opcionais de Mês/Ano
-        month = request.form.get('month', type=int)
-        year = request.form.get('year', type=int)
 
         # Salvar arquivo temporariamente
         temp_dir = tempfile.gettempdir()
@@ -511,93 +476,70 @@ def upload_processar_ronda():
         file.save(temp_filepath)
         
         try:
-            # 1. Identificar condomínio
-            condominio = infer_condominio_from_filename(file.filename)
-            if not condominio:
-                return error_response(
-                    f"Não foi possível identificar o condomínio pelo nome do arquivo '{file.filename}'.", 
-                    status_code=400
-                )
+            parsed_data = ExcelProcessor.parse_excel_file(temp_filepath)
+            if not parsed_data.get("success"):
+                return error_response(parsed_data.get("message", "Erro ao processar planilha Excel."), status_code=400)
             
-            # 2. Processar arquivo
-            processor = WhatsAppProcessor()
-            plantoes_encontrados = processor.process_file(temp_filepath)
-            
-            if not plantoes_encontrados:
-                return error_response(
-                    "Nenhuma mensagem de plantão válida encontrada no arquivo.", 
-                    status_code=404
-                )
-            
-            # 3. Filtrar plantões por mês/ano
-            filtered_plantoes = []
-            for plantao in plantoes_encontrados:
-                process_this = True
-                if month and plantao.data.month != month:
-                    process_this = False
-                if year and plantao.data.year != year:
-                    process_this = False
-                
-                if process_this:
-                    filtered_plantoes.append(plantao)
-            
-            if not filtered_plantoes:
-                return error_response(
-                    "Nenhum plantão no arquivo corresponde aos filtros selecionados.", 
-                    status_code=404
-                )
-            
-            # 4. Salvar rondas
-            # Obtém usuário do sistema para ser o "criador" automático, ou usa o usuário logado
+            # Obtém usuário logado
             current_user_id = get_jwt_identity()
             current_user = User.query.get(current_user_id)
+            system_user = get_system_user() or current_user
+            
+            supervisor_id_db = None
+            if parsed_data.get("supervisor"):
+                sup_name = parsed_data["supervisor"].strip().lower()
+                supervisors = User.query.filter_by(is_supervisor=True).all()
+                for s in supervisors:
+                    username_lower = s.username.lower()
+                    if sup_name in username_lower or username_lower in sup_name:
+                        supervisor_id_db = str(s.id)
+                        break
             
             total_rondas_salvas = 0
             messages = []
             
-            for plantao in filtered_plantoes:
+            for condo_name, rounds in parsed_data.get("condominios", {}).items():
+                if not rounds:
+                    continue
                 try:
-                    log_bruto = processor.format_for_ronda_log(plantao)
-                    escala_plantao = "06h às 18h" if plantao.tipo == "diurno" else "18h às 06h"
-                    
+                    condominio = Condominio.query.filter(func.lower(Condominio.nome) == func.lower(condo_name)).first()
+                    if not condominio:
+                        condominio = Condominio(nome=condo_name)
+                        db.session.add(condominio)
+                        db.session.flush()
+                        logger.info(f"Condomínio '{condo_name}' criado via importação REST API.")
+                        
+                    log_bruto = ExcelProcessor.generate_simulated_whatsapp_log(parsed_data, condo_name)
+                    if not log_bruto:
+                        continue
+                        
                     ronda_data = {
                         "condominio_id": str(condominio.id),
-                        "data_plantao": plantao.data.strftime("%Y-%m-%d"),
-                        "escala_plantao": escala_plantao,
+                        "data_plantao": parsed_data.get("data_iso"),
+                        "escala_plantao": parsed_data.get("escala_plantao"),
                         "log_bruto": log_bruto,
                         "ronda_id": None,
-                        "supervisor_id": None,
+                        "supervisor_id": supervisor_id_db,
                     }
                     
-                    success, message, status_code, ronda_id = RondaRoutesService.salvar_ronda(ronda_data, current_user)
-                    
+                    success, message, status_code, ronda_id = RondaRoutesService.salvar_ronda(ronda_data, system_user)
                     if success:
                         total_rondas_salvas += 1
-                        messages.append(f"Ronda para {condominio.nome} em {plantao.data.strftime('%d/%m/%Y')} salva com sucesso (ID: {ronda_id}).")
+                        messages.append(f"Ronda para {condo_name} salva com ID {ronda_id}.")
                     else:
-                        messages.append(f"Falha ao salvar ronda de {plantao.data.strftime('%d/%m/%Y')}: {message}")
-                        
-                except Exception as e:
-                    logger.error(f"Erro ao processar plantão individual: {e}")
-                    messages.append(f"Erro ao processar plantão de {plantao.data.strftime('%d/%m/%Y')}: {str(e)}")
-
-            if total_rondas_salvas > 0:
-                return success_response(
-                    data={
-                        'total_salvas': total_rondas_salvas,
-                        'detalhes': messages
-                    },
-                    message=f"Processamento concluído. {total_rondas_salvas} ronda(s) salva(s)."
-                )
-            else:
-                return error_response(
-                    "Nenhuma ronda foi salva. Verifique os detalhes.",
-                    status_code=500,
-                    data={'detalhes': messages}
-                )
-                
+                        messages.append(f"Falha em {condo_name}: {message}")
+                except Exception as e_condo:
+                    messages.append(f"Erro em {condo_name}: {str(e_condo)}")
+                    
+            return success_response(
+                data={
+                    'total_salvas': total_rondas_salvas,
+                    'detalhes': messages
+                },
+                message=f"Processamento concluído. {total_rondas_salvas} ronda(s) salva(s)."
+            )
+            
         finally:
-            # Limpeza
             if os.path.exists(temp_filepath):
                 os.remove(temp_filepath)
         

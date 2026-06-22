@@ -24,7 +24,6 @@ import {
   Business as BusinessIcon,
   Person as PersonIcon,
   Assignment as AssignmentIcon,
-  WhatsApp as WhatsAppIcon,
   AutoFixHigh as AutoFixIcon
 } from '@mui/icons-material';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -55,7 +54,6 @@ const RondaEditPage: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [processingWhatsapp, setProcessingWhatsapp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -126,49 +124,7 @@ const RondaEditPage: React.FC = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleProcessarWhatsApp = async () => {
-    if (!formData.condominio_id) {
-      setError('O Condomínio é obrigatório para importar do WhatsApp.');
-      return;
-    }
-    if (!formData.data_inicio) {
-      setError('A Data do Plantão é obrigatória para importar do WhatsApp.');
-      return;
-    }
-    if (!formData.turno) {
-      setError('O Turno é obrigatório para definir o horário da busca (ex: 18h às 06h).');
-      return;
-    }
 
-    setProcessingWhatsapp(true);
-    setError(null);
-    setSuccessMessage(null);
-
-    // Calcular data_fim baseado no turno (12h de duração como base)
-    const startDate = new Date(formData.data_inicio);
-    const dataFim = new Date(startDate.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-    try {
-      const response = await rondaService.processarWhatsApp({
-        condominio_id: parseInt(formData.condominio_id),
-        data_inicio: formData.data_inicio,
-        data_fim: dataFim // backend filtra horas internamente ou podemos passar data-hora
-      });
-
-      if (response.success && response.relatorio_processado) {
-        setRelatorioFinal(response.relatorio_processado);
-        setLogBruto(response.log_bruto || 'Nenhum log bruto recuperado.');
-        setSuccessMessage('Log do WhatsApp processado! Corrija possíveis erros antes de salvar.');
-      } else {
-        setError(response.message || 'Nenhuma ronda encontrada neste período.');
-      }
-    } catch (error: any) {
-      console.error('Erro ao processar WhatsApp:', error);
-      setError(error.message || 'Erro ao buscar mensagens do WhatsApp.');
-    } finally {
-      setProcessingWhatsapp(false);
-    }
-  };
 
   const handleSave = async () => {
     if (!formData.condominio_id || !formData.supervisor_id || !formData.data_inicio) {
@@ -214,10 +170,10 @@ const RondaEditPage: React.FC = () => {
           <Box>
             <Typography variant="h3" sx={{ fontWeight: 700, color: MODERN_COLORS.primary, display: 'flex', alignItems: 'center' }}>
               <AssignmentIcon sx={{ mr: 2, fontSize: 36 }} />
-              {isNewRonda ? 'Registrar Nova Ronda (Correção Mágica)' : `Editar Ronda #${id}`}
+              {isNewRonda ? 'Registrar Nova Ronda' : `Editar Ronda #${id}`}
             </Typography>
             <Typography variant="h6" color="textSecondary">
-              Busque as rondas do WhatsApp ou insira manualmente.
+              Insira os dados da ronda manualmente.
             </Typography>
           </Box>
           <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate('/rondas')}>
@@ -277,20 +233,7 @@ const RondaEditPage: React.FC = () => {
                   </Select>
                 </FormControl>
 
-                {isNewRonda && (
-                   <Button
-                     fullWidth
-                     variant="contained"
-                     color="success"
-                     size="large"
-                     sx={{ py: 2, mt: 2, borderRadius: 2 }}
-                     startIcon={processingWhatsapp ? <CircularProgress size={20} color="inherit" /> : <WhatsAppIcon />}
-                     onClick={handleProcessarWhatsApp}
-                     disabled={processingWhatsapp}
-                   >
-                     {processingWhatsapp ? 'Buscando do WhatsApp...' : 'Processar WhatsApp (Correção Mágica)'}
-                   </Button>
-                )}
+
               </CardContent>
             </Card>
           </Box>
@@ -303,7 +246,7 @@ const RondaEditPage: React.FC = () => {
               </Box>
               <CardContent sx={{ p: 4 }}>
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  Revise o texto extraído do WhatsApp. Você pode corrigir as falhas manualmente antes de salvar.
+                  Insira ou revise o texto das rondas realizadas.
                 </Typography>
 
                 {isNewRonda && (

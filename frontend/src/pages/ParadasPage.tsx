@@ -31,7 +31,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  CircularProgress
+  CircularProgress,
+  LinearProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -81,6 +82,14 @@ const ParadasPage: React.FC = () => {
     per_page: 10
   });
 
+  // Filtros temporários para digitação (evita chamadas redundantes de API e problemas de digitação)
+  const [tempFilters, setTempFilters] = useState({
+    condominio: '',
+    supervisor: '',
+    data_inicio: '',
+    data_fim: '',
+  });
+
   // Dados para filtros
   const [condominios, setCondominios] = useState<Array<{ id: number; nome: string }>>([]);
   const [supervisors, setSupervisors] = useState<Array<{ id: number; username: string }>>([]);
@@ -89,14 +98,6 @@ const ParadasPage: React.FC = () => {
   // Estados para Upload
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [isTxtFile, setIsTxtFile] = useState(false);
-  
-  // Parâmetros para processamento de arquivo .txt
-  const [uploadCondominio, setUploadCondominio] = useState<string>('');
-  const [uploadDate, setUploadDate] = useState<string>('');
-  const [uploadEscala, setUploadEscala] = useState<string>('18h às 06h');
-  const [uploadSupervisor, setUploadSupervisor] = useState<string>('');
-  
   const [uploadLoading, setUploadLoading] = useState(false);
 
   useEffect(() => {
@@ -105,7 +106,7 @@ const ParadasPage: React.FC = () => {
 
   useEffect(() => {
     loadParadas();
-  }, [filters, pagination.page]);
+  }, [filters]);
 
   useEffect(() => {
     // Carregar bibliotecas do Google Drive Picker
@@ -187,9 +188,16 @@ const ParadasPage: React.FC = () => {
   };
 
   const handleFilterChange = (field: string, value: string | number) => {
+    setTempFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const applyFilters = () => {
     setFilters(prev => ({
       ...prev,
-      [field]: value,
+      ...tempFilters,
       page: 1
     }));
   };
@@ -199,15 +207,18 @@ const ParadasPage: React.FC = () => {
   };
 
   const clearFilters = () => {
-    setFilters({
+    const cleared = {
       condominio: '',
       supervisor: '',
-      turno: '',
       data_inicio: '',
       data_fim: '',
-      page: 1,
-      per_page: 10
-    });
+    };
+    setTempFilters(cleared);
+    setFilters(prev => ({
+      ...prev,
+      ...cleared,
+      page: 1
+    }));
   };
 
   const formatDate = (dateString?: string) => {
@@ -222,36 +233,18 @@ const ParadasPage: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setUploadFile(file);
-    if (file) {
-      const isTxt = file.name.toLowerCase().endsWith('.txt');
-      setIsTxtFile(isTxt);
-    }
   };
 
   const handleUploadSubmit = async () => {
     if (!uploadFile) return;
 
-    if (isTxtFile && (!uploadCondominio || !uploadDate || !uploadEscala)) {
-      alert("Para arquivos de texto do WhatsApp, é obrigatório preencher condomínio, data e escala!");
-      return;
-    }
-
     setUploadLoading(true);
     try {
-      const result = await paradaService.uploadParadaLog(
-        uploadFile,
-        uploadCondominio ? Number(uploadCondominio) : undefined,
-        uploadDate || undefined,
-        uploadEscala || undefined,
-        uploadSupervisor ? Number(uploadSupervisor) : undefined
-      );
+      const result = await paradaService.uploadParadaLog(uploadFile);
 
       if (result.success) {
         setUploadOpen(false);
         setUploadFile(null);
-        setUploadCondominio('');
-        setUploadDate('');
-        setUploadSupervisor('');
         loadParadas();
         alert(result.message || 'Arquivo processado com sucesso!');
       }
@@ -290,7 +283,7 @@ const ParadasPage: React.FC = () => {
         const createPicker = () => {
           const docsView = new (window as any).google.picker.DocsView()
             .setIncludeFolders(true)
-            .setMimeTypes("text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            .setMimeTypes("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
           const picker = new (window as any).google.picker.PickerBuilder()
             .addView(docsView)
@@ -301,14 +294,6 @@ const ParadasPage: React.FC = () => {
                 const doc = data[(window as any).google.picker.Response.DOCUMENTS][0];
                 const fileId = doc[(window as any).google.picker.Document.ID];
                 const fileName = doc[(window as any).google.picker.Document.NAME];
-                
-                const isTxt = fileName.toLowerCase().endsWith('.txt');
-                setIsTxtFile(isTxt);
-                
-                if (isTxt && (!uploadCondominio || !uploadDate || !uploadEscala)) {
-                  alert("Para importar arquivos de texto do WhatsApp, primeiro defina os campos condomínio, data e escala no formulário.");
-                  return;
-                }
                 
                 await handleGoogleDriveImport(fileId, token, fileName);
               }
@@ -337,22 +322,11 @@ const ParadasPage: React.FC = () => {
   const handleGoogleDriveImport = async (fileId: string, token: string, fileName: string) => {
     setUploadLoading(true);
     try {
-      const result = await paradaService.uploadParadaFromGoogleDrive(
-        fileId,
-        token,
-        fileName,
-        uploadCondominio ? Number(uploadCondominio) : undefined,
-        uploadDate || undefined,
-        uploadEscala || undefined,
-        uploadSupervisor ? Number(uploadSupervisor) : undefined
-      );
+      const result = await paradaService.uploadParadaFromGoogleDrive(fileId, token, fileName);
 
       if (result.success) {
         setUploadOpen(false);
         setUploadFile(null);
-        setUploadCondominio('');
-        setUploadDate('');
-        setUploadSupervisor('');
         loadParadas();
         alert(result.message || 'Arquivo do Google Drive importado com sucesso!');
       }
@@ -472,7 +446,7 @@ const ParadasPage: React.FC = () => {
               <FormControl fullWidth>
                 <InputLabel>Condomínio</InputLabel>
                 <Select
-                  value={filters.condominio}
+                  value={tempFilters.condominio}
                   onChange={(e) => handleFilterChange('condominio', e.target.value)}
                   label="Condomínio"
                 >
@@ -487,7 +461,7 @@ const ParadasPage: React.FC = () => {
               <FormControl fullWidth>
                 <InputLabel>Supervisor</InputLabel>
                 <Select
-                  value={filters.supervisor}
+                  value={tempFilters.supervisor}
                   onChange={(e) => handleFilterChange('supervisor', e.target.value)}
                   label="Supervisor"
                 >
@@ -502,7 +476,7 @@ const ParadasPage: React.FC = () => {
               <TextField
                 label="Data Início"
                 type="date"
-                value={filters.data_inicio}
+                value={tempFilters.data_inicio}
                 onChange={(e) => handleFilterChange('data_inicio', e.target.value)}
                 fullWidth
                 InputLabelProps={{ shrink: true }}
@@ -512,7 +486,7 @@ const ParadasPage: React.FC = () => {
               <TextField
                 label="Data Fim"
                 type="date"
-                value={filters.data_fim}
+                value={tempFilters.data_fim}
                 onChange={(e) => handleFilterChange('data_fim', e.target.value)}
                 fullWidth
                 InputLabelProps={{ shrink: true }}
@@ -522,8 +496,9 @@ const ParadasPage: React.FC = () => {
               <Stack direction="row" spacing={1}>
                 <Button
                   variant="contained"
-                  startIcon={<SearchIcon />}
-                  onClick={loadParadas}
+                  startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SearchIcon />}
+                  onClick={applyFilters}
+                  disabled={loading}
                   fullWidth
                   sx={{ borderRadius: 2 }}
                 >
@@ -533,6 +508,7 @@ const ParadasPage: React.FC = () => {
                   variant="outlined"
                   startIcon={<ClearIcon />}
                   onClick={clearFilters}
+                  disabled={loading}
                   sx={{ borderRadius: 2 }}
                 >
                   Limpar
@@ -544,6 +520,7 @@ const ParadasPage: React.FC = () => {
       </Card>
 
       {/* Tabela de Paradas */}
+      {loading && <LinearProgress sx={{ mb: 2, borderRadius: 1 }} />}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
       )}
@@ -647,13 +624,12 @@ const ParadasPage: React.FC = () => {
         </Card>
       )}
 
-      {/* Upload Dialog */}
       <Dialog open={uploadOpen} onClose={() => setUploadOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Importar Relatório de Paradas (TXT ou Excel)</DialogTitle>
+        <DialogTitle>Importar Relatório de Paradas (Excel)</DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             <Typography variant="body2" color="text.secondary">
-              Selecione o arquivo Excel (.xlsx) de controle de paradas para processamento em lote, ou o arquivo de texto (.txt) do WhatsApp para processamento individual.
+              Selecione o arquivo Excel (.xlsx) de controle de paradas para processamento em lote.
             </Typography>
 
             <Button
@@ -663,11 +639,11 @@ const ParadasPage: React.FC = () => {
               fullWidth
               sx={{ py: 2.5, borderStyle: 'dashed' }}
             >
-              {uploadFile ? uploadFile.name : 'Selecionar Arquivo (.xlsx ou .txt)'}
+              {uploadFile ? uploadFile.name : 'Selecionar Arquivo (.xlsx)'}
               <input
                 type="file"
                 hidden
-                accept=".xlsx,.txt"
+                accept=".xlsx"
                 onChange={handleFileChange}
               />
             </Button>
@@ -686,70 +662,7 @@ const ParadasPage: React.FC = () => {
               Selecionar do Google Drive
             </Button>
 
-            {/* Campos adicionais requeridos APENAS para arquivos de texto (.txt) */}
-            {isTxtFile && (
-              <Box sx={{ border: `1px solid ${theme.palette.divider}`, p: 2, borderRadius: 2, backgroundColor: alpha(theme.palette.primary.main, 0.02) }}>
-                <Typography variant="subtitle2" color="primary" fontWeight={600} sx={{ mb: 2 }}>
-                  Configurações obrigatórias para Log de Texto (.txt)
-                </Typography>
-                
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Condomínio</InputLabel>
-                      <Select
-                        value={uploadCondominio}
-                        onChange={(e) => setUploadCondominio(e.target.value)}
-                        label="Condomínio"
-                      >
-                        {condominios.map((c) => (
-                          <MenuItem key={c.id} value={c.id}>{c.nome}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      label="Data do Plantão"
-                      type="date"
-                      value={uploadDate}
-                      onChange={(e) => setUploadDate(e.target.value)}
-                      fullWidth
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Escala</InputLabel>
-                      <Select
-                        value={uploadEscala}
-                        onChange={(e) => setUploadEscala(e.target.value)}
-                        label="Escala"
-                      >
-                        <MenuItem value="18h às 06h">18h às 06h (Noturno)</MenuItem>
-                        <MenuItem value="06h às 18h">06h às 18h (Diurno)</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Supervisor (Opcional)</InputLabel>
-                      <Select
-                        value={uploadSupervisor}
-                        onChange={(e) => setUploadSupervisor(e.target.value)}
-                        label="Supervisor (Opcional)"
-                      >
-                        <MenuItem value="">Nenhum / Automático</MenuItem>
-                        {supervisors.map((s) => (
-                          <MenuItem key={s.id} value={s.id}>{s.username}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                </Grid>
-              </Box>
-            )}
+
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2.5 }}>

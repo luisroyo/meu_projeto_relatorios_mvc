@@ -1,5 +1,5 @@
 // Suprimir warnings específicos do console em desenvolvimento
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.DEV) {
     const originalWarn = console.warn;
     const originalError = console.error;
 

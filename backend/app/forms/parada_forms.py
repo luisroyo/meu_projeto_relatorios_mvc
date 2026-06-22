@@ -29,10 +29,8 @@ class TestarParadasForm(FlaskForm):
     supervisor_id = SelectField(
         "Supervisor da Parada", coerce=int, validators=[Optional()]
     )
-    arquivo_whatsapp = FileField(
-        "Arquivo de Origem (.txt ou .xlsx) - Opcional",
-        validators=[FileAllowed(['txt', 'xlsx'], message="Apenas arquivos .txt e .xlsx são permitidos.")]
-    )
+
+
     log_bruto_paradas = TextAreaField(
         "Log Bruto das Paradas",
         validators=[DataRequired(message="Insira o log bruto das paradas.")],

@@ -12,9 +12,8 @@ from sqlalchemy import desc, func
 from app import db
 from app.models import Parada, Condominio, User
 from app.services.parada_routes_core.routes_service import ParadaRoutesService
-from app.services.whatsapp_processor import WhatsAppProcessor
 from app.services.excel_processor import ExcelProcessor
-from app.services.parada_utils import get_system_user, infer_condominio_from_filename
+from app.services.parada_utils import get_system_user
 from app.blueprints.api.utils import success_response, error_response
 
 logger = logging.getLogger(__name__)
@@ -244,113 +243,69 @@ def upload_processar_parada():
         try:
             is_excel = filename.lower().endswith('.xlsx')
             
-            if is_excel:
-                # ---------------- PROCESSAMENTO EXCEL (LOTE) ----------------
-                parsed_data = ExcelProcessor.parse_excel_file_paradas(temp_filepath)
-                if not parsed_data.get("success"):
-                    return error_response(parsed_data.get("message", "Erro ao processar planilha Excel."), status_code=400)
+            if not is_excel:
+                return error_response('Apenas planilhas Excel (.xlsx) são suportadas', status_code=400)
                 
-                system_user = get_system_user() or current_user
-                
-                supervisor_id_db = None
-                if parsed_data.get("supervisor"):
-                    sup_name = parsed_data["supervisor"].strip().lower()
-                    supervisors = User.query.filter_by(is_supervisor=True).all()
-                    for s in supervisors:
-                        username_lower = s.username.lower()
-                        if sup_name in username_lower or username_lower in sup_name:
-                            supervisor_id_db = str(s.id)
-                            break
-                
-                total_paradas_salvas = 0
-                messages = []
-                
-                for condo_name, rounds in parsed_data.get("condominios", {}).items():
-                    if not rounds:
+            # ---------------- PROCESSAMENTO EXCEL (LOTE) ----------------
+            parsed_data = ExcelProcessor.parse_excel_file_paradas(temp_filepath)
+            if not parsed_data.get("success"):
+                return error_response(parsed_data.get("message", "Erro ao processar planilha Excel."), status_code=400)
+            
+            system_user = get_system_user() or current_user
+            
+            supervisor_id_db = None
+            if parsed_data.get("supervisor"):
+                sup_name = parsed_data["supervisor"].strip().lower()
+                supervisors = User.query.filter_by(is_supervisor=True).all()
+                for s in supervisors:
+                    username_lower = s.username.lower()
+                    if sup_name in username_lower or username_lower in sup_name:
+                        supervisor_id_db = str(s.id)
+                        break
+            
+            total_paradas_salvas = 0
+            messages = []
+            
+            for condo_name, rounds in parsed_data.get("condominios", {}).items():
+                if not rounds:
+                    continue
+                try:
+                    condominio = Condominio.query.filter(func.lower(Condominio.nome) == func.lower(condo_name)).first()
+                    if not condominio:
+                        condominio = Condominio(nome=condo_name)
+                        db.session.add(condominio)
+                        db.session.flush()
+                        logger.info(f"Condomínio '{condo_name}' criado via importação REST API.")
+                        
+                    log_bruto = ExcelProcessor.generate_simulated_whatsapp_log_parada(parsed_data, condo_name)
+                    if not log_bruto:
                         continue
-                    try:
-                        condominio = Condominio.query.filter(func.lower(Condominio.nome) == func.lower(condo_name)).first()
-                        if not condominio:
-                            condominio = Condominio(nome=condo_name)
-                            db.session.add(condominio)
-                            db.session.flush()
-                            logger.info(f"Condomínio '{condo_name}' criado via importação REST API.")
-                            
-                        log_bruto = ExcelProcessor.generate_simulated_whatsapp_log_parada(parsed_data, condo_name)
-                        if not log_bruto:
-                            continue
-                            
-                        parada_data = {
-                            "condominio_id": str(condominio.id),
-                            "data_plantao": parsed_data.get("data_iso"),
-                            "escala_plantao": parsed_data.get("escala_plantao"),
-                            "log_bruto": log_bruto,
-                            "parada_id": None,
-                            "supervisor_id": supervisor_id_db,
-                        }
                         
-                        success, message, status_code, parada_id = ParadaRoutesService.salvar_parada(parada_data, system_user)
-                        if success:
-                            total_paradas_salvas += 1
-                            messages.append(f"Parada para {condo_name} salva com ID {parada_id}.")
-                        else:
-                            messages.append(f"Falha em {condo_name}: {message}")
-                    except Exception as e_condo:
-                        messages.append(f"Erro em {condo_name}: {str(e_condo)}")
-                        
-                return success_response(
-                    data={
-                        'total_salvas': total_paradas_salvas,
-                        'detalhes': messages
-                    },
-                    message=f"Processamento concluído. {total_paradas_salvas} parada(s) importada(s)."
-                )
-                
-            else:
-                # ---------------- PROCESSAMENTO TXT (WHATSAPP INDIVIDUAL) ----------------
-                # Para TXT, os campos adicionais são obrigatórios
-                if not condominio_id or not data_plantao_str or not escala_plantao:
-                    return error_response('Para logs em texto (.txt), condomínio, data do plantão e escala do plantão são obrigatórios.', status_code=400)
-                
-                condominio_obj = Condominio.query.get(condominio_id)
-                if not condominio_obj:
-                    return error_response('Condomínio não encontrado.', status_code=404)
-                
-                # Definir range de datas
-                data_plantao = date.fromisoformat(data_plantao_str)
-                data_dt = datetime.combine(data_plantao, datetime.min.time())
-                if escala_plantao == "06h às 18h":
-                    data_inicio = data_dt.replace(hour=6, minute=0, second=0)
-                    data_fim = data_dt.replace(hour=17, minute=59, second=59)
-                else:
-                    data_inicio = data_dt.replace(hour=18, minute=0, second=0)
-                    data_fim = (data_dt + timedelta(days=1)).replace(hour=5, minute=59, second=59)
-                
-                processor = WhatsAppProcessor()
-                plantoes = processor.process_file(temp_filepath, data_inicio, data_fim)
-                
-                if not plantoes:
-                    return error_response('Nenhum plantão correspondente encontrado no arquivo de texto.', status_code=404)
-                
-                log_formatado = processor.format_for_ronda_log(plantoes[0])
-                
-                parada_data = {
-                    "condominio_id": str(condominio_obj.id),
-                    "data_plantao": data_plantao_str,
-                    "escala_plantao": escala_plantao,
-                    "log_bruto": log_formatado,
-                    "parada_id": None,
-                    "supervisor_id": supervisor_id,
-                }
-                
-                success, message, status_code, parada_id = ParadaRoutesService.salvar_parada(parada_data, current_user)
-                if success:
-                    return success_response(
-                        data={'parada_id': parada_id},
-                        message='Parada de texto processada e registrada com sucesso!'
-                    )
-                else:
-                    return error_response(message, status_code=status_code)
+                    parada_data = {
+                        "condominio_id": str(condominio.id),
+                        "data_plantao": parsed_data.get("data_iso"),
+                        "escala_plantao": parsed_data.get("escala_plantao"),
+                        "log_bruto": log_bruto,
+                        "parada_id": None,
+                        "supervisor_id": supervisor_id_db,
+                    }
+                    
+                    success, message, status_code, parada_id = ParadaRoutesService.salvar_parada(parada_data, system_user)
+                    if success:
+                        total_paradas_salvas += 1
+                        messages.append(f"Parada para {condo_name} salva com ID {parada_id}.")
+                    else:
+                        messages.append(f"Falha em {condo_name}: {message}")
+                except Exception as e_condo:
+                    messages.append(f"Erro em {condo_name}: {str(e_condo)}")
+                    
+            return success_response(
+                data={
+                    'total_salvas': total_paradas_salvas,
+                    'detalhes': messages
+                },
+                message=f"Processamento concluído. {total_paradas_salvas} parada(s) importada(s)."
+            )
                 
         finally:
             if temp_filepath and os.path.exists(temp_filepath):

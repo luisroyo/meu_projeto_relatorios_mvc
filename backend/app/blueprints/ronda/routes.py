@@ -18,10 +18,8 @@ from app.decorators.admin_required import admin_required
 from app.forms import TestarRondasForm
 from app.models import Condominio, EscalaMensal, Ronda, User
 from app.services.ronda_routes_core.routes_service import RondaRoutesService
-from app.services.whatsapp_processor import WhatsAppProcessor
-from app.services.ronda_utils import get_system_user, infer_condominio_from_filename # Importa funções específicas
+from app.services.ronda_utils import get_system_user # Importa funções específicas
 from app.services.excel_processor import ExcelProcessor
-
 logger = logging.getLogger(__name__)
 
 ronda_bp = Blueprint(
@@ -73,94 +71,6 @@ def registrar_ronda():
         relatorio_processado_final = ronda.relatorio_processado
 
     if form.validate_on_submit():
-        # Processa arquivo WhatsApp se fornecido OU se há arquivo fixo na sessão
-        arquivo_whatsapp = form.arquivo_whatsapp.data
-        arquivo_fixo_path = session.get('whatsapp_file_path')
-        
-        print(f"[DEBUG] arquivo_whatsapp: {arquivo_whatsapp}")
-        print(f"[DEBUG] arquivo_fixo_path: {arquivo_fixo_path}")
-        
-        if arquivo_whatsapp or arquivo_fixo_path:
-            try:
-                import tempfile
-                import os
-                
-                if arquivo_whatsapp:
-                    # Novo arquivo enviado - salva na sessão
-                    temp_dir = os.path.join(tempfile.gettempdir(), 'whatsapp_ronda')
-                    os.makedirs(temp_dir, exist_ok=True)
-                    temp_path = os.path.join(temp_dir, arquivo_whatsapp.filename)
-                    arquivo_whatsapp.save(temp_path)
-                    
-                    # Salva o caminho do arquivo na sessão para reutilização
-                    session['whatsapp_file_path'] = temp_path
-                    session['whatsapp_file_name'] = arquivo_whatsapp.filename
-                    file_path = temp_path
-                    print(f"[DEBUG] Novo arquivo salvo: {file_path}")
-                else:
-                    # Usa arquivo fixo da sessão
-                    file_path = arquivo_fixo_path
-                    print(f"[DEBUG] Usando arquivo fixo: {file_path}")
-                    if not os.path.exists(file_path):
-                        session.pop('whatsapp_file_path', None)
-                        session.pop('whatsapp_file_name', None)
-                        flash("Arquivo fixo não encontrado. Faça upload novamente.", "warning")
-                        return render_template(
-                            "ronda/relatorio.html",
-                            title=title,
-                            form=form,
-                            relatorio_processado=relatorio_processado_final,
-                            ronda_data_to_save=ronda_data_to_save,
-                        )
-                
-                # Processa o arquivo WhatsApp
-                processor = WhatsAppProcessor()
-                data_inicio = form.data_plantao.data
-                data_fim = form.data_plantao.data
-                
-                # Converte date para datetime
-                from datetime import datetime
-                data_inicio = datetime.combine(data_inicio, datetime.min.time())
-                data_fim = datetime.combine(data_fim, datetime.min.time())
-                
-                print(f"[DEBUG] Data início: {data_inicio}")
-                print(f"[DEBUG] Escala: {form.escala_plantao.data}")
-                
-                # Determina horário baseado na escala
-                if form.escala_plantao.data == "06h às 18h":
-                    data_inicio = data_inicio.replace(hour=6, minute=0, second=0)
-                    data_fim = data_inicio.replace(hour=17, minute=59, second=59)
-                else:  # 18h às 06h
-                    data_inicio = data_inicio.replace(hour=18, minute=0, second=0)
-                    data_fim = (data_inicio + timedelta(days=1)).replace(hour=5, minute=59, second=59)
-                
-                print(f"[DEBUG] Processando arquivo: {file_path}")
-                print(f"[DEBUG] Período: {data_inicio} até {data_fim}")
-                
-                # Processa mensagens do período
-                plantoes = processor.process_file(file_path, data_inicio, data_fim)
-                
-                print(f"[DEBUG] Plantões encontrados: {len(plantoes) if plantoes else 0}")
-                
-                if plantoes:
-                    # Formata o log para ronda
-                    log_formatado = processor.format_for_ronda_log(plantoes[0])
-                    form.log_bruto_rondas.data = log_formatado
-                    
-                    print(f"[DEBUG] Log formatado: {len(log_formatado)} caracteres")
-                    
-                    if arquivo_whatsapp:
-                        flash(f"Log carregado automaticamente do WhatsApp! {len(plantoes[0].mensagens)} mensagens encontradas.", "success")
-                    else:
-                        flash(f"Log carregado do arquivo fixo! {len(plantoes[0].mensagens)} mensagens encontradas.", "success")
-                else:
-                    flash("Nenhuma mensagem encontrada no período selecionado.", "warning")
-                
-            except Exception as e:
-                logger.error(f"Erro ao processar arquivo WhatsApp: {e}", exc_info=True)
-                flash(f"Erro ao processar arquivo WhatsApp: {str(e)}", "danger")
-                print(f"[DEBUG] Erro ao processar: {e}")
-        
         # Processa o registro da ronda
         relatorio_processado_final, condominio_obj, mensagem, status = RondaRoutesService.processar_registro_ronda(form, current_user)
         if status == "success":
@@ -329,103 +239,56 @@ def processar_whatsapp_ajax():
         
         is_excel = file_path.lower().endswith('.xlsx')
         
-        if is_excel:
-            # Processamento de Excel (.xlsx)
-            parsed_data = ExcelProcessor.parse_excel_file(file_path)
-            if not parsed_data.get("success"):
-                return jsonify({'success': False, 'message': parsed_data.get("message")}), 400
+        if not is_excel:
+            return jsonify({'success': False, 'message': 'Apenas arquivos Excel (.xlsx) são suportados.'}), 400
             
-            # Tenta buscar o nome do condomínio da form ou de outro campo
-            nome_para_buscar = condominio_nome
-            if not nome_para_buscar or nome_para_buscar == "-- Selecione --" or nome_para_buscar == "Outro":
-                nome_para_buscar = request.form.get('nome_condominio_outro', '').strip()
+        # Processamento de Excel (.xlsx)
+        parsed_data = ExcelProcessor.parse_excel_file(file_path)
+        if not parsed_data.get("success"):
+            return jsonify({'success': False, 'message': parsed_data.get("message")}), 400
+        
+        # Tenta buscar o nome do condomínio da form ou de outro campo
+        nome_para_buscar = condominio_nome
+        if not nome_para_buscar or nome_para_buscar == "-- Selecione --" or nome_para_buscar == "Outro":
+            nome_para_buscar = request.form.get('nome_condominio_outro', '').strip()
+        
+        log_formatado = ""
+        msg = ""
+        
+        if nome_para_buscar:
+            log_formatado = ExcelProcessor.generate_simulated_whatsapp_log(parsed_data, nome_para_buscar)
             
-            log_formatado = ""
-            msg = ""
-            
-            if nome_para_buscar:
-                log_formatado = ExcelProcessor.generate_simulated_whatsapp_log(parsed_data, nome_para_buscar)
-                
-            condos_disponiveis = list(parsed_data.get("condominios", {}).keys())
-            
-            if nome_para_buscar and log_formatado:
-                total_rondas = len(parsed_data["condominios"].get(nome_para_buscar, []))
-                msg = f"Rondas do condomínio {nome_para_buscar} carregadas com sucesso! ({total_rondas} rondas encontradas)."
-            else:
-                if nome_para_buscar:
-                    msg = f"Condomínio '{nome_para_buscar}' não encontrado no Excel. Disponíveis na planilha: {', '.join(condos_disponiveis)}"
-                else:
-                    msg = f"Arquivo Excel carregado! Selecione um condomínio para visualizar as rondas. Disponíveis na planilha: {', '.join(condos_disponiveis)}"
-            
-            # Tenta identificar o ID do supervisor pelo nome no cabeçalho do Excel (busca flexível)
-            supervisor_id_db = "0"
-            if parsed_data.get("supervisor"):
-                sup_name = parsed_data["supervisor"].strip().lower()
-                supervisors = User.query.filter_by(is_supervisor=True).all()
-                for s in supervisors:
-                    username_lower = s.username.lower()
-                    if sup_name in username_lower or username_lower in sup_name:
-                        supervisor_id_db = str(s.id)
-                        break
-            
-            return jsonify({
-                'success': True,
-                'log_formatado': log_formatado,
-                'data_plantao': parsed_data.get('data_iso'),
-                'escala_plantao': parsed_data.get('escala_plantao'),
-                'supervisor_id': supervisor_id_db,
-                'total_mensagens': len(log_formatado.split('\n')) if log_formatado else 0,
-                'message': msg
-            })
-            
+        condos_disponiveis = list(parsed_data.get("condominios", {}).keys())
+        
+        if nome_para_buscar and log_formatado:
+            total_rondas = len(parsed_data["condominios"].get(nome_para_buscar, []))
+            msg = f"Rondas do condomínio {nome_para_buscar} carregadas com sucesso! ({total_rondas} rondas encontradas)."
         else:
-            # Mantém fluxo original para arquivo de texto
-            if not data_plantao or not escala_plantao:
-                return jsonify({'success': False, 'message': 'Data e escala são obrigatórios para arquivos de log'}), 400
-                
-            # Processa o arquivo WhatsApp
-            processor = WhatsAppProcessor()
-            
-            # Converte data
-            from datetime import datetime
-            data_dt = datetime.strptime(data_plantao, '%Y-%m-%d')
-            
-            print(f"[DEBUG AJAX] Data início: {data_dt}")
-            print(f"[DEBUG AJAX] Escala: {escala_plantao}")
-            
-            # Determina horário baseado na escala
-            if escala_plantao == "06h às 18h":
-                data_inicio = data_dt.replace(hour=6, minute=0, second=0)
-                data_fim = data_dt.replace(hour=17, minute=59, second=59)
-            else:  # 18h às 06h
-                data_inicio = data_dt.replace(hour=18, minute=0, second=0)
-                data_fim = (data_dt + timedelta(days=1)).replace(hour=5, minute=59, second=59)
-            
-            print(f"[DEBUG AJAX] Processando arquivo: {file_path}")
-            print(f"[DEBUG AJAX] Período: {data_inicio} até {data_fim}")
-            
-            # Processa mensagens do período
-            plantoes = processor.process_file(file_path, data_inicio, data_fim)
-            
-            print(f"[DEBUG AJAX] Plantões encontrados: {len(plantoes) if plantoes else 0}")
-            
-            if plantoes:
-                # Formata o log para ronda
-                log_formatado = processor.format_for_ronda_log(plantoes[0])
-                
-                print(f"[DEBUG AJAX] Log formatado: {len(log_formatado)} caracteres")
-                
-                return jsonify({
-                    'success': True,
-                    'log_formatado': log_formatado,
-                    'total_mensagens': len(plantoes[0].mensagens),
-                    'message': f'Log carregado com sucesso! {len(plantoes[0].mensagens)} mensagens encontradas.'
-                })
+            if nome_para_buscar:
+                msg = f"Condomínio '{nome_para_buscar}' não encontrado no Excel. Disponíveis na planilha: {', '.join(condos_disponiveis)}"
             else:
-                return jsonify({
-                    'success': False,
-                    'message': 'Nenhuma mensagem encontrada no período selecionado.'
-                }), 404
+                msg = f"Arquivo Excel carregado! Selecione um condomínio para visualizar as rondas. Disponíveis na planilha: {', '.join(condos_disponiveis)}"
+        
+        # Tenta identificar o ID do supervisor pelo nome no cabeçalho do Excel (busca flexível)
+        supervisor_id_db = "0"
+        if parsed_data.get("supervisor"):
+            sup_name = parsed_data["supervisor"].strip().lower()
+            supervisors = User.query.filter_by(is_supervisor=True).all()
+            for s in supervisors:
+                username_lower = s.username.lower()
+                if sup_name in username_lower or username_lower in sup_name:
+                    supervisor_id_db = str(s.id)
+                    break
+        
+        return jsonify({
+            'success': True,
+            'log_formatado': log_formatado,
+            'data_plantao': parsed_data.get('data_iso'),
+            'escala_plantao': parsed_data.get('escala_plantao'),
+            'supervisor_id': supervisor_id_db,
+            'total_mensagens': len(log_formatado.split('\n')) if log_formatado else 0,
+            'message': msg
+        })
             
     except Exception as e:
         logger.error(f"Erro ao processar arquivo WhatsApp via AJAX: {e}", exc_info=True)
@@ -625,8 +488,8 @@ def upload_process_ronda():
                 return jsonify({"success": False, "message": "Nenhum arquivo selecionado."}), 400
             
             filename_lower = whatsapp_file.filename.lower()
-            if not (filename_lower.endswith('.txt') or filename_lower.endswith('.xlsx')):
-                return jsonify({"success": False, "message": "Apenas arquivos .txt e .xlsx são permitidos."}), 400
+            if not filename_lower.endswith('.xlsx'):
+                return jsonify({"success": False, "message": "Apenas arquivos .xlsx são permitidos."}), 400
             
             try:
                 # Salvar o arquivo temporariamente para processamento
@@ -634,163 +497,87 @@ def upload_process_ronda():
                 temp_filepath = os.path.join(temp_dir, whatsapp_file.filename)
                 whatsapp_file.save(temp_filepath)
                 logger.info(f"Arquivo temporário salvo em: {temp_filepath}")
-                filename_to_use = whatsapp_file.filename
             except Exception as e:
                 logger.error(f"Erro ao salvar arquivo temporário: {e}", exc_info=True)
                 return jsonify({"success": False, "message": "Erro ao salvar arquivo temporário no servidor."}), 500
 
         try:
-            if filename_lower.endswith('.xlsx'):
-                # Processamento de Excel (.xlsx)
-                parsed_data = ExcelProcessor.parse_excel_file(temp_filepath)
-                if not parsed_data.get("success"):
-                    os.remove(temp_filepath)
-                    return jsonify({"success": False, "message": parsed_data.get("message")}), 400
+            # Processamento de Excel (.xlsx)
+            parsed_data = ExcelProcessor.parse_excel_file(temp_filepath)
+            if not parsed_data.get("success"):
+                os.remove(temp_filepath)
+                return jsonify({"success": False, "message": parsed_data.get("message")}), 400
+            
+            system_user = get_system_user()
+            if not system_user:
+                os.remove(temp_filepath)
+                return jsonify({"success": False, "message": "Nenhum administrador encontrado para o sistema."}), 500
+            
+            # Supervisor (busca flexível)
+            supervisor_id_db = None
+            if parsed_data.get("supervisor"):
+                sup_name = parsed_data["supervisor"].strip().lower()
+                supervisors = User.query.filter_by(is_supervisor=True).all()
+                for s in supervisors:
+                    username_lower = s.username.lower()
+                    if sup_name in username_lower or username_lower in sup_name:
+                        supervisor_id_db = str(s.id)
+                        break
+            
+            total_rondas_salvas = 0
+            messages = []
+            
+            for condo_name, rounds in parsed_data.get("condominios", {}).items():
+                if not rounds:
+                    continue
                 
-                system_user = get_system_user()
-                if not system_user:
-                    os.remove(temp_filepath)
-                    return jsonify({"success": False, "message": "Nenhum administrador encontrado para o sistema."}), 500
-                
-                # Supervisor (busca flexível)
-                supervisor_id_db = None
-                if parsed_data.get("supervisor"):
-                    sup_name = parsed_data["supervisor"].strip().lower()
-                    supervisors = User.query.filter_by(is_supervisor=True).all()
-                    for s in supervisors:
-                        username_lower = s.username.lower()
-                        if sup_name in username_lower or username_lower in sup_name:
-                            supervisor_id_db = str(s.id)
-                            break
-                
-                total_rondas_salvas = 0
-                messages = []
-                
-                for condo_name, rounds in parsed_data.get("condominios", {}).items():
-                    if not rounds:
+                try:
+                    # Busca condomínio ou cria se não existir
+                    condominio = Condominio.query.filter(func.lower(Condominio.nome) == func.lower(condo_name)).first()
+                    if not condominio:
+                        condominio = Condominio(nome=condo_name)
+                        db.session.add(condominio)
+                        db.session.flush()
+                        logger.info(f"Condomínio '{condo_name}' criado automaticamente.")
+                    
+                    log_bruto = ExcelProcessor.generate_simulated_whatsapp_log(parsed_data, condo_name)
+                    if not log_bruto:
                         continue
                     
-                    try:
-                        # Busca condomínio ou cria se não existir
-                        condominio = Condominio.query.filter(func.lower(Condominio.nome) == func.lower(condo_name)).first()
-                        if not condominio:
-                            condominio = Condominio(nome=condo_name)
-                            db.session.add(condominio)
-                            db.session.flush()
-                            logger.info(f"Condomínio '{condo_name}' criado automaticamente.")
-                        
-                        log_bruto = ExcelProcessor.generate_simulated_whatsapp_log(parsed_data, condo_name)
-                        if not log_bruto:
-                            continue
-                        
-                        ronda_data = {
-                            "condominio_id": str(condominio.id),
-                            "data_plantao": parsed_data.get("data_iso"),
-                            "escala_plantao": parsed_data.get("escala_plantao"),
-                            "log_bruto": log_bruto,
-                            "ronda_id": None,
-                            "supervisor_id": supervisor_id_db,
-                        }
-                        
-                        success, message, status_code, ronda_id = RondaRoutesService.salvar_ronda(ronda_data, system_user)
-                        
-                        if success:
-                            total_rondas_salvas += 1
-                            messages.append(f"✅ Ronda para {condo_name} em {parsed_data.get('data_plantao')} registrada! ID: {ronda_id}")
-                        else:
-                            messages.append(f"❌ Falha ao registrar ronda para {condo_name}: {message}")
-                            logger.error(f"Erro ao salvar ronda via upload Excel: {message}")
-                    except Exception as e:
-                        error_msg = f"Erro ao processar condomínio {condo_name}: {str(e)}"
-                        messages.append(f"❌ {error_msg}")
-                        logger.error(error_msg, exc_info=True)
-                
-                os.remove(temp_filepath)
-                
-                if total_rondas_salvas > 0:
-                    return jsonify({
-                        "success": True,
-                        "message": f"🎉 Processamento do Excel concluído! {total_rondas_salvas} ronda(s) salva(s).<br><br><strong>Detalhes:</strong><br>" + "<br>".join(messages)
-                    }), 200
-                else:
-                    return jsonify({
-                        "success": False,
-                        "message": "⚠️ Nenhuma ronda foi salva do arquivo Excel.<br><br><strong>Detalhes:</strong><br>" + "<br>".join(messages)
-                    }), 500
-            
-            else:
-                # Mantém fluxo original para arquivo de texto .txt
-                condominio = infer_condominio_from_filename(filename_to_use)
-                if not condominio:
-                    os.remove(temp_filepath)
-                    return jsonify({"success": False, "message": f"Não foi possível identificar o condomínio pelo nome do arquivo '{filename_to_use}'."}), 400
-
-                processor = WhatsAppProcessor()
-                plantoes_encontrados = processor.process_file(temp_filepath)
-                
-                if not plantoes_encontrados:
-                    os.remove(temp_filepath)
-                    return jsonify({"success": False, "message": "Nenhuma mensagem de plantão válida encontrada no arquivo."}), 404
-
-                filtered_plantoes = []
-                for plantao in plantoes_encontrados:
-                    process_this_plantao = True
-                    if month and plantao.data.month != month:
-                        process_this_plantao = False
-                    if year and plantao.data.year != year:
-                        process_this_plantao = False
+                    ronda_data = {
+                        "condominio_id": str(condominio.id),
+                        "data_plantao": parsed_data.get("data_iso"),
+                        "escala_plantao": parsed_data.get("escala_plantao"),
+                        "log_bruto": log_bruto,
+                        "ronda_id": None,
+                        "supervisor_id": supervisor_id_db,
+                    }
                     
-                    if process_this_plantao:
-                        filtered_plantoes.append(plantao)
+                    success, message, status_code, ronda_id = RondaRoutesService.salvar_ronda(ronda_data, system_user)
+                    
+                    if success:
+                        total_rondas_salvas += 1
+                        messages.append(f"✅ Ronda para {condo_name} em {parsed_data.get('data_plantao')} registrada! ID: {ronda_id}")
                     else:
-                        logger.info(f"Pulando plantão em {plantao.data.strftime('%d/%m/%Y')} ({plantao.tipo}) devido a filtros.")
-
-                if not filtered_plantoes:
-                    os.remove(temp_filepath)
-                    return jsonify({"success": False, "message": "Nenhum plantão corresponde aos filtros selecionados."}), 404
-
-                system_user = get_system_user()
-                total_rondas_salvas = 0
-                messages = []
-
-                for plantao in filtered_plantoes:
-                    try:
-                        log_bruto = processor.format_for_ronda_log(plantao)
-                        escala_plantao = "06h às 18h" if plantao.tipo == "diurno" else "18h às 06h"
-
-                        ronda_data = {
-                            "condominio_id": str(condominio.id),
-                            "data_plantao": plantao.data.strftime("%Y-%m-%d"),
-                            "escala_plantao": escala_plantao,
-                            "log_bruto": log_bruto,
-                            "ronda_id": None,
-                            "supervisor_id": None,
-                        }
-                        
-                        success, message, status_code, ronda_id = RondaRoutesService.salvar_ronda(ronda_data, system_user)
-                        
-                        if success:
-                            total_rondas_salvas += 1
-                            messages.append(f"✅ Ronda para {condominio.nome} em {plantao.data.strftime('%d/%m/%Y')} ({plantao.tipo}) registrada! ID: {ronda_id}")
-                        else:
-                            messages.append(f"❌ Falha ao registrar ronda para {condominio.nome} em {plantao.data.strftime('%d/%m/%Y')} ({plantao.tipo}): {message}")
-                    except Exception as e:
-                        error_msg = f"Erro ao processar plantão {plantao.data.strftime('%d/%m/%Y')} ({plantao.tipo}): {str(e)}"
-                        messages.append(f"❌ {error_msg}")
-                        logger.error(error_msg, exc_info=True)
-
-                os.remove(temp_filepath)
-                
-                if total_rondas_salvas > 0:
-                    return jsonify({
-                        "success": True,
-                        "message": f"🎉 Processamento concluído! {total_rondas_salvas} ronda(s) salva(s).<br><br><strong>Detalhes:</strong><br>" + "<br>".join(messages)
-                    }), 200
-                else:
-                    return jsonify({
-                        "success": False,
-                        "message": "⚠️ Nenhuma ronda foi salva. Verifique os logs.<br><br><strong>Detalhes:</strong><br>" + "<br>".join(messages)
-                    }), 500
+                        messages.append(f"❌ Falha ao registrar ronda para {condo_name}: {message}")
+                        logger.error(f"Erro ao salvar ronda via upload Excel: {message}")
+                except Exception as e:
+                    error_msg = f"Erro ao processar condomínio {condo_name}: {str(e)}"
+                    messages.append(f"❌ {error_msg}")
+                    logger.error(error_msg, exc_info=True)
+            
+            os.remove(temp_filepath)
+            
+            if total_rondas_salvas > 0:
+                return jsonify({
+                    "success": True,
+                    "message": f"🎉 Processamento do Excel concluído! {total_rondas_salvas} ronda(s) salva(s).<br><br><strong>Detalhes:</strong><br>" + "<br>".join(messages)
+                }), 200
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": "⚠️ Nenhuma ronda foi salva do arquivo Excel.<br><br><strong>Detalhes:</strong><br>" + "<br>".join(messages)
+                }), 500
 
         except Exception as e:
             logger.error(f"Erro geral no upload e processamento de ronda: {e}", exc_info=True)

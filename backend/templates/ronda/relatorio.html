@@ -23,7 +23,7 @@ block head %} {{ super() }}
             {% if current_user.is_admin %}
             <li class="nav-item" role="presentation">
               <button class="nav-link fw-bold py-3 px-4 border-0" id="lote-tab" data-bs-toggle="tab" data-bs-target="#lote-pane" type="button" role="tab" aria-controls="lote-pane" aria-selected="false" style="color: var(--accent-color);">
-                <i class="bi bi-cloud-arrow-up-fill me-2 text-success"></i>Upload em Lote (.txt / .xlsx)
+                <i class="bi bi-cloud-arrow-up-fill me-2 text-success"></i>Upload em Lote (.xlsx)
               </button>
             </li>
             {% endif %}
@@ -69,11 +69,11 @@ block head %} {{ super() }}
                     label_text='NOME DO NOVO CONDOMÍNIO') }}
                   </div>
                   
-                  <!-- Campo de upload WhatsApp - Apenas para Administradores -->
+                  <!-- Campo de upload Planilha - Apenas para Administradores -->
                   {% if current_user.is_admin %}
                   <div class="mb-3">
-                    <label for="{{ form.arquivo_whatsapp.id }}" class="form-label">
-                      <strong>{{ form.arquivo_whatsapp.label.text }}</strong>
+                    <label for="arquivo_whatsapp" class="form-label">
+                      <strong>Planilha Excel de Rondas</strong>
                       <small class="text-muted ms-2">(Opcional - preenche o log automaticamente)</small>
                       <span class="badge bg-warning ms-2">ADMIN</span>
                     </label>
@@ -91,25 +91,18 @@ block head %} {{ super() }}
                     </div>
                     
                     <div class="input-group">
-                      {{ form.arquivo_whatsapp(class="form-control", accept=".txt,.xlsx") }}
-                      <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('{{ form.arquivo_whatsapp.id }}').click()">
-                        <i class="fas fa-folder-open"></i> Escolher
+                      <input type="file" id="arquivo_whatsapp" name="arquivo_whatsapp" class="form-control" accept=".xlsx" style="display: none;">
+                      <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('arquivo_whatsapp').click()">
+                        <i class="fas fa-folder-open"></i> Escolher Planilha
                       </button>
                       <button class="btn btn-outline-secondary" type="button" id="googleDriveBtnManual">
                         <i class="bi bi-google me-1"></i> Google Drive
                       </button>
                     </div>
                     
-                    {% if form.arquivo_whatsapp.errors %}
-                      <div class="text-danger mt-1">
-                        {% for error in form.arquivo_whatsapp.errors %}
-                          <small>{{ error }}</small><br>
-                        {% endfor %}
-                      </div>
-                    {% endif %}
                     <div class="form-text">
                       <i class="fas fa-info-circle me-1"></i>
-                      Faça o upload de logs do WhatsApp ou Excel de um condomínio específico para preencher o log abaixo automaticamente.
+                      Faça o upload de uma planilha Excel (.xlsx) de um condomínio específico para preencher o log abaixo automaticamente.
                     </div>
                   </div>
                   {% endif %}
@@ -131,43 +124,18 @@ block head %} {{ super() }}
               <form id="lote-upload-form" enctype="multipart/form-data" class="d-flex flex-column h-100">
                 <p class="text-muted small mb-4">
                   <i class="bi bi-info-circle-fill text-primary me-1"></i>
-                  Faça o upload de um arquivo de log do WhatsApp (.txt) ou Excel (.xlsx) contendo as rondas de múltiplos condomínios para processar e salvá-las no sistema automaticamente de uma só vez.
+                  Faça o upload de uma planilha Excel (.xlsx) contendo as rondas de múltiplos condomínios para processar e salvá-las no sistema automaticamente de uma só vez.
                 </p>
                 
                 <div class="mb-3">
-                  <label for="lote_arquivo" class="form-label fw-bold">Arquivo de Origem (.txt ou .xlsx)</label>
+                  <label for="lote_arquivo" class="form-label fw-bold">Planilha Excel (.xlsx)</label>
                   <div class="input-group">
-                    <input type="file" id="lote_arquivo" name="whatsapp_file" accept=".txt,.xlsx" required class="form-control">
+                    <input type="file" id="lote_arquivo" name="whatsapp_file" accept=".xlsx" required class="form-control">
                     <button class="btn btn-outline-secondary" type="button" id="googleDriveBtnLote">
                       <i class="bi bi-google me-1"></i> Google Drive
                     </button>
                   </div>
-                  <div class="form-text">Apenas arquivos .txt e .xlsx são permitidos ou selecione do Google Drive.</div>
-                </div>
-
-                <div class="row g-3 mb-4">
-                  <div class="col-md-6">
-                    <label for="lote_month" class="form-label fw-bold">Mês (Opcional - apenas para .txt)</label>
-                    <select id="lote_month" name="month" class="form-select">
-                      <option value="">Todos os Meses</option>
-                      <option value="1">Janeiro</option>
-                      <option value="2">Fevereiro</option>
-                      <option value="3">Março</option>
-                      <option value="4">Abril</option>
-                      <option value="5">Maio</option>
-                      <option value="6">Junho</option>
-                      <option value="7">Julho</option>
-                      <option value="8">Agosto</option>
-                      <option value="9">Setembro</option>
-                      <option value="10">Outubro</option>
-                      <option value="11">Novembro</option>
-                      <option value="12">Dezembro</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label for="lote_year" class="form-label fw-bold">Ano (Opcional - apenas para .txt)</label>
-                    <input type="number" id="lote_year" name="year" placeholder="Ex: 2024" class="form-control">
-                  </div>
+                  <div class="form-text">Apenas planilhas Excel (.xlsx) são permitidas ou selecione do Google Drive.</div>
                 </div>
 
                 <div class="d-grid mt-auto">
@@ -243,7 +211,7 @@ block head %} {{ super() }}
           $('#supervisor_id').select2({ ...select2Config, placeholder: "Selecione ou deixe automático", allowClear: true });
 
           // DOM references defined early
-          const whatsappFileInput = document.getElementById('{{ form.arquivo_whatsapp.id }}');
+          const whatsappFileInput = document.getElementById('arquivo_whatsapp');
           const dataPlantaoInput = document.getElementById('{{ form.data_plantao.id }}');
           const escalaPlantaoSelect = document.getElementById('{{ form.escala_plantao.id }}');
           const logBrutoTextarea = document.getElementById('{{ form.log_bruto_rondas.id }}');
@@ -324,7 +292,7 @@ block head %} {{ super() }}
           function createPicker() {
               const docsView = new google.picker.DocsView()
                   .setIncludeFolders(true)
-                  .setMimeTypes("text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                  .setMimeTypes("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
               const picker = new google.picker.PickerBuilder()
                   .addView(docsView)
@@ -425,10 +393,7 @@ block head %} {{ super() }}
               formData.append('google_file_name', fileName);
               formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
               
-              const month = document.getElementById('lote_month').value;
-              const year = document.getElementById('lote_year').value;
-              if (month) formData.append('month', month);
-              if (year) formData.append('year', year);
+              // Mês/Ano removidos para Excel em Lote
               
               try {
                   const response = await fetch("{{ url_for('ronda.upload_process_ronda') }}", {
@@ -793,10 +758,7 @@ block head %} {{ super() }}
                   formData.append('whatsapp_file', fileInput.files[0]);
                   formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
                   
-                  const month = document.getElementById('lote_month').value;
-                  const year = document.getElementById('lote_year').value;
-                  if (month) formData.append('month', month);
-                  if (year) formData.append('year', year);
+                  // Mês/Ano removidos para Excel em Lote
                   
                   try {
                       const response = await fetch("{{ url_for('ronda.upload_process_ronda') }}", {

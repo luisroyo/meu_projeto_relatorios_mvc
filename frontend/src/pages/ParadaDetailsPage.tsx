@@ -227,7 +227,7 @@ const ParadaDetailsPage: React.FC = () => {
             <Card sx={{ borderRadius: 3, flex: 1 }}>
               <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 <Typography variant="h6" fontWeight={600} gutterBottom color="primary">
-                  Log Bruto de Mensagens (WhatsApp)
+                  Log Bruto de Mensagens
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
                 <Box

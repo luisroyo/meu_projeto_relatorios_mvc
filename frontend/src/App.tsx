@@ -35,7 +35,7 @@ import OcorrenciaDashboardPage from './pages/admin/OcorrenciaDashboardPage';
 import DashboardComparativoPage from './pages/admin/DashboardComparativoPage';
 import ColaboradorManagementPage from './pages/admin/ColaboradorManagementPage';
 import ParadaDashboardPage from './pages/admin/ParadaDashboardPage';
-import WhatsAppConfigPage from './pages/WhatsAppConfigPage';
+
 
 // Componente principal da aplicação
 const AppContent: React.FC = () => {
@@ -46,7 +46,7 @@ const AppContent: React.FC = () => {
   return (
     <ThemeProvider theme={createAppTheme(theme)}>
       <CssBaseline />
-      <Router>
+      <Router basename="/static/react">
         <Routes>
           {/* Rotas públicas */}
           <Route path="/login" element={
@@ -83,7 +83,6 @@ const AppContent: React.FC = () => {
                   <Route path="paradas-dashboard" element={<ParadaDashboardPage />} />
                   <Route path="comparativo-dashboard" element={<DashboardComparativoPage />} />
                   <Route path="colaboradores" element={<ColaboradorManagementPage />} />
-                  <Route path="whatsapp" element={<WhatsAppConfigPage />} />
                 </Route>
               </>
             )}

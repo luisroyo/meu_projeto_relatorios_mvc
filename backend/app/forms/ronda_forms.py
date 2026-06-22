@@ -29,10 +29,8 @@ class TestarRondasForm(FlaskForm):
     supervisor_id = SelectField(
         "Supervisor da Ronda", coerce=int, validators=[Optional()]
     )
-    arquivo_whatsapp = FileField(
-        "Arquivo de Origem (.txt ou .xlsx) - Opcional",
-        validators=[FileAllowed(['txt', 'xlsx'], message="Apenas arquivos .txt e .xlsx são permitidos.")]
-    )
+
+
     log_bruto_rondas = TextAreaField(
         "Log Bruto das Rondas",
         validators=[DataRequired(message="Insira o log bruto das rondas.")],
