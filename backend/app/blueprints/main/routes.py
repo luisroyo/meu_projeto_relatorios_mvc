@@ -7,7 +7,10 @@ from flask_login import current_user, login_required
 
 from app import db, limiter
 from app.forms import AnalisadorForm  # Verifique se este import está correto
-from app.models import ProcessingHistory
+from app.models import ProcessingHistory, Ocorrencia, Ronda, OcorrenciaTipo, Condominio
+from sqlalchemy import func
+import json
+from datetime import datetime, timedelta, timezone
 from app.services.patrimonial_report_service import PatrimonialReportService
 from app.services import ocorrencia_service
 
@@ -24,10 +27,44 @@ def _get_patrimonial_service():
     return g.patrimonial_service
 
 
-@main_bp.route("/", methods=["GET", "POST"])
-@limiter.limit("200 per hour")
+@main_bp.route("/", methods=["GET"])
 @login_required
 def index():
+    # 1. Total de Ocorrências e Rondas (geral)
+    total_ocorrencias = db.session.query(func.count(Ocorrencia.id)).scalar()
+    total_rondas = db.session.query(func.count(Ronda.id)).scalar()
+
+    # 2. Rondas por Condomínio (Volume)
+    rondas_por_cond = db.session.query(
+        Condominio.nome, func.count(Ronda.id)
+    ).join(Ronda, Condominio.id == Ronda.condominio_id).group_by(Condominio.nome).all()
+    
+    rondas_labels = [r[0] for r in rondas_por_cond]
+    rondas_data = [r[1] for r in rondas_por_cond]
+
+    # 3. Ocorrências por Tipo
+    oc_por_tipo = db.session.query(
+        OcorrenciaTipo.nome, func.count(Ocorrencia.id)
+    ).join(Ocorrencia, OcorrenciaTipo.id == Ocorrencia.ocorrencia_tipo_id).group_by(OcorrenciaTipo.nome).all()
+
+    tipo_labels = [r[0] for r in oc_por_tipo]
+    tipo_data = [r[1] for r in oc_por_tipo]
+
+    return render_template(
+        "dashboard.html",
+        title="Dashboard Executivo",
+        total_ocorrencias=total_ocorrencias,
+        total_rondas=total_rondas,
+        rondas_labels=json.dumps(rondas_labels),
+        rondas_data=json.dumps(rondas_data),
+        tipo_labels=json.dumps(tipo_labels),
+        tipo_data=json.dumps(tipo_data)
+    )
+
+@main_bp.route("/analisador", methods=["GET", "POST"])
+@limiter.limit("200 per hour")
+@login_required
+def analisador():
     form = AnalisadorForm()
     relatorio_corrigido = None
 
@@ -69,7 +106,7 @@ def index():
 
         # Ao final do POST, re-renderiza a página com o formulário e o resultado
         return render_template(
-            "index.html",
+            "analisador.html",
             title="Resultado da Análise",
             form=form,
             relatorio_corrigido=relatorio_corrigido,
@@ -83,7 +120,7 @@ def index():
     ocorrencias_pendentes_count = ocorrencia_service.contar_ocorrencias_pendentes()
     
     return render_template(
-        "index.html",
+        "analisador.html",
         title="Analisador de Relatórios IA",
         form=form,
         relatorio_corrigido=relatorio_corrigido,

@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Executivo{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+    .kpi-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 20px;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .kpi-card h3 { margin: 0; font-size: 1.2rem; opacity: 0.9; }
+    .kpi-card .value { font-size: 2.5rem; font-weight: bold; margin: 0; }
+    .bg-gradient-primary { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); }
+    .bg-gradient-success { background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); }
+    
+    .chart-container {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        margin-bottom: 24px;
+    }
+    
+    /* Para a impressão não cortar os gráficos e ocultar os botões */
+    @media print {
+        .no-print { display: none !important; }
+        .chart-container { page-break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
+        .kpi-card { color: black !important; box-shadow: none; border: 1px solid #ccc; background: transparent !important; }
+        .kpi-card * { color: black !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4" id="dashboard-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-graph-up-arrow me-2"></i>Dashboard Executivo</h2>
+        <button onclick="exportToPDF()" class="btn btn-outline-primary no-print">
+            <i class="bi bi-file-earmark-pdf me-2"></i>Exportar para PDF
+        </button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="kpi-card bg-gradient-primary">
+                <div>
+                    <h3>Total de Ocorrências</h3>
+                    <p class="value">{{ total_ocorrencias }}</p>
+                </div>
+                <i class="bi bi-shield-exclamation" style="font-size: 3rem; opacity: 0.5;"></i>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="kpi-card bg-gradient-success">
+                <div>
+                    <h3>Volume de Rondas</h3>
+                    <p class="value">{{ total_rondas }}</p>
+                </div>
+                <i class="bi bi-shield-check" style="font-size: 3rem; opacity: 0.5;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="chart-container h-100">
+                <h5 class="mb-3 text-center text-muted">Ocorrências por Tipologia</h5>
+                <canvas id="tipoChart" height="250"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="chart-container h-100">
+                <h5 class="mb-3 text-center text-muted">Volume de Rondas por Condomínio</h5>
+                <canvas id="rondasChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoLabels = JSON.parse('{{ tipo_labels | safe }}');
+    const tipoData = JSON.parse('{{ tipo_data | safe }}');
+    
+    const rondasLabels = JSON.parse('{{ rondas_labels | safe }}');
+    const rondasData = JSON.parse('{{ rondas_data | safe }}');
+
+    // Cores aleatórias suaves para os gráficos
+    const generateColors = (count) => {
+        const colors = [
+            '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', 
+            '#858796', '#5a5c69', '#2e59d9', '#17a673', '#2c9faf'
+        ];
+        return Array(count).fill().map((_, i) => colors[i % colors.length]);
+    };
+
+    // Gráfico de Tipos (Pie)
+    if(tipoLabels.length > 0) {
+        new Chart(document.getElementById('tipoChart'), {
+            type: 'doughnut',
+            data: {
+                labels: tipoLabels,
+                datasets: [{
+                    data: tipoData,
+                    backgroundColor: generateColors(tipoLabels.length),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    // Gráfico de Rondas por Condomínio (Bar)
+    if(rondasLabels.length > 0) {
+        new Chart(document.getElementById('rondasChart'), {
+            type: 'bar',
+            data: {
+                labels: rondasLabels,
+                datasets: [{
+                    label: 'Qtd de Rondas',
+                    data: rondasData,
+                    backgroundColor: '#4e73df',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+});
+
+// Função para exportar para PDF
+function exportToPDF() {
+    const element = document.getElementById('dashboard-content');
+    const opt = {
+        margin:       10,
+        filename:     'Dashboard_Executivo.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    // Temporariamente esconde os botões .no-print antes de gerar o PDF
+    const btn = document.querySelector('.no-print');
+    btn.style.display = 'none';
+
+    html2pdf().set(opt).from(element).save().then(() => {
+        // Restaura o botão
+        btn.style.display = 'block';
+    });
+}
+</script>
+{% endblock %}
