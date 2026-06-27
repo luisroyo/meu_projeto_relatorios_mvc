@@ -7,7 +7,7 @@ from flask_login import current_user, login_required
 
 from app import db, limiter
 from app.forms import AnalisadorForm  # Verifique se este import está correto
-from app.models import ProcessingHistory, Ocorrencia, Ronda, OcorrenciaTipo, Condominio
+from app.models import ProcessingHistory, Ocorrencia, Ronda, OcorrenciaTipo, Condominio, Parada
 from sqlalchemy import func
 import json
 from datetime import datetime, timedelta, timezone
@@ -42,6 +42,10 @@ def index():
         Ronda.data_hora_inicio >= inicio_mes
     ).scalar()
 
+    total_paradas = db.session.query(func.count(Parada.id)).filter(
+        Parada.data_hora_inicio >= inicio_mes
+    ).scalar()
+
     # 2. Rondas por Condomínio (Volume Mês Vigente)
     rondas_por_cond = db.session.query(
         Condominio.nome, func.count(Ronda.id)
@@ -67,6 +71,7 @@ def index():
         title="Dashboard Executivo",
         total_ocorrencias=total_ocorrencias,
         total_rondas=total_rondas,
+        total_paradas=total_paradas,
         rondas_labels=json.dumps(rondas_labels),
         rondas_data=json.dumps(rondas_data),
         tipo_labels=json.dumps(tipo_labels),
