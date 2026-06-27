@@ -30,22 +30,34 @@ def _get_patrimonial_service():
 @main_bp.route("/", methods=["GET"])
 @login_required
 def index():
-    # 1. Total de Ocorrências e Rondas (geral)
-    total_ocorrencias = db.session.query(func.count(Ocorrencia.id)).scalar()
-    total_rondas = db.session.query(func.count(Ronda.id)).scalar()
+    hoje = datetime.now(timezone.utc)
+    inicio_mes = hoje.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    # 2. Rondas por Condomínio (Volume)
+    # 1. Total de Ocorrências e Rondas (Mês vigente)
+    total_ocorrencias = db.session.query(func.count(Ocorrencia.id)).filter(
+        Ocorrencia.data_hora_ocorrencia >= inicio_mes
+    ).scalar()
+    
+    total_rondas = db.session.query(func.count(Ronda.id)).filter(
+        Ronda.data_hora_inicio >= inicio_mes
+    ).scalar()
+
+    # 2. Rondas por Condomínio (Volume Mês Vigente)
     rondas_por_cond = db.session.query(
         Condominio.nome, func.count(Ronda.id)
-    ).join(Ronda, Condominio.id == Ronda.condominio_id).group_by(Condominio.nome).all()
+    ).join(Ronda, Condominio.id == Ronda.condominio_id).filter(
+        Ronda.data_hora_inicio >= inicio_mes
+    ).group_by(Condominio.nome).all()
     
     rondas_labels = [r[0] for r in rondas_por_cond]
     rondas_data = [r[1] for r in rondas_por_cond]
 
-    # 3. Ocorrências por Tipo
+    # 3. Ocorrências por Tipo (Mês Vigente)
     oc_por_tipo = db.session.query(
         OcorrenciaTipo.nome, func.count(Ocorrencia.id)
-    ).join(Ocorrencia, OcorrenciaTipo.id == Ocorrencia.ocorrencia_tipo_id).group_by(OcorrenciaTipo.nome).all()
+    ).join(Ocorrencia, OcorrenciaTipo.id == Ocorrencia.ocorrencia_tipo_id).filter(
+        Ocorrencia.data_hora_ocorrencia >= inicio_mes
+    ).group_by(OcorrenciaTipo.nome).all()
 
     tipo_labels = [r[0] for r in oc_por_tipo]
     tipo_data = [r[1] for r in oc_por_tipo]
