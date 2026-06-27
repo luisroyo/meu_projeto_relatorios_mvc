@@ -56,9 +56,18 @@ class PatrimonialReportService(BaseGenerativeService):
                 "Os dados brutos para o relatório devem ser fornecidos como uma string."
             )
 
+        # Instrução adicional para corrigir o contexto de Associação Master e Office
+        instrucao_contexto = (
+            "\n\nOBSERVAÇÃO IMPORTANTE PARA A IA:\n"
+            "A Associação Master NÃO é um residencial.\n"
+            "O Office também NÃO é um residencial.\n"
+            "Adeque os termos do relatório (evite 'morador', 'residência', etc) para estes locais."
+        )
+        dados_com_instrucao = dados_brutos + instrucao_contexto
+
         try:
             # O template 'patrimonial_security_report_template.txt' espera um placeholder {dados_brutos}
-            prompt_final = self._template.render(dados_brutos=dados_brutos)
+            prompt_final = self._template.render(dados_brutos=dados_com_instrucao)
             self.logger.debug(
                 f"Prompt para Relatório Patrimonial (primeiros 100 chars): {prompt_final[:100]}..."
             )
