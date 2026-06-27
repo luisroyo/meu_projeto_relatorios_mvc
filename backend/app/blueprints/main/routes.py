@@ -66,13 +66,13 @@ def index():
         Parada.data_hora_inicio <= fim_mes
     ).scalar()
 
-    # 2. Rondas por Condomínio (Volume Mês)
+    # 2. Rondas por Condomínio (Volume Mês) - Top 10
     rondas_por_cond = db.session.query(
-        Condominio.nome, func.count(Ronda.id)
+        Condominio.nome, func.count(Ronda.id).label('total')
     ).join(Ronda, Condominio.id == Ronda.condominio_id).filter(
         Ronda.data_hora_inicio >= inicio_mes,
         Ronda.data_hora_inicio <= fim_mes
-    ).group_by(Condominio.nome).all()
+    ).group_by(Condominio.nome).order_by(db.desc('total')).limit(10).all()
     
     rondas_labels = [r[0] for r in rondas_por_cond]
     rondas_data = [r[1] for r in rondas_por_cond]
