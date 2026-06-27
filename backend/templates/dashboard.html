@@ -43,11 +43,20 @@
 
 {% block content %}
 <div class="container-fluid mt-4" id="dashboard-content">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-graph-up-arrow me-2"></i>Dashboard Executivo</h2>
-        <button onclick="exportToPDF()" class="btn btn-outline-primary no-print">
-            <i class="bi bi-file-earmark-pdf me-2"></i>Exportar para PDF
-        </button>
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+        <h2><i class="bi bi-graph-up-arrow me-2"></i>Dashboard Executivo <span class="text-muted fs-5">- {{ nome_mes_exibicao }}</span></h2>
+        
+        <div class="d-flex align-items-center gap-3 mt-3 mt-md-0 no-print">
+            <form action="{{ url_for('main.index') }}" method="GET" class="d-flex align-items-center m-0">
+                <label for="mes_ano" class="me-2 fw-bold text-muted mb-0">Mês/Ano:</label>
+                <input type="month" id="mes_ano" name="mes_ano" class="form-control form-control-sm me-2" value="{{ mes_ano_param }}">
+                <button type="submit" class="btn btn-sm btn-primary">Filtrar</button>
+            </form>
+
+            <button onclick="exportToPDF()" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+            </button>
+        </div>
     </div>
 
     <!-- KPIs -->

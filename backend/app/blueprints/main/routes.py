@@ -11,6 +11,7 @@ from app.models import ProcessingHistory, Ocorrencia, Ronda, OcorrenciaTipo, Con
 from sqlalchemy import func
 import json
 from datetime import datetime, timedelta, timezone
+import calendar
 from app.services.patrimonial_report_service import PatrimonialReportService
 from app.services import ocorrencia_service
 
@@ -30,41 +31,66 @@ def _get_patrimonial_service():
 @main_bp.route("/", methods=["GET"])
 @login_required
 def index():
+    # Parâmetro de mês/ano da URL (formato YYYY-MM)
+    mes_ano_param = request.args.get('mes_ano')
     hoje = datetime.now(timezone.utc)
-    inicio_mes = hoje.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    if mes_ano_param:
+        try:
+            ano_selecionado, mes_selecionado = map(int, mes_ano_param.split('-'))
+            inicio_mes = hoje.replace(year=ano_selecionado, month=mes_selecionado, day=1, hour=0, minute=0, second=0, microsecond=0)
+        except ValueError:
+            inicio_mes = hoje.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            mes_ano_param = f"{hoje.year}-{hoje.month:02d}"
+    else:
+        inicio_mes = hoje.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        mes_ano_param = f"{hoje.year}-{hoje.month:02d}"
 
-    # 1. Total de Ocorrências e Rondas (Mês vigente)
+    # Calcula o fim do mês
+    ultimo_dia = calendar.monthrange(inicio_mes.year, inicio_mes.month)[1]
+    fim_mes = inicio_mes.replace(day=ultimo_dia, hour=23, minute=59, second=59)
+
+    # 1. Total de Ocorrências e Rondas (Mês selecionado)
     total_ocorrencias = db.session.query(func.count(Ocorrencia.id)).filter(
-        Ocorrencia.data_hora_ocorrencia >= inicio_mes
+        Ocorrencia.data_hora_ocorrencia >= inicio_mes,
+        Ocorrencia.data_hora_ocorrencia <= fim_mes
     ).scalar()
     
     total_rondas = db.session.query(func.count(Ronda.id)).filter(
-        Ronda.data_hora_inicio >= inicio_mes
+        Ronda.data_hora_inicio >= inicio_mes,
+        Ronda.data_hora_inicio <= fim_mes
     ).scalar()
 
     total_paradas = db.session.query(func.count(Parada.id)).filter(
-        Parada.data_hora_inicio >= inicio_mes
+        Parada.data_hora_inicio >= inicio_mes,
+        Parada.data_hora_inicio <= fim_mes
     ).scalar()
 
-    # 2. Rondas por Condomínio (Volume Mês Vigente)
+    # 2. Rondas por Condomínio (Volume Mês)
     rondas_por_cond = db.session.query(
         Condominio.nome, func.count(Ronda.id)
     ).join(Ronda, Condominio.id == Ronda.condominio_id).filter(
-        Ronda.data_hora_inicio >= inicio_mes
+        Ronda.data_hora_inicio >= inicio_mes,
+        Ronda.data_hora_inicio <= fim_mes
     ).group_by(Condominio.nome).all()
     
     rondas_labels = [r[0] for r in rondas_por_cond]
     rondas_data = [r[1] for r in rondas_por_cond]
 
-    # 3. Ocorrências por Tipo (Mês Vigente)
+    # 3. Ocorrências por Tipo (Mês Selecionado)
     oc_por_tipo = db.session.query(
         OcorrenciaTipo.nome, func.count(Ocorrencia.id)
     ).join(Ocorrencia, OcorrenciaTipo.id == Ocorrencia.ocorrencia_tipo_id).filter(
-        Ocorrencia.data_hora_ocorrencia >= inicio_mes
+        Ocorrencia.data_hora_ocorrencia >= inicio_mes,
+        Ocorrencia.data_hora_ocorrencia <= fim_mes
     ).group_by(OcorrenciaTipo.nome).all()
 
     tipo_labels = [r[0] for r in oc_por_tipo]
     tipo_data = [r[1] for r in oc_por_tipo]
+    
+    # Formata nome do mes para exibição (ex: Junho de 2026)
+    meses_ptbr = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+    nome_mes_exibicao = f"{meses_ptbr[inicio_mes.month - 1]} de {inicio_mes.year}"
 
     return render_template(
         "dashboard.html",
@@ -75,7 +101,9 @@ def index():
         rondas_labels=json.dumps(rondas_labels),
         rondas_data=json.dumps(rondas_data),
         tipo_labels=json.dumps(tipo_labels),
-        tipo_data=json.dumps(tipo_data)
+        tipo_data=json.dumps(tipo_data),
+        mes_ano_param=mes_ano_param,
+        nome_mes_exibicao=nome_mes_exibicao
     )
 
 @main_bp.route("/analisador", methods=["GET", "POST"])
