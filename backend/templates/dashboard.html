@@ -26,6 +26,9 @@
         padding: 20px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         margin-bottom: 24px;
+        position: relative;
+        height: 350px;
+        width: 100%;
     }
     
     /* Para a impressão não cortar os gráficos e ocultar os botões */
@@ -81,15 +84,15 @@
     <!-- Gráficos -->
     <div class="row">
         <div class="col-lg-6 mb-4">
-            <div class="chart-container h-100">
+            <div class="chart-container">
                 <h5 class="mb-3 text-center text-muted">Ocorrências por Tipologia</h5>
-                <canvas id="tipoChart" height="250"></canvas>
+                <canvas id="tipoChart"></canvas>
             </div>
         </div>
         <div class="col-lg-6 mb-4">
-            <div class="chart-container h-100">
+            <div class="chart-container">
                 <h5 class="mb-3 text-center text-muted">Volume de Rondas por Condomínio</h5>
-                <canvas id="rondasChart" height="250"></canvas>
+                <canvas id="rondasChart"></canvas>
             </div>
         </div>
     </div>
