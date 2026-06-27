@@ -6,7 +6,7 @@ block head %} {{ super() }}
   <div class="mb-4">
     <h2 class="mb-1"><i class="bi bi-pencil-square me-2"></i>{{ title }}</h2>
     <p class="lead text-muted">
-      Insira os dados e o log para gerar um relatório de parada profissional.
+      Insira os dados e o arquivo para gerar o relatório de parada profissional.
     </p>
   </div>
 
@@ -69,13 +69,11 @@ block head %} {{ super() }}
                     label_text='NOME DO NOVO CONDOMÍNIO') }}
                   </div>
                   
-                  <!-- Campo de upload Planilha - Apenas para Administradores -->
-                  {% if current_user.is_admin %}
+                  <!-- Campo de upload Planilha -->
                   <div class="mb-3">
                     <label for="arquivo_whatsapp" class="form-label">
                       <strong>Planilha Excel de Paradas</strong>
-                      <small class="text-muted ms-2">(Opcional - preenche o log automaticamente)</small>
-                      <span class="badge bg-warning ms-2">ADMIN</span>
+                      <small class="text-muted ms-2">(Arquivo contendo os dados)</small>
                     </label>
                     
                     <!-- Status do arquivo fixo -->
@@ -102,12 +100,11 @@ block head %} {{ super() }}
                     
                     <div class="form-text">
                       <i class="fas fa-info-circle me-1"></i>
-                      Faça o upload de uma planilha Excel (.xlsx) de um condomínio específico para preencher o log abaixo automaticamente.
+                      Faça o upload de uma planilha Excel (.xlsx) para carregar os dados.
                     </div>
                   </div>
-                  {% endif %}
                   
-                  <div class="mb-3">
+                  <div class="mb-3 d-none">
                     {{ render_field(form.log_bruto_paradas, label_visible=true,
                     label_text="LOG BRUTO DAS PARADAS", rows="10") }}
                   </div>
@@ -489,10 +486,6 @@ block head %} {{ super() }}
           }
           
           function processarWhatsAppAutomaticamente() {
-              if (!isAdmin) {
-                  showToast('Funcionalidade disponível apenas para administradores.', 'warning');
-                  return;
-              }
               
               const arquivo = whatsappFileInput.files[0];
               const dataPlantao = dataPlantaoInput.value;

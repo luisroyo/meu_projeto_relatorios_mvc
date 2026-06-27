@@ -183,7 +183,6 @@ def excluir_parada(parada_id):
 
 @parada_bp.route("/processar-whatsapp-ajax", methods=["POST"])
 @login_required
-@admin_required
 def processar_whatsapp_ajax():
     """Processa arquivo WhatsApp ou Excel via AJAX para Paradas."""
     try:

@@ -96,6 +96,15 @@ const RondasPage: React.FC = () => {
     'Diurno Impar'
   ]);
 
+  // Estados para Upload
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+
+  useEffect(() => {
+    loadFilterData();
+  }, []);
+
   useEffect(() => {
     loadRondas();
   }, [filters]);
@@ -223,6 +232,114 @@ const RondasPage: React.FC = () => {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setUploadFile(file);
+  };
+
+  const handleUploadSubmit = async () => {
+    if (!uploadFile) return;
+
+    setUploadLoading(true);
+    try {
+      const result = await rondaService.uploadRondaLog(uploadFile);
+
+      if (result.success) {
+        setUploadOpen(false);
+        setUploadFile(null);
+        loadRondas();
+        alert(result.message || 'Arquivo processado com sucesso!');
+      }
+    } catch (err: any) {
+      console.error('Erro no upload de rondas:', err);
+      alert('Erro ao processar arquivo: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  const handleGoogleDriveClick = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+
+    if (!clientId || !apiKey) {
+      alert("Credenciais do Google Drive não configuradas no ambiente.");
+      return;
+    }
+
+    if (!(window as any).google) {
+      alert("Biblioteca do Google API não carregada.");
+      return;
+    }
+
+    const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'https://www.googleapis.com/auth/drive.readonly',
+      callback: async (response: any) => {
+        if (response.error !== undefined) {
+          console.error("Erro na autenticação:", response);
+          return;
+        }
+        const token = response.access_token;
+        
+        const createPicker = () => {
+          const docsView = new (window as any).google.picker.DocsView()
+            .setIncludeFolders(true)
+            .setMimeTypes("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+          const picker = new (window as any).google.picker.PickerBuilder()
+            .addView(docsView)
+            .setOAuthToken(token)
+            .setDeveloperKey(apiKey)
+            .setCallback(async (data: any) => {
+              if (data[(window as any).google.picker.Response.ACTION] === (window as any).google.picker.Action.PICKED) {
+                const doc = data[(window as any).google.picker.Response.DOCUMENTS][0];
+                const fileId = doc[(window as any).google.picker.Document.ID];
+                const fileName = doc[(window as any).google.picker.Document.NAME];
+                
+                await handleGoogleDriveImport(fileId, token, fileName);
+              }
+            })
+            .setTitle("Selecione o arquivo de Rondas")
+            .build();
+          picker.setVisible(true);
+        };
+
+        if (!(window as any).pickerApiLoaded && (window as any).gapi) {
+          (window as any).gapi.load('picker', {
+            'callback': () => {
+              (window as any).pickerApiLoaded = true;
+              createPicker();
+            }
+          });
+        } else {
+          createPicker();
+        }
+      },
+    });
+
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  };
+
+  const handleGoogleDriveImport = async (fileId: string, token: string, fileName: string) => {
+    setUploadLoading(true);
+    try {
+      const result = await rondaService.uploadRondaFromGoogleDrive(fileId, token, fileName);
+
+      if (result.success) {
+        setUploadOpen(false);
+        setUploadFile(null);
+        loadRondas();
+        alert(result.message || 'Arquivo do Google Drive importado com sucesso!');
+      }
+    } catch (err: any) {
+      console.error('Erro no upload via Google Drive:', err);
+      alert('Erro ao processar do Google Drive: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
 
 
   if (loading && rondas.length === 0) {
@@ -248,6 +365,15 @@ const RondasPage: React.FC = () => {
           </Typography>
         </Box>
         <Stack direction="row" spacing={2}>
+          <Button
+            variant="contained"
+            startIcon={<CloudUploadIcon />}
+            onClick={() => setUploadOpen(true)}
+            color="secondary"
+            sx={{ borderRadius: 2 }}
+          >
+            Importar Relatório
+          </Button>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -485,6 +611,58 @@ const RondasPage: React.FC = () => {
         </Card>
       )}
 
+      <Dialog open={uploadOpen} onClose={() => setUploadOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Importar Relatório de Rondas (Excel)</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            <Typography variant="body2" color="text.secondary">
+              Selecione o arquivo Excel (.xlsx) de controle de rondas para processamento em lote.
+            </Typography>
+
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<CloudUploadIcon />}
+              fullWidth
+              sx={{ py: 2.5, borderStyle: 'dashed' }}
+            >
+              {uploadFile ? uploadFile.name : 'Selecionar Arquivo (.xlsx)'}
+              <input
+                type="file"
+                hidden
+                accept=".xlsx"
+                onChange={handleFileChange}
+              />
+            </Button>
+
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', my: 0.5 }}>
+              ou
+            </Typography>
+
+            <Button
+              variant="outlined"
+              onClick={handleGoogleDriveClick}
+              color="info"
+              fullWidth
+              sx={{ py: 2, borderStyle: 'solid' }}
+            >
+              Selecionar do Google Drive
+            </Button>
+
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setUploadOpen(false)}>Cancelar</Button>
+          <Button
+            onClick={handleUploadSubmit}
+            variant="contained"
+            disabled={!uploadFile || uploadLoading}
+            startIcon={uploadLoading && <CircularProgress size={20} color="inherit" />}
+          >
+            {uploadLoading ? 'Processando...' : 'Enviar e Processar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
     </Box>
   );

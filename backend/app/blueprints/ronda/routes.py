@@ -167,7 +167,6 @@ def excluir_ronda(ronda_id):
 
 @ronda_bp.route("/processar-whatsapp-ajax", methods=["POST"])
 @login_required
-@admin_required
 def processar_whatsapp_ajax():
     """Processa arquivo WhatsApp ou Excel via AJAX."""
     try:
