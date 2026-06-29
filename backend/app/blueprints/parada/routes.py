@@ -163,15 +163,18 @@ def listar_paradas():
         Parada.data_hora_inicio >= inicio_mes, Parada.data_hora_inicio <= fim_mes, Parada.data_plantao_parada.isnot(None)
     ).distinct().all()
 
-    dias_por_supervisor = {}
+    rondas_por_supervisor = {}
     for username, data_plantao in rondas_dias_raw:
-        dias_por_supervisor.setdefault(username, set()).add(data_plantao.day)
+        rondas_por_supervisor.setdefault(username, set()).add(data_plantao.day)
+        
+    paradas_por_supervisor = {}
     for username, data_plantao in paradas_dias_raw:
-        dias_por_supervisor.setdefault(username, set()).add(data_plantao.day)
+        paradas_por_supervisor.setdefault(username, set()).add(data_plantao.day)
 
-    dias_por_supervisor_formatado = {
-        u: ', '.join(str(d) for d in sorted(list(ds))) for u, ds in dias_por_supervisor.items()
-    }
+    rondas_formatado = {u: ', '.join(str(d) for d in sorted(list(ds))) for u, ds in rondas_por_supervisor.items()}
+    paradas_formatado = {u: ', '.join(str(d) for d in sorted(list(ds))) for u, ds in paradas_por_supervisor.items()}
+    
+    todos_supervisores = sorted(list(set(rondas_formatado.keys()) | set(paradas_formatado.keys())))
     
     meses_ptbr = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
     nome_mes_atual = f"{meses_ptbr[inicio_mes.month - 1]} de {inicio_mes.year}"
@@ -188,7 +191,9 @@ def listar_paradas():
         supervisores=supervisores,
         turnos=turnos,
         active_filter_params=active_filter_params,
-        dias_por_supervisor=dias_por_supervisor_formatado,
+        todos_supervisores=todos_supervisores,
+        rondas_formatado=rondas_formatado,
+        paradas_formatado=paradas_formatado,
         nome_mes_atual=nome_mes_atual,
     )
 

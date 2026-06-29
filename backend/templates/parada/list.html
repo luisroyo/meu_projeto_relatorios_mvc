@@ -71,17 +71,20 @@
     </div>
     
     <!-- Dias Lançados por Supervisor -->
-    {% if dias_por_supervisor %}
+    {% if todos_supervisores %}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow-sm border-0" style="background-color: #f8f9fa; border-radius: 12px;">
                 <div class="card-body py-2 px-3">
                     <h6 class="mb-2 text-muted" style="font-size: 0.85rem;"><i class="bi bi-calendar-check me-1"></i>Dias de Plantão Lançados por Supervisor ({{ nome_mes_atual }})</h6>
                     <div class="d-flex flex-wrap gap-4">
-                        {% for supervisor, dias in dias_por_supervisor.items() %}
-                        <div style="font-size: 0.85rem;">
-                            <span class="fw-bold text-secondary">{{ supervisor|capitalize }}:</span> 
-                            <span class="text-muted">{{ dias }}</span>
+                        {% for supervisor in todos_supervisores %}
+                        <div style="font-size: 0.85rem; border-left: 2px solid #dee2e6; padding-left: 10px;">
+                            <span class="fw-bold text-secondary">{{ supervisor|capitalize }}</span><br>
+                            <span class="text-muted" style="font-size: 0.75rem;">
+                                <strong>Rondas:</strong> {{ rondas_formatado.get(supervisor, 'Nenhuma') }} <br>
+                                <strong>Paradas:</strong> {{ paradas_formatado.get(supervisor, 'Nenhuma') }}
+                            </span>
                         </div>
                         {% endfor %}
                     </div>
