@@ -253,6 +253,7 @@ block head %} {{ super() }}
               tokenClient = google.accounts.oauth2.initTokenClient({
                   client_id: CLIENT_ID,
                   scope: 'https://www.googleapis.com/auth/drive.readonly',
+                  login_hint: 'supervisores@masterswisspark-campinas.org.br',
                   callback: async (response) => {
                       if (response.error !== undefined) {
                           console.error("Erro na autenticação:", response);
