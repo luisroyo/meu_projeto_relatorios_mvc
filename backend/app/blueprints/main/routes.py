@@ -88,30 +88,6 @@ def index():
     tipo_labels = [r[0] for r in oc_por_tipo]
     tipo_data = [r[1] for r in oc_por_tipo]
     
-    # 4. Rondas lançadas por supervisor no mês selecionado
-    from app.models import User
-    
-    rondas_dias_raw = db.session.query(
-        User.username,
-        Ronda.data_plantao_ronda
-    ).join(Ronda, User.id == Ronda.supervisor_id).filter(
-        Ronda.data_hora_inicio >= inicio_mes,
-        Ronda.data_hora_inicio <= fim_mes,
-        Ronda.data_plantao_ronda.isnot(None)
-    ).distinct().all()
-
-    dias_por_supervisor = {}
-    for username, data_plantao in rondas_dias_raw:
-        if username not in dias_por_supervisor:
-            dias_por_supervisor[username] = set()
-        dias_por_supervisor[username].add(data_plantao.day)
-    
-    # Formatar para exibição: {'luis': '1, 2, 3', 'romel': '5, 6'}
-    dias_por_supervisor_formatado = {}
-    for username, dias_set in dias_por_supervisor.items():
-        dias_ordenados = sorted(list(dias_set))
-        dias_por_supervisor_formatado[username] = ', '.join(str(d) for d in dias_ordenados)
-
     # Formata nome do mes para exibição (ex: Junho de 2026)
     meses_ptbr = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
     nome_mes_exibicao = f"{meses_ptbr[inicio_mes.month - 1]} de {inicio_mes.year}"
@@ -127,8 +103,7 @@ def index():
         tipo_labels=json.dumps(tipo_labels),
         tipo_data=json.dumps(tipo_data),
         mes_ano_param=mes_ano_param,
-        nome_mes_exibicao=nome_mes_exibicao,
-        dias_por_supervisor=dias_por_supervisor_formatado
+        nome_mes_exibicao=nome_mes_exibicao
     )
 
 @main_bp.route("/analisador", methods=["GET", "POST"])
