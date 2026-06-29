@@ -88,7 +88,7 @@ def index():
     tipo_labels = [r[0] for r in oc_por_tipo]
     tipo_data = [r[1] for r in oc_por_tipo]
     
-    # 4. Rondas lançadas por supervisor no mês selecionado
+    # 4. Rondas e Paradas lançadas por supervisor no mês selecionado
     from app.models import User
     
     rondas_dias_raw = db.session.query(
@@ -102,6 +102,20 @@ def index():
 
     dias_por_supervisor = {}
     for username, data_plantao in rondas_dias_raw:
+        if username not in dias_por_supervisor:
+            dias_por_supervisor[username] = set()
+        dias_por_supervisor[username].add(data_plantao.day)
+
+    paradas_dias_raw = db.session.query(
+        User.username,
+        Parada.data_plantao_parada
+    ).join(Parada, User.id == Parada.supervisor_id).filter(
+        Parada.data_hora_inicio >= inicio_mes,
+        Parada.data_hora_inicio <= fim_mes,
+        Parada.data_plantao_parada.isnot(None)
+    ).distinct().all()
+
+    for username, data_plantao in paradas_dias_raw:
         if username not in dias_por_supervisor:
             dias_por_supervisor[username] = set()
         dias_por_supervisor[username].add(data_plantao.day)
