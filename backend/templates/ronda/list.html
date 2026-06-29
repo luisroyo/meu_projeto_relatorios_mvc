@@ -69,6 +69,28 @@
             </form>
         </div>
     </div>
+    
+    <!-- Dias Lançados por Supervisor -->
+    {% if dias_por_supervisor %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0" style="background-color: #f8f9fa; border-radius: 12px;">
+                <div class="card-body py-2 px-3">
+                    <h6 class="mb-2 text-muted" style="font-size: 0.85rem;"><i class="bi bi-calendar-check me-1"></i>Dias de Plantão Lançados por Supervisor ({{ nome_mes_atual }})</h6>
+                    <div class="d-flex flex-wrap gap-4">
+                        {% for supervisor, dias in dias_por_supervisor.items() %}
+                        <div style="font-size: 0.85rem;">
+                            <span class="fw-bold text-secondary">{{ supervisor|capitalize }}:</span> 
+                            <span class="text-muted">{{ dias }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="card shadow-sm">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">

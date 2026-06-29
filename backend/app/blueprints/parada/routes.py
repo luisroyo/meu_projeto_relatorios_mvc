@@ -143,6 +143,39 @@ def listar_paradas():
         flash("Erro ao carregar histórico de paradas. Tente novamente.", "danger")
         return redirect(url_for("main.index"))
 
+    # Dias lançados por supervisor no mês atual
+    from app.models import Ronda
+    import calendar
+    hoje = datetime.now()
+    inicio_mes = hoje.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    ultimo_dia = calendar.monthrange(inicio_mes.year, inicio_mes.month)[1]
+    fim_mes = inicio_mes.replace(day=ultimo_dia, hour=23, minute=59, second=59)
+
+    rondas_dias_raw = db.session.query(User.username, Ronda.data_plantao_ronda).join(
+        Ronda, User.id == Ronda.supervisor_id
+    ).filter(
+        Ronda.data_hora_inicio >= inicio_mes, Ronda.data_hora_inicio <= fim_mes, Ronda.data_plantao_ronda.isnot(None)
+    ).distinct().all()
+
+    paradas_dias_raw = db.session.query(User.username, Parada.data_plantao_parada).join(
+        Parada, User.id == Parada.supervisor_id
+    ).filter(
+        Parada.data_hora_inicio >= inicio_mes, Parada.data_hora_inicio <= fim_mes, Parada.data_plantao_parada.isnot(None)
+    ).distinct().all()
+
+    dias_por_supervisor = {}
+    for username, data_plantao in rondas_dias_raw:
+        dias_por_supervisor.setdefault(username, set()).add(data_plantao.day)
+    for username, data_plantao in paradas_dias_raw:
+        dias_por_supervisor.setdefault(username, set()).add(data_plantao.day)
+
+    dias_por_supervisor_formatado = {
+        u: ', '.join(str(d) for d in sorted(list(ds))) for u, ds in dias_por_supervisor.items()
+    }
+    
+    meses_ptbr = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+    nome_mes_atual = f"{meses_ptbr[inicio_mes.month - 1]} de {inicio_mes.year}"
+
     return render_template(
         "parada/list.html",
         paradas=paradas_pagination.items,
@@ -155,6 +188,8 @@ def listar_paradas():
         supervisores=supervisores,
         turnos=turnos,
         active_filter_params=active_filter_params,
+        dias_por_supervisor=dias_por_supervisor_formatado,
+        nome_mes_atual=nome_mes_atual,
     )
 
 
