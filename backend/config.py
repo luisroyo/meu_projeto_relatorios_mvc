@@ -51,6 +51,9 @@ class Config:
         SQLALCHEMY_ENGINE_OPTIONS = {
             'poolclass': NullPool,
             'pool_pre_ping': False,  # Desabilita para economizar DB
+            'connect_args': {
+                'options': '-c timezone=America/Sao_Paulo'
+            }
         }
     else:
         SQLALCHEMY_ENGINE_OPTIONS = {
@@ -59,6 +62,9 @@ class Config:
             'pool_recycle': 1800,    
             'pool_pre_ping': True,   # Enabled for reliability
             'max_overflow': 10,      # Restored for performance
+            'connect_args': {
+                'options': '-c timezone=America/Sao_Paulo'
+            }
         }
 
 
@@ -173,6 +179,7 @@ class ProductionConfig(Config):
             'connect_args': {
                 'connect_timeout': 5,
                 'application_name': 'gestao_seguranca_app_nullpool',
+                'options': '-c timezone=America/Sao_Paulo'
             }
         }
     elif "neon.tech" in database_url:
@@ -186,6 +193,7 @@ class ProductionConfig(Config):
             'connect_args': {
                 'connect_timeout': 10,
                 'application_name': 'gestao_seguranca_app_neon',
+                'options': '-c timezone=America/Sao_Paulo'
             }
         }
     else:
@@ -202,7 +210,8 @@ class ProductionConfig(Config):
                 'keepalives': 1,
                 'keepalives_idle': 10, # Linux envia keepalive a cada 10s para manter Vivo no proxy Supavisor
                 'keepalives_interval': 10,
-                'keepalives_count': 5
+                'keepalives_count': 5,
+                'options': '-c timezone=America/Sao_Paulo'
             }
         }
     

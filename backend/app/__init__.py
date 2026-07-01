@@ -40,7 +40,23 @@ except ImportError:
     pass
 
 # --- Instância das extensões ---
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+
 db = SQLAlchemy()
+
+@event.listens_for(Engine, "connect")
+def set_timezone(dbapi_connection, connection_record):
+    if hasattr(dbapi_connection, "cursor"):
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("SET TIME ZONE 'America/Sao_Paulo'")
+        except Exception:
+            # If it's not PostgreSQL or doesn't support SET TIME ZONE (like sqlite), just ignore
+            pass
+        finally:
+            cursor.close()
+
 migrate = Migrate()
 login_manager = LoginManager()
 cache = Cache()
