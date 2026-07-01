@@ -781,3 +781,114 @@ def export_ocorrencia_dashboard_pdf_compact():
         logger.error(f"Erro ao gerar relatório PDF compacto de ocorrências: {e}", exc_info=True)
         flash("Erro ao gerar relatório PDF compacto. Tente novamente.", "danger")
         return redirect(url_for("admin.ocorrencia_dashboard"))
+
+
+@admin_bp.route("/divergencias")
+@login_required
+@admin_required
+def relatorio_divergencias():
+    import re
+    from app.models.vw_rondas_detalhadas import VWRondasDetalhadas
+    from app.models.parada import Parada
+    from sqlalchemy import func
+    
+    rondas_threshold = request.args.get("rondas_min", default=12, type=int)
+    paradas_threshold = request.args.get("paradas_min", default=4, type=int)
+    data_inicio = request.args.get("data_inicio")
+    data_fim = request.args.get("data_fim")
+    supervisor_id = request.args.get("supervisor_id", type=int)
+    condominio_nome = request.args.get("condominio")
+    
+    rondas_query = VWRondasDetalhadas.query
+    
+    paradas_query = db.session.query(Parada, Condominio.nome.label("condominio_nome"), User.username.label("supervisor_nome"))\
+        .join(Condominio, Parada.condominio_id == Condominio.id)\
+        .outerjoin(User, Parada.supervisor_id == User.id)
+        
+    if data_inicio:
+        try:
+            rondas_query = rondas_query.filter(VWRondasDetalhadas.data_plantao_ronda >= datetime.strptime(data_inicio, "%Y-%m-%d").date())
+            paradas_query = paradas_query.filter(Parada.data_plantao_parada >= datetime.strptime(data_inicio, "%Y-%m-%d").date())
+        except ValueError:
+            pass
+            
+    if data_fim:
+        try:
+            rondas_query = rondas_query.filter(VWRondasDetalhadas.data_plantao_ronda <= datetime.strptime(data_fim, "%Y-%m-%d").date())
+            paradas_query = paradas_query.filter(Parada.data_plantao_parada <= datetime.strptime(data_fim, "%Y-%m-%d").date())
+        except ValueError:
+            pass
+            
+    if supervisor_id:
+        rondas_query = rondas_query.filter(VWRondasDetalhadas.supervisor_id == supervisor_id)
+        paradas_query = paradas_query.filter(Parada.supervisor_id == supervisor_id)
+        
+    if condominio_nome:
+        rondas_query = rondas_query.filter(VWRondasDetalhadas.condominio_nome == condominio_nome)
+        paradas_query = paradas_query.filter(Condominio.nome == condominio_nome)
+
+    todas_rondas = rondas_query.order_by(VWRondasDetalhadas.data_plantao_ronda.desc()).all()
+    todas_paradas = paradas_query.order_by(Parada.data_plantao_parada.desc()).all()
+    
+    # Processamento em Python para encontrar as divergências
+    rondas_divergentes = []
+    for r in todas_rondas:
+        motivos = []
+        if (r.total_rondas_no_log or 0) < rondas_threshold:
+            motivos.append("Qtd Insuficiente")
+        
+        texto = r.relatorio_processado or ""
+        if "[PENDENTE]" in texto:
+            motivos.append("Sem Término")
+        if "Observações/Alertas" in texto:
+            motivos.append("Alertas do Sistema")
+            
+        duracoes = re.findall(r'\((\d+)\s*min\)', texto)
+        for d in duracoes:
+            if int(d) > 30:
+                motivos.append("Duração > 30m")
+                break
+                
+        if motivos:
+            r.motivos_divergencia = motivos
+            rondas_divergentes.append(r)
+            
+    paradas_divergentes = []
+    for p, c_nome, s_nome in todas_paradas:
+        motivos = []
+        if (p.total_paradas_no_log or 0) < paradas_threshold:
+            motivos.append("Qtd Insuficiente")
+        
+        texto = p.relatorio_processado or ""
+        if "[PENDENTE]" in texto:
+            motivos.append("Sem Término")
+        if "Observações/Alertas" in texto:
+            motivos.append("Alertas do Sistema")
+            
+        duracoes = re.findall(r'\((\d+)\s*min\)', texto)
+        for d in duracoes:
+            if int(d) > 30:
+                motivos.append("Duração > 30m")
+                break
+                
+        if motivos:
+            p.motivos_divergencia = motivos
+            paradas_divergentes.append((p, c_nome, s_nome))
+    
+    supervisores = User.query.filter_by(is_supervisor=True).order_by(User.username).all()
+    condominios = Condominio.query.order_by(Condominio.nome).all()
+
+    return render_template(
+        "admin/divergencias.html",
+        title="Relatório de Divergências",
+        rondas=rondas_divergentes,
+        paradas=paradas_divergentes,
+        rondas_min=rondas_threshold,
+        paradas_min=paradas_threshold,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        supervisor_id=supervisor_id,
+        condominio_nome=condominio_nome,
+        supervisores=supervisores,
+        condominios=condominios
+    )

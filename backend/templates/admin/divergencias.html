@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Relatório de Divergências{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>{{ title }}</h2>
+            <p class="lead text-muted mb-0">Rondas e Paradas que não atingiram o número mínimo esperado de marcações.</p>
+        </div>
+    </div>
+    
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom d-flex align-items-center">
+            <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filtros e Parâmetros</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.relatorio_divergencias') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <label for="rondas_min" class="form-label">Regra: Mínimo Rondas</label>
+                        <input type="number" name="rondas_min" id="rondas_min" value="{{ rondas_min }}" class="form-control" min="1">
+                        <div class="form-text">Considerar divergente se &lt; X</div>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="paradas_min" class="form-label">Regra: Mínimo Paradas</label>
+                        <input type="number" name="paradas_min" id="paradas_min" value="{{ paradas_min }}" class="form-control" min="1">
+                        <div class="form-text">Considerar divergente se &lt; X</div>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="data_inicio" class="form-label">Data Início</label>
+                        <input type="date" name="data_inicio" id="data_inicio" value="{{ data_inicio or '' }}" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="data_fim" class="form-label">Data Fim</label>
+                        <input type="date" name="data_fim" id="data_fim" value="{{ data_fim or '' }}" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="supervisor_id" class="form-label">Supervisor</label>
+                        <select name="supervisor_id" id="supervisor_id" class="form-select">
+                            <option value="">Todos</option>
+                            {% for s in supervisores %}
+                                <option value="{{ s.id }}" {% if supervisor_id == s.id %}selected{% endif %}>{{ s.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="condominio" class="form-label">Condomínio</label>
+                        <select name="condominio" id="condominio" class="form-select">
+                            <option value="">Todos</option>
+                            {% for c in condominios %}
+                                <option value="{{ c.nome }}" {% if condominio_nome == c.nome %}selected{% endif %}>{{ c.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-12 mt-3 text-end">
+                        <a href="{{ url_for('admin.relatorio_divergencias') }}" class="btn btn-outline-secondary me-2">Limpar Filtros</a>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i>Aplicar Filtros</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Abas de Rondas e Paradas -->
+    <ul class="nav nav-tabs mb-4" id="divergenciasTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold" id="rondas-tab" data-bs-toggle="tab" data-bs-target="#rondas-tab-pane" type="button" role="tab">
+                Rondas Divergentes <span class="badge bg-danger ms-1">{{ rondas|length }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="paradas-tab" data-bs-toggle="tab" data-bs-target="#paradas-tab-pane" type="button" role="tab">
+                Paradas Divergentes <span class="badge bg-danger ms-1">{{ paradas|length }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="divergenciasTabsContent">
+        <!-- Tabela de Rondas -->
+        <div class="tab-pane fade show active" id="rondas-tab-pane" role="tabpanel" tabindex="0">
+            <div class="card shadow-sm border-top-0 rounded-top-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#ID</th>
+                                <th>Condomínio</th>
+                                <th>Data Plantão</th>
+                                <th>Turno</th>
+                                <th>Supervisor</th>
+                                <th class="text-center text-danger">Realizado vs Esperado</th>
+                                <th>Motivos</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ronda in rondas %}
+                            <tr>
+                                <td>{{ ronda.id }}</td>
+                                <td>{{ ronda.condominio_nome or 'N/A' }}</td>
+                                <td>{{ ronda.data_plantao_ronda.strftime('%d/%m/%Y') if ronda.data_plantao_ronda else 'N/A' }}</td>
+                                <td><span class="badge bg-secondary">{{ ronda.turno_ronda or 'N/A' }}</span></td>
+                                <td>{{ ronda.supervisor_username or 'Automático' }}</td>
+                                <td class="text-center">
+                                    <span class="text-danger fw-bold fs-5">{{ ronda.total_rondas_no_log or 0 }}</span>
+                                    <span class="text-muted"> / {{ rondas_min }}</span>
+                                </td>
+                                <td>
+                                    {% for m in ronda.motivos_divergencia %}
+                                        {% if m == 'Qtd Insuficiente' %}
+                                            <span class="badge bg-info mb-1">{{ m }}</span><br>
+                                        {% elif m == 'Sem Término' %}
+                                            <span class="badge bg-danger mb-1">{{ m }}</span><br>
+                                        {% elif m == 'Duração > 30m' %}
+                                            <span class="badge bg-warning text-dark mb-1">{{ m }}</span><br>
+                                        {% else %}
+                                            <span class="badge bg-secondary mb-1">{{ m }}</span><br>
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    <a href="{{ url_for('ronda.detalhes_ronda', ronda_id=ronda.id) }}" class="btn btn-sm btn-info" target="_blank" data-bs-toggle="tooltip" title="Abrir Detalhes">
+                                        <i class="bi bi-eye"></i> Ver Relatório
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">
+                                    <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-2"></i>
+                                    Nenhuma ronda com divergência encontrada para estes filtros.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela de Paradas -->
+        <div class="tab-pane fade" id="paradas-tab-pane" role="tabpanel" tabindex="0">
+            <div class="card shadow-sm border-top-0 rounded-top-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#ID</th>
+                                <th>Condomínio</th>
+                                <th>Data Plantão</th>
+                                <th>Turno</th>
+                                <th>Supervisor</th>
+                                <th class="text-center text-danger">Realizado vs Esperado</th>
+                                <th>Motivos</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p, c_nome, s_nome in paradas %}
+                            <tr>
+                                <td>{{ p.id }}</td>
+                                <td>{{ c_nome or 'N/A' }}</td>
+                                <td>{{ p.data_plantao_parada.strftime('%d/%m/%Y') if p.data_plantao_parada else 'N/A' }}</td>
+                                <td><span class="badge bg-secondary">{{ p.turno_parada or 'N/A' }}</span></td>
+                                <td>{{ s_nome or 'Automático' }}</td>
+                                <td class="text-center">
+                                    <span class="text-danger fw-bold fs-5">{{ p.total_paradas_no_log or 0 }}</span>
+                                    <span class="text-muted"> / {{ paradas_min }}</span>
+                                </td>
+                                <td>
+                                    {% for m in p.motivos_divergencia %}
+                                        {% if m == 'Qtd Insuficiente' %}
+                                            <span class="badge bg-info mb-1">{{ m }}</span><br>
+                                        {% elif m == 'Sem Término' %}
+                                            <span class="badge bg-danger mb-1">{{ m }}</span><br>
+                                        {% elif m == 'Duração > 30m' %}
+                                            <span class="badge bg-warning text-dark mb-1">{{ m }}</span><br>
+                                        {% else %}
+                                            <span class="badge bg-secondary mb-1">{{ m }}</span><br>
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    <a href="{{ url_for('parada.detalhes_parada', parada_id=p.id) }}" class="btn btn-sm btn-info" target="_blank" data-bs-toggle="tooltip" title="Abrir Detalhes">
+                                        <i class="bi bi-eye"></i> Ver Relatório
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">
+                                    <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-2"></i>
+                                    Nenhuma parada com divergência encontrada para estes filtros.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
