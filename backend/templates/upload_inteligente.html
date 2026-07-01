@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Lançamento Inteligente em Lote{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="card shadow-lg animate__animated animate__fadeIn">
+        <div class="card-header bg-light">
+            <h2 class="card-title h4 mb-0 d-flex align-items-center">
+                <i class="bi bi-magic text-primary me-2"></i>
+                Lançamento Inteligente em Lote
+            </h2>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-4">
+                Selecione múltiplos arquivos Excel (.xlsx) de Rondas e Paradas ao mesmo tempo. 
+                O sistema identificará automaticamente o que tem em cada arquivo e registrará tudo de uma vez.
+            </p>
+
+            <form id="uploadForm" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-3">
+                    <label for="files" class="form-label fw-bold">
+                        Planilhas Excel (.xlsx)
+                    </label>
+                    <div class="input-group">
+                        <input type="file" id="files" name="files" accept=".xlsx" multiple
+                               class="form-control">
+                        <button class="btn btn-outline-secondary" type="button" id="googleDriveBtn">
+                            <i class="bi bi-google me-1"></i> Google Drive
+                        </button>
+                    </div>
+                    <div class="form-text">Você pode selecionar vários arquivos de uma vez. No Google Drive, segure <strong>Ctrl</strong> ou <strong>Shift</strong> para selecionar múltiplos arquivos.</div>
+                </div>
+
+                <button type="submit" id="processButton"
+                        class="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center">
+                    <span id="buttonText"><i class="bi bi-gear-fill me-2"></i> Processar Arquivos em Lote</span>
+                    <span id="loadingSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                </button>
+            </form>
+
+            <div id="responseMessage" class="mt-4 p-3 rounded d-none"></div>
+            
+            <div id="logsContainer" class="mt-3 d-none">
+                <h5 class="mb-2">Detalhes do Processamento:</h5>
+                <ul id="logsList" class="list-group list-group-flush border rounded"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Google Picker and OAuth Scripts -->
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const uploadForm = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('files');
+        const processButton = document.getElementById('processButton');
+        const buttonText = document.getElementById('buttonText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const responseMessage = document.getElementById('responseMessage');
+        const googleDriveBtn = document.getElementById('googleDriveBtn');
+        const logsContainer = document.getElementById('logsContainer');
+        const logsList = document.getElementById('logsList');
+
+        // Google Integration Credentials
+        const CLIENT_ID = "{{ config.GOOGLE_CLIENT_ID }}";
+        const API_KEY = "{{ config.GOOGLE_API_KEY }}";
+        
+        let accessToken = null;
+        let pickerApiLoaded = false;
+        let tokenClient;
+
+        function gapiStart() {
+            gapi.load('picker', { 'callback': () => { pickerApiLoaded = true; } });
+        }
+
+        window.addEventListener('load', () => {
+            if (typeof gapi !== 'undefined') {
+                gapiStart();
+            }
+        });
+
+        googleDriveBtn.addEventListener('click', function() {
+            if (!CLIENT_ID || !API_KEY) {
+                alert("As credenciais do Google Drive não estão configuradas nas variáveis de ambiente (.env). Por favor, configure GOOGLE_CLIENT_ID e GOOGLE_API_KEY.");
+                return;
+            }
+
+            if (typeof google === 'undefined') {
+                alert("Não foi possível carregar a biblioteca de autenticação do Google. Verifique sua conexão com a internet.");
+                return;
+            }
+
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: 'https://www.googleapis.com/auth/drive.readonly',
+                login_hint: 'supervisores@masterswisspark-campinas.org.br',
+                callback: async (response) => {
+                    if (response.error !== undefined) {
+                        console.error("Erro na autenticação:", response);
+                        return;
+                    }
+                    accessToken = response.access_token;
+                    
+                    if (!pickerApiLoaded && typeof gapi !== 'undefined') {
+                        gapi.load('picker', {
+                            'callback': () => {
+                                pickerApiLoaded = true;
+                                createPicker();
+                            }
+                        });
+                    } else {
+                        createPicker();
+                    }
+                },
+            });
+
+            tokenClient.requestAccessToken({ prompt: '' });
+        });
+
+        function createPicker() {
+            const docsView = new google.picker.DocsView()
+                .setIncludeFolders(true)
+                .setMimeTypes("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+            const picker = new google.picker.PickerBuilder()
+                .addView(docsView)
+                .setOAuthToken(accessToken)
+                .setDeveloperKey(API_KEY)
+                .setCallback(pickerCallback)
+                .setTitle("Selecione as planilhas (Segure Shift ou Ctrl para múltipla seleção)")
+                .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+                .build();
+            picker.setVisible(true);
+        }
+
+        async function pickerCallback(data) {
+            if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+                const docs = data[google.picker.Response.DOCUMENTS];
+                
+                const googleFiles = docs.map(doc => ({
+                    id: doc[google.picker.Document.ID],
+                    name: doc[google.picker.Document.NAME],
+                    token: accessToken
+                }));
+                
+                await processBatch({ googleFiles: googleFiles });
+            }
+        }
+
+        uploadForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            if (!fileInput.files.length) {
+                displayMessage('Por favor, selecione pelo menos um arquivo para upload.', 'warning');
+                return;
+            }
+            
+            await processBatch({ localFiles: fileInput.files });
+        });
+        
+        async function processBatch(payload) {
+            responseMessage.classList.add('d-none');
+            logsContainer.classList.add('d-none');
+            logsList.innerHTML = '';
+            
+            processButton.disabled = true;
+            buttonText.classList.add('d-none');
+            loadingSpinner.classList.remove('d-none');
+            
+            const formData = new FormData();
+            formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+            
+            if (payload.googleFiles) {
+                formData.append('google_files', JSON.stringify(payload.googleFiles));
+            }
+            
+            if (payload.localFiles) {
+                for (let i = 0; i < payload.localFiles.length; i++) {
+                    formData.append('files', payload.localFiles[i]);
+                }
+            }
+
+            try {
+                const response = await fetch("{{ url_for('main.processar_lote_inteligente_ajax') }}", {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    const msg = `🎉 Processamento concluído! <br> 
+                                 <strong>${result.total_rondas}</strong> Rondas registradas e 
+                                 <strong>${result.total_paradas}</strong> Paradas registradas.`;
+                    displayMessage(msg, 'success');
+                    
+                    if (result.logs && result.logs.length > 0) {
+                        logsContainer.classList.remove('d-none');
+                        result.logs.forEach(log => {
+                            const li = document.createElement('li');
+                            li.className = 'list-group-item';
+                            li.innerHTML = log;
+                            logsList.appendChild(li);
+                        });
+                    }
+                } else {
+                    displayMessage(result.message || 'Ocorreu um erro desconhecido.', 'error');
+                }
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+                displayMessage('Erro de conexão ou servidor: ' + error.message, 'error');
+            } finally {
+                processButton.disabled = false;
+                buttonText.classList.remove('d-none');
+                loadingSpinner.classList.add('d-none');
+            }
+        }
+
+        function displayMessage(message, type) {
+            responseMessage.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-warning');
+            responseMessage.innerHTML = message;
+            if (type === 'success') {
+                responseMessage.classList.add('alert', 'alert-success');
+            } else if (type === 'error') {
+                responseMessage.classList.add('alert', 'alert-danger');
+            } else if (type === 'warning') {
+                responseMessage.classList.add('alert', 'alert-warning');
+            }
+        }
+    });
+</script>
+{% endblock %}

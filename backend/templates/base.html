@@ -127,6 +127,15 @@
             </a>
           </li>
 
+          {% if current_user.is_admin %}
+          <li class="nav-item">
+            <a class="nav-link text-nowrap {% if request.endpoint == 'main.upload_inteligente' %}active{% endif %}"
+              href="{{ url_for('main.upload_inteligente') }}">
+              <i class="bi bi-magic me-1"></i>Lote Inteligente
+            </a>
+          </li>
+          {% endif %}
+
           <li class="nav-item">
             <a class="nav-link text-nowrap {% if request.endpoint == 'main.analisador' %}active{% endif %}"
               href="{{ url_for('main.analisador') }}">

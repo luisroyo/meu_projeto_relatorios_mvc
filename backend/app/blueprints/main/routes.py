@@ -4,6 +4,7 @@ import os
 
 from flask import Blueprint, flash, g, render_template, jsonify, request, redirect, url_for, send_from_directory
 from flask_login import current_user, login_required
+from app.decorators.admin_required import admin_required
 
 from app import db, limiter
 from app.forms import AnalisadorForm  # Verifique se este import está correto
@@ -240,6 +241,176 @@ def processar_relatorio_redirect():
         
         logger.error(f"Erro ao processar relatório: {e}")
         return jsonify({'error': 'Erro ao processar relatório'}), 500
+
+
+@main_bp.route("/upload-inteligente", methods=["GET"])
+@login_required
+@admin_required
+def upload_inteligente():
+    """Renderiza a interface do Lançamento em Lote Inteligente."""
+    return render_template("upload_inteligente.html", title="Lançamento Inteligente em Lote")
+
+
+@main_bp.route("/processar-lote-inteligente-ajax", methods=["POST"])
+@login_required
+@admin_required
+def processar_lote_inteligente_ajax():
+    import tempfile
+    import requests
+    from app.services.excel_processor import ExcelProcessor
+    from app.services.ronda_routes_core.routes_service import RondaRoutesService
+    from app.services.parada_routes_core.routes_service import ParadaRoutesService
+    from app.services.ronda_utils import get_system_user
+    from app.models import Condominio, User
+    
+    files = request.files.getlist("files")
+    google_files_json = request.form.get("google_files")
+    
+    google_files = []
+    if google_files_json:
+        try:
+            google_files = json.loads(google_files_json)
+        except Exception:
+            pass
+            
+    if not files and not google_files:
+        return jsonify({"success": False, "message": "Nenhum arquivo enviado."}), 400
+        
+    system_user = get_system_user()
+    if not system_user:
+        return jsonify({"success": False, "message": "Usuário do sistema não encontrado."}), 500
+
+    supervisores_db = User.query.filter_by(is_supervisor=True).all()
+    
+    total_rondas = 0
+    total_paradas = 0
+    logs = []
+    
+    temp_dir = os.path.join(tempfile.gettempdir(), 'upload_inteligente')
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    arquivos_processar = []
+    
+    for f in files:
+        if f.filename and f.filename.lower().endswith(".xlsx"):
+            path = os.path.join(temp_dir, f.filename)
+            f.save(path)
+            arquivos_processar.append({"path": path, "name": f.filename})
+            
+    for gf in google_files:
+        try:
+            file_id = gf.get("id")
+            file_name = gf.get("name")
+            access_token = gf.get("token")
+            
+            headers = {"Authorization": f"Bearer {access_token}"}
+            download_url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+            response = requests.get(download_url, headers=headers)
+            
+            if response.status_code == 200:
+                path = os.path.join(temp_dir, file_name)
+                with open(path, 'wb') as out_f:
+                    out_f.write(response.content)
+                arquivos_processar.append({"path": path, "name": file_name})
+            else:
+                logs.append(f"❌ Erro ao baixar do Drive '{file_name}': {response.text}")
+        except Exception as e:
+            logs.append(f"❌ Erro de conexão com Google Drive para '{gf.get('name')}': {str(e)}")
+            
+    for arq in arquivos_processar:
+        path = arq["path"]
+        name = arq["name"]
+        
+        parsed_ronda = ExcelProcessor.parse_excel_file(path)
+        ronda_success = parsed_ronda.get("success", False)
+        
+        if ronda_success:
+            sup_id = None
+            if parsed_ronda.get("supervisor"):
+                sup_name = parsed_ronda["supervisor"].strip().lower()
+                for s in supervisores_db:
+                    if sup_name in s.username.lower() or s.username.lower() in sup_name:
+                        sup_id = str(s.id)
+                        break
+                        
+            for condo_name, rounds in parsed_ronda.get("condominios", {}).items():
+                if not rounds: continue
+                
+                condominio = Condominio.query.filter(func.lower(Condominio.nome) == func.lower(condo_name)).first()
+                if not condominio:
+                    condominio = Condominio(nome=condo_name)
+                    db.session.add(condominio)
+                    db.session.flush()
+                    
+                log_bruto = ExcelProcessor.generate_simulated_whatsapp_log(parsed_ronda, condo_name)
+                if not log_bruto: continue
+                
+                ronda_data = {
+                    "condominio_id": str(condominio.id),
+                    "data_plantao": parsed_ronda.get("data_iso"),
+                    "escala_plantao": parsed_ronda.get("escala_plantao"),
+                    "log_bruto": log_bruto,
+                    "ronda_id": None,
+                    "supervisor_id": sup_id,
+                }
+                suc, msg, _, _ = RondaRoutesService.salvar_ronda(ronda_data, system_user)
+                if suc:
+                    total_rondas += 1
+                else:
+                    logs.append(f"⚠️ {name}: Erro ronda {condo_name}: {msg}")
+
+        parsed_parada = ExcelProcessor.parse_excel_file_paradas(path)
+        parada_success = parsed_parada.get("success", False)
+        
+        if parada_success:
+            sup_id = None
+            if parsed_parada.get("supervisor"):
+                sup_name = parsed_parada["supervisor"].strip().lower()
+                for s in supervisores_db:
+                    if sup_name in s.username.lower() or s.username.lower() in sup_name:
+                        sup_id = str(s.id)
+                        break
+                        
+            for condo_name, rounds in parsed_parada.get("condominios", {}).items():
+                if not rounds: continue
+                
+                condominio = Condominio.query.filter(func.lower(Condominio.nome) == func.lower(condo_name)).first()
+                if not condominio:
+                    condominio = Condominio(nome=condo_name)
+                    db.session.add(condominio)
+                    db.session.flush()
+                    
+                log_bruto = ExcelProcessor.generate_simulated_whatsapp_log_parada(parsed_parada, condo_name)
+                if not log_bruto: continue
+                
+                parada_data = {
+                    "condominio_id": str(condominio.id),
+                    "data_plantao": parsed_parada.get("data_iso"),
+                    "escala_plantao": parsed_parada.get("escala_plantao"),
+                    "log_bruto": log_bruto,
+                    "parada_id": None,
+                    "supervisor_id": sup_id,
+                }
+                suc, msg, _, _ = ParadaRoutesService.salvar_parada(parada_data, system_user)
+                if suc:
+                    total_paradas += 1
+                else:
+                    logs.append(f"⚠️ {name}: Erro parada {condo_name}: {msg}")
+
+        if not ronda_success and not parada_success:
+            logs.append(f"❌ Arquivo '{name}' não possui formato válido de Rondas ou Paradas.")
+            
+        try:
+            os.remove(path)
+        except:
+            pass
+
+    return jsonify({
+        "success": True,
+        "total_rondas": total_rondas,
+        "total_paradas": total_paradas,
+        "logs": logs
+    })
 
 
 # ======================================================================
