@@ -166,13 +166,13 @@ def listar_paradas():
     rondas_dias_raw = db.session.query(User.username, Ronda.data_plantao_ronda).join(
         Ronda, User.id == Ronda.supervisor_id
     ).filter(
-        Ronda.data_hora_inicio >= inicio_periodo, Ronda.data_hora_inicio <= fim_periodo, Ronda.data_plantao_ronda.isnot(None)
+        Ronda.data_plantao_ronda >= inicio_periodo.date(), Ronda.data_plantao_ronda <= fim_periodo.date(), Ronda.data_plantao_ronda.isnot(None)
     ).distinct().all()
 
     paradas_dias_raw = db.session.query(User.username, Parada.data_plantao_parada).join(
         Parada, User.id == Parada.supervisor_id
     ).filter(
-        Parada.data_hora_inicio >= inicio_periodo, Parada.data_hora_inicio <= fim_periodo, Parada.data_plantao_parada.isnot(None)
+        Parada.data_plantao_parada >= inicio_periodo.date(), Parada.data_plantao_parada <= fim_periodo.date(), Parada.data_plantao_parada.isnot(None)
     ).distinct().all()
 
     rondas_por_supervisor = {}
