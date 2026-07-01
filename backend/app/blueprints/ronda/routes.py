@@ -129,24 +129,36 @@ def listar_rondas():
         supervisor_mais_ativo, condominios, supervisores, turnos, active_filter_params
     ) = RondaRoutesService.listar_rondas(page=page, filter_params=filter_params)
 
-    # Dias lançados por supervisor no mês atual
+    # Dias lançados por supervisor no período selecionado ou mês atual
     from app.models import Parada
     import calendar
+    from datetime import datetime
+    
+    str_data_inicio = active_filter_params.get("data_inicio")
+    str_data_fim = active_filter_params.get("data_fim")
+
     hoje = datetime.now()
-    inicio_mes = hoje.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    ultimo_dia = calendar.monthrange(inicio_mes.year, inicio_mes.month)[1]
-    fim_mes = inicio_mes.replace(day=ultimo_dia, hour=23, minute=59, second=59)
+    inicio_periodo = hoje.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    if str_data_inicio:
+        inicio_periodo = datetime.strptime(str_data_inicio, "%Y-%m-%d")
+        
+    ultimo_dia = calendar.monthrange(inicio_periodo.year, inicio_periodo.month)[1]
+    fim_periodo = inicio_periodo.replace(day=ultimo_dia, hour=23, minute=59, second=59)
+
+    if str_data_fim:
+        fim_periodo = datetime.strptime(str_data_fim, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
     rondas_dias_raw = db.session.query(User.username, Ronda.data_plantao_ronda).join(
         Ronda, User.id == Ronda.supervisor_id
     ).filter(
-        Ronda.data_hora_inicio >= inicio_mes, Ronda.data_hora_inicio <= fim_mes, Ronda.data_plantao_ronda.isnot(None)
+        Ronda.data_hora_inicio >= inicio_periodo, Ronda.data_hora_inicio <= fim_periodo, Ronda.data_plantao_ronda.isnot(None)
     ).distinct().all()
 
     paradas_dias_raw = db.session.query(User.username, Parada.data_plantao_parada).join(
         Parada, User.id == Parada.supervisor_id
     ).filter(
-        Parada.data_hora_inicio >= inicio_mes, Parada.data_hora_inicio <= fim_mes, Parada.data_plantao_parada.isnot(None)
+        Parada.data_hora_inicio >= inicio_periodo, Parada.data_hora_inicio <= fim_periodo, Parada.data_plantao_parada.isnot(None)
     ).distinct().all()
 
     rondas_por_supervisor = {}
@@ -163,8 +175,11 @@ def listar_rondas():
     supervisores_db_ativos = User.query.filter_by(is_supervisor=True).all()
     todos_supervisores = sorted([s.username for s in supervisores_db_ativos])
     
-    meses_ptbr = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
-    nome_mes_atual = f"{meses_ptbr[inicio_mes.month - 1]} de {inicio_mes.year}"
+    if str_data_inicio and str_data_fim and str_data_inicio != str_data_fim:
+        nome_mes_atual = f"{inicio_periodo.strftime('%d/%m/%Y')} a {fim_periodo.strftime('%d/%m/%Y')}"
+    else:
+        meses_ptbr = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+        nome_mes_atual = f"{meses_ptbr[inicio_periodo.month - 1]} de {inicio_periodo.year}"
 
     return render_template(
         "ronda/list.html",
