@@ -160,7 +160,8 @@ def listar_rondas():
     rondas_formatado = {u: ', '.join(str(d) for d in sorted(list(ds))) for u, ds in rondas_por_supervisor.items()}
     paradas_formatado = {u: ', '.join(str(d) for d in sorted(list(ds))) for u, ds in paradas_por_supervisor.items()}
     
-    todos_supervisores = sorted(list(set(rondas_formatado.keys()) | set(paradas_formatado.keys())))
+    supervisores_db_ativos = User.query.filter_by(is_supervisor=True).all()
+    todos_supervisores = sorted([s.username for s in supervisores_db_ativos])
     
     meses_ptbr = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
     nome_mes_atual = f"{meses_ptbr[inicio_mes.month - 1]} de {inicio_mes.year}"
