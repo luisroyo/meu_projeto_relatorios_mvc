@@ -82,10 +82,12 @@ def get_dashboard_stats():
         current_user_id = get_jwt_identity()
         user = User.query.get(current_user_id)
         
-        # Calculate stats for the last month
-        last_month = datetime.now() - timedelta(days=30)
-        ocorrencias_ultimo_mes = Ocorrencia.query.filter(Ocorrencia.data_hora_ocorrencia >= last_month).count()
-        rondas_ultimo_mes = Ronda.query.filter(Ronda.data_plantao_ronda >= last_month).count()
+        # Calculate stats for the current month (to match 'este mês' in frontend)
+        today = datetime.now()
+        first_day_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        ocorrencias_ultimo_mes = Ocorrencia.query.filter(Ocorrencia.data_hora_ocorrencia >= first_day_of_month).count()
+        rondas_ultimo_mes = Ronda.query.filter(Ronda.data_plantao_ronda >= first_day_of_month.date()).count()
         rondas_em_andamento = Ronda.query.filter(Ronda.status == 'Em Andamento').count()
 
         stats = {

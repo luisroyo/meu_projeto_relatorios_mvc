@@ -486,6 +486,10 @@ def get_dashboard_comparativo():
         year = request.args.get("year", type=int) or request.args.get("ano", type=int) or datetime.now().year
         comparison_mode = request.args.get("comparison_mode", "all")  # 'all', 'single', 'comparison'
         
+        # Auto-detect single month mode from standard 'mes' filter if comparison_mode wasn't explicitly set
+        if comparison_mode == "all" and request.args.get("mes"):
+            comparison_mode = "single"
+            
         # Seleção de meses
         selected_months = []
         if comparison_mode == 'single':
@@ -572,11 +576,27 @@ def get_dashboard_comparativo():
 @admin_required
 def get_dashboard_ocorrencias():
     """Obter dados do dashboard de ocorrências."""
-    ano = request.args.get('ano', datetime.now().year, type=int)
-    mes = request.args.get('mes', datetime.now().month, type=int)
+    current_year = datetime.now().year
+    
+    filters = {
+        "condominio_id": request.args.get("condominio_id", type=int),
+        "tipo_id": request.args.get("tipo_id", type=int),
+        "status": request.args.get("status", ""),
+        "supervisor_id": request.args.get("supervisor_id", type=int),
+        "mes": request.args.get("mes", type=int),
+        "data_inicio_str": request.args.get("data_inicio", ""),
+        "data_fim_str": request.args.get("data_fim", ""),
+    }
+    
+    if filters.get("mes") and not (filters.get("data_inicio_str") or filters.get("data_fim_str")):
+        from app.blueprints.admin.routes_dashboard import _get_date_range_from_month
+        start_date, end_date = _get_date_range_from_month(current_year, filters["mes"])
+        if start_date and end_date:
+            filters["data_inicio_str"] = start_date
+            filters["data_fim_str"] = end_date
     
     try:
-        dados = get_ocorrencia_dashboard_data(ano, mes)
+        dados = get_ocorrencia_dashboard_data(filters)
         return jsonify(dados), 200
         
     except Exception as e:
@@ -588,11 +608,27 @@ def get_dashboard_ocorrencias():
 @admin_required
 def get_dashboard_rondas():
     """Obter dados do dashboard de rondas."""
-    ano = request.args.get('ano', datetime.now().year, type=int)
-    mes = request.args.get('mes', datetime.now().month, type=int)
+    current_year = datetime.now().year
     
+    filters = {
+        "turno": request.args.get("turno", ""),
+        "supervisor_id": request.args.get("supervisor_id", type=int),
+        "condominio_id": request.args.get("condominio_id", type=int),
+        "mes": request.args.get("mes", type=int),
+        "data_inicio_str": request.args.get("data_inicio", ""),
+        "data_fim_str": request.args.get("data_fim", ""),
+        "data_especifica": request.args.get("data_especifica", ""),
+    }
+    
+    if filters.get("mes") and not (filters.get("data_inicio_str") or filters.get("data_fim_str")):
+        from app.blueprints.admin.routes_dashboard import _get_date_range_from_month
+        start_date, end_date = _get_date_range_from_month(current_year, filters["mes"])
+        if start_date and end_date:
+            filters["data_inicio_str"] = start_date
+            filters["data_fim_str"] = end_date
+            
     try:
-        dados = get_ronda_dashboard_data(ano, mes)
+        dados = get_ronda_dashboard_data(filters)
         return jsonify(dados), 200
         
     except Exception as e:
