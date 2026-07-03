@@ -8,6 +8,7 @@ from flask_login import current_user, login_required
 
 ## [MELHORIA] Importando Enums para popular os filtros do formulário.
 from app.decorators.admin_required import admin_required
+from app import db
 from app.models import Condominio, OcorrenciaTipo, Ronda, Parada, User
 from app.services.dashboard import get_ronda_dashboard_data, get_parada_dashboard_data
 from app.services.dashboard.comparativo_dashboard import \
