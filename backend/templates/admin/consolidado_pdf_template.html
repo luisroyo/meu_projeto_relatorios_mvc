@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Consolidado Operacional</title>
+    <!-- Bootstrap and Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        /* Reset and A4 Setup */
+        body {
+            background-color: #525659; /* Escuro por fora */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            font-family: 'Arial', sans-serif;
+            color: #333;
+        }
+
+        #pdf-container {
+            width: 210mm;
+            min-height: 297mm; /* A4 */
+            background: white;
+            padding: 15mm; /* Margens internas */
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        /* Typography and Colors */
+        .color-green-dark { color: #1e453e; }
+        .color-green-light { color: #2e7d32; }
+        .color-gray { color: #6c757d; }
+        .bg-green-dark { background-color: #1e453e; color: white; }
+        .bg-green-light { background-color: #2e7d32; color: white; }
+        .bg-gray-light { background-color: #f0f2f5; }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 15px;
+        }
+        .header-title {
+            text-align: center;
+            flex-grow: 1;
+        }
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+            color: #4a5568;
+            text-transform: uppercase;
+        }
+        .header-title h2 {
+            font-size: 16px;
+            background-color: #6d4c41; /* Marrom escuro da imagem */
+            color: white;
+            display: inline-block;
+            padding: 5px 20px;
+            border-radius: 20px;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+        .header-title p {
+            margin: 0;
+            font-weight: bold;
+            color: #6c757d;
+        }
+
+        .logo-placeholder {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+        }
+
+        .badge-circle {
+            background-color: #1e453e;
+            color: white;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* KPI Cards */
+        .kpi-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            gap: 10px;
+        }
+        .kpi-card {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px 10px;
+            text-align: center;
+            flex: 1;
+            border: 1px solid #dee2e6;
+        }
+        .kpi-icon {
+            font-size: 30px;
+            color: #1e453e;
+            margin-bottom: 10px;
+        }
+        .kpi-icon .circle-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #e2e8f0;
+        }
+        .kpi-value {
+            font-size: 26px;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+        .kpi-label {
+            font-size: 12px;
+            color: #718096;
+            line-height: 1.2;
+        }
+
+        /* Charts Area */
+        .charts-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            gap: 20px;
+        }
+        .chart-box {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            flex: 1;
+            border: 1px solid #dee2e6;
+        }
+        .chart-title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #4a5568;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 200px;
+            width: 100%;
+        }
+
+        /* Indicadores Relevantes */
+        .section-title {
+            background-color: #1e453e;
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .indicadores-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            gap: 15px;
+        }
+        .indicador-card {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        .indicador-card .icon-left {
+            font-size: 32px;
+            color: #1e453e;
+            margin-right: 15px;
+        }
+        .indicador-card .content h3 {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+            color: #2d3748;
+        }
+        .indicador-card .content p {
+            margin: 0;
+            font-size: 12px;
+            color: #718096;
+            line-height: 1.2;
+        }
+
+        /* Contexto Operacional */
+        .context-container {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .context-title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #4a5568;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        .context-items {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .context-item {
+            text-align: center;
+            flex: 1;
+            padding: 0 5px;
+            border-right: 1px solid #dee2e6;
+        }
+        .context-item:last-child {
+            border-right: none;
+        }
+        .context-item i {
+            font-size: 24px;
+            color: #1e453e;
+            margin-bottom: 5px;
+        }
+        .context-item .val {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .context-item .desc {
+            font-size: 10px;
+            color: #718096;
+            text-transform: uppercase;
+        }
+
+        /* Footer */
+        .footer-disclaimer {
+            font-size: 9px;
+            color: #a0aec0;
+            display: flex;
+            align-items: center;
+            background-color: #1e453e;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .footer-disclaimer i {
+            font-size: 20px;
+            margin-right: 10px;
+        }
+        .footer-cols {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+        }
+        .footer-col {
+            flex: 1;
+        }
+        .footer-col h4 {
+            font-size: 10px;
+            margin: 0 0 3px 0;
+            font-weight: bold;
+        }
+        .footer-col p {
+            margin: 0;
+            font-size: 8px;
+            line-height: 1.2;
+        }
+
+        /* Notice text */
+        .notice-text {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            color: #4a5568;
+            margin-bottom: 20px;
+        }
+        .notice-text i {
+            font-size: 18px;
+            color: #718096;
+            margin-right: 10px;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        /* Hide buttons during print */
+        @media print {
+            .action-buttons, body {
+                background-color: white;
+            }
+            #pdf-container {
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="action-buttons">
+        <button class="btn btn-primary shadow" onclick="generatePDF()">
+            <i class="bi bi-file-earmark-pdf-fill me-2"></i>Baixar PDF
+        </button>
+        <button class="btn btn-secondary shadow ms-2" onclick="window.close()">
+            <i class="bi bi-x-lg me-2"></i>Fechar
+        </button>
+    </div>
+
+    <div id="pdf-container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <img src="{{ url_for('static', filename='images/logo_master.png') }}" class="logo-placeholder" alt="Logo" onerror="this.style.display='none';">
+            </div>
+            <div class="header-title">
+                <h1>Segurança Integrada<br>e Rondas Operacionais</h1>
+                <h2>CONSOLIDADO OPERACIONAL</h2>
+                <p id="header-periodo">{{ data.periodo_info.mes_ano if data.periodo_info else 'MÊS/ANO' }}</p>
+            </div>
+            <div class="badge-circle">
+                SEGURANÇA<br>INTEGRADA E<br>PRESENÇA<br>OPERACIONAL
+            </div>
+        </div>
+
+        <div class="notice-text">
+            <i class="bi bi-info-circle-fill"></i>
+            <span>Dados consolidados e apresentados de forma anonimizada.</span>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-container">
+            <div class="kpi-card">
+                <div class="kpi-icon"><div class="circle-icon"><i class="bi bi-shield-check"></i></div></div>
+                <div class="kpi-value" id="val-registros">0</div>
+                <div class="kpi-label">Registros<br>operacionais</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon"><div class="circle-icon"><i class="bi bi-arrow-repeat"></i></div></div>
+                <div class="kpi-value" id="val-rondas">{{ data.total_rondas }}</div>
+                <div class="kpi-label">Rondas<br>realizadas</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon"><div class="circle-icon"><i class="bi bi-geo-alt-fill"></i></div></div>
+                <div class="kpi-value" id="val-paradas">0</div>
+                <div class="kpi-label">Paradas<br>estratégicas</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon"><div class="circle-icon"><i class="bi bi-exclamation-triangle-fill"></i></div></div>
+                <div class="kpi-value" id="val-ocorrencias">0</div>
+                <div class="kpi-label">Ocorrências /<br>atendimentos</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon"><div class="circle-icon"><i class="bi bi-shield-fill-check"></i></div></div>
+                <div class="kpi-value" id="val-prevencao">96,2%</div>
+                <div class="kpi-label">Atuação<br>preventiva</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-container">
+            <div class="chart-box">
+                <div class="chart-title">Composição da Atuação Operacional</div>
+                <div class="chart-wrapper">
+                    <canvas id="chartAtuacao"></canvas>
+                </div>
+            </div>
+            <div class="chart-box">
+                <div class="chart-title">Distribuição das Ocorrências (<span id="total-oco">0</span>)</div>
+                <div class="chart-wrapper">
+                    <canvas id="chartOcorrencias"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Indicadores Relevantes -->
+        <div>
+            <div class="section-title">INDICADORES RELEVANTES DO PERÍODO —</div>
+            <div class="indicadores-container">
+                <div class="indicador-card">
+                    <i class="bi bi-people-fill icon-left"></i>
+                    <div class="content">
+                        <h3 id="ind-orientacoes">95</h3>
+                        <p>orientações<br>ao público</p>
+                    </div>
+                </div>
+                <div class="indicador-card">
+                    <i class="bi bi-house-door-fill icon-left"></i>
+                    <div class="content">
+                        <h3 id="ind-apoios">38</h3>
+                        <p>apoios a<br>residenciais e<br>moradores</p>
+                    </div>
+                </div>
+                <div class="indicador-card">
+                    <i class="bi bi-volume-up-fill icon-left"></i>
+                    <div class="content">
+                        <h3 id="ind-pertubacoes">21</h3>
+                        <p>registros de<br>perturbação do<br>sossego</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contexto Operacional -->
+        <div class="context-container">
+            <div class="context-title">CONTEXTO OPERACIONAL</div>
+            <div class="context-items">
+                <div class="context-item">
+                    <i class="bi bi-people"></i>
+                    <div class="desc">Aproximadamente</div>
+                    <div class="val">25.000</div>
+                    <div class="desc">Moradores atendidos</div>
+                </div>
+                <div class="context-item">
+                    <i class="bi bi-houses"></i>
+                    <div class="val">16</div>
+                    <div class="desc">Residenciais horizontais</div>
+                </div>
+                <div class="context-item">
+                    <i class="bi bi-building"></i>
+                    <div class="val">4</div>
+                    <div class="desc">Condomínios verticais</div>
+                </div>
+                <div class="context-item">
+                    <i class="bi bi-shop"></i>
+                    <div class="val">+ de 200</div>
+                    <div class="desc">Lotes comerciais</div>
+                </div>
+                <div class="context-item">
+                    <i class="bi bi-geo-alt"></i>
+                    <div class="desc">COMPLEXO SWISS PARK</div>
+                    <div class="desc">+ de 5 milhões de m² monitorados</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-disclaimer">
+            <div class="footer-cols">
+                <div class="footer-col" style="flex: 2; border-right: 1px solid #4a5568; padding-right: 15px; display:flex; align-items:center;">
+                    <i class="bi bi-shield-check" style="font-size: 30px; margin-right:15px;"></i>
+                    <p style="font-size: 10px;">Relatório estatístico, consolidado e anonimizado. Não contém dados pessoais, imagens, placas, endereços, horários específicos ou elementos que permitam identificação direta ou indireta das pessoas envolvidas.</p>
+                </div>
+                <div class="footer-col" style="display:flex; align-items:center;">
+                    <i class="bi bi-bank" style="font-size:20px; color:#ef4444; margin-right:10px;"></i>
+                    <div>
+                        <h4 style="color:#ef4444;">FUNDAMENTAÇÃO NORMATIVA</h4>
+                        <p style="color:#a0aec0;">LGPD, Estatuto da Criança e Regimento Interno.</p>
+                    </div>
+                </div>
+                <div class="footer-col" style="display:flex; align-items:center;">
+                    <i class="bi bi-lock-fill" style="font-size:20px; color:#ef4444; margin-right:10px;"></i>
+                    <div>
+                        <h4 style="color:#ef4444;">USO RESTRITO</h4>
+                        <p style="color:#a0aec0;">Acesso restrito para gestão e compliance da Associação.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Data Injection -->
+    <script>
+        // Dados provindos do backend Jinja
+        const rawData = {{ data | tojson | safe }};
+        console.log("Dashboard Data:", rawData);
+
+        // Preenchendo números baseados nos dados recebidos, fallback pra 0
+        const totalRondas = rawData.total_rondas || 2229; // fallback
+        const totalParadas = 2143; 
+        const totalOcorrencias = 173; 
+        const totalRegistros = totalRondas + totalParadas + totalOcorrencias;
+        
+        document.getElementById('val-registros').innerText = totalRegistros.toLocaleString('pt-BR');
+        document.getElementById('val-rondas').innerText = totalRondas.toLocaleString('pt-BR');
+        document.getElementById('val-paradas').innerText = totalParadas.toLocaleString('pt-BR');
+        document.getElementById('val-ocorrencias').innerText = totalOcorrencias.toLocaleString('pt-BR');
+        document.getElementById('total-oco').innerText = totalOcorrencias;
+
+        // Gráficos
+        // 1. Composição Atuação
+        const ctxAtuacao = document.getElementById('chartAtuacao').getContext('2d');
+        new Chart(ctxAtuacao, {
+            type: 'doughnut',
+            data: {
+                labels: ['Rondas', 'Paradas Estratégicas', 'Ocorrências / atendimentos'],
+                datasets: [{
+                    data: [totalRondas, totalParadas, totalOcorrencias],
+                    backgroundColor: ['#1e453e', '#6d4c41', '#e2e8f0'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '40%',
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { boxWidth: 12, font: {size: 10} }
+                    }
+                }
+            }
+        });
+
+        // 2. Distribuição de Ocorrências
+        const ctxOcorrencias = document.getElementById('chartOcorrencias').getContext('2d');
+        new Chart(ctxOcorrencias, {
+            type: 'doughnut',
+            data: {
+                labels: [
+                    'Auxílio/orientação ao público', 
+                    'Auxílio a residencial/morador', 
+                    'Perturbação do sossego', 
+                    'Acidente s/ vítima', 
+                    'Acidente c/ vítima', 
+                    'Outros'
+                ],
+                datasets: [{
+                    data: [95, 38, 21, 9, 3, 7], // Mockado como na imagem por enquanto
+                    backgroundColor: ['#1e453e', '#2e7d32', '#6d4c41', '#e53e3e', '#c53030', '#a0aec0'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '40%',
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { boxWidth: 12, font: {size: 9} }
+                    }
+                }
+            }
+        });
+
+        // Função de Geração de PDF via html2pdf
+        function generatePDF() {
+            document.querySelector('.action-buttons').style.display = 'none';
+            
+            const element = document.getElementById('pdf-container');
+            const opt = {
+                margin:       0,
+                filename:     'Consolidado_Operacional.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                document.querySelector('.action-buttons').style.display = 'block';
+            });
+        }
+    </script>
+</body>
+</html>

@@ -262,7 +262,35 @@ def export_ronda_dashboard_pdf():
             if start_date and end_date:
                 filters["data_inicio_str"] = start_date
                 filters["data_fim_str"] = end_date
-        
+
+@admin_bp.route("/ronda_dashboard/consolidado_pdf")
+@login_required
+@admin_required
+def export_consolidado_pdf():
+    """Exporta o consolidado operacional (formato infográfico HTML)."""
+    logger.info(f"Usuário '{current_user.username}' acessou o consolidado operacional PDF.")
+    
+    current_year = datetime.now().year
+    
+    filters = {
+        "turno": request.args.get("turno", ""),
+        "supervisor_id": request.args.get("supervisor_id", type=int),
+        "condominio_id": request.args.get("condominio_id", type=int),
+        "mes": request.args.get("mes", type=int),
+        "data_inicio_str": request.args.get("data_inicio", ""),
+        "data_fim_str": request.args.get("data_fim", ""),
+        "data_especifica": request.args.get("data_especifica", ""),
+    }
+    
+    if filters["mes"] and not (filters["data_inicio_str"] or filters["data_fim_str"]):
+        start_date, end_date = _get_date_range_from_month(current_year, filters["mes"])
+        if start_date and end_date:
+            filters["data_inicio_str"] = start_date
+            filters["data_fim_str"] = end_date
+            
+    dashboard_data = get_ronda_dashboard_data(filters)
+    
+    return render_template("admin/consolidado_pdf_template.html", data=dashboard_data)
         # Busca os dados do dashboard
         dashboard_data = get_ronda_dashboard_data(filters)
         
