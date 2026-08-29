@@ -281,9 +281,7 @@ def processar_log_de_rondas(
         rondas_pareadas,
         alertas_pareamento,
     )
-    rondas_completas_count = sum(
-        1 for r in rondas_pareadas if r.get("inicio_dt") and r.get("termino_dt")
-    )
+    rondas_completas_count = len(rondas_pareadas)
     logger.info(
         f"Relatório para {nome_condominio_str} formatado. {len(eventos_do_plantao)} eventos, {rondas_completas_count} rondas completas."
     )

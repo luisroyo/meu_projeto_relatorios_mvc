@@ -271,9 +271,7 @@ def processar_log_de_paradas(
         primeiro_ev_dt = eventos_filtrados_plantao[0]["datetime_obj"]
         ultimo_ev_dt = eventos_filtrados_plantao[-1]["datetime_obj"]
 
-    total_completas = sum(
-        1 for r in paradas_pareadas if r.get("inicio_dt") and r.get("termino_dt")
-    )
+    total_completas = len(paradas_pareadas)
 
     return (
         relatorio_texto_formatado,

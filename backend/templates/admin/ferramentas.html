@@ -57,6 +57,17 @@
             </div>
         </div>
 
+        {# NOVO: Cartão para Gerador de Relatório de Plantão #}
+        <div class="col">
+            <div class="card h-100 shadow-sm border-info">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-info"><i class="bi bi-file-earmark-richtext me-2"></i>Relatório de Plantão (E-mail)</h5>
+                    <p class="card-text flex-grow-1">Gere um relatório estruturado do plantão (Master/Uniseter) formatado para copiar e colar no e-mail.</p>
+                    <a href="{{ url_for('admin.gerador_relatorio_plantao_tool') }}" class="btn btn-info text-white mt-auto"><i class="bi bi-arrow-right-circle me-1"></i>Acessar Gerador</a>
+                </div>
+            </div>
+        </div>
+
         {# NOVO: Cartão para Conexão WhatsApp #}
         <div class="col">
             <div class="card h-100 shadow-sm border-success">

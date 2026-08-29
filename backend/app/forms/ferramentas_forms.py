@@ -41,4 +41,33 @@ class FormatEmailReportForm(FlaskForm):
     )
     submit = SubmitField(
         "Formatar Relatório para E-mail", render_kw={"class": "btn btn-primary btn-lg"}
-    ) 
+    )
+
+from wtforms import DateField, SelectField
+
+class GeradorRelatorioPlantaoForm(FlaskForm):
+    data_plantao = DateField("Data do Plantão", validators=[DataRequired()])
+    turno = SelectField("Turno", choices=[("Noturno", "Noturno"), ("Diurno", "Diurno")])
+    supervisor = SelectField("Supervisor", choices=[("Luis Royo", "Luis Royo"), ("Eduardo", "Eduardo")]) # Pode ser preenchido dinamicamente na rota
+
+    # OPERAÇÃO INTERNA – MASTER / RESIDENCIAIS
+    distribuicao_master = TextAreaField("Agentes de Monitoramento (Um por linha)", render_kw={"rows": 4})
+    
+    ausencias_master = TextAreaField("Ausências Master (Um por linha)", render_kw={"rows": 2})
+    ausencias_residenciais = TextAreaField("Ausências Residenciais (Um por linha)", render_kw={"rows": 2})
+    
+    ferias_residenciais = TextAreaField("Férias (Um por linha)", render_kw={"rows": 3})
+    
+    info_senha = TextAreaField("Senha do dia", render_kw={"rows": 1})
+    info_abastecimentos = TextAreaField("Abastecimentos", render_kw={"rows": 2})
+    info_folgas = TextAreaField("Folgas Trabalhadas (Um por linha)", render_kw={"rows": 3})
+
+    # OPERAÇÃO UNISETER
+    uniseter_inspetor = TextAreaField("Inspetor (Um por linha)", render_kw={"rows": 1})
+    uniseter_lider = TextAreaField("Líder (Um por linha)", render_kw={"rows": 1})
+    uniseter_vigilantes = TextAreaField("Vigilantes (Um por linha)", render_kw={"rows": 2})
+    uniseter_apoio = TextAreaField("Apoio Alpha 01/Atendente de Sinistro (Um por linha)", render_kw={"rows": 4})
+    
+    info_movimentacao = TextAreaField("Informações e Movimentação de Pessoal (Um por linha)", render_kw={"rows": 3})
+
+    submit = SubmitField("Gerar Relatório", render_kw={"class": "btn btn-primary"}) 

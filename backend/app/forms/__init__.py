@@ -5,4 +5,4 @@ from .parada_forms import TestarParadasForm
 from .ocorrencia_forms import OcorrenciaForm
 from .orgao_forms import OrgaoPublicoForm
 from .ferramentas_forms import AnalisadorForm
-from .ferramentas_forms import FormatEmailReportForm 
+from .ferramentas_forms import FormatEmailReportForm, GeradorRelatorioPlantaoForm 

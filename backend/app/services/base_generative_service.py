@@ -208,7 +208,10 @@ class BaseGenerativeService:
                     try:
                         self.logger.info(f"🤖 Tentando modelo {model_name} com {api_key_name}")
                         model = genai.GenerativeModel(model_name)
-                        response = model.generate_content(prompt_final)
+                        response = model.generate_content(
+                            prompt_final,
+                            generation_config=genai.types.GenerationConfig(temperature=0.1)
+                        )
                         used_model = model_name
                         self.logger.info(f"✅ Sucesso com modelo {model_name}")
                         break

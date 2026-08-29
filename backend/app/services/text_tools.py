@@ -136,9 +136,17 @@ def ai_transform(text: str, mode: str = "formal", tone: Optional[str] = None, ma
 
     # Nova API oficial
     full_prompt = f"{sys_prompt}\n\n{user_prompt}"
+    
+    # Configuração para acelerar a resposta (menos temperatura = menos avaliação probabilística)
+    config = genai.types.GenerateContentConfig(
+        temperature=0.1,
+        max_output_tokens=1000,
+    )
+    
     resp = client.models.generate_content(
         model="gemini-2.5-flash",
-        contents=full_prompt
+        contents=full_prompt,
+        config=config
     )
     output = resp.text or ""
     return clean_text(output)

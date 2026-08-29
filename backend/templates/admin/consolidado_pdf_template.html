@@ -12,298 +12,385 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        /* Reset and A4 Setup */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
         body {
-            background-color: #525659; /* Escuro por fora */
+            background-color: #525659;
             margin: 0;
             padding: 20px;
             display: flex;
             justify-content: center;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Inter', sans-serif;
             color: #333;
         }
 
         #pdf-container {
             width: 210mm;
-            min-height: 297mm; /* A4 */
+            min-height: 297mm;
             background: white;
-            padding: 15mm; /* Margens internas */
+            padding: 10mm 15mm;
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
             position: relative;
             box-sizing: border-box;
         }
 
-        /* Typography and Colors */
-        .color-green-dark { color: #1e453e; }
-        .color-green-light { color: #2e7d32; }
-        .color-gray { color: #6c757d; }
-        .bg-green-dark { background-color: #1e453e; color: white; }
-        .bg-green-light { background-color: #2e7d32; color: white; }
-        .bg-gray-light { background-color: #f0f2f5; }
+        /* Typography & Colors */
+        .text-dark-green { color: #154734; }
+        .bg-dark-green { background-color: #154734; }
+        .text-dark-red { color: #8b0000; }
+        .bg-dark-red { background-color: #8b0000; }
 
         /* Header */
-        .header {
+        .header-container {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e9ecef;
-            padding-bottom: 15px;
+            margin-bottom: 15px;
         }
-        .header-title {
+        .header-logo {
+            width: 120px;
+            object-fit: contain;
+        }
+        .header-title-wrapper {
             text-align: center;
             flex-grow: 1;
         }
-        .header-title h1 {
-            font-size: 24px;
-            font-weight: bold;
+        .header-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #154734;
             margin: 0;
-            color: #4a5568;
+            line-height: 1.1;
             text-transform: uppercase;
         }
-        .header-title h2 {
-            font-size: 16px;
-            background-color: #6d4c41; /* Marrom escuro da imagem */
+        .header-subtitle {
+            background-color: #8b0000;
             color: white;
-            display: inline-block;
-            padding: 5px 20px;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 4px 20px;
             border-radius: 20px;
-            margin-top: 10px;
-            margin-bottom: 5px;
+            display: inline-block;
+            margin-top: 5px;
+            text-transform: uppercase;
         }
-        .header-title p {
-            margin: 0;
-            font-weight: bold;
-            color: #6c757d;
-        }
-
-        .logo-placeholder {
-            width: 100px;
-            height: 100px;
-            object-fit: contain;
-        }
-
-        .badge-circle {
-            background-color: #1e453e;
-            color: white;
-            width: 90px;
-            height: 90px;
+        .header-badge {
+            width: 120px;
+            height: 120px;
+            background-color: #000;
             border-radius: 50%;
+            color: white;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            font-size: 11px;
-            font-weight: bold;
+            font-size: 10px;
+            font-weight: 700;
+            position: relative;
+            overflow: hidden;
         }
-
-        /* KPI Cards */
-        .kpi-container {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 25px;
-            gap: 10px;
-        }
-        .kpi-card {
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px 10px;
-            text-align: center;
-            flex: 1;
-            border: 1px solid #dee2e6;
-        }
-        .kpi-icon {
-            font-size: 30px;
-            color: #1e453e;
-            margin-bottom: 10px;
-        }
-        .kpi-icon .circle-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+        .header-badge::after {
+            content: "";
+            position: absolute;
+            bottom: -15px;
+            right: -15px;
             width: 50px;
             height: 50px;
+            background: linear-gradient(135deg, transparent 50%, #8b0000 50%, #8b0000 75%, white 75%);
             border-radius: 50%;
-            background-color: #e2e8f0;
+        }
+
+        /* Notice Box */
+        .notice-box {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 8px 15px;
+            font-size: 12px;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .notice-box i {
+            color: #6c757d;
+            font-size: 16px;
+            margin-right: 8px;
+        }
+
+        /* KPIs */
+        .kpi-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .kpi-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px 5px;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .kpi-icon-circle {
+            width: 50px;
+            height: 50px;
+            background-color: #154734;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            margin-bottom: 10px;
         }
         .kpi-value {
-            font-size: 26px;
-            font-weight: bold;
-            color: #2d3748;
+            font-size: 28px;
+            font-weight: 800;
+            color: #154734;
+            line-height: 1;
             margin-bottom: 5px;
         }
         .kpi-label {
             font-size: 12px;
-            color: #718096;
+            font-weight: 600;
+            color: #495057;
             line-height: 1.2;
         }
+        .kpi-sublabel {
+            font-size: 9px;
+            color: #6c757d;
+            margin-top: 2px;
+        }
 
-        /* Charts Area */
-        .charts-container {
+        /* Charts */
+        .charts-row {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 25px;
             gap: 20px;
-        }
-        .chart-box {
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            flex: 1;
-            border: 1px solid #dee2e6;
-        }
-        .chart-title {
-            text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-            color: #4a5568;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-        }
-        .chart-wrapper {
-            position: relative;
-            height: 200px;
-            width: 100%;
-        }
-
-        /* Indicadores Relevantes */
-        .section-title {
-            background-color: #1e453e;
-            color: white;
-            padding: 8px 15px;
-            font-size: 14px;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 15px;
-            border-radius: 4px;
-            display: inline-block;
-        }
-        .indicadores-container {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 25px;
-            gap: 15px;
-        }
-        .indicador-card {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 15px;
-            display: flex;
-            align-items: center;
-            flex: 1;
-        }
-        .indicador-card .icon-left {
-            font-size: 32px;
-            color: #1e453e;
-            margin-right: 15px;
-        }
-        .indicador-card .content h3 {
-            font-size: 24px;
-            font-weight: bold;
-            margin: 0;
-            color: #2d3748;
-        }
-        .indicador-card .content p {
-            margin: 0;
-            font-size: 12px;
-            color: #718096;
-            line-height: 1.2;
-        }
-
-        /* Contexto Operacional */
-        .context-container {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 15px;
             margin-bottom: 20px;
         }
-        .context-title {
+        .chart-box {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            flex: 1;
+        }
+        .chart-header {
             text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-            color: #4a5568;
+            font-size: 12px;
+            font-weight: 700;
+            color: #154734;
             margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        .chart-header hr {
+            width: 50%;
+            margin: 5px auto;
+            border-color: #154734;
+            border-width: 2px;
+        }
+        .chart-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chart-canvas-wrapper {
+            width: 140px;
+            height: 140px;
+            position: relative;
+        }
+        .chart-legend {
+            margin-left: 20px;
+            font-size: 10px;
+            color: #333;
+        }
+        .legend-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+        .legend-text {
+            display: flex;
+            flex-direction: column;
+        }
+        .legend-title {
+            font-weight: 700;
+            font-size: 11px;
+        }
+        .legend-values {
+            color: #6c757d;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        /* Indicadores */
+        .indicadores-section {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .indicadores-header {
+            background-color: #154734;
+            color: white;
+            padding: 8px 15px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .indicadores-content {
+            display: flex;
+            padding: 15px;
+            gap: 15px;
+        }
+        .indicador-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        .indicador-icon {
+            width: 45px;
+            height: 45px;
+            border: 2px solid #154734;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #154734;
+            font-size: 20px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .indicador-text h3 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #154734;
+            margin: 0;
+            line-height: 1;
+        }
+        .indicador-text p {
+            font-size: 11px;
+            color: #495057;
+            margin: 0;
+            line-height: 1.2;
+            font-weight: 600;
+        }
+
+        /* Contexto */
+        .context-header-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        .context-header-wrapper hr {
+            flex: 1;
+            border-color: #e9ecef;
+            margin: 0 15px;
+        }
+        .context-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #333;
             text-transform: uppercase;
         }
         .context-items {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 20px;
         }
         .context-item {
             text-align: center;
             flex: 1;
-            padding: 0 5px;
-            border-right: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .context-item:last-child {
-            border-right: none;
+        .context-item-border {
+            border-right: 1px solid #e9ecef;
         }
         .context-item i {
-            font-size: 24px;
-            color: #1e453e;
+            font-size: 28px;
+            color: #333;
             margin-bottom: 5px;
         }
-        .context-item .val {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2d3748;
+        .context-val {
+            font-size: 20px;
+            font-weight: 800;
+            color: #333;
+            line-height: 1;
+            margin-bottom: 2px;
         }
-        .context-item .desc {
-            font-size: 10px;
-            color: #718096;
+        .context-desc {
+            font-size: 9px;
+            font-weight: 600;
+            color: #333;
             text-transform: uppercase;
+            line-height: 1.2;
         }
 
         /* Footer */
         .footer-disclaimer {
-            font-size: 9px;
-            color: #a0aec0;
             display: flex;
             align-items: center;
-            background-color: #1e453e;
-            color: white;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 20px;
+            border-top: 1px solid #e9ecef;
+            padding-top: 15px;
+            margin-bottom: 15px;
         }
         .footer-disclaimer i {
-            font-size: 20px;
-            margin-right: 10px;
+            font-size: 32px;
+            color: #333;
+            margin-right: 15px;
         }
-        .footer-cols {
-            display: flex;
-            gap: 15px;
-            width: 100%;
-        }
-        .footer-col {
-            flex: 1;
-        }
-        .footer-col h4 {
+        .footer-disclaimer p {
             font-size: 10px;
-            margin: 0 0 3px 0;
-            font-weight: bold;
-        }
-        .footer-col p {
+            color: #6c757d;
             margin: 0;
-            font-size: 8px;
-            line-height: 1.2;
+            line-height: 1.3;
         }
-
-        /* Notice text */
-        .notice-text {
+        .footer-boxes {
+            display: flex;
+            gap: 10px;
+        }
+        .footer-box {
+            background-color: #8b0000;
+            color: white;
+            flex: 1;
             display: flex;
             align-items: center;
-            font-size: 12px;
-            color: #4a5568;
-            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 4px;
         }
-        .notice-text i {
-            font-size: 18px;
-            color: #718096;
+        .footer-box i {
+            font-size: 24px;
             margin-right: 10px;
+        }
+        .footer-box-text {
+            display: flex;
+            flex-direction: column;
+        }
+        .footer-box-title {
+            font-size: 9px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+        .footer-box-desc {
+            font-size: 7px;
+            line-height: 1.1;
         }
 
         /* Action Buttons */
@@ -313,17 +400,10 @@
             right: 20px;
             z-index: 1000;
         }
-
-        /* Hide buttons during print */
         @media print {
-            .action-buttons, body {
-                background-color: white;
-            }
-            #pdf-container {
-                box-shadow: none;
-                margin: 0;
-                padding: 0;
-            }
+            .action-buttons, body { background-color: white; }
+            #pdf-container { box-shadow: none; margin: 0; padding: 0; width: 100%; height: auto; }
+            .kpi-row, .charts-row, .indicadores-content, .context-items, .footer-boxes { page-break-inside: avoid; }
         }
     </style>
 </head>
@@ -340,92 +420,171 @@
 
     <div id="pdf-container">
         <!-- Header -->
-        <div class="header">
-            <div>
-                <img src="{{ url_for('static', filename='images/logo_master.png') }}" class="logo-placeholder" alt="Logo" onerror="this.style.display='none';">
+        <div class="header-container">
+            <img src="{{ url_for('static', filename='images/logo_master.png') }}" class="header-logo" alt="Associação Master" onerror="this.style.display='none';">
+            <div class="header-title-wrapper">
+                <h1 class="header-title">SEGURANÇA INTEGRADA<br>E RONDAS OPERACIONAIS</h1>
+                <div class="header-subtitle">CONSOLIDADO OPERACIONAL</div>
             </div>
-            <div class="header-title">
-                <h1>Segurança Integrada<br>e Rondas Operacionais</h1>
-                <h2>CONSOLIDADO OPERACIONAL</h2>
-                <p id="header-periodo">{{ data.periodo_info.mes_ano if data.periodo_info else 'MÊS/ANO' }}</p>
-            </div>
-            <div class="badge-circle">
+            <div class="header-badge">
+                <i class="bi bi-people-fill" style="font-size:24px; margin-bottom:5px;"></i>
                 SEGURANÇA<br>INTEGRADA E<br>PRESENÇA<br>OPERACIONAL
             </div>
         </div>
 
-        <div class="notice-text">
-            <i class="bi bi-info-circle-fill"></i>
-            <span>Dados consolidados e apresentados de forma anonimizada.</span>
+        <!-- Info Box -->
+        <div class="notice-box">
+            <i class="bi bi-info-circle"></i>
+            Dados consolidados e apresentados de forma anonimizada.
         </div>
 
         <!-- KPIs -->
-        <div class="kpi-container">
+        <div class="kpi-row">
             <div class="kpi-card">
-                <div class="kpi-icon"><div class="circle-icon"><i class="bi bi-shield-check"></i></div></div>
-                <div class="kpi-value" id="val-registros">0</div>
+                <div class="kpi-icon-circle"><i class="bi bi-shield-check"></i></div>
+                <div class="kpi-value" id="val-registros">4.545</div>
                 <div class="kpi-label">Registros<br>operacionais</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-icon"><div class="circle-icon"><i class="bi bi-arrow-repeat"></i></div></div>
-                <div class="kpi-value" id="val-rondas">{{ data.total_rondas }}</div>
+                <div class="kpi-icon-circle"><i class="bi bi-arrow-counterclockwise"></i></div>
+                <div class="kpi-value" id="val-rondas">2.229</div>
                 <div class="kpi-label">Rondas<br>realizadas</div>
+                <div class="kpi-sublabel">Dentro dos<br>empreendimentos</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-icon"><div class="circle-icon"><i class="bi bi-geo-alt-fill"></i></div></div>
-                <div class="kpi-value" id="val-paradas">0</div>
+                <div class="kpi-icon-circle"><i class="bi bi-geo-alt-fill"></i></div>
+                <div class="kpi-value" id="val-paradas">2.143</div>
                 <div class="kpi-label">Paradas<br>estratégicas</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-icon"><div class="circle-icon"><i class="bi bi-exclamation-triangle-fill"></i></div></div>
-                <div class="kpi-value" id="val-ocorrencias">0</div>
+                <div class="kpi-icon-circle"><i class="bi bi-exclamation-circle"></i></div>
+                <div class="kpi-value" id="val-ocorrencias">173</div>
                 <div class="kpi-label">Ocorrências /<br>atendimentos</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-icon"><div class="circle-icon"><i class="bi bi-shield-fill-check"></i></div></div>
+                <div class="kpi-icon-circle"><i class="bi bi-shield-fill-check"></i></div>
                 <div class="kpi-value" id="val-prevencao">96,2%</div>
                 <div class="kpi-label">Atuação<br>preventiva</div>
             </div>
         </div>
 
         <!-- Charts -->
-        <div class="charts-container">
+        <div class="charts-row">
+            <!-- Chart 1 -->
             <div class="chart-box">
-                <div class="chart-title">Composição da Atuação Operacional</div>
-                <div class="chart-wrapper">
-                    <canvas id="chartAtuacao"></canvas>
+                <div class="chart-header">
+                    COMPOSIÇÃO DA ATUAÇÃO OPERACIONAL
+                    <hr>
+                </div>
+                <div class="chart-content">
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="chartAtuacao"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background-color: #154734;"></div>
+                            <div class="legend-text">
+                                <span class="legend-title">Rondas</span>
+                                <span class="legend-values">2.229 &nbsp;|&nbsp; 49,0%</span>
+                            </div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background-color: #6a8f7c;"></div>
+                            <div class="legend-text">
+                                <span class="legend-title">Paradas estratégicas</span>
+                                <span class="legend-values">2.143 &nbsp;|&nbsp; 47,2%</span>
+                            </div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background-color: #d32f2f;"></div>
+                            <div class="legend-text">
+                                <span class="legend-title">Ocorrências/<br>atendimentos</span>
+                                <span class="legend-values">173 &nbsp;|&nbsp; 3,8%</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+            <!-- Chart 2 -->
             <div class="chart-box">
-                <div class="chart-title">Distribuição das Ocorrências (<span id="total-oco">0</span>)</div>
-                <div class="chart-wrapper">
-                    <canvas id="chartOcorrencias"></canvas>
+                <div class="chart-header">
+                    DISTRIBUIÇÃO DAS OCORRÊNCIAS<br>DE JUNHO (173)
+                    <hr>
+                </div>
+                <div class="chart-content">
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="chartOcorrencias"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background-color: #154734;"></div>
+                            <div class="legend-text">
+                                <span class="legend-title">Auxílio/orientação<br>ao público</span>
+                                <span class="legend-values">95 &nbsp;|&nbsp; 54,9%</span>
+                            </div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background-color: #2e8b57;"></div>
+                            <div class="legend-text">
+                                <span class="legend-title">Auxílio a residencial/<br>morador</span>
+                                <span class="legend-values">38 &nbsp;|&nbsp; 22,0%</span>
+                            </div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background-color: #8fbc8f;"></div>
+                            <div class="legend-text">
+                                <span class="legend-title">Perturbação do<br>sossego</span>
+                                <span class="legend-values">21 &nbsp;|&nbsp; 12,1%</span>
+                            </div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background-color: #9e9e9e;"></div>
+                            <div class="legend-text">
+                                <span class="legend-title">Acidente de trânsito<br>sem vítima</span>
+                                <span class="legend-values">9 &nbsp;|&nbsp; 5,2%</span>
+                            </div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background-color: #d32f2f;"></div>
+                            <div class="legend-text">
+                                <span class="legend-title">Acidente de trânsito<br>com vítima</span>
+                                <span class="legend-values">3 &nbsp;|&nbsp; 1,7%</span>
+                            </div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background-color: #e0e0e0;"></div>
+                            <div class="legend-text">
+                                <span class="legend-title">Outros</span>
+                                <span class="legend-values">7 &nbsp;|&nbsp; 4,1%</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Indicadores Relevantes -->
-        <div>
-            <div class="section-title">INDICADORES RELEVANTES DO PERÍODO —</div>
-            <div class="indicadores-container">
-                <div class="indicador-card">
-                    <i class="bi bi-people-fill icon-left"></i>
-                    <div class="content">
-                        <h3 id="ind-orientacoes">95</h3>
+        <!-- Indicadores -->
+        <div class="indicadores-section">
+            <div class="indicadores-header">INDICADORES RELEVANTES DO PERÍODO</div>
+            <div class="indicadores-content">
+                <div class="indicador-item">
+                    <div class="indicador-icon"><i class="bi bi-people-fill"></i></div>
+                    <div class="indicador-text">
+                        <h3>95</h3>
                         <p>orientações<br>ao público</p>
                     </div>
                 </div>
-                <div class="indicador-card">
-                    <i class="bi bi-house-door-fill icon-left"></i>
-                    <div class="content">
-                        <h3 id="ind-apoios">38</h3>
+                <div class="indicador-item">
+                    <div class="indicador-icon"><i class="bi bi-house-door"></i></div>
+                    <div class="indicador-text">
+                        <h3>38</h3>
                         <p>apoios a<br>residenciais e<br>moradores</p>
                     </div>
                 </div>
-                <div class="indicador-card">
-                    <i class="bi bi-volume-up-fill icon-left"></i>
-                    <div class="content">
-                        <h3 id="ind-pertubacoes">21</h3>
+                <div class="indicador-item">
+                    <div class="indicador-icon"><i class="bi bi-volume-up"></i></div>
+                    <div class="indicador-text">
+                        <h3>21</h3>
                         <p>registros de<br>perturbação do<br>sossego</p>
                     </div>
                 </div>
@@ -433,110 +592,104 @@
         </div>
 
         <!-- Contexto Operacional -->
-        <div class="context-container">
+        <div class="context-header-wrapper">
+            <hr>
             <div class="context-title">CONTEXTO OPERACIONAL</div>
-            <div class="context-items">
-                <div class="context-item">
-                    <i class="bi bi-people"></i>
-                    <div class="desc">Aproximadamente</div>
-                    <div class="val">25.000</div>
-                    <div class="desc">Moradores atendidos</div>
+            <hr>
+        </div>
+        <div class="context-items">
+            <div class="context-item context-item-border" style="flex: 1.2;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <i class="bi bi-people-fill" style="font-size:36px; margin:0;"></i>
+                    <div style="text-align: left;">
+                        <div class="context-desc" style="text-transform: none; color:#6c757d;">Aproximadamente</div>
+                        <div class="context-val">25.000</div>
+                        <div class="context-desc">MORADORES<br>ATENDIDOS</div>
+                    </div>
                 </div>
-                <div class="context-item">
-                    <i class="bi bi-houses"></i>
-                    <div class="val">16</div>
-                    <div class="desc">Residenciais horizontais</div>
-                </div>
-                <div class="context-item">
-                    <i class="bi bi-building"></i>
-                    <div class="val">4</div>
-                    <div class="desc">Condomínios verticais</div>
-                </div>
-                <div class="context-item">
-                    <i class="bi bi-shop"></i>
-                    <div class="val">+ de 200</div>
-                    <div class="desc">Lotes comerciais</div>
-                </div>
-                <div class="context-item">
-                    <i class="bi bi-geo-alt"></i>
-                    <div class="desc">COMPLEXO SWISS PARK</div>
-                    <div class="desc">+ de 5 milhões de m² monitorados</div>
-                </div>
+            </div>
+            <div class="context-item context-item-border">
+                <i class="bi bi-houses-fill"></i>
+                <div class="context-val">16</div>
+                <div class="context-desc">RESIDENCIAIS<br>HORIZONTAIS</div>
+            </div>
+            <div class="context-item context-item-border">
+                <i class="bi bi-building-fill"></i>
+                <div class="context-val">4</div>
+                <div class="context-desc">CONDOMÍNIOS<br>VERTICAIS</div>
+            </div>
+            <div class="context-item context-item-border">
+                <i class="bi bi-shop-window"></i>
+                <div class="context-val" style="font-size:14px; margin-top:6px;">+ de 200</div>
+                <div class="context-desc">LOTES<br>COMERCIAIS</div>
+            </div>
+            <div class="context-item" style="flex: 1.2;">
+                <i class="bi bi-geo-alt-fill"></i>
+                <div class="context-desc" style="font-weight:700;">COMPLEXO<br>SWISS PARK</div>
+                <div class="context-desc" style="text-transform:none; color:#6c757d; font-size:8px; margin-top:2px;">+ de 5 milhões de m²<br>monitorados e atendidos</div>
             </div>
         </div>
 
         <!-- Footer -->
         <div class="footer-disclaimer">
-            <div class="footer-cols">
-                <div class="footer-col" style="flex: 2; border-right: 1px solid #4a5568; padding-right: 15px; display:flex; align-items:center;">
-                    <i class="bi bi-shield-check" style="font-size: 30px; margin-right:15px;"></i>
-                    <p style="font-size: 10px;">Relatório estatístico, consolidado e anonimizado. Não contém dados pessoais, imagens, placas, endereços, horários específicos ou elementos que permitam identificação direta ou indireta das pessoas envolvidas.</p>
+            <i class="bi bi-shield-check"></i>
+            <p>Relatório estatístico, consolidado e anonimizado. Não contém dados pessoais, imagens, placas, endereços, horários específicos ou elementos que permitam identificação direta ou indireta de pessoas envolvidas.</p>
+        </div>
+        
+        <div class="footer-boxes">
+            <div class="footer-box">
+                <i class="bi bi-bank2"></i>
+                <div class="footer-box-text">
+                    <div class="footer-box-title">FUNDAMENTAÇÃO<br>NORMATIVA:</div>
+                    <div class="footer-box-desc">Este relatório é elaborado com base<br>no Estatuto Social da Associação<br>dos Proprietários do Swiss Park,<br>no Regulamento de Uso do<br>Loteamento Residencial Swiss Park<br>e nas disposições legais aplicáveis.</div>
                 </div>
-                <div class="footer-col" style="display:flex; align-items:center;">
-                    <i class="bi bi-bank" style="font-size:20px; color:#ef4444; margin-right:10px;"></i>
-                    <div>
-                        <h4 style="color:#ef4444;">FUNDAMENTAÇÃO NORMATIVA</h4>
-                        <p style="color:#a0aec0;">LGPD, Estatuto da Criança e Regimento Interno.</p>
-                    </div>
+            </div>
+            <div class="footer-box">
+                <i class="bi bi-lock-fill"></i>
+                <div class="footer-box-text">
+                    <div class="footer-box-title">CONFORMIDADE E<br>PRIVACIDADE:</div>
+                    <div class="footer-box-desc">Relatório anonimizado (Nível 2),<br>sem identificação de lotes/unidades<br>ou pessoas. Dados tratados por<br>categoria, em conformidade com a<br>LGPD (Lei 13.709/2018), com foco na<br>descrição técnica da operação e nas<br>ações preventivas adotadas.</div>
                 </div>
-                <div class="footer-col" style="display:flex; align-items:center;">
-                    <i class="bi bi-lock-fill" style="font-size:20px; color:#ef4444; margin-right:10px;"></i>
-                    <div>
-                        <h4 style="color:#ef4444;">USO RESTRITO</h4>
-                        <p style="color:#a0aec0;">Acesso restrito para gestão e compliance da Associação.</p>
-                    </div>
+            </div>
+            <div class="footer-box">
+                <i class="bi bi-shield-lock-fill"></i>
+                <div class="footer-box-text">
+                    <div class="footer-box-title">USO EXCLUSIVO<br>PARA GESTÃO:</div>
+                    <div class="footer-box-desc">Este relatório possui uso<br>exclusivamente estatístico e<br>operacional, destinado à gestão<br>da segurança integrada do<br>Complexo Swiss Park.</div>
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- Data Injection -->
     <script>
-        // Dados provindos do backend Jinja
-        const rawData = {{ data | tojson | safe }};
-        console.log("Dashboard Data:", rawData);
-
-        // Preenchendo números baseados nos dados recebidos, fallback pra 0
-        const totalRondas = rawData.total_rondas || 2229; // fallback
-        const totalParadas = 2143; 
-        const totalOcorrencias = 173; 
-        const totalRegistros = totalRondas + totalParadas + totalOcorrencias;
+        // Data integration
+        const rawData = {{ data | tojson | safe | default('{}', true) }};
         
-        document.getElementById('val-registros').innerText = totalRegistros.toLocaleString('pt-BR');
-        document.getElementById('val-rondas').innerText = totalRondas.toLocaleString('pt-BR');
-        document.getElementById('val-paradas').innerText = totalParadas.toLocaleString('pt-BR');
-        document.getElementById('val-ocorrencias').innerText = totalOcorrencias.toLocaleString('pt-BR');
-        document.getElementById('total-oco').innerText = totalOcorrencias;
-
-        // Gráficos
-        // 1. Composição Atuação
+        // Chart 1: Composição
         const ctxAtuacao = document.getElementById('chartAtuacao').getContext('2d');
         new Chart(ctxAtuacao, {
             type: 'doughnut',
             data: {
-                labels: ['Rondas', 'Paradas Estratégicas', 'Ocorrências / atendimentos'],
+                labels: ['Rondas', 'Paradas estratégicas', 'Ocorrências/atendimentos'],
                 datasets: [{
-                    data: [totalRondas, totalParadas, totalOcorrencias],
-                    backgroundColor: ['#1e453e', '#6d4c41', '#e2e8f0'],
-                    borderWidth: 2,
+                    data: [2229, 2143, 173],
+                    backgroundColor: ['#154734', '#6a8f7c', '#d32f2f'],
+                    borderWidth: 3,
                     borderColor: '#ffffff'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '40%',
+                cutout: '45%',
                 plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: { boxWidth: 12, font: {size: 10} }
-                    }
+                    legend: { display: false },
+                    tooltip: { enabled: true }
                 }
             }
         });
 
-        // 2. Distribuição de Ocorrências
+        // Chart 2: Distribuição
         const ctxOcorrencias = document.getElementById('chartOcorrencias').getContext('2d');
         new Chart(ctxOcorrencias, {
             type: 'doughnut',
@@ -545,34 +698,30 @@
                     'Auxílio/orientação ao público', 
                     'Auxílio a residencial/morador', 
                     'Perturbação do sossego', 
-                    'Acidente s/ vítima', 
-                    'Acidente c/ vítima', 
+                    'Acidente de trânsito sem vítima', 
+                    'Acidente de trânsito com vítima', 
                     'Outros'
                 ],
                 datasets: [{
-                    data: [95, 38, 21, 9, 3, 7], // Mockado como na imagem por enquanto
-                    backgroundColor: ['#1e453e', '#2e7d32', '#6d4c41', '#e53e3e', '#c53030', '#a0aec0'],
-                    borderWidth: 2,
+                    data: [95, 38, 21, 9, 3, 7],
+                    backgroundColor: ['#154734', '#2e8b57', '#8fbc8f', '#9e9e9e', '#d32f2f', '#e0e0e0'],
+                    borderWidth: 3,
                     borderColor: '#ffffff'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '40%',
+                cutout: '45%',
                 plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: { boxWidth: 12, font: {size: 9} }
-                    }
+                    legend: { display: false },
+                    tooltip: { enabled: true }
                 }
             }
         });
 
-        // Função de Geração de PDF via html2pdf
         function generatePDF() {
             document.querySelector('.action-buttons').style.display = 'none';
-            
             const element = document.getElementById('pdf-container');
             const opt = {
                 margin:       0,

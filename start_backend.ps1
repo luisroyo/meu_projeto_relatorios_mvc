@@ -26,4 +26,4 @@ $env:FLASK_ENV = "development"
 $env:FLASK_DEBUG = "1"
 $env:PYTHONPATH = "$PWD/backend"
 
-& ".\backend\venv\Scripts\python.exe" backend\run.py
+& ".\venv\Scripts\python.exe" backend\run.py

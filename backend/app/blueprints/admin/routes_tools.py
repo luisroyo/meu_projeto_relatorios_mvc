@@ -7,8 +7,8 @@ from flask import (flash, g, jsonify, redirect, render_template, request,
 from flask_login import current_user, login_required
 
 from app.decorators.admin_required import admin_required
-from app.forms import FormatEmailReportForm
-from app.models import User
+from app.forms import FormatEmailReportForm, GeradorRelatorioPlantaoForm
+from app.models import User, Ocorrencia, Ronda, Parada, Condominio
 from app import db, cache
 import time
 from app.services.escala_service import get_escala_mensal, salvar_escala_mensal
@@ -256,4 +256,68 @@ def whatsapp_config_tool():
     return render_template(
         "admin/whatsapp_config.html", title="Conexão WhatsApp (Rondas)",
         whatsapp_service_url=whatsapp_url
+    )
+
+@admin_bp.route("/ferramentas/gerador-relatorio-plantao", methods=["GET", "POST"])
+@login_required
+@admin_required
+def gerador_relatorio_plantao_tool():
+    form = GeradorRelatorioPlantaoForm()
+    
+    # Preencher supervisores dinamicamente (se necessário)
+    # form.supervisor.choices = ...
+    
+    dados_gerados = None
+    
+    if request.method == "POST" and form.validate_on_submit():
+        data_plantao = form.data_plantao.data
+        turno = form.turno.data
+        
+        # Buscar ocorrencias
+        # Consideramos ocorrencias do dia e turno (ou data_hora_ocorrencia)
+        ocorrencias = Ocorrencia.query.filter(
+            db.func.date(Ocorrencia.data_hora_ocorrencia) == data_plantao,
+            Ocorrencia.turno == turno
+        ).all()
+        
+        # Buscar totais de rondas por condominio
+        rondas_query = db.session.query(Condominio.nome, db.func.sum(Ronda.total_rondas_no_log)).join(Ronda).filter(
+            Ronda.data_plantao_ronda == data_plantao,
+            Ronda.turno_ronda == turno
+        ).group_by(Condominio.nome).all()
+        
+        rondas_dict = {nome: total or 0 for nome, total in rondas_query}
+        
+        # Buscar totais de paradas por condominio
+        paradas_query = db.session.query(Condominio.nome, db.func.sum(Parada.total_paradas_no_log)).join(Parada).filter(
+            Parada.data_plantao_parada == data_plantao,
+            Parada.turno_parada == turno
+        ).group_by(Condominio.nome).all()
+        
+        paradas_dict = {nome: total or 0 for nome, total in paradas_query}
+        
+        # Obter todos os condomínios para listar com 0 se não houver registro
+        todos_condominios = [c.nome for c in Condominio.query.order_by(Condominio.nome).all()]
+        
+        rondas_finais = {c: rondas_dict.get(c, 0) for c in todos_condominios}
+        paradas_finais = {c: paradas_dict.get(c, 0) for c in todos_condominios}
+        
+        # Totalizadores
+        total_rondas = sum(rondas_finais.values())
+        total_paradas = sum(paradas_finais.values())
+        
+        dados_gerados = {
+            "form": form,
+            "ocorrencias": ocorrencias,
+            "rondas": rondas_finais,
+            "total_rondas": total_rondas,
+            "paradas": paradas_finais,
+            "total_paradas": total_paradas,
+        }
+    
+    return render_template(
+        "admin/gerador_relatorio_plantao.html",
+        title="Gerador de Relatório de Plantão (E-mail)",
+        form=form,
+        dados_gerados=dados_gerados
     )
