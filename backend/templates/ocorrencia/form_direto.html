@@ -228,9 +228,32 @@
             console.log("Chaves disponíveis:", Object.keys(dados));
 
             // Atualização dos campos
+            let alertaData = "";
             if (dados.data_hora_ocorrencia) {
               console.log("Definindo data:", dados.data_hora_ocorrencia);
               $("#data_hora_ocorrencia").val(dados.data_hora_ocorrencia);
+              
+              // Validação da data
+              try {
+                  const datePart = dados.data_hora_ocorrencia.split('T')[0];
+                  const parts = datePart.split('-');
+                  if (parts.length === 3) {
+                      const ano = parseInt(parts[0]);
+                      const mes = parseInt(parts[1]);
+                      const dia = parseInt(parts[2]);
+                      const dataExtraida = new Date(ano, mes - 1, dia);
+                      const hoje = new Date();
+                      
+                      const diffTempo = hoje.getTime() - dataExtraida.getTime();
+                      const diffDias = diffTempo / (1000 * 60 * 60 * 24);
+                      
+                      if (dataExtraida.getFullYear() !== hoje.getFullYear() || diffDias > 7 || diffDias < -7) {
+                          alertaData = "\n\n⚠️ ATENÇÃO: A data extraída (" + parts[2] + "/" + parts[1] + "/" + parts[0] + ") parece ser antiga ou inconsistente com a data de hoje. Verifique o campo de Data e Hora da Ocorrência!";
+                      }
+                  }
+              } catch (e) {
+                  console.error("Erro ao validar data", e);
+              }
             }
             
             if (dados.hora_ocorrencia) {
@@ -275,7 +298,7 @@
             }
 
             if (Object.keys(dados).length > 0) {
-              alert("Campos preenchidos com base no relatório. Por favor, revise antes de salvar.");
+              alert("Campos preenchidos com base no relatório. Por favor, revise antes de salvar." + alertaData);
             } else {
               alert("Análise concluída, mas nenhum dado correspondente foi encontrado para preenchimento automático.");
             }

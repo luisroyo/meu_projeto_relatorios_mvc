@@ -289,7 +289,27 @@ const OcorrenciaEditPage: React.FC = () => {
         ocorrencia_tipo_id: tipoOcorrencia || prev.ocorrencia_tipo_id,
       }));
 
-      setSuccessMessage('Campos preenchidos automaticamente com base no relatório!');
+      // Validação da data extraída vs Data atual
+      let alertaData = '';
+      if (dataHora) {
+        const [anoStr, mesStr, diaStr] = dataHora.split('T')[0].split('-');
+        const dataExtraida = new Date(parseInt(anoStr), parseInt(mesStr) - 1, parseInt(diaStr));
+        const hoje = new Date();
+        
+        // Verifica se o ano é diferente ou se a diferença é maior que 7 dias
+        const diffTempo = hoje.getTime() - dataExtraida.getTime();
+        const diffDias = diffTempo / (1000 * 60 * 60 * 24);
+        
+        if (dataExtraida.getFullYear() !== hoje.getFullYear() || diffDias > 7 || diffDias < -7) {
+          alertaData = `⚠️ ATENÇÃO: A data extraída do relatório (${diaStr}/${mesStr}/${anoStr}) parece estar incorreta ou ser muito distante da data de hoje. Por favor, verifique se a data está correta antes de salvar!`;
+        }
+      }
+
+      if (alertaData) {
+        setError(alertaData);
+      } else {
+        setSuccessMessage('Campos preenchidos automaticamente com base no relatório!');
+      }
     } catch (error: any) {
       console.error('Erro ao analisar relatório:', error);
       setError(error.message || 'Erro ao analisar relatório');
