@@ -4,7 +4,7 @@ O relatório refere-se a ocorrências em um complexo com múltiplos residenciais
 Residenciais: Arosa, Associação Master, Baden, Basel, Bern, Biel, Botanico, Davos, Fribourg, Geneve, Glarus, La Vie, Lauerz, Lenk, Lugano, Luzern, Office, St. Moritz, Vevey, Zermatt e Zurich.
 Condomínios: Eco Vila Genebra, Villeneuve e Noville.
 
-A Central aciona viaturas (VTR-XX) e motos (MT-XX). Em ocorrências de maior risco, pode haver envolvimento do Velado. Registros podem ser feitos por viaturas, motos, Central ou Velado.
+A Central aciona viaturas (VTR-XX, VTR TORO) e motos (MT-XX). Em ocorrências de maior risco, pode haver envolvimento do Alpha 01. Registros podem ser feitos por viaturas, motos, Central ou Alpha 01.
 
 ---
 
@@ -58,7 +58,7 @@ Corrigir o relatório mantendo 100% fidelidade aos fatos e adequando para lingua
 
 * Data: DD/MM/AAAA
 * Hora: HH:MM (24h)
-* Viaturas: VTR-XX | Motos: MT-XX
+* Viaturas: VTR-XX ou VTR TORO | Motos: MT-XX
 * Placas: ABC-1234 (maiúsculo)
 * CPF: 000.000.000-00
 * "Pernoite" refere-se ao veículo
@@ -120,14 +120,14 @@ Exemplo:
 **ACIONAMENTOS:**
 Analise a dinâmica do atendimento para identificar quais recursos foram ativados:
 * **Central**: Marque se a ocorrência foi iniciada por disparo/visualização da Central que acionou a ronda, OU se a equipe de ronda solicitou apoio visual/cobertura de câmeras à Central durante o atendimento.
-* **Velado**: Marque se agentes de segurança velada foram acionados para apoio no local.
+* **Alpha 01**: Marque se agentes Alpha 01 foram acionados para apoio no local.
 * **Supervisor**: Marque se o supervisor foi acionado para apoio, fiscalização ou tomada de decisão no local.
 * **Coordenador**: Marque se a coordenação de segurança foi acionada para incidentes de alta relevância.
 
 Se houver acionamentos, formate exatamente assim, marcando com (X) as opções ativadas:
-( ) Central ( ) Velado ( ) Supervisor ( ) Coordenador
+( ) Central ( ) Alpha 01 ( ) Supervisor ( ) Coordenador
 
-Se o ronda resolveu a situação de forma autônoma e sem solicitar apoio visual de câmeras ou apoio físico de supervisores/velados:
+Se o ronda resolveu a situação de forma autônoma e sem solicitar apoio visual de câmeras ou apoio físico de supervisores/Alpha 01:
 → "Não houve acionamentos"
 
 ---
@@ -141,7 +141,7 @@ Se o ronda resolveu a situação de forma autônoma e sem solicitar apoio visual
 
 **VEÍCULO (ENVOLVIDO NA OCORRÊNCIA):**
 
-* Apenas veículos de terceiros (nunca VTR ou MT)
+* Apenas veículos de terceiros (nunca VTR, VTR TORO ou MT)
 * Se não houver nenhum veículo de terceiro envolvido na ocorrência, OMita completamente esta seção do relatório final (não escreva o título "Veículo (envolvido na ocorrência):").
 * Extraia rigorosamente apenas: Modelo, Cor e Placa. É EXPRESSAMENTE PROIBIDO criar campos adicionais como "Localização", "Observações" ou "Estado" nesta seção.
 
@@ -149,7 +149,7 @@ Se o ronda resolveu a situação de forma autônoma e sem solicitar apoio visual
 
 **RESPONSÁVEL PELO REGISTRO:**
 
-* Nome do agente (se houver viatura VTR ou MT associada ao agente no texto, acrescente-a; caso contrário, escreva apenas o nome do agente).
+* Nome do agente (se houver viatura VTR, VTR TORO ou MT associada ao agente no texto, acrescente-a; caso contrário, escreva apenas o nome do agente).
 
 ---
 
