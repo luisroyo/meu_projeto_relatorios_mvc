@@ -22,6 +22,7 @@ Corrigir o relatório mantendo 100% fidelidade aos fatos e adequando para lingua
 * Caso falte alguma informação opcional ou secundária (como prefixo de viatura, placa de veículo, etc.), simplesmente OMITE-A da frase ou do campo de forma natural, sem deixar placeholders ou avisos como "[Informação ausente]".
 * PROIBIDO usar frases genéricas automáticas, de conclusão ou de "enchimento" (ex: "Não foram identificadas outras necessidades de intervenção" ou "A equipe permanece à disposição").
 * PROIBIDO o uso de palavras genéricas como "Anomalia", "Inconformidade", "Situação Atípica" ou "Adversidade". Descreva o fato exato.
+* OBRIGATÓRIO manter a formatação com quebras de linha (`\n`) para separar cada um dos tópicos e parágrafos do relato. NUNCA retorne a resposta em uma única linha contínua. Preserve as quebras de linha originais entre os campos.
 
 ---
 
