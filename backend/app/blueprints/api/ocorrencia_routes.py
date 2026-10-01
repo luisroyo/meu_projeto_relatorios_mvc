@@ -83,6 +83,7 @@ def listar_ocorrencias():
                 ocorrencias.append({
                     'id': o.id,
                     'tipo': o.tipo.nome if o.tipo else 'N/A',
+                    'titulo': o.titulo,
                     'condominio': o.condominio.nome if o.condominio else 'N/A',
                     'data_hora_ocorrencia': o.data_hora_ocorrencia.isoformat() if o.data_hora_ocorrencia else None,
                     'descricao': o.relatorio_final,

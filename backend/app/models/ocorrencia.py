@@ -87,4 +87,16 @@ class Ocorrencia(db.Model):
         cond_nome = self.condominio.nome if self.condominio else "Sem Condomínio"
         return f'<Ocorrencia {self.id} - {tipo_nome} em {data_str} ({cond_nome})>'
 
+    @property
+    def titulo(self):
+        if not self.relatorio_final:
+            return ""
+        for line in self.relatorio_final.split('\n'):
+            line = line.strip()
+            if line.lower().startswith('ocorrência:') or line.lower().startswith('ocorrencia:'):
+                return line.split(':', 1)[1].strip()
+            elif line.lower().startswith('*título:*') or line.lower().startswith('título:'):
+                return line.split(':', 1)[1].strip().replace('*', '')
+        return "Sem Título"
+
 __all__ = ["Ocorrencia", "ocorrencia_orgaos", "ocorrencia_colaboradores"]

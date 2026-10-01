@@ -14,3 +14,13 @@ class VWOcorrenciasDetalhadas(db.Model):
     registrado_por = db.Column(db.String)
     supervisor = db.Column(db.String)
     relatorio_final = deferred(db.Column(db.Text)) 
+
+    @property
+    def titulo(self):
+        if not self.relatorio_final:
+            return ""
+        for line in self.relatorio_final.split('\n'):
+            line = line.strip()
+            if line.lower().startswith('ocorrência:') or line.lower().startswith('ocorrencia:'):
+                return line.split(':', 1)[1].strip()
+        return "Sem Título"

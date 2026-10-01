@@ -738,6 +738,7 @@ const OcorrenciasPage: React.FC = () => {
                   </TableCell>
                   <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>ID</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>Tipo</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>Título</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>Condomínio</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>Data/Hora</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>Status</TableCell>
@@ -748,7 +749,7 @@ const OcorrenciasPage: React.FC = () => {
               <TableBody>
                 {ocorrencias.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                       <Typography variant="body1" color="text.secondary">
                         Nenhuma ocorrência encontrada
                       </Typography>
@@ -779,6 +780,9 @@ const OcorrenciasPage: React.FC = () => {
                       </TableCell>
                       <TableCell sx={{ fontWeight: 500 }}>#{ocorrencia.id}</TableCell>
                       <TableCell>{ocorrencia.tipo}</TableCell>
+                      <TableCell sx={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={ocorrencia.titulo}>
+                        {ocorrencia.titulo || 'Sem Título'}
+                      </TableCell>
                       <TableCell>{ocorrencia.condominio}</TableCell>
                       <TableCell>{formatDate(ocorrencia.data_hora_ocorrencia)}</TableCell>
                       <TableCell>

@@ -66,6 +66,7 @@ export interface RecentRonda {
 export interface Ocorrencia {
   id: number;
   tipo: string; // Nome do tipo
+  titulo?: string; // Título da ocorrência
   condominio: string; // Nome do condomínio
   data_hora_ocorrencia: string;
   descricao: string; // relatorio_final
