@@ -10,7 +10,7 @@ from .base_generative_service import \
 class PatrimonialReportService(BaseGenerativeService):
     def __init__(
         self,
-        model_name="gemini-flash-latest",
+        model_name="gemini-flash-lite-latest",
         template_filename="patrimonial_security_report_template.txt",
     ):
         super().__init__(
