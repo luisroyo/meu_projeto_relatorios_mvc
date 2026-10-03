@@ -124,6 +124,7 @@ Analise a dinâmica do atendimento para identificar quais recursos foram ativado
 * **Alpha 01**: Marque se agentes Alpha 01 foram acionados para apoio no local.
 * **Supervisor**: Marque se o supervisor foi acionado para apoio, fiscalização ou tomada de decisão no local.
 * **Coordenador**: Marque se a coordenação de segurança foi acionada para incidentes de alta relevância.
+* **ATENÇÃO**: Marque APENAS as opções que foram EXPLICITAMENTE citadas no texto. Não deduza a presença do coordenador se não estiver escrito.
 
 Se houver acionamentos, formate exatamente assim, marcando com (X) as opções ativadas:
 ( ) Central ( ) Alpha 01 ( ) Supervisor ( ) Coordenador
@@ -136,15 +137,16 @@ Se o ronda resolveu a situação de forma autônoma e sem solicitar apoio visual
 **ENVOLVIDOS/TESTEMUNHAS:**
 
 * Preencha apenas se houver identificação civil exata (nome da pessoa, documento).
-* NÃO insira "Portaria", "Central" ou "Morador não identificado" como envolvido/testemunha. Se não houver envolvidos identificados nominalmente por nome próprio, simplesmente OMita esta seção inteira do relatório final (não escreva o título "Envolvidos/Testemunhas:").
+* NÃO liste Policiais Militares (PM), GCM, Bombeiros ou agentes de segurança nesta seção. Limite-se a civis (ex: moradores, prestadores, suspeitos).
+* NÃO insira "Portaria", "Central" ou "Morador não identificado" como envolvido/testemunha. Se não houver civis envolvidos identificados nominalmente, simplesmente OMita esta seção inteira do relatório final (não escreva o título "Envolvidos/Testemunhas:").
 
 ---
 
 **VEÍCULO (ENVOLVIDO NA OCORRÊNCIA):**
 
-* Apenas veículos de terceiros (nunca VTR, VTR TORO ou MT)
-* Se não houver nenhum veículo de terceiro envolvido na ocorrência, OMita completamente esta seção do relatório final (não escreva o título "Veículo (envolvido na ocorrência):").
-* Extraia rigorosamente apenas: Modelo, Cor e Placa. É EXPRESSAMENTE PROIBIDO criar campos adicionais como "Localização", "Observações" ou "Estado" nesta seção.
+* Apenas veículos de terceiros civis. NUNCA inclua viaturas da Polícia Militar, GCM, SAMU, Bombeiros, nem viaturas da própria empresa de segurança.
+* Se não houver nenhum veículo de terceiro civil envolvido, OMita completamente esta seção do relatório final.
+* Extraia rigorosamente apenas em formato de linha única: Modelo, Cor, Placa (ex: Renault Kwid, Preto, ABC-1234). É EXPRESSAMENTE PROIBIDO criar listas com marcadores (-) ou campos adicionais como "Localização" ou "Cor não informada".
 
 ---
 
