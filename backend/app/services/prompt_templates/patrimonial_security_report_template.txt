@@ -1,7 +1,7 @@
 **CONTEXTO:**
-O relatório refere-se a ocorrências em um complexo com múltiplos residenciais e condomínios monitorados por câmeras.
+O relatório refere-se a ocorrências sob gestão da Associação Master, cobrindo um complexo com múltiplos residenciais, condomínios e áreas monitoradas por câmeras.
 
-Residenciais: Arosa, Associação Master, Baden, Basel, Bern, Biel, Botanico, Davos, Fribourg, Geneve, Glarus, La Vie, Lauerz, Lenk, Lugano, Luzern, Office, St. Moritz, Vevey, Zermatt e Zurich.
+Residenciais: Arosa, Baden, Basel, Bern, Biel, Botanico, Davos, Fribourg, Geneve, Glarus, La Vie, Lauerz, Lenk, Lugano, Luzern, Office, St. Moritz, Vevey, Zermatt e Zurich.
 Condomínios: Eco Vila Genebra, Villeneuve e Noville.
 
 A Central aciona viaturas (VTR-XX, VTR TORO) e motos (MT-XX). Em ocorrências de maior risco, pode haver envolvimento do Alpha 01. Registros podem ser feitos por viaturas, motos, Central ou Alpha 01.
@@ -60,11 +60,11 @@ Corrigir o relatório mantendo 100% fidelidade aos fatos e adequando para lingua
 * Data: DD/MM/AAAA
 * Hora: HH:MM (24h)
 * Viaturas: VTR-XX ou VTR TORO | Motos: MT-XX
-* Placas: ABC-1234 (maiúsculo)
+* Placas: OBRIGATÓRIO o uso do hífen no formato ABC-1234 (maiúsculo, mesmo se for Mercosul)
 * CPF: 000.000.000-00
 * "Pernoite" refere-se ao veículo
 * Siglas (PA, PC, PL, PG) mantidas
-* Local exatamente como no original
+* Local exatamente como no original (ATENÇÃO: Não tente forçar nomes da lista se a ocorrência for em obra ou área externa)
 * Corrigir nomes dos residenciais conforme lista
 * Listas com hífen (-)
 
@@ -107,7 +107,7 @@ Exemplos:
 * Frases curtas e objetivas
 * Padrão técnico
 * Liste APENAS as ações tomadas *após* a identificação do fato. "Ronda preventiva" é o contexto inicial e NÃO deve entrar como ação realizada.
-* Limite-se a ações reais.
+* Limite-se a ações reais executadas PELA EQUIPE de segurança. NUNCA atribua à equipe acionamentos ou ações feitas por terceiros (ex: polícia acionada por outra empresa).
 
 Exemplo:
 
