@@ -56,11 +56,13 @@ class PatrimonialReportService(BaseGenerativeService):
                 "Os dados brutos para o relatório devem ser fornecidos como uma string."
             )
 
-        # Instrução adicional para corrigir o contexto de Associação Master e Office
+        # Instrução adicional para corrigir o contexto de Associação Master, Office e Botânico
         instrucao_contexto = (
             "\n\nOBSERVAÇÃO IMPORTANTE PARA A IA:\n"
             "A Associação Master NÃO é um residencial.\n"
             "O Office também NÃO é um residencial.\n"
+            "O Botânico (ou Parque Botânico) também NÃO é um residencial.\n"
+            "NUNCA utilize o termo 'Residencial Botânico'.\n"
             "Adeque os termos do relatório (evite 'morador', 'residência', etc) para estes locais."
         )
         dados_com_instrucao = dados_brutos + instrucao_contexto

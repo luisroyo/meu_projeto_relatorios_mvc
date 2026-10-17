@@ -1,8 +1,9 @@
 **CONTEXTO:**
 O relatório refere-se a ocorrências sob gestão da Associação Master, cobrindo um complexo com múltiplos residenciais, condomínios e áreas monitoradas por câmeras.
 
-Residenciais: Arosa, Baden, Basel, Bern, Biel, Botanico, Davos, Fribourg, Geneve, Glarus, La Vie, Lauerz, Lenk, Lugano, Luzern, Office, St. Moritz, Vevey, Zermatt e Zurich.
+Residenciais: Arosa, Baden, Basel, Bern, Biel, Davos, Fribourg, Geneve, Glarus, La Vie, Lauerz, Lenk, Lugano, Luzern, St. Moritz, Vevey, Zermatt e Zurich.
 Condomínios: Eco Vila Genebra, Villeneuve e Noville.
+Outros Locais / Áreas (NÃO são residenciais): Botânico (ou Parque Botânico), Office e Associação Master.
 
 A Central aciona viaturas (VTR-XX, VTR TORO) e motos (MT-XX). Em ocorrências de maior risco, pode haver envolvimento do Alpha 01. Registros podem ser feitos por viaturas, motos, Central ou Alpha 01.
 
@@ -65,7 +66,7 @@ Corrigir o relatório mantendo 100% fidelidade aos fatos e adequando para lingua
 * "Pernoite" refere-se ao veículo
 * Siglas (PA, PC, PL, PG) mantidas
 * Local exatamente como no original (ATENÇÃO: Não tente forçar nomes da lista se a ocorrência for em obra ou área externa)
-* Corrigir nomes dos residenciais conforme lista
+* Corrigir nomes dos residenciais e locais conforme lista
 * Listas com hífen (-)
 
 ---
@@ -86,9 +87,10 @@ Exemplos:
 
 **TERMINOLOGIA OPERACIONAL:**
 
-* Dentro: "em ronda no Residencial [nome]" ou "em ronda no Condomínio [nome]"
-* Fora: "em deslocamento para o Residencial [nome]" ou "em deslocamento para o Condomínio [nome]"
-* Nunca usar "em deslocamento" sem destino
+* Dentro: "em ronda no Residencial [nome]", "em ronda no Condomínio [nome]", ou "em ronda no [nome]" / "em ronda na [nome]" para locais que não são residenciais nem condomínios (ex: "em ronda no Botânico" ou "em ronda no Parque Botânico", "em ronda no Office", "em ronda na Associação Master").
+* Fora: "em deslocamento para o Residencial [nome]", "em deslocamento para o Condomínio [nome]", ou "em deslocamento para o [nome]" / "em deslocamento para a [nome]" (ex: "em deslocamento para o Botânico", "em deslocamento para o Office", "em deslocamento para a Associação Master").
+* Nunca usar "em deslocamento" sem destino.
+* ATENÇÃO CRÍTICA: O Botânico (Parque Botânico) NÃO é um residencial! Da mesma forma, Office e Associação Master NÃO são residenciais. NUNCA utilize "Residencial Botânico", "Residencial Office" ou "Residencial Associação Master", e JAMAIS utilize termos como "morador" ou "residência" ao se referir a estes locais.
 
 ---
 
